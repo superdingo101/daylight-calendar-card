@@ -3259,10 +3259,14 @@ class SkylightCalendarCard extends HTMLElement {
       ? '--calendar-background: transparent;'
       : '';
     const containerStyle = `${headerStyle} ${backgroundStyle} ${backgroundImageStyle}`.trim();
+    const externalStyleOverrides = typeof this._config?.uix?.style === 'string'
+      ? this._config.uix.style
+      : '';
 
     this._root.innerHTML = `
       <style>
         ${this.getStyles()}
+        ${externalStyleOverrides}
       </style>
 
       <div class="calendar-container ${this._isDarkMode ? 'dark-mode' : ''} ${hasCustomBackground ? 'custom-background' : ''}" style="${containerStyle}">
