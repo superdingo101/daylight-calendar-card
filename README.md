@@ -83,7 +83,7 @@ OR
 1. Download:
    [https://raw.githubusercontent.com/superdingo101/daylight-calendar-card/refs/heads/main/skylight-calendar-card.js](https://raw.githubusercontent.com/superdingo101/daylight-calendar-card/refs/heads/main/skylight-calendar-card.js)
 2. Place in:
-   `<config>/www/skylight-calendar-card.js`
+   `<config>/www/daylight-calendar-card.js`
 3. Add resource:
 
    ```
