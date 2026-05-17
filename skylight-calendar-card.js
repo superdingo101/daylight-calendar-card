@@ -1200,6 +1200,7 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedCalendarColors = this.normalizeColorMap(config.colors || {});
     const normalizedEventFontColors = this.normalizeColorMap(config.event_font_colors || {});
     const normalizedEventStyles = this.normalizeEventStyles(config.event_styles || []);
+    const normalizedEventKeywordIcons = this.normalizeEventKeywordIcons(config.event_keyword_icons || []);
     const normalizedLocale = resolveLanguage(config.locale || config.language || this._hass?.locale?.language || this._hass?.language);
     const normalizedDayStyles = this.normalizeDayStyles(config.day_styles || [], normalizedLocale);
     const normalizedHeaderColor = this.normalizeSingleColor(config.header_color);
@@ -1293,6 +1294,7 @@ class SkylightCalendarCard extends HTMLElement {
       event_title_prefix: normalizedEventTitlePrefix, // Prefix event titles with calendar friendly name or badge icon
       event_font_colors: normalizedEventFontColors, // Per-calendar font colors for event bubble text
       event_styles: normalizedEventStyles, // Per-event styling rules with match logic
+      event_keyword_icons: normalizedEventKeywordIcons, // Per-keyword event icons with optional calendar scoping
       day_styles: normalizedDayStyles, // Per-day styling rules
       hide_times_for_calendars: config.hide_times_for_calendars || [], // Hide times in schedule view for specific calendars
       show_current_time_bar: config.show_current_time_bar || false, // Show a "now" indicator in schedule view
@@ -1342,6 +1344,7 @@ class SkylightCalendarCard extends HTMLElement {
       calendar_person_entities: normalizedCalendarPersonEntities,
       agenda_compact_events: config.agenda_compact_events ?? false,
       event_styles: normalizedEventStyles,
+      event_keyword_icons: normalizedEventKeywordIcons,
       day_styles: normalizedDayStyles
       ,
       event_color_mode: this.normalizeEventColorMode(config.event_color_mode ?? 'classic'),
@@ -1648,6 +1651,50 @@ class SkylightCalendarCard extends HTMLElement {
           priority,
           match,
           style: this.normalizeEventStyleBlock(style),
+          index
+        };
+      })
+      .filter(Boolean);
+  }
+
+  normalizeEventKeywordIcons(rawRules) {
+    if (!Array.isArray(rawRules)) return [];
+
+    return rawRules
+      .map((rule, index) => {
+        if (!rule || typeof rule !== 'object') return null;
+
+        const keyword = typeof rule.keyword === 'string' ? rule.keyword.trim() : '';
+        const icon = typeof rule.icon === 'string' ? rule.icon.trim() : '';
+        if (!keyword || !icon) return null;
+
+        const calendar = typeof rule.calendar === 'string' ? rule.calendar.trim() : '';
+        const rawCalendars = Array.isArray(rule.calendars)
+          ? rule.calendars
+          : (typeof rule.calendars === 'string' ? [rule.calendars] : []);
+        const calendars = Array.from(new Set([
+          ...(calendar ? [calendar] : []),
+          ...rawCalendars
+            .filter((entry) => typeof entry === 'string')
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+        ]));
+
+        let match = { title: keyword };
+        if (Object.prototype.hasOwnProperty.call(rule, 'calendars') && calendars.length > 0) {
+          match = {
+            title: keyword,
+            any: calendars.map((calendarId) => ({ calendar: calendarId }))
+          };
+        } else if (calendar) {
+          match = { title: keyword, calendar };
+        }
+
+        return {
+          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `event-keyword-icon-${index + 1}`,
+          keyword,
+          icon,
+          match,
           index
         };
       })
@@ -4515,6 +4562,12 @@ class SkylightCalendarCard extends HTMLElement {
         flex-shrink: 0;
       }
 
+      .week-standard-event-icon ha-icon {
+        --mdc-icon-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+
       .combined-corner-bubbles {
         position: absolute;
         right: 6px;
@@ -6425,6 +6478,12 @@ class SkylightCalendarCard extends HTMLElement {
       return '';
     }
 
+    const keywordIcon = this.getEventKeywordIcon(event);
+    if (keywordIcon) {
+      const iconColor = this.normalizeSingleColor(event?.color) || '#6b7280';
+      return `<div class="week-standard-event-icons"><div class="week-standard-event-icon" style="background: ${iconColor}; color: white;"><ha-icon icon="${this.escapeHtml(keywordIcon)}"></ha-icon></div></div>`;
+    }
+
     const styleOverrides = this.getEventStyleOverrides(event);
     const useFriendlyName = this._config.event_calendar_friendly_name;
     const hideCalendarBubble = styleOverrides?.hide_event_calendar_bubble ?? this._config.hide_event_calendar_bubble;
@@ -7227,6 +7286,16 @@ class SkylightCalendarCard extends HTMLElement {
     }
 
     return [event.color];
+  }
+
+  getMatchedEventKeywordIconRules(event) {
+    const configuredRules = Array.isArray(this._config?.event_keyword_icons) ? this._config.event_keyword_icons : [];
+    if (configuredRules.length === 0) return [];
+    return configuredRules.filter((rule) => this.eventMatchesRule(event, rule.match));
+  }
+
+  getEventKeywordIcon(event) {
+    return this.getMatchedEventKeywordIconRules(event)[0]?.icon || null;
   }
 
   getMatchedEventStyleRules(event) {

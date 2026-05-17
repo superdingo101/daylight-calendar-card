@@ -665,6 +665,45 @@ test('virtual_calendars normalize and affect calendar token matching', () => {
 
 
 
+test('event_keyword_icons support calendar scoped keyword matches', () => {
+  const card = makeCard({
+    entities: ['calendar.kids', 'calendar.work'],
+    event_keyword_icons: [{ keyword: 'soccer', icon: 'mdi:soccer', calendar: 'calendar.kids' }]
+  });
+  const kidsEvent = { entityId: 'calendar.kids', color: '#f00', summary: 'Soccer practice', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  const workEvent = { entityId: 'calendar.work', color: '#00f', summary: 'Soccer practice', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+
+  assert.deepEqual(card._config.event_keyword_icons[0].match, { title: 'soccer', calendar: 'calendar.kids' });
+  assert.equal(card.getEventKeywordIcon(kidsEvent), 'mdi:soccer');
+  assert.equal(card.getEventKeywordIcon(workEvent), null);
+});
+
+test('event_keyword_icons support multiple calendar and virtual calendar matches', () => {
+  const card = makeCard({
+    entities: ['calendar.family', 'calendar.health', 'calendar.kids'],
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.family', 'calendar.kids'], color: '#778899' }],
+    event_keyword_icons: [
+      { keyword: 'dentist', icon: 'mdi:tooth', calendars: ['calendar.family', 'calendar.health'] },
+      { keyword: 'movie', icon: 'mdi:movie', calendar: 'virtual:family' }
+    ]
+  });
+  const familyDentist = { entityId: 'calendar.family', color: '#f00', summary: 'Dentist appointment', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  const healthDentist = { entityId: 'calendar.health', color: '#0f0', summary: 'Dentist appointment', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  const kidsDentist = { entityId: 'calendar.kids', color: '#00f', summary: 'Dentist appointment', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  const kidsMovie = { entityId: 'calendar.kids', color: '#00f', summary: 'Movie night', start: { dateTime: '2026-05-01T18:00:00Z' }, end: { dateTime: '2026-05-01T20:00:00Z' } };
+
+  assert.deepEqual(card._config.event_keyword_icons[0].match, {
+    title: 'dentist',
+    any: [{ calendar: 'calendar.family' }, { calendar: 'calendar.health' }]
+  });
+  assert.equal(card.getEventKeywordIcon(familyDentist), 'mdi:tooth');
+  assert.equal(card.getEventKeywordIcon(healthDentist), 'mdi:tooth');
+  assert.equal(card.getEventKeywordIcon(kidsDentist), null);
+  assert.equal(card.getEventKeywordIcon(kidsMovie), 'mdi:movie');
+});
+
+
+
 test('feature order: combine then virtual then event styles influences visible colors/style', () => {
   const card = makeCard({
     entities: ['calendar.a', 'calendar.b'],
