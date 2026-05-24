@@ -365,17 +365,20 @@ test('regression issue 321: compact header stays single-row in wide layout when 
 
   const card = page.locator('skylight-calendar-card');
   await expect(card).toBeVisible();
-  await expect(card.locator('.header-compact')).toBeVisible();
+
+  const header = card.locator('.header-compact');
+  const left = card.locator('.compact-header-left');
+  const controls = card.locator('.compact-header-controls');
+
+  await expect(header).toBeVisible();
+  await expect(left).toBeVisible();
+  await expect(controls).toBeVisible();
 
   await expect.poll(async () => {
-    return await card.evaluate((host) => {
-      const root = host.shadowRoot;
-      const left = root.querySelector('.compact-header-left');
-      const controls = root.querySelector('.compact-header-controls');
-      if (!left || !controls) return null;
-      const delta = Math.abs(left.getBoundingClientRect().top - controls.getBoundingClientRect().top);
-      return delta;
-    });
+    const leftBox = await left.boundingBox();
+    const controlsBox = await controls.boundingBox();
+    if (!leftBox || !controlsBox) return 999;
+    return Math.abs(leftBox.y - controlsBox.y);
   }).toBeLessThan(2);
 });
 
@@ -405,16 +408,19 @@ test('regression issue 321: standard header stays single-row in wide layout when
 
   const card = page.locator('skylight-calendar-card');
   await expect(card).toBeVisible();
-  await expect(card.locator('.header')).toBeVisible();
+
+  const header = card.locator('.header');
+  const left = card.locator('.header-left');
+  const controls = card.locator('.header-controls');
+
+  await expect(header).toBeVisible();
+  await expect(left).toBeVisible();
+  await expect(controls).toBeVisible();
 
   await expect.poll(async () => {
-    return await card.evaluate((host) => {
-      const root = host.shadowRoot;
-      const left = root.querySelector('.header-left');
-      const controls = root.querySelector('.header-controls');
-      if (!left || !controls) return null;
-      const delta = Math.abs(left.getBoundingClientRect().top - controls.getBoundingClientRect().top);
-      return delta;
-    });
+    const leftBox = await left.boundingBox();
+    const controlsBox = await controls.boundingBox();
+    if (!leftBox || !controlsBox) return 999;
+    return Math.abs(leftBox.y - controlsBox.y);
   }).toBeLessThan(2);
 });
