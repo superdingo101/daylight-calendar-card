@@ -338,3 +338,83 @@ test('regression: month compact-height view selector stays clickable without dev
   await expect(card.locator('.calendar-grid')).toBeVisible();
   await expect(selector).toBeEnabled();
 });
+
+test('regression issue 321: compact header stays single-row in wide layout when naturally unwrapped', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Issue 321 Compact',
+      default_view: 'week-compact',
+      compact_header: true,
+      compact_height: false,
+      hide_dark_mode_toggle: true,
+      show_dashboard_nav_button: true,
+      header_weather_sensor: 'weather.mock',
+      enable_event_management: true,
+      hide_view_selector: false,
+      day_badges: [],
+      uix: { style: '.nav-button,.today-button,.add-event-button,.view-mode-select{font-size:18px!important;}' }
+    },
+    events: baseEvents,
+    weather: { 'weather.mock': { temperature: 72, condition: 'sunny' } },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.header-compact')).toBeVisible();
+
+  await expect.poll(async () => {
+    return await card.evaluate((host) => {
+      const root = host.shadowRoot;
+      const left = root.querySelector('.compact-header-left');
+      const controls = root.querySelector('.compact-header-controls');
+      if (!left || !controls) return null;
+      const delta = Math.abs(left.getBoundingClientRect().top - controls.getBoundingClientRect().top);
+      return delta;
+    });
+  }).toBeLessThan(2);
+});
+
+test('regression issue 321: standard header stays single-row in wide layout when naturally unwrapped', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Issue 321 Standard',
+      default_view: 'week-standard',
+      compact_header: false,
+      compact_height: false,
+      hide_dark_mode_toggle: true,
+      show_dashboard_nav_button: true,
+      header_weather_sensor: 'weather.mock',
+      enable_event_management: true,
+      hide_view_selector: false,
+      day_badges: [],
+      uix: { style: '.nav-button,.today-button,.add-event-button,.view-mode-select{font-size:18px!important;}' }
+    },
+    events: baseEvents,
+    weather: { 'weather.mock': { temperature: 72, condition: 'sunny' } },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.header')).toBeVisible();
+
+  await expect.poll(async () => {
+    return await card.evaluate((host) => {
+      const root = host.shadowRoot;
+      const left = root.querySelector('.header-left');
+      const controls = root.querySelector('.header-controls');
+      if (!left || !controls) return null;
+      const delta = Math.abs(left.getBoundingClientRect().top - controls.getBoundingClientRect().top);
+      return delta;
+    });
+  }).toBeLessThan(2);
+});

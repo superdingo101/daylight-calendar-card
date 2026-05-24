@@ -908,6 +908,139 @@ test('empty day_badges config does not emit badge variables', () => {
   assert.doesNotMatch(html, /--dcc-day-badge-/);
   assert.doesNotMatch(html, /--day-badge-/);
 });
+
+test('standard header wrapped state does not force header groups to full width', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: false });
+  const styles = card.getStyles();
+  const standardRuleIndex = styles.indexOf('.header.is-wrapped .header-left');
+  assert.notEqual(standardRuleIndex, -1);
+  const standardRuleEnd = styles.indexOf('}', standardRuleIndex);
+  const standardRule = styles.slice(standardRuleIndex, standardRuleEnd + 1);
+
+  assert.doesNotMatch(standardRule, /width:\s*100%/);
+  assert.match(standardRule, /justify-content:\s*center/);
+});
+
+test('compact header wrapped state still forces full-width centered groups', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const styles = card.getStyles();
+
+  const compactRuleIndex = styles.indexOf('.header-compact.is-wrapped .compact-header-left');
+  assert.notEqual(compactRuleIndex, -1);
+
+  const compactRuleEnd = styles.indexOf('}', compactRuleIndex);
+  const compactRule = styles.slice(compactRuleIndex, compactRuleEnd + 1);
+
+  assert.match(compactRule, /width:\s*100%/);
+  assert.match(compactRule, /justify-content:\s*center/);
+});
+
+test('issue 321 standard header wrapped state does not force full-width rows', () => {
+  const card = makeCard({
+    entities: ['calendar.a'],
+    compact_header: false,
+    day_badges: [],
+    hide_dark_mode_toggle: true,
+    show_dashboard_nav_button: true,
+    header_weather_sensor: 'weather.home',
+    enable_event_management: true
+  });
+
+  const styles = card.getStyles();
+
+  const standardRuleIndex = styles.indexOf('.header.is-wrapped .header-left');
+  assert.notEqual(standardRuleIndex, -1);
+  const standardRuleEnd = styles.indexOf('}', standardRuleIndex);
+  const standardRule = styles.slice(standardRuleIndex, standardRuleEnd + 1);
+  assert.doesNotMatch(standardRule, /width:\s*100%/);
+});
+
+test('shouldMarkWrappedFromChildren only marks wrapped when visible children occupy different rows', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const sameRowChildren = [
+    { offsetParent: {}, offsetTop: 10 },
+    { offsetParent: {}, offsetTop: 10 }
+  ];
+  const wrappedChildren = [
+    { offsetParent: {}, offsetTop: 10 },
+    { offsetParent: {}, offsetTop: 26 }
+  ];
+  const hiddenChildren = [
+    { offsetParent: null, offsetTop: 10 },
+    { offsetParent: null, offsetTop: 26 }
+  ];
+
+  assert.equal(card.shouldMarkWrappedFromChildren(sameRowChildren), false);
+  assert.equal(card.shouldMarkWrappedFromChildren(wrappedChildren), true);
+  assert.equal(card.shouldMarkWrappedFromChildren(hiddenChildren), false);
+});
+
+test('updateCompactHeaderWrapState uses natural unwrapped layout for compact header measurement', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const header = {
+    classList: {
+      _set: new Set(['is-wrapped']),
+      remove(name) { this._set.delete(name); },
+      toggle(name, force) { if (force) this._set.add(name); else this._set.delete(name); },
+      contains(name) { return this._set.has(name); }
+    },
+    querySelector(sel) {
+      if (sel === '.compact-header-left') return { offsetParent: {}, offsetTop: 20 };
+      if (sel === '.compact-header-controls') return { offsetParent: {}, offsetTop: 20 };
+      return null;
+    }
+  };
+  const compactControls = {
+    children: [{ offsetParent: {}, offsetTop: 20 }, { offsetParent: {}, offsetTop: 20 }],
+    classList: { remove() {}, toggle() {} }
+  };
+  const badges = { children: [], classList: { remove() {}, toggle() {} } };
+  card._root = {
+    querySelector(sel) {
+      if (sel === '.header-compact') return header;
+      if (sel === '.compact-header-controls') return compactControls;
+      if (sel === '.calendar-badges-inline') return badges;
+      if (sel === '.header-controls') return null;
+      return null;
+    }
+  };
+
+  card.measureAndApplyHeaderWrapState();
+  assert.equal(header.classList.contains('is-wrapped'), false);
+});
+
+test('repeated updateCompactHeaderWrapState calls cancel previous pending RAFs', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: false });
+  const callbacks = new Map();
+  let rafId = 0;
+  const cancelled = [];
+  const originalRaf = window.requestAnimationFrame;
+  const originalCancel = window.cancelAnimationFrame;
+  try {
+    window.requestAnimationFrame = (cb) => {
+      rafId += 1;
+      callbacks.set(rafId, cb);
+      return rafId;
+    };
+    window.cancelAnimationFrame = (id) => {
+      cancelled.push(id);
+      callbacks.delete(id);
+    };
+
+    card.updateCompactHeaderWrapState();
+    const firstId = card._wrapMeasureRaf1;
+    card.updateCompactHeaderWrapState();
+    const secondId = card._wrapMeasureRaf1;
+
+    assert.notEqual(firstId, null);
+    assert.notEqual(secondId, null);
+    assert.notEqual(firstId, secondId);
+    assert.ok(cancelled.includes(firstId));
+  } finally {
+    window.requestAnimationFrame = originalRaf;
+    window.cancelAnimationFrame = originalCancel;
+  }
+});
 test('day_styles evaluate today/weekend/has_event rules and auto background', () => {
   const card = makeCard({
     entities: ['calendar.a'],

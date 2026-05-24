@@ -909,6 +909,8 @@ class SkylightCalendarCard extends HTMLElement {
     this._modalVisibilityObserver = null;
     this._monthMeasureRaf = null;
     this._monthMeasureRenderRaf = null;
+    this._wrapMeasureRaf1 = null;
+    this._wrapMeasureRaf2 = null;
     this._monthGridResizeObserver = null;
     this._monthCompactMeasurementDirty = true;
     this._lastCompactMonthViewportHeight = null;
@@ -1127,47 +1129,58 @@ class SkylightCalendarCard extends HTMLElement {
 
   updateCompactHeaderWrapState() {
     if (!this._root) return;
-
-    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
-    const header = this._root.querySelector(headerSelector);
-    if (header) {
-      const topLevelChildren = Array.from(header.children).filter((child) => child.offsetParent !== null);
-      if (topLevelChildren.length <= 1) {
-        header.classList.remove('is-wrapped');
-      } else {
-        const firstTop = topLevelChildren[0].offsetTop;
-        const headerWrapped = topLevelChildren.some((child) => Math.abs(child.offsetTop - firstTop) > 1);
-        header.classList.toggle('is-wrapped', headerWrapped);
-      }
-    }
-
-    const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
-    const controls = this._root.querySelector(controlsSelector);
-    if (controls) {
-      const visibleChildren = Array.from(controls.children).filter((child) => child.offsetParent !== null);
-      if (visibleChildren.length <= 1) {
-        controls.classList.remove('is-wrapped');
-      } else {
-        const firstRowTop = visibleChildren[0].offsetTop;
-        const isWrapped = visibleChildren.some((child) => Math.abs(child.offsetTop - firstRowTop) > 1);
-        controls.classList.toggle('is-wrapped', isWrapped);
-      }
-    }
-
-    if (!this._config.compact_header) return;
-
-    const badges = this._root.querySelector('.calendar-badges-inline');
-    if (!badges) return;
-
-    const visibleBadges = Array.from(badges.children).filter((child) => child.offsetParent !== null);
-    if (visibleBadges.length <= 1) {
-      badges.classList.remove('is-wrapped');
+    if (typeof window.requestAnimationFrame !== 'function') {
+      this.measureAndApplyHeaderWrapState();
       return;
     }
+    if (this._wrapMeasureRaf1 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf1);
+    if (this._wrapMeasureRaf2 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf2);
+    this._wrapMeasureRaf1 = window.requestAnimationFrame(() => {
+      this._wrapMeasureRaf1 = null;
+      this._wrapMeasureRaf2 = window.requestAnimationFrame(() => {
+        this._wrapMeasureRaf2 = null;
+        this.measureAndApplyHeaderWrapState();
+      });
+    });
+  }
 
-    const firstBadgeTop = visibleBadges[0].offsetTop;
-    const badgesWrapped = visibleBadges.some((child) => Math.abs(child.offsetTop - firstBadgeTop) > 1);
-    badges.classList.toggle('is-wrapped', badgesWrapped);
+  shouldMarkWrappedFromChildren(children) {
+    const visibleChildren = children.filter((child) => child.offsetParent !== null);
+    if (visibleChildren.length <= 1) return false;
+    const firstTop = visibleChildren[0].offsetTop;
+    return visibleChildren.some((child) => Math.abs(child.offsetTop - firstTop) > 1);
+  }
+
+  measureAndApplyHeaderWrapState() {
+    if (!this._root) return;
+
+    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
+    const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
+    const header = this._root.querySelector(headerSelector);
+    const controls = this._root.querySelector(controlsSelector);
+    const compactControls = this._root.querySelector('.compact-header-controls');
+    const standardControls = this._root.querySelector('.header-controls');
+    const badges = this._root.querySelector('.calendar-badges-inline');
+
+    header?.classList.remove('is-wrapped');
+    standardControls?.classList.remove('is-wrapped');
+    compactControls?.classList.remove('is-wrapped');
+    badges?.classList.remove('is-wrapped');
+
+    if (header) {
+      const headerChildren = this._config.compact_header
+        ? [header.querySelector('.compact-header-left'), header.querySelector('.compact-header-controls')]
+        : [header.querySelector('.header-left'), header.querySelector('.header-controls')];
+      header.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(headerChildren.filter(Boolean)));
+    }
+
+    if (controls) {
+      controls.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(Array.from(controls.children)));
+    }
+
+    if (this._config.compact_header && badges) {
+      badges.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(Array.from(badges.children)));
+    }
   }
 
 
@@ -2816,6 +2829,14 @@ class SkylightCalendarCard extends HTMLElement {
       this._modalVisibilityObserver.disconnect();
       this._modalVisibilityObserver = null;
     }
+    if (this._wrapMeasureRaf1 !== null) {
+      window.cancelAnimationFrame(this._wrapMeasureRaf1);
+      this._wrapMeasureRaf1 = null;
+    }
+    if (this._wrapMeasureRaf2 !== null) {
+      window.cancelAnimationFrame(this._wrapMeasureRaf2);
+      this._wrapMeasureRaf2 = null;
+    }
   }
 
   getCompactMaxHeight(containerTopInViewport = null) {
@@ -3356,7 +3377,6 @@ class SkylightCalendarCard extends HTMLElement {
 
       .header.is-wrapped .header-left,
       .header.is-wrapped .header-controls {
-        width: 100%;
         justify-content: center;
       }
 
