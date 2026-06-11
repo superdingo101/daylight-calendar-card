@@ -147,6 +147,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_neutral_background: 'event color modes normalize widths and tint opacity endpoints',
   event_tint_opacity: 'event color modes normalize widths and tint opacity endpoints',
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
+  event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
   readonly_calendars: 'readonly calendars suppress event management actions',
   hide_badge_calendars: 'calendar badges respect hidden badge calendars',
   default_hidden_calendars: 'default_hidden_calendars initializes hidden calendar badges',
@@ -249,7 +250,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management'
+    'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
 
@@ -258,7 +259,40 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     assert.ok(field.key in normalized, `${field.key} should exist after normalizeConfig()`);
   }
   assert.equal(normalized.firstDayOfWeek, 0);
+  assert.equal(normalized.event_modal_size, 'medium');
   assert.equal(Object.prototype.hasOwnProperty.call(normalized, 'use_24hr_schedule'), false);
+});
+
+test('event_modal_size defaults and normalizes to supported modal size classes', () => {
+  assert.equal(Card.getStubConfig().event_modal_size, 'medium');
+
+  const invalid = makeCard({ entities: ['calendar.family'], event_modal_size: 'giant' });
+  assert.equal(invalid._config.event_modal_size, 'medium');
+  assert.equal(invalid.getEventModalSizeClass(), 'modal-size-medium');
+
+  for (const size of ['narrow', 'medium', 'wide', 'full']) {
+    const card = new Card();
+    card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+    card.setConfig({ entities: ['calendar.family'], event_modal_size: size });
+    originalCardRender.call(card);
+    assert.match(card._root.innerHTML, new RegExp(`class="modal-content modal-size-${size}" id="modal-content"`));
+  }
+});
+
+test('event modal size classes can be applied without changing modal content behavior', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_modal_size: 'wide' });
+  const classes = new Set(['modal-content']);
+  const content = {
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    }
+  };
+
+  card.applyEventModalSizeClass(content);
+  assert.equal(classes.has('modal-content'), true);
+  assert.equal(classes.has('modal-size-wide'), true);
+  assert.equal(classes.has('modal-size-medium'), false);
 });
 
 test('setConfig applies visual layout and styling options', () => {

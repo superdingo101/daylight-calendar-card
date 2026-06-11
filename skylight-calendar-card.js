@@ -1523,6 +1523,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'event_neutral_background', defaultValue: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9', normalize: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9' },
       { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80), normalize: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80) },
       { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management !== false },
+      { key: 'event_modal_size', defaultValue: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size) },
       { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [] },
       { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
@@ -5793,6 +5794,44 @@ class SkylightCalendarCard extends HTMLElement {
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       }
 
+      .modal-content.modal-size-narrow {
+        box-sizing: border-box;
+        max-width: 380px;
+        width: min(90%, 380px);
+      }
+
+      .modal-content.modal-size-medium {
+        max-width: 500px;
+        width: 90%;
+      }
+
+      .modal-content.modal-size-wide {
+        box-sizing: border-box;
+        max-width: 760px;
+        width: min(94%, 760px);
+      }
+
+      .modal-content.modal-size-full {
+        box-sizing: border-box;
+        max-width: none;
+        width: calc(100vw - 32px);
+        max-height: calc(100dvh - 32px);
+      }
+
+      @media (max-width: 480px) {
+        .modal-content,
+        .modal-content.modal-size-narrow,
+        .modal-content.modal-size-medium,
+        .modal-content.modal-size-wide,
+        .modal-content.modal-size-full {
+          width: calc(100vw - 24px);
+          max-width: calc(100vw - 24px);
+          max-height: calc(100dvh - 24px);
+          padding: 16px;
+          box-sizing: border-box;
+        }
+      }
+
       .modal-header {
         display: flex;
         justify-content: space-between;
@@ -6874,7 +6913,7 @@ class SkylightCalendarCard extends HTMLElement {
         </div>
 
         <div class="event-modal" id="event-modal">
-          <div class="modal-content" id="modal-content">
+          <div class="modal-content ${this.getEventModalSizeClass()}" id="modal-content">
           </div>
         </div>
       </div>
@@ -9717,6 +9756,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const writableCalendars = this.getWritableCalendars();
     if (writableCalendars.length === 0) {
@@ -10133,6 +10173,7 @@ class SkylightCalendarCard extends HTMLElement {
   showEditEventModal(event, startDate, endDate, isAllDay, editScope = 'this') {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const writableCalendars = this.getWritableCalendars();
     if (writableCalendars.length === 0) {
@@ -10831,6 +10872,7 @@ class SkylightCalendarCard extends HTMLElement {
   showForwardEventModal(event, startDate, endDate, isAllDay) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
     const writableCalendars = this.getWritableCalendars();
     const existingCalendarIds = this.getForwardExistingCalendarIds(event);
 
@@ -10905,6 +10947,7 @@ class SkylightCalendarCard extends HTMLElement {
   showEditConfirmation(event, startDate, endDate, isAllDay, selectedEvents = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const isRecurring = event.rrule || event.recurrence_id;
     if (!isRecurring) {
@@ -10974,6 +11017,7 @@ class SkylightCalendarCard extends HTMLElement {
   showCombinedEditSelectionModal(event, startDate, endDate, isAllDay) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const sourceEvents = (event.sourceEvents || []).filter(sourceEvent => !this._hiddenCalendars.has(sourceEvent.entityId));
 
@@ -11027,6 +11071,7 @@ class SkylightCalendarCard extends HTMLElement {
   showCombinedDeleteSelectionModal(event) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const sourceEvents = (event.sourceEvents || []).filter(sourceEvent => !this._hiddenCalendars.has(sourceEvent.entityId));
 
@@ -11082,6 +11127,7 @@ class SkylightCalendarCard extends HTMLElement {
   showDeleteConfirmation(event, selectedEvents = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
     const deleteTargets = Array.isArray(selectedEvents) && selectedEvents.length > 0
       ? selectedEvents
       : (Array.isArray(this._combinedDeleteTargets) && this._combinedDeleteTargets.length > 0
@@ -11250,6 +11296,7 @@ class SkylightCalendarCard extends HTMLElement {
   showEventModal(event, onCloseBack = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     let startDate, endDate, isAllDay;
 
@@ -11425,6 +11472,7 @@ class SkylightCalendarCard extends HTMLElement {
   showDayCompactModal(date, events) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const sortedEvents = this.sortEventsForDate(events, date);
 
@@ -11480,6 +11528,7 @@ class SkylightCalendarCard extends HTMLElement {
   showDayModal(date, events) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
 
     const sortedEvents = this.sortEventsForDate(events, date);
 
@@ -12193,6 +12242,22 @@ class SkylightCalendarCard extends HTMLElement {
     return Math.min(100, Math.max(0, numericOpacity));
   }
 
+  normalizeEventModalSize(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return ['narrow', 'medium', 'wide', 'full'].includes(normalized) ? normalized : 'medium';
+  }
+
+  getEventModalSizeClass() {
+    return `modal-size-${this.normalizeEventModalSize(this._config?.event_modal_size)}`;
+  }
+
+  applyEventModalSizeClass(content = this.getRootElementById('modal-content')) {
+    if (!content?.classList) return;
+
+    content.classList.remove('modal-size-narrow', 'modal-size-medium', 'modal-size-wide', 'modal-size-full');
+    content.classList.add(this.getEventModalSizeClass());
+  }
+
   static getStubConfig() {
     return {
       title: 'Family Calendar',
@@ -12241,7 +12306,8 @@ class SkylightCalendarCard extends HTMLElement {
       calendar_person_entities: {},
       default_hidden_calendars: [],
       color_scheme: 'auto',
-      enable_event_management: true
+      enable_event_management: true,
+      event_modal_size: 'medium'
     };
   }
 
@@ -12340,7 +12406,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
       default_view: normalizedDefaultView || (SkylightCalendarCard.getStubConfig().default_view || 'month'),
       past_event_mode: normalizedPastEventMode,
       color_scheme: SkylightCalendarCard.prototype.normalizeDefaultDarkMode(config.color_scheme),
-      header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path)
+      header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path),
+      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
 
@@ -13404,6 +13471,17 @@ class SkylightCalendarCardEditor extends HTMLElement {
     const managementSection = this.renderSection('Event management', `
       <div class="boolean-list">
         <label><input type="checkbox" data-field="enable_event_management" ${this._config.enable_event_management !== false ? 'checked' : ''}> Enable event management</label>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_modal_size">Event modal size</label>
+          <select id="event_modal_size" data-field="event_modal_size">
+            <option value="narrow" ${this._config.event_modal_size === 'narrow' ? 'selected' : ''}>Narrow</option>
+            <option value="medium" ${this._config.event_modal_size === 'medium' || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
+            <option value="wide" ${this._config.event_modal_size === 'wide' ? 'selected' : ''}>Wide</option>
+            <option value="full" ${this._config.event_modal_size === 'full' ? 'selected' : ''}>Full</option>
+          </select>
+        </div>
       </div>
       ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
       ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
