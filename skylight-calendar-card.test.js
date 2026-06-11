@@ -295,6 +295,13 @@ test('event modal size classes can be applied without changing modal content beh
   assert.equal(classes.has('modal-size-medium'), false);
 });
 
+test('event modal confirm dialogs expand in non-medium modal sizes', () => {
+  const styles = makeCard().getStyles();
+
+  assert.match(styles, /\.modal-content\.modal-size-narrow\s*>\s*\.confirm-dialog,\s*\.modal-content\.modal-size-wide\s*>\s*\.confirm-dialog,\s*\.modal-content\.modal-size-full\s*>\s*\.confirm-dialog\s*\{[\s\S]*max-width:\s*none;[\s\S]*width:\s*100%;/);
+  assert.doesNotMatch(styles, /\.modal-content\.modal-size-medium\s*>\s*\.confirm-dialog/);
+});
+
 test('setConfig applies visual layout and styling options', () => {
   const card = makeCard({
     entities: ['calendar.family'],

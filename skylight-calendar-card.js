@@ -5818,6 +5818,14 @@ class SkylightCalendarCard extends HTMLElement {
         max-height: calc(100dvh - 32px);
       }
 
+      .modal-content.modal-size-narrow > .confirm-dialog,
+      .modal-content.modal-size-wide > .confirm-dialog,
+      .modal-content.modal-size-full > .confirm-dialog {
+        box-sizing: border-box;
+        max-width: none;
+        width: 100%;
+      }
+
       @media (max-width: 480px) {
         .modal-content,
         .modal-content.modal-size-narrow,
