@@ -1468,6 +1468,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'past_event_mode', defaultValue: ({ derived }) => derived.normalizedPastEventMode, normalize: ({ derived }) => derived.normalizedPastEventMode },
       { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || false },
       { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false },
+      { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? false },
       { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? false },
       { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? false },
       { key: 'week_start_hour', defaultValue: ({ derived }) => derived.normalizedWeekStartHour },
@@ -3856,15 +3857,35 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getLocale() {
-    const resolved = this._activeLanguage || this.getLanguage();
-    return this._config.locale || TRANSLATIONS[resolved]?.locale || this._hass?.locale?.language || TRANSLATIONS[DEFAULT_LANGUAGE]?.locale || 'en-US';
+    if (this._config.locale) return this._config.locale;
+
+    const configuredLanguage = this._config.language ? resolveLanguage(this._config.language) : null;
+    if (configuredLanguage) return TRANSLATIONS[configuredLanguage]?.locale || this._config.language;
+
+    const hassLocale = this._hass?.locale?.language;
+    if (hassLocale) return hassLocale;
+
+    const hassLanguage = this._hass?.language;
+    if (hassLanguage) {
+      const resolvedHassLanguage = resolveLanguage(hassLanguage);
+      return TRANSLATIONS[resolvedHassLanguage]?.locale || hassLanguage;
+    }
+
+    return globalThis.navigator?.languages?.[0]
+      || globalThis.navigator?.language
+      || TRANSLATIONS[DEFAULT_LANGUAGE]?.locale
+      || 'en-US';
   }
 
   t(key, params = {}) {
     return translate(this.getLanguage(), key, params);
   }
 
-  getWeekdayNames(format = 'short') {
+  getWeekdayNameFormat() {
+    return this._config?.display_full_weekday_names ? 'long' : 'short';
+  }
+
+  getWeekdayNames(format = this.getWeekdayNameFormat()) {
     const formatter = new Intl.DateTimeFormat(this.getLocale(), { weekday: format });
     const baseDate = new Date(2021, 5, 6);
     const names = [];
@@ -7200,7 +7221,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayHeaders() {
-    const days = this.getWeekdayNames('short');
+    const days = this.getWeekdayNames();
     const firstDay = this._config.firstDayOfWeek;
     const orderedDays = [...days.slice(firstDay), ...days.slice(0, firstDay)];
     const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
@@ -7220,7 +7241,7 @@ class SkylightCalendarCard extends HTMLElement {
     const weekDays = this.getWeekDays();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dayNames = this.getWeekdayNames('short');
+    const dayNames = this.getWeekdayNames();
     const containerStyle = this.getCompactContainerStyle();
 
     return `
@@ -7272,7 +7293,7 @@ class SkylightCalendarCard extends HTMLElement {
     const baseHourHeight = 120;
     const preferredHourHeight = baseHourHeight * (this._config.height_scale || 1.0);
 
-    const dayNames = this.getWeekdayNames('short');
+    const dayNames = this.getWeekdayNames();
 
     const allDayLayout = this.buildAllDayLayoutForSchedule(weekDays);
     const maxAllDayEvents = allDayLayout.maxLanes;
@@ -7354,7 +7375,7 @@ class SkylightCalendarCard extends HTMLElement {
     const containerStyle = this.getCompactContainerStyle(compactMaxHeight);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dayNames = this.getWeekdayNames('short');
+    const dayNames = this.getWeekdayNames();
     const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), { month: 'long', year: 'numeric' });
     const agendaRows = [];
     const shouldHideEmptyDays = this._viewMode === 'agenda' && !!this._config.hide_empty_days;
@@ -11493,7 +11514,7 @@ class SkylightCalendarCard extends HTMLElement {
         <div class="week-compact-container single-day-modal">
           <div class="week-day-column">
             <div class="week-day-header">
-              <div class="week-day-name">${this.getWeekdayNames('short')[date.getDay()]}</div>
+              <div class="week-day-name">${this.getWeekdayNames()[date.getDay()]}</div>
               <div class="week-day-date">${date.getDate()}</div>
             </div>
             ${sortedEvents.length > 0 ? sortedEvents.map(event => {
@@ -12284,6 +12305,7 @@ class SkylightCalendarCard extends HTMLElement {
       hide_empty_days: false,
       agenda_compact_events: false,
       shorten_event_times: false,
+      display_full_weekday_names: false,
       compact_width: false,
       show_current_time_bar: false,
       show_event_location: false,
@@ -13434,6 +13456,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="show_current_time_bar" ${this._config.show_current_time_bar ? 'checked' : ''}> Show current time bar</label>
         <label><input type="checkbox" data-field="use_24hr_schedule" ${this._config.use_24hr_schedule ? 'checked' : ''}> Use 24-hour schedule time</label>
         <label><input type="checkbox" data-field="shorten_event_times" ${this._config.shorten_event_times ? 'checked' : ''}> Shorten event times</label>
+        <label><input type="checkbox" data-field="display_full_weekday_names" ${this._config.display_full_weekday_names ? 'checked' : ''}> Display full weekday names</label>
         <label><input type="checkbox" data-field="show_event_location" ${this._config.show_event_location ? 'checked' : ''}> Show event location</label>
         <label><input type="checkbox" data-field="use_short_location" ${this._config.use_short_location ? 'checked' : ''}> Shorten event location in views</label>
         <label><input type="checkbox" data-field="combine_calendars" ${this._config.combine_calendars ? 'checked' : ''}> Combine duplicate events across calendars</label>

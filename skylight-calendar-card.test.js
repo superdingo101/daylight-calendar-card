@@ -92,6 +92,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   past_event_mode: 'past_event_mode muted leaves ended events visible and applies muted style',
   hide_empty_days: 'agenda hide_empty_days removes empty day rows',
   agenda_compact_events: 'agenda compact events use compact class and sizing',
+  display_full_weekday_names: 'display_full_weekday_names renders localized long weekday labels',
   shorten_event_times: 'shorten_event_times removes minutes from whole-hour 12-hour event times',
   disable_swipe_controls: 'disable_swipe_controls disables swipe controls without affecting agenda',
   week_start_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
@@ -243,7 +244,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'display_full_weekday_names', 'compact_width',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -330,6 +331,7 @@ test('setConfig applies visual layout and styling options', () => {
     event_title_prefix: 'icon',
     show_current_time_bar: true,
     shorten_event_times: true,
+    display_full_weekday_names: true,
     header_color: '#123456',
     header_text_color: '#ffffff',
     header_background_opacity: 55,
@@ -383,6 +385,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.event_title_prefix, 'badge_icon');
   assert.equal(card._config.show_current_time_bar, true);
   assert.equal(card._config.shorten_event_times, true);
+  assert.equal(card._config.display_full_weekday_names, true);
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
   assert.equal(card._config.header_background_opacity, 55);
@@ -639,6 +642,27 @@ test('first_day_of_week normalizes to firstDayOfWeek and controls headers and we
   const headers = card.renderDayHeaders();
   assert.ok(headers.indexOf('Mon') < headers.indexOf('Tue'));
   assert.ok(headers.indexOf('Sun') > headers.indexOf('Sat'));
+});
+
+test('display_full_weekday_names renders localized long weekday labels', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    display_full_weekday_names: true,
+    locale: 'fr-FR'
+  });
+
+  assert.equal(card.getWeekdayNameFormat(), 'long');
+  assert.deepEqual(card.getWeekdayNames().slice(0, 3), ['dimanche', 'lundi', 'mardi']);
+  assert.match(card.renderDayHeaders(), /<div class="day-header">lundi<\/div>/);
+  assert.doesNotMatch(card.renderDayHeaders(), /<div class="day-header">lun\.<\/div>/);
+});
+
+test('weekday names inherit the Home Assistant locale when card locale is not configured', () => {
+  const card = makeCard({ entities: ['calendar.family'], display_full_weekday_names: true });
+  card._hass = { states: {}, locale: { language: 'en-GB' }, language: 'en', themes: { darkMode: false } };
+
+  assert.equal(card.getLocale(), 'en-GB');
+  assert.equal(card.getWeekdayNames()[0], 'Sunday');
 });
 
 test('week_days filters configured week rendering days', () => {
