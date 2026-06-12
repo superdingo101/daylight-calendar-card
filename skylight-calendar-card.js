@@ -4770,7 +4770,7 @@ class SkylightCalendarCard extends HTMLElement {
         box-sizing: border-box;
       }
 
-      .day-badge.has-icon.has-text {
+      .day-badge.has-text {
         width: auto;
         gap: 4px;
         padding: 0 8px;
@@ -8518,7 +8518,7 @@ class SkylightCalendarCard extends HTMLElement {
         hasIcon ? `<ha-icon icon="${this.escapeHtml(badge.icon)}"></ha-icon>` : '',
         hasText ? `<span class="day-badge-text">${this.escapeHtml(badge.text)}</span>` : ''
       ].join('');
-      const classes = hasIcon && hasText ? 'day-badge has-icon has-text' : 'day-badge';
+      const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
       return `<span class="${classes}" style="${style}">${content}</span>`;
     }).join('');
 

@@ -1987,7 +1987,16 @@ test('day_badges renders text badge when event title matches', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'ballet' }, text: 'PL', background_color: '#ff4b2b', color: '#000000' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
   assert.match(html, /day-badge-text">PL</);
+});
+
+test('day_badges renders multi-character text-only badges as chips', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'standup' }, text: 'Standup' }] });
+  const events = [{ entityId: 'calendar.a', summary: 'Team Standup', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
+  assert.match(html, /day-badge-text">Standup</);
 });
 
 test('day_badges renders icon badge when event title matches', () => {
@@ -2036,7 +2045,7 @@ test('day_badges renders multiple matching badge rules', () => {
 
   const events = [{ entityId: 'calendar.a', summary: 'Daily Sync', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
-  assert.equal((html.match(/class="day-badge"/g) || []).length, 2);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 2);
 });
 
 test('day_badges supports legacy-style condition aliases', () => {
