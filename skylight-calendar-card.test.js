@@ -1987,7 +1987,16 @@ test('day_badges renders text badge when event title matches', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'ballet' }, text: 'PL', background_color: '#ff4b2b', color: '#000000' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
   assert.match(html, /day-badge-text">PL</);
+});
+
+test('day_badges renders multi-character text-only badges as chips', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'standup' }, text: 'Standup' }] });
+  const events = [{ entityId: 'calendar.a', summary: 'Team Standup', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
+  assert.match(html, /day-badge-text">Standup</);
 });
 
 test('day_badges renders icon badge when event title matches', () => {
@@ -1997,12 +2006,29 @@ test('day_badges renders icon badge when event title matches', () => {
   assert.match(html, /ha-icon icon="mdi:shoe-ballet"/);
 });
 
-test('day_badges prefers text when both text and icon are configured', () => {
+test('day_badges renders icon and text together in one badge', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title: 'ballet' }, text: 'PL', icon: 'mdi:shoe-ballet' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/day-badge has-icon has-text/g) || []).length, 1);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 1);
+  assert.match(html, /ha-icon icon="mdi:shoe-ballet"/);
   assert.match(html, /day-badge-text">PL</);
-  assert.doesNotMatch(html, /mdi:shoe-ballet/);
+});
+
+test('day_badges renders icon before text when both are configured', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title: 'ballet' }, text: 'PL', icon: 'mdi:shoe-ballet' }] });
+  const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.ok(html.indexOf('ha-icon icon="mdi:shoe-ballet"') < html.indexOf('day-badge-text">PL'));
+});
+
+test('day_badges matching behavior is unchanged for combined badges', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { calendar: 'calendar.a', all_day: true, title: 'Schoolday' }, text: 'School', icon: 'mdi:school' }] });
+  const matchingEvents = [{ entityId: 'calendar.a', summary: 'Schoolday', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const nonMatchingEvents = [{ entityId: 'calendar.a', summary: 'Schoolday', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  assert.match(card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), matchingEvents), /mdi:school/);
+  assert.equal(card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), nonMatchingEvents), '');
 });
 
 test('day_badges does not render on non-matching days', () => {
@@ -2019,7 +2045,7 @@ test('day_badges renders multiple matching badge rules', () => {
 
   const events = [{ entityId: 'calendar.a', summary: 'Daily Sync', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
-  assert.equal((html.match(/class="day-badge"/g) || []).length, 2);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 2);
 });
 
 test('day_badges supports legacy-style condition aliases', () => {
