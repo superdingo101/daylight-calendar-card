@@ -2336,7 +2336,7 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedText = text || '';
     const normalizedIcon = icon || '';
     if (normalizedText) normalized.text = normalizedText;
-    if (!normalizedText && normalizedIcon) normalized.icon = normalizedIcon;
+    if (normalizedIcon) normalized.icon = normalizedIcon;
 
     const backgroundColor = this.normalizeSingleColor(rule.background_color);
     if (backgroundColor) normalized.background_color = backgroundColor;
@@ -4756,6 +4756,7 @@ class SkylightCalendarCard extends HTMLElement {
         width: var(--dcc-day-badge-size, 30px);
         height: var(--dcc-day-badge-size, 30px);
         min-width: var(--dcc-day-badge-size, 30px);
+        max-width: 100%;
         border-radius: 999px;
         display: inline-flex;
         align-items: center;
@@ -4765,11 +4766,29 @@ class SkylightCalendarCard extends HTMLElement {
         line-height: 1;
         background: var(--dcc-day-badge-background, var(--primary-color));
         color: var(--dcc-day-badge-color, var(--text-primary-color, #fff));
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      .day-badge.has-icon.has-text {
+        width: auto;
+        gap: 4px;
+        padding: 0 8px;
       }
 
       .day-badge ha-icon {
         --mdc-icon-size: calc(var(--dcc-day-badge-size, 30px) * 0.53);
         color: inherit;
+        flex: 0 0 auto;
+      }
+
+      .day-badge-text {
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .day-header-row {
@@ -8493,10 +8512,14 @@ class SkylightCalendarCard extends HTMLElement {
         badge.size ? `--dcc-day-badge-size: ${badge.size};` : '',
         badge.font_size ? `--dcc-day-badge-font-size: ${badge.font_size};` : ''
       ].join(' ');
-      const content = badge.text
-        ? `<span class="day-badge-text">${this.escapeHtml(badge.text)}</span>`
-        : `<ha-icon icon="${this.escapeHtml(badge.icon)}"></ha-icon>`;
-      return `<span class="day-badge" style="${style}">${content}</span>`;
+      const hasIcon = Boolean(badge.icon);
+      const hasText = Boolean(badge.text);
+      const content = [
+        hasIcon ? `<ha-icon icon="${this.escapeHtml(badge.icon)}"></ha-icon>` : '',
+        hasText ? `<span class="day-badge-text">${this.escapeHtml(badge.text)}</span>` : ''
+      ].join('');
+      const classes = hasIcon && hasText ? 'day-badge has-icon has-text' : 'day-badge';
+      return `<span class="${classes}" style="${style}">${content}</span>`;
     }).join('');
 
     return `<div class="day-badges">${badgesHtml}</div>`;
