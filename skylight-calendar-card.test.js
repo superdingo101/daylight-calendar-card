@@ -2080,6 +2080,31 @@ test('day_badges resolves display templates from matched event description JSON'
   assert.match(html, /--dcc-day-badge-background: #EDE7F6;/);
 });
 
+
+test('day_badges validates dynamic color templates before rendering styles', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    {
+      conditions: { title: 'schoolday' },
+      text: '{{ event.description_json.badge_text }}',
+      background_color: '{{ event.description_json.badge_color }}',
+      color: '{{ event.description_json.text_color }}'
+    },
+    {
+      conditions: { title: 'schoolday' },
+      text: 'Safe',
+      background_color: '{{ event.description_json.safe_color }}',
+      color: '{{ event.description_json.safe_text_color }}'
+    }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: JSON.stringify({ badge_text: 'Bad', badge_color: 'red" onclick="alert(1)', text_color: '#fff; color:red', safe_color: 'rgb(10, 20, 30)', safe_text_color: 'blue' }), start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /day-badge-text">Bad</);
+  assert.match(html, /day-badge-text">Safe</);
+  assert.match(html, /--dcc-day-badge-background: rgb\(10, 20, 30\);/);
+  assert.match(html, /--dcc-day-badge-color: #0000FF;/);
+  assert.doesNotMatch(html, /onclick|alert|#fff; color:red/);
+});
+
 test('day_badges accepts compact template whitespace and non-template literals remain literal', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [
     { conditions: { title: 'schoolday' }, text: '{{event.description_json.badge_text}}' },

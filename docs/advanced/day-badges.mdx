@@ -198,6 +198,7 @@ Dynamic badge values are intentionally narrow in scope:
 - Invalid JSON descriptions are ignored.
 - Missing fields are ignored safely.
 - Values that resolve to objects or arrays are ignored for display fields.
+- Dynamic `background_color` and `color` values must resolve to supported CSS color formats, such as hex, `rgb()`/`rgba()`, `hsl()`/`hsla()`, or a recognized named color. Invalid color values are ignored.
 - Dynamic resolution currently applies only to `day_badges` display fields, not matching, priority, hidden calendar rules, or actions.
 
 ### Mark all-day event days with an indicator

@@ -2360,6 +2360,19 @@ class SkylightCalendarCard extends HTMLElement {
     return this.normalizeSingleColor(value);
   }
 
+  normalizeResolvedDayBadgeDisplayColor(value) {
+    const normalized = this.normalizeSingleColor(value);
+    if (typeof normalized !== 'string') return undefined;
+    const trimmed = normalized.trim();
+    if (!trimmed) return undefined;
+
+    if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
+    if (/^rgba?\(\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
+    if (/^hsla?\(\s*[+-]?(?:\d+|\d*\.\d+)(?:deg|grad|rad|turn)?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
+
+    return undefined;
+  }
+
   parseEventDescriptionJson(event) {
     const raw = String(event?.description || '').trim();
     if (!raw.startsWith('{') || !raw.endsWith('}')) return undefined;
@@ -2425,9 +2438,20 @@ class SkylightCalendarCard extends HTMLElement {
       const value = this.resolveDayBadgeDisplayValue(rule[field], context);
       if (value === undefined || value === null || String(value).trim() === '') {
         delete resolved[field];
-      } else {
-        resolved[field] = String(value).trim();
+        return;
       }
+
+      if (field === 'background_color' || field === 'color') {
+        const normalizedColor = this.normalizeResolvedDayBadgeDisplayColor(value);
+        if (normalizedColor) {
+          resolved[field] = normalizedColor;
+        } else {
+          delete resolved[field];
+        }
+        return;
+      }
+
+      resolved[field] = String(value).trim();
     });
     return resolved;
   }
