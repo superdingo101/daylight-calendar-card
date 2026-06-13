@@ -2338,9 +2338,9 @@ class SkylightCalendarCard extends HTMLElement {
     if (normalizedText) normalized.text = normalizedText;
     if (normalizedIcon) normalized.icon = normalizedIcon;
 
-    const backgroundColor = this.normalizeSingleColor(rule.background_color);
+    const backgroundColor = this.normalizeDayBadgeDisplayColor(rule.background_color);
     if (backgroundColor) normalized.background_color = backgroundColor;
-    const color = this.normalizeSingleColor(rule.color);
+    const color = this.normalizeDayBadgeDisplayColor(rule.color);
     if (color) normalized.color = color;
 
     const size = this.normalizeStyleSizeValue(rule.size);
@@ -2349,6 +2349,87 @@ class SkylightCalendarCard extends HTMLElement {
     const fontSize = this.normalizeStyleSizeValue(rule.font_size);
     if (fontSize) normalized.font_size = fontSize;
     return normalized;
+  }
+
+  isFullValueTemplate(value) {
+    return typeof value === 'string' && /^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/.test(value);
+  }
+
+  normalizeDayBadgeDisplayColor(value) {
+    if (this.isFullValueTemplate(value)) return String(value).trim();
+    return this.normalizeSingleColor(value);
+  }
+
+  parseEventDescriptionJson(event) {
+    const raw = String(event?.description || '').trim();
+    if (!raw.startsWith('{') || !raw.endsWith('}')) return undefined;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+      return parsed;
+    } catch {
+      return undefined;
+    }
+  }
+
+  buildDayBadgeResolutionContext(date, matchedEvent) {
+    const event = matchedEvent && typeof matchedEvent === 'object' ? matchedEvent : {};
+    const calendar = event.entityId || event.entity_id || event.calendar;
+    const title = event.summary || event.title;
+    return {
+      date: date instanceof Date && !Number.isNaN(date.getTime()) ? this.formatLocalDate(date) : date,
+      calendar,
+      title,
+      event: {
+        ...event,
+        calendar,
+        entity_id: event.entity_id || event.entityId,
+        title,
+        summary: event.summary || event.title,
+        description_json: this.parseEventDescriptionJson(event)
+      }
+    };
+  }
+
+  resolveSafePath(path, context) {
+    if (typeof path !== 'string' || !path) return undefined;
+    const blockedSegments = new Set(['__proto__', 'prototype', 'constructor']);
+    const segments = path.split('.');
+    if (!segments.length) return undefined;
+
+    let current = context;
+    for (const segment of segments) {
+      if (!/^[A-Za-z0-9_-]+$/.test(segment) || blockedSegments.has(segment)) return undefined;
+      if (current === null || current === undefined || (typeof current !== 'object' && typeof current !== 'function')) return undefined;
+      if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined;
+      current = current[segment];
+    }
+
+    if (current === null || current === undefined) return undefined;
+    if (['string', 'number', 'boolean'].includes(typeof current)) return String(current);
+    return undefined;
+  }
+
+  resolveDayBadgeDisplayValue(value, context) {
+    if (typeof value !== 'string') return value;
+    const match = value.match(/^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/);
+    if (!match) return value;
+    return this.resolveSafePath(match[1], context);
+  }
+
+  resolveDayBadgeForRender(rule, date, matchedEvent) {
+    const context = this.buildDayBadgeResolutionContext(date, matchedEvent);
+    const resolved = { ...rule };
+    ['icon', 'text', 'background_color', 'color'].forEach((field) => {
+      const value = this.resolveDayBadgeDisplayValue(rule[field], context);
+      if (value === undefined || value === null || String(value).trim() === '') {
+        delete resolved[field];
+      } else {
+        resolved[field] = String(value).trim();
+      }
+    });
+    return resolved;
   }
 
   normalizeDayBadgeConditions(rawConditions) {
@@ -8498,7 +8579,15 @@ class SkylightCalendarCard extends HTMLElement {
     const rules = Array.isArray(this._config?.day_badges) ? this._config.day_badges : [];
     if (!rules.length || !Array.isArray(dayEvents)) return [];
 
-    return rules.filter((rule) => this.matchesAdvancedRule(rule, { date, dayEvents }).matches);
+    return rules
+      .map((rule) => {
+        const matchResult = this.matchesAdvancedRule(rule, { date, dayEvents });
+        if (!matchResult.matches) return null;
+        const resolvedRule = this.resolveDayBadgeForRender(rule, date, matchResult.matchedEvent);
+        if (!resolvedRule.icon && !resolvedRule.text) return null;
+        return resolvedRule;
+      })
+      .filter(Boolean);
   }
 
   renderDayBadges(date, dayEvents) {

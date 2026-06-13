@@ -2055,6 +2055,80 @@ test('day_badges supports legacy-style condition aliases', () => {
   assert.match(html, /day-badge-text">L</);
 });
 
+
+test('day_badges parses JSON object descriptions safely', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  assert.deepEqual(card.parseEventDescriptionJson({ description: ' { "icon": "mdi:school" } ' }), { icon: 'mdi:school' });
+  assert.equal(card.parseEventDescriptionJson({ description: '{ nope' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: 'regular notes' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '["mdi:school"]' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '' }), undefined);
+});
+
+test('day_badges resolves display templates from matched event description JSON', () => {
+  const card = makeCard({ entities: ['calendar.helper_day_types'], day_badges: [{
+    conditions: { calendar: 'calendar.helper_day_types', all_day: true },
+    icon: '{{ event.description_json.icon }}',
+    text: '{{ event.description_json.badge_text }}',
+    background_color: '{{ event.description_json.badge_color }}'
+  }] });
+  const events = [{ entityId: 'calendar.helper_day_types', summary: 'Schoolday', description: '{"icon":"mdi:school","badge_text":"School","badge_color":"#EDE7F6"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-icon has-text"/);
+  assert.match(html, /ha-icon icon="mdi:school"/);
+  assert.match(html, /day-badge-text">School</);
+  assert.match(html, /--dcc-day-badge-background: #EDE7F6;/);
+});
+
+test('day_badges accepts compact template whitespace and non-template literals remain literal', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, text: '{{event.description_json.badge_text}}' },
+    { conditions: { title: 'schoolday' }, text: 'School: {{ event.description_json.badge_text }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /day-badge-text">School</);
+  assert.match(html, /day-badge-text">School: \{\{ event.description_json.badge_text \}\}</);
+});
+
+test('day_badges omits unresolved unsafe and non-scalar dynamic display fields', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.missing }}', text: '{{ event.description_json.items }}' },
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.nested }}', text: '{{ event.__proto__.polluted }}' },
+    { conditions: { title: 'schoolday' }, text: '{{ event.description_json.ok }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"items":["A"],"nested":{"icon":"mdi:x"},"ok":true}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 1);
+  assert.match(html, /day-badge-text">true</);
+  assert.doesNotMatch(html, /polluted|mdi:x/);
+});
+
+test('day_badges renders dynamic icon-only text-only and no empty unresolved badges', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.icon }}' },
+    { conditions: { title: 'schoolday' }, text: '{{ event.description_json.badge_text }}' },
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.missing_icon }}', text: '{{ event.description_json.missing_text }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"icon":"mdi:school","badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 2);
+  assert.match(html, /class="day-badge has-icon"/);
+  assert.match(html, /class="day-badge has-text"/);
+});
+
+test('day_badges hidden helper calendar events provide dynamic badge values', () => {
+  const card = makeCard({ entities: ['calendar.visible', 'calendar.helper'], event_styles: [{ match: { calendar: 'calendar.helper' }, style: 'hide' }], day_badges: [{ conditions: { calendar: 'calendar.helper' }, icon: '{{ event.description_json.icon }}', text: '{{ event.description_json.badge_text }}' }] });
+  const day = new Date('2026-05-01T00:00:00Z');
+  card._events = [{ entityId: 'calendar.helper', summary: 'Helper', description: '{"icon":"mdi:school","badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const matchingEvents = card.getEventsForDay(day, { includeHiddenStyledEvents: true });
+  const visibleEvents = matchingEvents.filter((event) => !card.isEventHiddenByStyle(event));
+  const html = card.renderDayBadges(day, matchingEvents);
+  assert.equal(visibleEvents.length, 0);
+  assert.match(html, /ha-icon icon="mdi:school"/);
+  assert.match(html, /day-badge-text">School</);
+});
+
 test('day_badges supports configurable size and font_size', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title: 'ballet' }, text: 'PL', size: 32, font_size: '14px' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
