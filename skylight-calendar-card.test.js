@@ -2375,6 +2375,36 @@ test('empty day_badges config does not emit badge variables', () => {
   assert.doesNotMatch(html, /--day-badge-/);
 });
 
+
+test('issue 384 wrapped header keeps configured opaque header background fallback', () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({ entities: ['calendar.family'], header_color: '#123456', compact_header: true });
+
+  originalCardRender.call(card);
+
+  assert.match(card.getStyles(), /\.header\.is-wrapped,[\s\S]*\.header-compact\.is-wrapped\s*\{[\s\S]*background:\s*var\(--header-wrapped-background, transparent\);/);
+  assert.match(card._root.innerHTML, /--header-background-base:\s*#123456;/);
+  assert.match(card._root.innerHTML, /--header-background-alpha:\s*1;/);
+  assert.match(card._root.innerHTML, /--header-wrapped-background:\s*#123456;/);
+});
+
+test('issue 384 transparent header mode does not get an opaque wrapped fallback', () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({
+    entities: ['calendar.family'],
+    header_color: '#123456',
+    header_background_transparent: true,
+    compact_header: true
+  });
+
+  originalCardRender.call(card);
+
+  assert.match(card._root.innerHTML, /--header-background-base:\s*#123456;/);
+  assert.match(card._root.innerHTML, /--header-wrapped-background:\s*transparent;/);
+});
+
 test('standard header wrapped state does not force header groups to full width', () => {
   const card = makeCard({ entities: ['calendar.a'], compact_header: false });
   const styles = card.getStyles();
