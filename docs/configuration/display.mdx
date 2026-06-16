@@ -159,6 +159,10 @@ The calendar list lets users toggle individual calendars on or off from inside t
   Display times in a compact format — for example, `10 AM` instead of `10:00 AM`. Applies to Month, Week Compact, Schedule, and Agenda views.
 </ParamField>
 
+<ParamField path="display_full_weekday_names" default="false" type="boolean">
+  Display full weekday names, such as `Monday` and `Tuesday`, instead of abbreviated names like `Mon` and `Tue`. The card formats names using the configured `locale` or `language`, or the locale inherited from Home Assistant when neither is set.
+</ParamField>
+
 <ParamField path="show_event_location" default="false" type="boolean">
   Show the event's location text below the event title. Applies to **Week Compact**, **Schedule**, and **Agenda** views. Also applies to **Month** only when `show_all_details_month` is enabled.
 </ParamField>
@@ -208,6 +212,7 @@ calendar_badge_icons:
 event_font_size: 12
 event_time_font_size: 10
 shorten_event_times: true
+display_full_weekday_names: true
 show_event_location: true
 use_short_location: true
 past_event_mode: muted
