@@ -179,6 +179,10 @@ The calendar list lets users toggle individual calendars on or off from inside t
   Legacy alias for `past_event_mode: hide`. Use `past_event_mode` for new configurations because it also supports the `muted` option.
 </ParamField>
 
+<ParamField path="display_full_weekday_names" default="false" type="boolean">
+  Show full localized weekday names (for example, `Monday`) instead of the default abbreviated form (`Mon`). Applies to the Month, Week, Schedule, and Agenda views as well as the single-day event modal. Labels follow your Home Assistant language setting.
+</ParamField>
+
 <ParamField path="disable_swipe_controls" default="false" type="boolean">
   Disable touch swipe gestures for navigating between weeks and months. Useful on dashboards where the card is embedded inside another scrollable container.
 </ParamField>
@@ -208,6 +212,7 @@ calendar_badge_icons:
 event_font_size: 12
 event_time_font_size: 10
 shorten_event_times: true
+display_full_weekday_names: true
 show_event_location: true
 use_short_location: true
 past_event_mode: muted
