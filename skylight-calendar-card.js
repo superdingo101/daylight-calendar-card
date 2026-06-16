@@ -4396,6 +4396,10 @@ class SkylightCalendarCard extends HTMLElement {
         padding-right: 12px;
       }
 
+      .header.is-wrapped,
+      .header-compact.is-wrapped {
+        background: var(--header-wrapped-background, transparent);
+      }
 
       .header.is-wrapped .header-left,
       .header.is-wrapped .header-controls {
@@ -7018,7 +7022,10 @@ class SkylightCalendarCard extends HTMLElement {
     const headerControlActiveBackground = this.colorWithAlpha(resolvedHeaderTextColor, 0.32);
     const headerControlBorder = this.colorWithAlpha(resolvedHeaderTextColor, 0.4);
     const headerControlBorderHover = this.colorWithAlpha(resolvedHeaderTextColor, 0.6);
-    const headerStyle = `--header-background-base: ${resolvedHeaderBackgroundBase}; --header-background-alpha: ${headerAlpha}; --header-text-color: ${resolvedHeaderTextColor}; --header-control-bg: ${headerControlBackground}; --header-control-bg-hover: ${headerControlHoverBackground}; --header-control-bg-active: ${headerControlActiveBackground}; --header-control-border: ${headerControlBorder}; --header-control-border-hover: ${headerControlBorderHover};`;
+    const wrappedHeaderBackground = normalizedHeaderBackgroundOpacity <= 0
+      ? resolvedHeaderBackgroundBase
+      : 'transparent';
+    const headerStyle = `--header-background-base: ${resolvedHeaderBackgroundBase}; --header-background-alpha: ${headerAlpha}; --header-wrapped-background: ${wrappedHeaderBackground}; --header-text-color: ${resolvedHeaderTextColor}; --header-control-bg: ${headerControlBackground}; --header-control-bg-hover: ${headerControlHoverBackground}; --header-control-bg-active: ${headerControlActiveBackground}; --header-control-border: ${headerControlBorder}; --header-control-border-hover: ${headerControlBorderHover};`;
     const normalizedBackgroundImageUrl = this.normalizeBackgroundImageUrl(this._config.background_image_url);
     const safeBackgroundImageUrl = normalizedBackgroundImageUrl
       ? String(normalizedBackgroundImageUrl).replace(/[\'\\]/g, '\\$&')
