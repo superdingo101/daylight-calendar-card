@@ -1,10 +1,10 @@
 ---
 title: "Day Badges: Add Custom Indicators to Calendar Days"
 sidebarTitle: "Day Badges"
-description: "Use day_badges to display custom text labels or icons on specific calendar days based on conditions like events, calendar source, or event title."
+description: "Use day_badges to display custom text labels, icons, or combined icon-and-text badges on specific calendar days based on conditions like events, calendar source, or event title."
 ---
 
-Day badges are small labeled chips or icon indicators that appear on individual calendar day cells when a set of conditions is met. You define a list of badge objects under `day_badges`, and the card evaluates every badge against the day and its events — showing the badge on any day that satisfies the badge's match block. Multiple badges can appear on the same day simultaneously, which makes them well-suited for layered annotations like recurring schedule reminders, birthday markers, or availability flags.
+Day badges are small labeled chips or icon indicators that appear on individual calendar day cells when a set of conditions is met. A badge can show text, an icon, or an icon followed by text in the same chip. You define a list of badge objects under `day_badges`, and the card evaluates every badge against the day and its events — showing the badge on any day that satisfies the badge's match block. Multiple badges can appear on the same day simultaneously, which makes them well-suited for layered annotations like recurring schedule reminders, birthday markers, or availability flags.
 
 ## Badge Fields
 
@@ -27,11 +27,11 @@ Each entry in `day_badges` supports the following fields:
 </ParamField>
 
 <ParamField path="text" type="string">
-  The text label displayed inside the badge chip. You can use `text` or`icon`; text takes precedence if both are provided.
+  The text label displayed inside the badge chip. You can use `text` by itself or combine it with `icon` to show an icon followed by the label in the same badge.
 </ParamField>
 
 <ParamField path="icon" type="string">
-  An MDI icon name (e.g. `mdi:cake-variant`) displayed inside the badge. Will be dropped if `text` is also provided.
+  An MDI icon name (e.g. `mdi:cake-variant`) displayed inside the badge. When `text` is also provided, the icon appears first, followed by the text, inside one badge.
 </ParamField>
 
 <ParamField path="background_color" type="string">
@@ -144,6 +144,22 @@ day_badges:
     text: Standup
     background_color: '#1565C0'
 ```
+
+### Show an icon and text in one badge
+
+Set both `icon` and `text` on the same badge when you want a compact chip with an MDI icon followed by a label. The card renders this as one badge, not two separate badges.
+
+```yaml
+day_badges:
+  - conditions:
+      calendar: calendar.helper_day_types
+      all_day: true
+      title: Schoolday
+    icon: mdi:school
+    text: School
+    background_color: '#EDE7F6'
+```
+
 
 ### Use values from matched event metadata
 
