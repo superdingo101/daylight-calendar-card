@@ -87,6 +87,14 @@ The **Delete** button only appears for events on calendars that support deletion
   Hide the **Add Event** button from the header. Users can still edit and delete existing events unless you also disable event management or mark calendars as read-only.
 </ParamField>
 
+<ParamField path="event_modal_size" default="medium" type="string">
+  Set the width of the event management modal. Supported values are `narrow`, `medium`, `wide`, and `full`. Invalid or missing values fall back to `medium`. The setting applies to every event modal — create, edit, view, and delete confirmations.
+
+  ```yaml
+  event_modal_size: wide
+  ```
+</ParamField>
+
 ## Example
 
 ```yaml
@@ -100,6 +108,7 @@ enable_event_management: true
 readonly_calendars:
   - calendar.holidays_in_united_states
 hide_add_event_button: false
+event_modal_size: wide
 ```
 
 <Tip>

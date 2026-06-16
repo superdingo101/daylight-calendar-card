@@ -92,6 +92,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   past_event_mode: 'past_event_mode muted leaves ended events visible and applies muted style',
   hide_empty_days: 'agenda hide_empty_days removes empty day rows',
   agenda_compact_events: 'agenda compact events use compact class and sizing',
+  display_full_weekday_names: 'display_full_weekday_names renders localized long weekday labels',
   shorten_event_times: 'shorten_event_times removes minutes from whole-hour 12-hour event times',
   disable_swipe_controls: 'disable_swipe_controls disables swipe controls without affecting agenda',
   week_start_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
@@ -147,6 +148,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_neutral_background: 'event color modes normalize widths and tint opacity endpoints',
   event_tint_opacity: 'event color modes normalize widths and tint opacity endpoints',
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
+  event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
   readonly_calendars: 'readonly calendars suppress event management actions',
   hide_badge_calendars: 'calendar badges respect hidden badge calendars',
   default_hidden_calendars: 'default_hidden_calendars initializes hidden calendar badges',
@@ -242,14 +244,14 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'display_full_weekday_names', 'compact_width',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management'
+    'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
 
@@ -258,7 +260,47 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     assert.ok(field.key in normalized, `${field.key} should exist after normalizeConfig()`);
   }
   assert.equal(normalized.firstDayOfWeek, 0);
+  assert.equal(normalized.event_modal_size, 'medium');
   assert.equal(Object.prototype.hasOwnProperty.call(normalized, 'use_24hr_schedule'), false);
+});
+
+test('event_modal_size defaults and normalizes to supported modal size classes', () => {
+  assert.equal(Card.getStubConfig().event_modal_size, 'medium');
+
+  const invalid = makeCard({ entities: ['calendar.family'], event_modal_size: 'giant' });
+  assert.equal(invalid._config.event_modal_size, 'medium');
+  assert.equal(invalid.getEventModalSizeClass(), 'modal-size-medium');
+
+  for (const size of ['narrow', 'medium', 'wide', 'full']) {
+    const card = new Card();
+    card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+    card.setConfig({ entities: ['calendar.family'], event_modal_size: size });
+    originalCardRender.call(card);
+    assert.match(card._root.innerHTML, new RegExp(`class="modal-content modal-size-${size}" id="modal-content"`));
+  }
+});
+
+test('event modal size classes can be applied without changing modal content behavior', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_modal_size: 'wide' });
+  const classes = new Set(['modal-content']);
+  const content = {
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    }
+  };
+
+  card.applyEventModalSizeClass(content);
+  assert.equal(classes.has('modal-content'), true);
+  assert.equal(classes.has('modal-size-wide'), true);
+  assert.equal(classes.has('modal-size-medium'), false);
+});
+
+test('event modal confirm dialogs expand in non-medium modal sizes', () => {
+  const styles = makeCard().getStyles();
+
+  assert.match(styles, /\.modal-content\.modal-size-narrow\s*>\s*\.confirm-dialog,\s*\.modal-content\.modal-size-wide\s*>\s*\.confirm-dialog,\s*\.modal-content\.modal-size-full\s*>\s*\.confirm-dialog\s*\{[\s\S]*max-width:\s*none;[\s\S]*width:\s*100%;/);
+  assert.doesNotMatch(styles, /\.modal-content\.modal-size-medium\s*>\s*\.confirm-dialog/);
 });
 
 test('setConfig applies visual layout and styling options', () => {
@@ -289,6 +331,7 @@ test('setConfig applies visual layout and styling options', () => {
     event_title_prefix: 'icon',
     show_current_time_bar: true,
     shorten_event_times: true,
+    display_full_weekday_names: true,
     header_color: '#123456',
     header_text_color: '#ffffff',
     header_background_opacity: 55,
@@ -342,6 +385,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.event_title_prefix, 'badge_icon');
   assert.equal(card._config.show_current_time_bar, true);
   assert.equal(card._config.shorten_event_times, true);
+  assert.equal(card._config.display_full_weekday_names, true);
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
   assert.equal(card._config.header_background_opacity, 55);
@@ -598,6 +642,27 @@ test('first_day_of_week normalizes to firstDayOfWeek and controls headers and we
   const headers = card.renderDayHeaders();
   assert.ok(headers.indexOf('Mon') < headers.indexOf('Tue'));
   assert.ok(headers.indexOf('Sun') > headers.indexOf('Sat'));
+});
+
+test('display_full_weekday_names renders localized long weekday labels', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    display_full_weekday_names: true,
+    locale: 'fr-FR'
+  });
+
+  assert.equal(card.getWeekdayNameFormat(), 'long');
+  assert.deepEqual(card.getWeekdayNames().slice(0, 3), ['dimanche', 'lundi', 'mardi']);
+  assert.match(card.renderDayHeaders(), /<div class="day-header">lundi<\/div>/);
+  assert.doesNotMatch(card.renderDayHeaders(), /<div class="day-header">lun\.<\/div>/);
+});
+
+test('weekday names inherit the Home Assistant locale when card locale is not configured', () => {
+  const card = makeCard({ entities: ['calendar.family'], display_full_weekday_names: true });
+  card._hass = { states: {}, locale: { language: 'en-GB' }, language: 'en', themes: { darkMode: false } };
+
+  assert.equal(card.getLocale(), 'en-GB');
+  assert.equal(card.getWeekdayNames()[0], 'Sunday');
 });
 
 test('week_days filters configured week rendering days', () => {
@@ -952,7 +1017,7 @@ test('event modal overlay CSS uses viewport-fixed coverage and high stacking', (
   assert.match(styles, /\.event-modal\s*\{[\s\S]*position:\s*fixed;/);
   assert.match(styles, /\.event-modal\s*\{[\s\S]*inset:\s*0;/);
   assert.match(styles, /\.event-modal\s*\{[\s\S]*z-index:\s*2147483647;/);
-  assert.match(styles, /:host\(\.event-modal-open\)[\s\S]*z-index:\s*2147483000;/);
+  assert.match(styles, /daylight-calendar-card\.event-modal-open,[\s\S]*skylight-calendar-card\.event-modal-open[\s\S]*z-index:\s*2147483000;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-container[\s\S]*overflow:\s*visible;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-body[\s\S]*overflow:\s*visible;/);
 });
@@ -1922,7 +1987,16 @@ test('day_badges renders text badge when event title matches', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'ballet' }, text: 'PL', background_color: '#ff4b2b', color: '#000000' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
   assert.match(html, /day-badge-text">PL</);
+});
+
+test('day_badges renders multi-character text-only badges as chips', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'standup' }, text: 'Standup' }] });
+  const events = [{ entityId: 'calendar.a', summary: 'Team Standup', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-text"/);
+  assert.match(html, /day-badge-text">Standup</);
 });
 
 test('day_badges renders icon badge when event title matches', () => {
@@ -1932,12 +2006,29 @@ test('day_badges renders icon badge when event title matches', () => {
   assert.match(html, /ha-icon icon="mdi:shoe-ballet"/);
 });
 
-test('day_badges prefers text when both text and icon are configured', () => {
+test('day_badges renders icon and text together in one badge', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title: 'ballet' }, text: 'PL', icon: 'mdi:shoe-ballet' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/day-badge has-icon has-text/g) || []).length, 1);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 1);
+  assert.match(html, /ha-icon icon="mdi:shoe-ballet"/);
   assert.match(html, /day-badge-text">PL</);
-  assert.doesNotMatch(html, /mdi:shoe-ballet/);
+});
+
+test('day_badges renders icon before text when both are configured', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title: 'ballet' }, text: 'PL', icon: 'mdi:shoe-ballet' }] });
+  const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.ok(html.indexOf('ha-icon icon="mdi:shoe-ballet"') < html.indexOf('day-badge-text">PL'));
+});
+
+test('day_badges matching behavior is unchanged for combined badges', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { calendar: 'calendar.a', all_day: true, title: 'Schoolday' }, text: 'School', icon: 'mdi:school' }] });
+  const matchingEvents = [{ entityId: 'calendar.a', summary: 'Schoolday', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const nonMatchingEvents = [{ entityId: 'calendar.a', summary: 'Schoolday', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
+  assert.match(card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), matchingEvents), /mdi:school/);
+  assert.equal(card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), nonMatchingEvents), '');
 });
 
 test('day_badges does not render on non-matching days', () => {
@@ -1954,7 +2045,7 @@ test('day_badges renders multiple matching badge rules', () => {
 
   const events = [{ entityId: 'calendar.a', summary: 'Daily Sync', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
-  assert.equal((html.match(/class="day-badge"/g) || []).length, 2);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 2);
 });
 
 test('day_badges supports legacy-style condition aliases', () => {
@@ -1962,6 +2053,105 @@ test('day_badges supports legacy-style condition aliases', () => {
   const events = [{ entityId: 'calendar.a', summary: 'Run', location: 'Black Mountain Rd', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
   const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
   assert.match(html, /day-badge-text">L</);
+});
+
+
+test('day_badges parses JSON object descriptions safely', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  assert.deepEqual(card.parseEventDescriptionJson({ description: ' { "icon": "mdi:school" } ' }), { icon: 'mdi:school' });
+  assert.equal(card.parseEventDescriptionJson({ description: '{ nope' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: 'regular notes' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '["mdi:school"]' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '' }), undefined);
+});
+
+test('day_badges resolves display templates from matched event description JSON', () => {
+  const card = makeCard({ entities: ['calendar.helper_day_types'], day_badges: [{
+    conditions: { calendar: 'calendar.helper_day_types', all_day: true },
+    icon: '{{ event.description_json.icon }}',
+    text: '{{ event.description_json.badge_text }}',
+    background_color: '{{ event.description_json.badge_color }}'
+  }] });
+  const events = [{ entityId: 'calendar.helper_day_types', summary: 'Schoolday', description: '{"icon":"mdi:school","badge_text":"School","badge_color":"#EDE7F6"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /class="day-badge has-icon has-text"/);
+  assert.match(html, /ha-icon icon="mdi:school"/);
+  assert.match(html, /day-badge-text">School</);
+  assert.match(html, /--dcc-day-badge-background: #EDE7F6;/);
+});
+
+
+test('day_badges validates dynamic color templates before rendering styles', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    {
+      conditions: { title: 'schoolday' },
+      text: '{{ event.description_json.badge_text }}',
+      background_color: '{{ event.description_json.badge_color }}',
+      color: '{{ event.description_json.text_color }}'
+    },
+    {
+      conditions: { title: 'schoolday' },
+      text: 'Safe',
+      background_color: '{{ event.description_json.safe_color }}',
+      color: '{{ event.description_json.safe_text_color }}'
+    }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: JSON.stringify({ badge_text: 'Bad', badge_color: 'red" onclick="alert(1)', text_color: '#fff; color:red', safe_color: 'rgb(10, 20, 30)', safe_text_color: 'blue' }), start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /day-badge-text">Bad</);
+  assert.match(html, /day-badge-text">Safe</);
+  assert.match(html, /--dcc-day-badge-background: rgb\(10, 20, 30\);/);
+  assert.match(html, /--dcc-day-badge-color: #0000FF;/);
+  assert.doesNotMatch(html, /onclick|alert|#fff; color:red/);
+});
+
+test('day_badges accepts compact template whitespace and non-template literals remain literal', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, text: '{{event.description_json.badge_text}}' },
+    { conditions: { title: 'schoolday' }, text: 'School: {{ event.description_json.badge_text }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.match(html, /day-badge-text">School</);
+  assert.match(html, /day-badge-text">School: \{\{ event.description_json.badge_text \}\}</);
+});
+
+test('day_badges omits unresolved unsafe and non-scalar dynamic display fields', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.missing }}', text: '{{ event.description_json.items }}' },
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.nested }}', text: '{{ event.__proto__.polluted }}' },
+    { conditions: { title: 'schoolday' }, text: '{{ event.description_json.ok }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"items":["A"],"nested":{"icon":"mdi:x"},"ok":true}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 1);
+  assert.match(html, /day-badge-text">true</);
+  assert.doesNotMatch(html, /polluted|mdi:x/);
+});
+
+test('day_badges renders dynamic icon-only text-only and no empty unresolved badges', () => {
+  const card = makeCard({ entities: ['calendar.a'], day_badges: [
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.icon }}' },
+    { conditions: { title: 'schoolday' }, text: '{{ event.description_json.badge_text }}' },
+    { conditions: { title: 'schoolday' }, icon: '{{ event.description_json.missing_icon }}', text: '{{ event.description_json.missing_text }}' }
+  ] });
+  const events = [{ entityId: 'calendar.a', summary: 'Schoolday', description: '{"icon":"mdi:school","badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), events);
+  assert.equal((html.match(/<span class="day-badge(?:\s|")/g) || []).length, 2);
+  assert.match(html, /class="day-badge has-icon"/);
+  assert.match(html, /class="day-badge has-text"/);
+});
+
+test('day_badges hidden helper calendar events provide dynamic badge values', () => {
+  const card = makeCard({ entities: ['calendar.visible', 'calendar.helper'], event_styles: [{ match: { calendar: 'calendar.helper' }, style: 'hide' }], day_badges: [{ conditions: { calendar: 'calendar.helper' }, icon: '{{ event.description_json.icon }}', text: '{{ event.description_json.badge_text }}' }] });
+  const day = new Date('2026-05-01T00:00:00Z');
+  card._events = [{ entityId: 'calendar.helper', summary: 'Helper', description: '{"icon":"mdi:school","badge_text":"School"}', start: { date: '2026-05-01' }, end: { date: '2026-05-02' } }];
+  const matchingEvents = card.getEventsForDay(day, { includeHiddenStyledEvents: true });
+  const visibleEvents = matchingEvents.filter((event) => !card.isEventHiddenByStyle(event));
+  const html = card.renderDayBadges(day, matchingEvents);
+  assert.equal(visibleEvents.length, 0);
+  assert.match(html, /ha-icon icon="mdi:school"/);
+  assert.match(html, /day-badge-text">School</);
 });
 
 test('day_badges supports configurable size and font_size', () => {
@@ -1982,13 +2172,35 @@ function extractCssRule(styles, selector) {
   return styles.slice(start, end + 1);
 }
 
+
+test('getStyles keeps light-DOM card typography scoped to internal content', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const styles = card.getStyles();
+
+  assert.doesNotMatch(styles, /-apple-system,\s*BlinkMacSystemFont,\s*'Segoe UI',\s*Roboto,\s*Oxygen,\s*Ubuntu,\s*Cantarell,\s*sans-serif/);
+
+  const cardElementRule = extractCssRule(styles, 'daylight-calendar-card,');
+  assert.doesNotMatch(cardElementRule, /font-family\s*:/);
+
+  const containerRule = extractCssRule(styles, '.calendar-container {');
+  assert.match(containerRule, /font-family:\s*var\(--ha-font-family-body,\s*var\(--paper-font-body1_-_font-family,\s*inherit\)\)/);
+
+  const formControlsFontRule = styles.match(/\.calendar-container input,[\s\S]*?\.calendar-container button \{[\s\S]*?font-family:\s*inherit;[\s\S]*?\}/)?.[0] ?? '';
+  assert.notEqual(formControlsFontRule, '', 'form controls should explicitly inherit the scoped card font');
+  assert.doesNotMatch(formControlsFontRule, /-apple-system|BlinkMacSystemFont|'Segoe UI'|Roboto|Oxygen|Ubuntu|Cantarell|sans-serif/);
+});
+
 test('getStyles includes full-height flex layout contract for HA Sections grids', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();
 
-  const hostRule = extractCssRule(styles, ':host,');
-  assert.match(hostRule, /height:\s*100%/);
-  assert.match(hostRule, /min-height:\s*0/);
+  const cardElementRule = extractCssRule(styles, 'daylight-calendar-card,');
+  assert.match(cardElementRule, /display:\s*block/);
+  assert.match(cardElementRule, /width:\s*100%/);
+  assert.match(cardElementRule, /height:\s*100%/);
+  assert.match(cardElementRule, /min-height:\s*0/);
+  assert.doesNotMatch(cardElementRule, /font-family\s*:/);
+  assert.doesNotMatch(cardElementRule, /:host/);
 
   const containerRule = extractCssRule(styles, '.calendar-container {');
   assert.match(containerRule, /height:\s*100%/);
@@ -2183,6 +2395,36 @@ test('empty day_badges config does not emit badge variables', () => {
   assert.equal(html, '');
   assert.doesNotMatch(html, /--dcc-day-badge-/);
   assert.doesNotMatch(html, /--day-badge-/);
+});
+
+
+test('issue 384 wrapped header keeps configured opaque header background fallback', () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({ entities: ['calendar.family'], header_color: '#123456', compact_header: true });
+
+  originalCardRender.call(card);
+
+  assert.match(card.getStyles(), /\.header\.is-wrapped,[\s\S]*\.header-compact\.is-wrapped\s*\{[\s\S]*background:\s*var\(--header-wrapped-background, transparent\);/);
+  assert.match(card._root.innerHTML, /--header-background-base:\s*#123456;/);
+  assert.match(card._root.innerHTML, /--header-background-alpha:\s*1;/);
+  assert.match(card._root.innerHTML, /--header-wrapped-background:\s*#123456;/);
+});
+
+test('issue 384 transparent header mode does not get an opaque wrapped fallback', () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({
+    entities: ['calendar.family'],
+    header_color: '#123456',
+    header_background_transparent: true,
+    compact_header: true
+  });
+
+  originalCardRender.call(card);
+
+  assert.match(card._root.innerHTML, /--header-background-base:\s*#123456;/);
+  assert.match(card._root.innerHTML, /--header-wrapped-background:\s*transparent;/);
 });
 
 test('standard header wrapped state does not force header groups to full width', () => {
