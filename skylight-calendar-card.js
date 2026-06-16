@@ -4216,17 +4216,14 @@ class SkylightCalendarCard extends HTMLElement {
 
   getStyles() {
     return `
-      :host,
       daylight-calendar-card,
       skylight-calendar-card {
         display: block;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         width: 100%;
         height: 100%;
         min-height: 0;
       }
 
-      :host(.event-modal-open),
       daylight-calendar-card.event-modal-open,
       skylight-calendar-card.event-modal-open {
         position: relative;
@@ -4246,6 +4243,7 @@ class SkylightCalendarCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         color-scheme: light;
+        font-family: var(--ha-font-family-body, var(--paper-font-body1_-_font-family, inherit));
         --schedule-hour-line-color: #d1d5db;
       }
 
@@ -4273,6 +4271,12 @@ class SkylightCalendarCard extends HTMLElement {
       .calendar-container textarea,
       .calendar-container button {
         color-scheme: light;
+      }
+
+      .calendar-container input,
+      .calendar-container select,
+      .calendar-container textarea,
+      .calendar-container button {
         font-family: inherit;
       }
 
@@ -5902,8 +5906,6 @@ class SkylightCalendarCard extends HTMLElement {
         top: -3px;
       }
 
-      :host(.event-modal-open) .calendar-container,
-      :host(.event-modal-open) .calendar-body,
       daylight-calendar-card.event-modal-open .calendar-container,
       daylight-calendar-card.event-modal-open .calendar-body,
       skylight-calendar-card.event-modal-open .calendar-container,
