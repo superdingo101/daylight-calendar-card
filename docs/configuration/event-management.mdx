@@ -88,7 +88,7 @@ The **Delete** button only appears for events on calendars that support deletion
 </ParamField>
 
 <ParamField path="event_modal_size" default="medium" type="string">
-  Set the event management modal width. Supported values are `narrow`, `medium`, `wide`, and `full`. Invalid or missing values use `medium`.
+  Set the width of the event management modal. Supported values are `narrow`, `medium`, `wide`, and `full`. Invalid or missing values fall back to `medium`. The setting applies to every event modal — create, edit, view, and delete confirmations.
 
   ```yaml
   event_modal_size: wide
