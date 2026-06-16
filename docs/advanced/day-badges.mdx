@@ -160,6 +160,47 @@ day_badges:
     background_color: '#EDE7F6'
 ```
 
+
+### Use values from matched event metadata
+
+Badge display fields can reference simple values from the event that matched the badge conditions. This is useful when a helper calendar stores day classification metadata in the event description.
+
+Only full-value path templates are supported. The whole string must be a template like `{{ event.description_json.badge_text }}`. Partial strings such as `Type: {{ event.description_json.badge_text }}` are not interpolated and remain literal text.
+
+```yaml
+day_badges:
+  - conditions:
+      calendar: calendar.helper_day_types
+      all_day: true
+    icon: "{{ event.description_json.icon }}"
+    text: "{{ event.description_json.badge_text }}"
+    background_color: "{{ event.description_json.badge_color }}"
+```
+
+The matched helper event description can contain a JSON object like this:
+
+```json
+{
+  "icon": "mdi:school",
+  "badge_text": "School",
+  "badge_color": "#EDE7F6"
+}
+```
+
+This renders one badge with the `mdi:school` icon, the `School` label, and the `#EDE7F6` background color.
+
+Supported dynamic display fields are `icon`, `text`, `background_color`, and `color`. Available paths include `event.description_json.<field>`, `event.title`, `event.summary`, `event.calendar`, `event.entity_id`, `title`, `calendar`, and `date`.
+
+Dynamic badge values are intentionally narrow in scope:
+
+- This is not a general-purpose template engine.
+- JavaScript, expressions, function calls, conditionals, filters, arithmetic, bracket access, and mixed string interpolation are not supported.
+- Invalid JSON descriptions are ignored.
+- Missing fields are ignored safely.
+- Values that resolve to objects or arrays are ignored for display fields.
+- Dynamic `background_color` and `color` values must resolve to supported CSS color formats, such as hex, `rgb()`/`rgba()`, `hsl()`/`hsla()`, or a recognized named color. Invalid color values are ignored.
+- Dynamic resolution currently applies only to `day_badges` display fields, not matching, priority, hidden calendar rules, or actions.
+
 ### Mark all-day event days with an indicator
 
 This badge shows a calendar icon on every day that has at least one all-day event.
