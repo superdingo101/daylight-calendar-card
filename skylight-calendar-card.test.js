@@ -1017,7 +1017,7 @@ test('event modal overlay CSS uses viewport-fixed coverage and high stacking', (
   assert.match(styles, /\.event-modal\s*\{[\s\S]*position:\s*fixed;/);
   assert.match(styles, /\.event-modal\s*\{[\s\S]*inset:\s*0;/);
   assert.match(styles, /\.event-modal\s*\{[\s\S]*z-index:\s*2147483647;/);
-  assert.match(styles, /:host\(\.event-modal-open\)[\s\S]*z-index:\s*2147483000;/);
+  assert.match(styles, /daylight-calendar-card\.event-modal-open,[\s\S]*skylight-calendar-card\.event-modal-open[\s\S]*z-index:\s*2147483000;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-container[\s\S]*overflow:\s*visible;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-body[\s\S]*overflow:\s*visible;/);
 });
@@ -2172,13 +2172,35 @@ function extractCssRule(styles, selector) {
   return styles.slice(start, end + 1);
 }
 
+
+test('getStyles keeps light-DOM card typography scoped to internal content', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const styles = card.getStyles();
+
+  assert.doesNotMatch(styles, /-apple-system,\s*BlinkMacSystemFont,\s*'Segoe UI',\s*Roboto,\s*Oxygen,\s*Ubuntu,\s*Cantarell,\s*sans-serif/);
+
+  const cardElementRule = extractCssRule(styles, 'daylight-calendar-card,');
+  assert.doesNotMatch(cardElementRule, /font-family\s*:/);
+
+  const containerRule = extractCssRule(styles, '.calendar-container {');
+  assert.match(containerRule, /font-family:\s*var\(--ha-font-family-body,\s*var\(--paper-font-body1_-_font-family,\s*inherit\)\)/);
+
+  const formControlsFontRule = styles.match(/\.calendar-container input,[\s\S]*?\.calendar-container button \{[\s\S]*?font-family:\s*inherit;[\s\S]*?\}/)?.[0] ?? '';
+  assert.notEqual(formControlsFontRule, '', 'form controls should explicitly inherit the scoped card font');
+  assert.doesNotMatch(formControlsFontRule, /-apple-system|BlinkMacSystemFont|'Segoe UI'|Roboto|Oxygen|Ubuntu|Cantarell|sans-serif/);
+});
+
 test('getStyles includes full-height flex layout contract for HA Sections grids', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();
 
-  const hostRule = extractCssRule(styles, ':host,');
-  assert.match(hostRule, /height:\s*100%/);
-  assert.match(hostRule, /min-height:\s*0/);
+  const cardElementRule = extractCssRule(styles, 'daylight-calendar-card,');
+  assert.match(cardElementRule, /display:\s*block/);
+  assert.match(cardElementRule, /width:\s*100%/);
+  assert.match(cardElementRule, /height:\s*100%/);
+  assert.match(cardElementRule, /min-height:\s*0/);
+  assert.doesNotMatch(cardElementRule, /font-family\s*:/);
+  assert.doesNotMatch(cardElementRule, /:host/);
 
   const containerRule = extractCssRule(styles, '.calendar-container {');
   assert.match(containerRule, /height:\s*100%/);
