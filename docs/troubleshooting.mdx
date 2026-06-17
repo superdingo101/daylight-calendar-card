@@ -180,6 +180,26 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
     </Tip>
   </Accordion>
 
+  <Accordion title="Card only shows the header after updating">
+    If the card header appears but the calendar body is missing, check whether your dashboard card has an explicit `grid_options.rows` value that is too small.
+
+    This can happen in v4.5.0 and newer because the card body now fills the available height of the Home Assistant dashboard card. If the dashboard card is only one row tall, the calendar body may collapse and only the header remains visible.
+
+    **Fix:**
+
+    ```yaml
+    grid_options:
+      columns: 120
+      rows: 8
+    ```
+
+    If you currently have `rows:` set to anything less than 4, it is probably too small.
+
+    <Tip>
+      The safest approach remains removing `rows:` entirely and letting the card size naturally.
+    </Tip>
+  </Accordion>
+
   <Accordion title="Submitting a bug report">
     If none of the above resolves your issue, please open a GitHub issue so the maintainer can investigate.
 
