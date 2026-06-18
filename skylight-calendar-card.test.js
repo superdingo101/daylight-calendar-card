@@ -2346,6 +2346,81 @@ test('disconnectedCallback disconnects host ResizeObserver', () => {
   }
 });
 
+
+
+test('scheduleHostAndParentResizeHandling defers render while event management modal is open', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_height: true });
+  card._viewMode = 'month';
+  card._lastObservedHostSize = { hostWidth: 300, hostHeight: 400, parentWidth: 320, parentHeight: 480 };
+  card._monthCompactMeasurementDirty = false;
+  let renderCount = 0;
+  const originalRender = card.render;
+  const originalRaf = window.requestAnimationFrame;
+  try {
+    card.render = () => { renderCount += 1; };
+    card.isEventManagementDialogOpen = () => true;
+    card.measureHostAndParentSize = () => ({ hostWidth: 301, hostHeight: 405, parentWidth: 320, parentHeight: 500 });
+    window.requestAnimationFrame = (cb) => {
+      cb();
+      return 1;
+    };
+
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.deepEqual(card._lastObservedHostSize, { hostWidth: 301, hostHeight: 405, parentWidth: 320, parentHeight: 500 });
+    assert.equal(card._monthCompactMeasurementDirty, true);
+    assert.equal(card._pendingHostParentResizeRender, true);
+  } finally {
+    card.render = originalRender;
+    window.requestAnimationFrame = originalRaf;
+  }
+});
+
+test('pending host/parent resize render flushes once after event management modal closes', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  let renderCount = 0;
+  const originalRender = card.render;
+  try {
+    card.render = () => { renderCount += 1; };
+    card._pendingHostParentResizeRender = true;
+
+    card.flushPendingHostParentResizeRender();
+    card.flushPendingHostParentResizeRender();
+
+    assert.equal(renderCount, 1);
+    assert.equal(card._pendingHostParentResizeRender, false);
+  } finally {
+    card.render = originalRender;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling renders immediately when event management modal is closed', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._lastObservedHostSize = { hostWidth: 300, hostHeight: 400, parentWidth: 320, parentHeight: 480 };
+  let renderCount = 0;
+  const originalRender = card.render;
+  const originalRaf = window.requestAnimationFrame;
+  try {
+    card.render = () => { renderCount += 1; };
+    card.isEventManagementDialogOpen = () => false;
+    card.measureHostAndParentSize = () => ({ hostWidth: 310, hostHeight: 400, parentWidth: 320, parentHeight: 480 });
+    window.requestAnimationFrame = (cb) => {
+      cb();
+      return 1;
+    };
+
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 1);
+    assert.deepEqual(card._lastObservedHostSize, { hostWidth: 310, hostHeight: 400, parentWidth: 320, parentHeight: 480 });
+    assert.equal(card._pendingHostParentResizeRender, false);
+  } finally {
+    card.render = originalRender;
+    window.requestAnimationFrame = originalRaf;
+  }
+});
+
 test('day_badge CSS variables do not leak into non-badge selectors', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();

@@ -1037,6 +1037,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._headerResizeObserver = null;
     this._hostResizeObserver = null;
     this._hostResizeRaf = null;
+    this._pendingHostParentResizeRender = false;
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
     this._monthCompactMeasurementDirty = true;
@@ -3630,6 +3631,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
+    this._pendingHostParentResizeRender = false;
     if (this._hostResizeRaf !== null) {
       window.cancelAnimationFrame(this._hostResizeRaf);
       this._hostResizeRaf = null;
@@ -3865,8 +3867,20 @@ class SkylightCalendarCard extends HTMLElement {
       if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
         this._monthCompactMeasurementDirty = true;
       }
+
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHostParentResizeRender = true;
+        return;
+      }
+
       this.render();
     });
+  }
+
+  flushPendingHostParentResizeRender() {
+    if (!this._pendingHostParentResizeRender) return;
+    this._pendingHostParentResizeRender = false;
+    this.render();
   }
 
   observeHeaderResize() {
@@ -9553,6 +9567,7 @@ class SkylightCalendarCard extends HTMLElement {
       this.updateEventModalOpenState(modal);
       if (!this.isEventManagementDialogOpen()) {
         this.flushPendingHeaderTimeRender();
+        this.flushPendingHostParentResizeRender();
       }
     });
 
