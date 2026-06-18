@@ -2317,6 +2317,87 @@ test('getCompactContainerStyle preserves viewport fallback without constrained p
   }
 });
 
+
+test('scheduleHostAndParentResizeHandling defers host resize render while event modal is open', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_height: true });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  let parentSize = { width: 320, height: 480 };
+  const modalClasses = new Set(['show']);
+  const modal = { classList: { contains: (name) => modalClasses.has(name) } };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    card.render = () => { renderCount += 1; };
+    card._viewMode = 'month';
+    card._monthCompactMeasurementDirty = false;
+    card._root = { querySelector: (selector) => selector === '#event-modal' ? modal : null };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: parentSize.width, height: parentSize.height }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 410 };
+    parentSize = { width: 360, height: 500 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.deepEqual(card._lastObservedHostSize, {
+      hostWidth: 340,
+      hostHeight: 410,
+      parentWidth: 360,
+      parentHeight: 500
+    });
+    assert.equal(card._monthCompactMeasurementDirty, true);
+    assert.equal(card._pendingHostResizeRender, true);
+
+    hostSize = { width: 380, height: 430 };
+    card.scheduleHostAndParentResizeHandling();
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingHostResizeRender, true);
+
+    modalClasses.delete('show');
+    card.updateEventModalOpenState(modal);
+    assert.equal(renderCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+
+    card.updateEventModalOpenState(modal);
+    assert.equal(renderCount, 1);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling renders immediately when event modal is closed', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    card.render = () => { renderCount += 1; };
+    card.isEventManagementDialogOpen = () => false;
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
 test('disconnectedCallback disconnects host ResizeObserver', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   let disconnectCount = 0;
