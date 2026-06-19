@@ -94,6 +94,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   agenda_compact_events: 'agenda compact events use compact class and sizing',
   display_full_weekday_names: 'display_full_weekday_names renders localized long weekday labels',
   shorten_event_times: 'shorten_event_times removes minutes from whole-hour 12-hour event times',
+  time_zone: 'time_zone normalizes optional IANA zones and drives formatting and grouping',
   disable_swipe_controls: 'disable_swipe_controls disables swipe controls without affecting agenda',
   week_start_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
   week_end_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
@@ -244,7 +245,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'display_full_weekday_names', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -331,6 +332,7 @@ test('setConfig applies visual layout and styling options', () => {
     event_title_prefix: 'icon',
     show_current_time_bar: true,
     shorten_event_times: true,
+    time_zone: 'America/New_York',
     display_full_weekday_names: true,
     header_color: '#123456',
     header_text_color: '#ffffff',
@@ -385,6 +387,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.event_title_prefix, 'badge_icon');
   assert.equal(card._config.show_current_time_bar, true);
   assert.equal(card._config.shorten_event_times, true);
+  assert.equal(card._config.time_zone, 'America/New_York');
   assert.equal(card._config.display_full_weekday_names, true);
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
@@ -513,6 +516,70 @@ test('shorten_event_times leaves all-day event labels unaffected', () => {
 
   assert.match(html, /week-compact-event-time">All Day</);
   assert.doesNotMatch(html, /10 AM|10h/);
+});
+
+
+test('time_zone is optional and preserves default local formatting when unset', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US' });
+  const date = new Date('2026-01-01T12:00:00Z');
+
+  assert.equal(card._config.time_zone, null);
+  assert.equal(card.formatTime(date), new Intl.DateTimeFormat('en-US', card.getTimeFormatOptions()).format(date));
+});
+
+test('time_zone retains valid IANA zones and uses them in formatting', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+
+  assert.equal(card._config.time_zone, 'America/New_York');
+  assert.equal(card.formatTime(new Date('2026-01-01T12:00:00Z')), '7:00 AM');
+  assert.match(card.formatDate(new Date('2026-01-01T12:00:00Z')), /Thursday, January 1, 2026/);
+});
+
+test('time_zone ignores blank and invalid values safely', () => {
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const blank = makeCard({ entities: ['calendar.family'], time_zone: '   ' });
+    const invalid = makeCard({ entities: ['calendar.family'], time_zone: 'Not/AZone' });
+
+    assert.equal(blank._config.time_zone, null);
+    assert.equal(invalid._config.time_zone, null);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /invalid time_zone/);
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test('time_zone can render an ISO event time differently than the default zone', () => {
+  const defaultCard = makeCard({ entities: ['calendar.family'], locale: 'en-US' });
+  const zonedCard = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  const date = new Date('2026-01-01T12:00:00Z');
+
+  assert.equal(defaultCard.formatEventTime(date), '12:00 PM');
+  assert.equal(zonedCard.formatEventTime(date), '7:00 AM');
+  assert.notEqual(defaultCard.formatEventTime(date), zonedCard.formatEventTime(date));
+});
+
+test('time_zone controls event day grouping and week placement calculations', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  card._events = [{
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'Late UTC event',
+    start: { dateTime: '2026-01-02T02:00:00Z' },
+    end: { dateTime: '2026-01-02T03:00:00Z' }
+  }];
+
+  const jan1 = new Date(2026, 0, 1);
+  const jan2 = new Date(2026, 0, 2);
+  assert.equal(card.getEventsForDay(jan1).length, 1);
+  assert.equal(card.getEventsForDay(jan2).length, 0);
+
+  const segment = card.getEventDaySegment(card._events[0], jan1);
+  assert.equal(card.formatEventTimeRange(segment.segmentStart, segment.segmentEnd), '9:00 PM - 10:00 PM');
+  assert.equal(card.getLocalDayHourFloat(segment.segmentStart, jan1), 21);
 });
 
 test('default_hidden_calendars initializes hidden calendar badges', () => {
