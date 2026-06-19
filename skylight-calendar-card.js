@@ -3574,6 +3574,21 @@ class SkylightCalendarCard extends HTMLElement {
     return new Date(year, month - 1, day);
   }
 
+  parseCalendarDate(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+    return this.zonedTimeToDate(year, month, day, 0, 0, 0, 0);
+  }
+
+  parseCalendarDateWithOffset(dateStr, dayOffset = 0) {
+    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+    const adjusted = new Date(Date.UTC(year, month - 1, day + dayOffset));
+    return this.zonedTimeToDate(adjusted.getUTCFullYear(), adjusted.getUTCMonth() + 1, adjusted.getUTCDate(), 0, 0, 0, 0);
+  }
+
   parsePossiblyLocalDateTime(value) {
     if (!value || typeof value !== 'string') return new Date(value);
 
@@ -7389,7 +7404,7 @@ class SkylightCalendarCard extends HTMLElement {
       formatOptions.year = 'numeric';
     }
 
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(formatOptions));
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), formatOptions);
 
     if (!includeYear) {
       if (startDate.getTime() === endDate.getTime()) {
@@ -9264,8 +9279,8 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (event.start.date) {
       return {
-        eventStart: this.parseLocalDate(event.start.date),
-        eventEnd: this.parseLocalDate(event.end.date),
+        eventStart: this.parseCalendarDate(event.start.date),
+        eventEnd: this.parseCalendarDate(event.end.date),
         isAllDay: true
       };
     }
@@ -11576,12 +11591,11 @@ class SkylightCalendarCard extends HTMLElement {
       endDate = new Date(event.end.dateTime);
       isAllDay = false;
     } else if (event.start.date) {
-      // For all-day events, add T00:00:00 to prevent timezone shifts
-      startDate = this.parseLocalDate(event.start.date);
-      endDate = this.parseLocalDate(event.end.date);
-
-      // End date is exclusive for all-day events, so subtract 1 day for display
-      endDate.setDate(endDate.getDate() - 1);
+      // Date-only all-day events use configured-zone calendar bounds for display.
+      startDate = this.parseCalendarDate(event.start.date);
+      // End date is exclusive for all-day events, so subtract a configured-zone
+      // calendar day before converting to a Date for display.
+      endDate = this.parseCalendarDateWithOffset(event.end.date, -1);
       isAllDay = true;
     } else {
       startDate = new Date(event.start);
@@ -11749,7 +11763,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     content.innerHTML = `
       <div class="modal-header">
-        <h3 class="modal-title">${this.formatDate(date)}</h3>
+        <h3 class="modal-title">${this.formatDisplayDate(date)}</h3>
         <button class="modal-close" id="close-modal">×</button>
       </div>
       <div class="modal-body">
@@ -11805,7 +11819,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     content.innerHTML = `
       <div class="modal-header">
-        <h3 class="modal-title">${this.formatDate(date)}</h3>
+        <h3 class="modal-title">${this.formatDisplayDate(date)}</h3>
         <button class="modal-close" id="close-modal">×</button>
       </div>
       <div class="modal-body">
@@ -12148,6 +12162,10 @@ class SkylightCalendarCard extends HTMLElement {
 
   formatDate(date) {
     return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })).format(date);
+  }
+
+  formatDisplayDate(date) {
+    return new Intl.DateTimeFormat(this.getLocale(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
   }
 
   formatDuration(startDate, endDate) {
