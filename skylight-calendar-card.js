@@ -3581,6 +3581,14 @@ class SkylightCalendarCard extends HTMLElement {
     return this.zonedTimeToDate(year, month, day, 0, 0, 0, 0);
   }
 
+  parseCalendarDateWithOffset(dateStr, dayOffset = 0) {
+    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+    const adjusted = new Date(Date.UTC(year, month - 1, day + dayOffset));
+    return this.zonedTimeToDate(adjusted.getUTCFullYear(), adjusted.getUTCMonth() + 1, adjusted.getUTCDate(), 0, 0, 0, 0);
+  }
+
   parsePossiblyLocalDateTime(value) {
     if (!value || typeof value !== 'string') return new Date(value);
 
@@ -11585,10 +11593,9 @@ class SkylightCalendarCard extends HTMLElement {
     } else if (event.start.date) {
       // Date-only all-day events use configured-zone calendar bounds for display.
       startDate = this.parseCalendarDate(event.start.date);
-      endDate = this.parseCalendarDate(event.end.date);
-
-      // End date is exclusive for all-day events, so subtract 1 day for display
-      endDate.setDate(endDate.getDate() - 1);
+      // End date is exclusive for all-day events, so subtract a configured-zone
+      // calendar day before converting to a Date for display.
+      endDate = this.parseCalendarDateWithOffset(event.end.date, -1);
       isAllDay = true;
     } else {
       startDate = new Date(event.start);

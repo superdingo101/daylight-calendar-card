@@ -617,6 +617,29 @@ test('time_zone compares date-only all-day events using configured-zone day boun
   assert.equal(segment.segmentEnd.toISOString(), '2026-01-02T05:00:00.000Z');
 });
 
+test('time_zone subtracts all-day modal end dates as configured-zone calendar days across DST', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  const content = { innerHTML: '', classList: { add: () => {}, remove: () => {} } };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+
+  card.getRootElementById = (id) => {
+    if (id === 'event-modal') return modal;
+    if (id === 'modal-content') return content;
+    return null;
+  };
+
+  card.showEventModal({
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'DST all-day',
+    start: { date: '2025-03-09' },
+    end: { date: '2025-03-10' }
+  });
+
+  assert.match(content.innerHTML, /Sunday, March 9, 2025 \(All Day\)/);
+  assert.doesNotMatch(content.innerHTML, /Saturday, March 8, 2025 \(All Day\)/);
+});
+
 test('default_hidden_calendars initializes hidden calendar badges', () => {
   const card = makeCard({
     entities: ['calendar.family', 'calendar.work'],
