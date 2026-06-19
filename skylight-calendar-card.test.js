@@ -582,6 +582,41 @@ test('time_zone controls event day grouping and week placement calculations', ()
   assert.equal(card.getLocalDayHourFloat(segment.segmentStart, jan1), 21);
 });
 
+test('time_zone does not shift synthetic display date labels west of browser zone', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    locale: 'en-US',
+    time_zone: 'America/New_York',
+    rolling_days_week_compact: 0
+  });
+  card._viewMode = 'week-compact';
+  card._currentDate = new Date('2026-01-01T00:00:00Z');
+
+  assert.equal(card.getPeriodLabel(), 'Jan 1, 2026');
+  assert.match(card.formatDisplayDate(card.getWeekDays()[0]), /Thursday, January 1, 2026/);
+});
+
+test('time_zone compares date-only all-day events using configured-zone day bounds', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  card._events = [{
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'New Year all-day',
+    start: { date: '2026-01-01' },
+    end: { date: '2026-01-02' }
+  }];
+
+  const dec31 = new Date('2025-12-31T00:00:00Z');
+  const jan1 = new Date('2026-01-01T00:00:00Z');
+  assert.equal(card.getEventsForDay(dec31).length, 0);
+  assert.equal(card.getEventsForDay(jan1).length, 1);
+
+  const segment = card.getEventDaySegment(card._events[0], jan1);
+  assert.equal(segment.isAllDaySegment, true);
+  assert.equal(segment.segmentStart.toISOString(), '2026-01-01T05:00:00.000Z');
+  assert.equal(segment.segmentEnd.toISOString(), '2026-01-02T05:00:00.000Z');
+});
+
 test('default_hidden_calendars initializes hidden calendar badges', () => {
   const card = makeCard({
     entities: ['calendar.family', 'calendar.work'],
