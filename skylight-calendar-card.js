@@ -1471,6 +1471,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false },
       { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? false },
       { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? false },
+      { key: 'time_zone', defaultValue: ({ derived }) => derived.normalizedTimeZone, normalize: ({ derived }) => derived.normalizedTimeZone },
       { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? false },
       { key: 'week_start_hour', defaultValue: ({ derived }) => derived.normalizedWeekStartHour },
       { key: 'week_end_hour', defaultValue: ({ derived }) => derived.normalizedWeekEndHour },
@@ -1584,6 +1585,7 @@ class SkylightCalendarCard extends HTMLElement {
       normalizedWeekStartHour,
       normalizedWeekEndHour,
       normalizedEventTitlePrefix: this.normalizeEventTitlePrefixMode(rawConfig.event_title_prefix),
+      normalizedTimeZone: this.normalizeTimeZone(rawConfig.time_zone),
       normalizedPastEventMode: rawConfig.past_event_mode !== undefined && rawConfig.past_event_mode !== null && rawConfig.past_event_mode !== ''
         ? this.normalizePastEventMode(rawConfig.past_event_mode)
         : (rawConfig.hide_the_past ? 'hide' : 'none'),
@@ -3598,6 +3600,82 @@ class SkylightCalendarCard extends HTMLElement {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+
+  normalizeTimeZone(timeZone) {
+    if (timeZone === undefined || timeZone === null) return null;
+    const normalized = String(timeZone).trim();
+    if (!normalized) return null;
+
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: normalized }).resolvedOptions().timeZone || normalized;
+    } catch (error) {
+      console.warn(`Daylight Calendar Card: ignoring invalid time_zone config value "${normalized}".`);
+      return null;
+    }
+  }
+
+  getConfiguredTimeZone() {
+    return this._config?.time_zone || null;
+  }
+
+  withTimeZone(formatOptions = {}) {
+    const timeZone = this.getConfiguredTimeZone();
+    return timeZone ? { ...formatOptions, timeZone } : formatOptions;
+  }
+
+  getDateTimeParts(date, options = {}) {
+    const formatter = new Intl.DateTimeFormat('en-US', this.withTimeZone({
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hourCycle: 'h23', ...options
+    }));
+    return formatter.formatToParts(date).reduce((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+  }
+
+  getDateParts(date) {
+    if (!this.getConfiguredTimeZone()) {
+      return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), weekday: date.getDay() };
+    }
+    const parts = this.getDateTimeParts(date, { weekday: 'short' });
+    const utcDate = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)));
+    return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day), weekday: utcDate.getUTCDay() };
+  }
+
+  getDisplayDateParts(date) {
+    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), weekday: date.getDay() };
+  }
+
+  zonedTimeToDate(year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0) {
+    const timeZone = this.getConfiguredTimeZone();
+    if (!timeZone) return new Date(year, month - 1, day, hour, minute, second, millisecond);
+
+    let timestamp = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+    for (let i = 0; i < 3; i++) {
+      const parts = this.getDateTimeParts(new Date(timestamp));
+      const asUTC = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second), millisecond);
+      const wantedUTC = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+      const delta = asUTC - wantedUTC;
+      if (delta === 0) break;
+      timestamp -= delta;
+    }
+    return new Date(timestamp);
+  }
+
+  getDayBounds(date) {
+    const { year, month, day } = this.getDisplayDateParts(date);
+    const dayStart = this.zonedTimeToDate(year, month, day, 0, 0, 0, 0);
+    const next = new Date(year, month - 1, day + 1);
+    const nextDayStart = this.zonedTimeToDate(next.getFullYear(), next.getMonth() + 1, next.getDate(), 0, 0, 0, 0);
+    return { dayStart, nextDayStart };
+  }
+
+  getDatePartValue(date, part) {
+    return this.getDisplayDateParts(date)[part];
   }
 
   getDefaultColor(index) {
@@ -7311,7 +7389,7 @@ class SkylightCalendarCard extends HTMLElement {
       formatOptions.year = 'numeric';
     }
 
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), formatOptions);
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(formatOptions));
 
     if (!includeYear) {
       if (startDate.getTime() === endDate.getTime()) {
@@ -7523,7 +7601,7 @@ class SkylightCalendarCard extends HTMLElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayNames = this.getWeekdayNames();
-    const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), { month: 'long', year: 'numeric' });
+    const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'long', year: 'numeric' }));
     const agendaRows = [];
     const shouldHideEmptyDays = this._viewMode === 'agenda' && !!this._config.hide_empty_days;
     const agendaDayEntries = agendaDays
@@ -7940,14 +8018,16 @@ class SkylightCalendarCard extends HTMLElement {
   getLocalDayHourFloat(dateTime, referenceDate) {
     // Use wall-clock hour values relative to the rendered day so DST transitions
     // do not visually shift events by ±1 hour in the schedule grid.
-    const dayKey = Date.UTC(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
-    const timeKey = Date.UTC(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate());
+    const referenceParts = this.getDisplayDateParts(referenceDate);
+    const timeParts = this.getDateTimeParts(dateTime);
+    const dayKey = Date.UTC(referenceParts.year, referenceParts.month - 1, referenceParts.day);
+    const timeKey = Date.UTC(Number(timeParts.year), Number(timeParts.month) - 1, Number(timeParts.day));
     const dayDiff = (timeKey - dayKey) / 86400000;
 
     return (dayDiff * 24) +
-      dateTime.getHours() +
-      (dateTime.getMinutes() / 60) +
-      (dateTime.getSeconds() / 3600) +
+      Number(timeParts.hour) +
+      (Number(timeParts.minute) / 60) +
+      (Number(timeParts.second) / 3600) +
       (dateTime.getMilliseconds() / 3600000);
   }
 
@@ -8271,7 +8351,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatScheduleHour(hour) {
-    const date = new Date(2020, 0, 1, hour, 0, 0, 0);
+    const date = this.zonedTimeToDate(2020, 1, 1, hour, 0, 0, 0);
     return this.formatScheduleTime(date);
   }
 
@@ -8290,20 +8370,21 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatScheduleTime(date) {
-    return new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions()).format(date);
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions())).format(date);
   }
 
   uses24HourEventTime() {
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     return formatter.resolvedOptions().hour12 === false;
   }
 
   isWholeHour(date) {
-    return date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0;
+    const parts = this.getDateTimeParts(date);
+    return Number(parts.minute) === 0 && Number(parts.second) === 0 && date.getMilliseconds() === 0;
   }
 
   formatLocalizedHour(date) {
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     const hourPart = formatter.formatToParts(date).find((part) => part.type === 'hour');
     if (hourPart) {
       return hourPart.value;
@@ -8317,7 +8398,7 @@ class SkylightCalendarCard extends HTMLElement {
       return this.formatBaseEventTime(date, options);
     }
 
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     const parts = formatter.formatToParts(date);
     const minuteIndex = parts.findIndex((part) => part.type === 'minute');
     const shortenedParts = parts.filter((part, index) => {
@@ -9198,7 +9279,8 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getLocalDateKey(date) {
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const { year, month, day } = this.getDateParts(date);
+    return Date.UTC(year, month - 1, day);
   }
 
   eventSpansMultipleLocalDates(eventStart, eventEnd) {
@@ -9235,9 +9317,7 @@ class SkylightCalendarCard extends HTMLElement {
     const { eventStart, eventEnd, isAllDay } = scheduleVisualInfo || this.getEventDateTimeInfo(event);
     const rendersAsAllDay = scheduleVisualInfo?.rendersAsAllDay || isAllDay;
 
-    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const nextDayStart = new Date(dayStart);
-    nextDayStart.setDate(nextDayStart.getDate() + 1);
+    const { dayStart, nextDayStart } = this.getDayBounds(date);
 
     if (eventEnd <= dayStart || eventStart >= nextDayStart) {
       return null;
@@ -11776,7 +11856,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatTime(date) {
-    return new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions()).format(date);
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions())).format(date);
   }
 
   parseTimeValue(value) {
@@ -12067,7 +12147,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatDate(date) {
-    return new Intl.DateTimeFormat(this.getLocale(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })).format(date);
   }
 
   formatDuration(startDate, endDate) {
@@ -12467,6 +12547,7 @@ class SkylightCalendarCard extends HTMLElement {
       hide_empty_days: false,
       agenda_compact_events: false,
       shorten_event_times: false,
+      time_zone: '',
       display_full_weekday_names: false,
       compact_width: false,
       show_current_time_bar: false,
