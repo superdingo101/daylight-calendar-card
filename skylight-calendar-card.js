@@ -1037,6 +1037,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._headerResizeObserver = null;
     this._hostResizeObserver = null;
     this._hostResizeRaf = null;
+    this._pendingHostResizeRender = false;
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
     this._monthCompactMeasurementDirty = true;
@@ -3630,6 +3631,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
+    this._pendingHostResizeRender = false;
     if (this._hostResizeRaf !== null) {
       window.cancelAnimationFrame(this._hostResizeRaf);
       this._hostResizeRaf = null;
@@ -3865,8 +3867,20 @@ class SkylightCalendarCard extends HTMLElement {
       if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
         this._monthCompactMeasurementDirty = true;
       }
+
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHostResizeRender = true;
+        return;
+      }
+
       this.render();
     });
+  }
+
+  flushPendingHostResizeRender() {
+    if (!this._pendingHostResizeRender) return;
+    this._pendingHostResizeRender = false;
+    this.render();
   }
 
   observeHeaderResize() {
@@ -9537,6 +9551,9 @@ class SkylightCalendarCard extends HTMLElement {
   updateEventModalOpenState(modal = this.getRootElementById('event-modal')) {
     const isOpen = !!modal && modal.classList.contains('show');
     this.classList?.toggle('event-modal-open', isOpen);
+    if (!isOpen) {
+      this.flushPendingHostResizeRender();
+    }
   }
 
   observeModalVisibility(modal) {
