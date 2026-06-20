@@ -436,6 +436,11 @@ test('day_badge_layout_week controls week header layout classes', () => {
   assert.match(styles, /\.week-compact-container\.day-badge-layout-stacked \.week-day-meta-row/);
   assert.match(styles, /\.week-standard-container\.day-badge-layout-stacked \.week-day-meta-row/);
   assert.match(styles, /flex-direction:\s*column;/);
+  assert.match(styles, /height:\s*var\(--week-standard-header-height, 60px\);/);
+  assert.match(styles, /min-height:\s*var\(--week-standard-header-height, auto\);/);
+
+  stackedStandardCard._weekStandardHeaderHeight = 96;
+  assert.match(stackedStandardCard.renderWeekStandard(), /style="--week-standard-header-height: 96px;/);
 });
 
 test('shorten_event_times defaults to unchanged event time formatting', () => {
