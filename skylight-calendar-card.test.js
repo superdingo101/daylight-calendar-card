@@ -128,6 +128,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_styles: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   day_styles: 'setConfig applies visual layout and styling options',
   day_badges: 'setConfig schema keeps normalized fields from being overwritten by raw config',
+  day_badge_layout_week: 'day_badge_layout_week controls week header layout classes',
   hide_times_for_calendars: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   show_current_time_bar: 'setConfig applies visual layout and styling options',
   header_color: 'setConfig applies visual layout and styling options',
@@ -245,7 +246,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -359,7 +360,8 @@ test('setConfig applies visual layout and styling options', () => {
     default_hidden_calendars: ['calendar.family'],
     virtual_calendars: [{ name: 'home', icon: 'mdi:house', entities: ['calendar.family'] }],
     day_styles: [{ when: { day_of_week: [1] }, style: { background: '#111' } }],
-    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }]
+    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }],
+    day_badge_layout_week: 'stacked'
   });
 
   assert.equal(card._config.default_view, 'week-compact');
@@ -389,6 +391,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.shorten_event_times, true);
   assert.equal(card._config.time_zone, 'America/New_York');
   assert.equal(card._config.display_full_weekday_names, true);
+  assert.equal(card._config.day_badge_layout_week, 'stacked');
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
   assert.equal(card._config.header_background_opacity, 55);
@@ -414,6 +417,158 @@ test('setConfig applies visual layout and styling options', () => {
   assert.deepEqual(card._config.default_hidden_calendars, ['calendar.family']);
   assert.equal(card._hiddenCalendars.has('calendar.family'), true);
   assert.equal(card._config.virtual_calendars[0].name, 'home');
+});
+
+
+test('day_badge_layout_week controls week header layout classes', () => {
+  const inlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  const explicitInlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'inline' });
+  const stackedCompactCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  const stackedStandardCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked' });
+
+  assert.equal(inlineCard._config.day_badge_layout_week, 'inline');
+  assert.match(inlineCard.renderWeekCompact(), /week-compact-container day-badge-layout-inline/);
+  assert.match(explicitInlineCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-inline/);
+  assert.match(stackedCompactCard.renderWeekCompact(), /week-compact-container day-badge-layout-stacked/);
+  assert.match(stackedStandardCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-stacked/);
+
+  const styles = stackedCompactCard.getStyles();
+  assert.match(styles, /\.week-compact-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /\.week-standard-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /flex-direction:\s*column;/);
+  assert.match(styles, /height:\s*var\(--week-standard-time-header-spacer-height, 60px\);/);
+  assert.match(styles, /min-height:\s*var\(--week-standard-day-header-height, auto\);/);
+  assert.match(styles, /min-height:\s*var\(--week-compact-header-height, auto\);/);
+
+  assert.doesNotMatch(inlineCard.renderWeekStandard?.() || '', /--week-standard-day-header-height:/);
+  assert.doesNotMatch(stackedStandardCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+  assert.doesNotMatch(stackedCompactCard.renderWeekCompact(), /--week-compact-header-height:/);
+
+  stackedStandardCard._weekStandardHeaderHeight = 86;
+  assert.match(stackedStandardCard.renderWeekStandard(), /style="--week-standard-day-header-height: 86px;--week-standard-time-header-spacer-height: 60px;/);
+
+  stackedCompactCard._weekCompactHeaderHeight = 92;
+  assert.match(stackedCompactCard.renderWeekCompact(), /style="--week-compact-header-height: 92px;/);
+});
+
+function makeMeasuredDayHeader({ headerHeight, badgeHeight = null }) {
+  const metaRow = {};
+  const badges = badgeHeight === null ? null : {
+    querySelector: (selector) => selector === '.day-badge' ? {} : null,
+    closest: (selector) => selector === '.week-day-meta-row' ? metaRow : null,
+    getBoundingClientRect: () => ({ height: badgeHeight })
+  };
+
+  return {
+    querySelector: (selector) => {
+      if (selector === '.day-badges') return badges;
+      if (selector === '.day-badges .day-badge') return badges ? {} : null;
+      if (selector === '.week-day-meta-row') return metaRow;
+      return null;
+    },
+    getBoundingClientRect: () => ({ height: headerHeight })
+  };
+}
+
+function makeWeekMeasurementRoot({ containerSelector, headerSelector, headers, previousHeaderVariable = '', headerVariableName = '--week-standard-day-header-height' }) {
+  const styleValues = new Map(previousHeaderVariable ? [[headerVariableName, previousHeaderVariable]] : []);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    },
+    getBoundingClientRect: () => ({ top: 24 })
+  };
+
+  return {
+    querySelector: (selector) => selector === containerSelector ? container : null,
+    querySelectorAll: (selector) => selector === headerSelector ? headers : []
+  };
+}
+
+test('stacked week-standard header measurement shares tallest header height without compact offset double count', () => {
+  const originalGetComputedStyle = window.getComputedStyle;
+  window.getComputedStyle = (element) => element ? { rowGap: '6px', gap: '6px' } : originalGetComputedStyle(element);
+
+  try {
+    const inlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'inline', compact_height: true });
+    inlineCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [makeMeasuredDayHeader({ headerHeight: 96, badgeHeight: 20 })]
+    });
+    inlineCard._viewMode = 'week-standard';
+    inlineCard.getCompactMaxHeight = () => 223;
+    inlineCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(inlineCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(inlineCard._weekStandardHeaderHeight, null);
+    assert.equal(inlineCard._weekStandardFixedOffsetHeight, null);
+    assert.doesNotMatch(inlineCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+
+    const stackedNoBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked', compact_height: true });
+    stackedNoBadgesCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [makeMeasuredDayHeader({ headerHeight: 96 })]
+    });
+    stackedNoBadgesCard._viewMode = 'week-standard';
+    stackedNoBadgesCard.getCompactMaxHeight = () => 223;
+    stackedNoBadgesCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(stackedNoBadgesCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(stackedNoBadgesCard._weekStandardHeaderHeight, null);
+    assert.equal(stackedNoBadgesCard._weekStandardFixedOffsetHeight, null);
+    assert.doesNotMatch(stackedNoBadgesCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+
+    const stackedExtraCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked', compact_height: true, week_start_hour: 9, week_end_hour: 9 });
+    stackedExtraCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [
+        makeMeasuredDayHeader({ headerHeight: 72 }),
+        makeMeasuredDayHeader({ headerHeight: 96, badgeHeight: 20 })
+      ],
+      previousHeaderVariable: '120px'
+    });
+    stackedExtraCard._viewMode = 'week-standard';
+    stackedExtraCard.getCompactMaxHeight = () => 223;
+    stackedExtraCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(stackedExtraCard._weekStandardExtraHeaderHeight, 36);
+    assert.equal(stackedExtraCard._weekStandardHeaderHeight, 96);
+    assert.equal(stackedExtraCard._weekStandardFixedOffsetHeight, null);
+    assert.match(stackedExtraCard.renderWeekStandard(), /--week-standard-day-header-height: 96px;--week-standard-time-header-spacer-height: 61px;/);
+
+    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 95px;"/);
+  } finally {
+    window.getComputedStyle = originalGetComputedStyle;
+  }
+});
+
+test('stacked week-compact header measurement shares tallest header height only when badges render', () => {
+  const stackedNoBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  stackedNoBadgesCard._root = makeWeekMeasurementRoot({
+    containerSelector: '.week-compact-container',
+    headerSelector: '.week-day-header',
+    headers: [makeMeasuredDayHeader({ headerHeight: 92 }), makeMeasuredDayHeader({ headerHeight: 64 })],
+    headerVariableName: '--week-compact-header-height'
+  });
+  stackedNoBadgesCard._viewMode = 'week-compact';
+  stackedNoBadgesCard.updateWeekCompactStackedHeaderHeightFromDom();
+  assert.equal(stackedNoBadgesCard._weekCompactHeaderHeight, null);
+  assert.doesNotMatch(stackedNoBadgesCard.renderWeekCompact(), /--week-compact-header-height:/);
+
+  const stackedBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  stackedBadgesCard._root = makeWeekMeasurementRoot({
+    containerSelector: '.week-compact-container',
+    headerSelector: '.week-day-header',
+    headers: [makeMeasuredDayHeader({ headerHeight: 92, badgeHeight: 20 }), makeMeasuredDayHeader({ headerHeight: 64 })],
+    previousHeaderVariable: '120px',
+    headerVariableName: '--week-compact-header-height'
+  });
+  stackedBadgesCard._viewMode = 'week-compact';
+  stackedBadgesCard.updateWeekCompactStackedHeaderHeightFromDom();
+  assert.equal(stackedBadgesCard._weekCompactHeaderHeight, 92);
+  assert.match(stackedBadgesCard.renderWeekCompact(), /--week-compact-header-height: 92px;/);
 });
 
 test('shorten_event_times defaults to unchanged event time formatting', () => {
@@ -694,7 +849,8 @@ test('setConfig normalizes fallback values and aliases', () => {
     background_transparent: true,
     header_background_transparent: true,
     event_title_prefix: 'bad-value',
-    color_scheme: 'invalid'
+    color_scheme: 'invalid',
+    day_badge_layout_week: 'sideways'
   });
 
   assert.equal(card._config.default_view, 'week-standard');
@@ -702,6 +858,7 @@ test('setConfig normalizes fallback values and aliases', () => {
   assert.equal(card._config.header_background_opacity, 100);
   assert.equal(card._config.event_title_prefix, 'none');
   assert.equal(card._config.color_scheme, 'auto');
+  assert.equal(card._config.day_badge_layout_week, 'inline');
 });
 
 test('setConfig schema keeps normalized fields from being overwritten by raw config', () => {

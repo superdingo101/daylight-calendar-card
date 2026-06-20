@@ -1001,6 +1001,9 @@ class SkylightCalendarCard extends HTMLElement {
       this.render();
     };
     this._weekStandardFixedOffsetHeight = null;
+    this._weekStandardExtraHeaderHeight = 0;
+    this._weekStandardHeaderHeight = null;
+    this._weekCompactHeaderHeight = null;
     this._weekStandardContainerTopInViewport = null;
     this._monthContainerTopInViewport = null;
     this._agendaContainerTopInViewport = null;
@@ -1150,6 +1153,13 @@ class SkylightCalendarCard extends HTMLElement {
     return this.normalizeEnumValue(value, {
       allowed: ['none', 'hide', 'muted'],
       fallback: 'none'
+    });
+  }
+
+  normalizeDayBadgeLayoutWeek(value) {
+    return this.normalizeEnumValue(value, {
+      allowed: ['inline', 'stacked'],
+      fallback: 'inline'
     });
   }
 
@@ -1505,6 +1515,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'event_styles', defaultValue: ({ derived }) => derived.normalizedEventStyles, normalize: ({ derived }) => derived.normalizedEventStyles },
       { key: 'day_styles', defaultValue: ({ derived }) => derived.normalizedDayStyles, normalize: ({ derived }) => derived.normalizedDayStyles },
       { key: 'day_badges', defaultValue: ({ derived }) => derived.normalizedDayBadges, normalize: ({ derived }) => derived.normalizedDayBadges },
+      { key: 'day_badge_layout_week', defaultValue: ({ derived }) => derived.normalizedDayBadgeLayoutWeek, normalize: ({ derived }) => derived.normalizedDayBadgeLayoutWeek },
       { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [] },
       { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || false },
       { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : 'var(--primary-color)' },
@@ -1578,6 +1589,7 @@ class SkylightCalendarCard extends HTMLElement {
         resolveLanguage(rawConfig.locale || rawConfig.language || this._hass?.locale?.language || this._hass?.language)
       ),
       normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
+      normalizedDayBadgeLayoutWeek: this.normalizeDayBadgeLayoutWeek(rawConfig.day_badge_layout_week),
       normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
       normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
       normalizedHeaderBackgroundOpacity,
@@ -3850,33 +3862,104 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   updateWeekStandardFixedOffsetHeightFromDom() {
-    if (this._viewMode !== 'week-standard' || !this._config.compact_height || !this._root) return;
+    if (this._viewMode !== 'week-standard' || !this._root) return;
     if (this.isEventManagementDialogOpen()) return;
 
+    const baselineHeaderHeight = 60;
     const container = this._root.querySelector('.week-standard-container');
-    const headerSpacer = this._root.querySelector('.time-column-header-spacer');
-    const extraSpacer = this._root.querySelector('.time-column-extra-spacer');
-    const allDaySpacer = this._root.querySelector('.time-column-allday-spacer');
-    if (!container || !headerSpacer || !extraSpacer) return;
+    const dayHeaders = Array.from(this._root.querySelectorAll('.week-standard-day-header'));
+    if (!container || dayHeaders.length === 0) return;
 
-    const computed = window.getComputedStyle(container);
-    const containerPadding = (parseFloat(computed.paddingTop) || 0) + (parseFloat(computed.paddingBottom) || 0);
-    const measuredOffset = Math.ceil(
-      containerPadding +
-      headerSpacer.getBoundingClientRect().height +
-      extraSpacer.getBoundingClientRect().height +
-      (allDaySpacer ? allDaySpacer.getBoundingClientRect().height : 0)
-    );
     const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
+    if (!Number.isFinite(measuredContainerTop)) return;
 
-    if (!Number.isFinite(measuredOffset) || !Number.isFinite(measuredContainerTop)) return;
+    const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
+      && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
 
-    const offsetChanged = this._weekStandardFixedOffsetHeight === null || Math.abs(this._weekStandardFixedOffsetHeight - measuredOffset) > 1;
+    if (!hasRenderedStackedDayBadges) {
+      const extraHeaderHeightChanged = this._weekStandardExtraHeaderHeight !== 0;
+      const headerHeightChanged = this._weekStandardHeaderHeight !== null;
+      const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
+
+      if (extraHeaderHeightChanged || headerHeightChanged || containerTopChanged) {
+        this._weekStandardExtraHeaderHeight = 0;
+        this._weekStandardHeaderHeight = null;
+        this._weekStandardContainerTopInViewport = measuredContainerTop;
+        this.render();
+      }
+      return;
+    }
+
+    const previousHeaderHeightStyle = container.style.getPropertyValue('--week-standard-day-header-height');
+    if (previousHeaderHeightStyle) {
+      container.style.removeProperty('--week-standard-day-header-height');
+    }
+
+    const measuredSharedHeaderHeight = Math.ceil(Math.max(
+      baselineHeaderHeight,
+      ...dayHeaders.map((header) => header.getBoundingClientRect?.().height || 0)
+    ));
+
+    if (previousHeaderHeightStyle) {
+      container.style.setProperty('--week-standard-day-header-height', previousHeaderHeightStyle);
+    }
+
+    if (!Number.isFinite(measuredSharedHeaderHeight)) return;
+
+    const effectiveExtraHeaderHeight = Math.max(0, measuredSharedHeaderHeight - baselineHeaderHeight);
+    const effectiveSharedHeaderHeight = effectiveExtraHeaderHeight > 0 ? measuredSharedHeaderHeight : null;
+    const extraHeaderHeightChanged = Math.abs(this._weekStandardExtraHeaderHeight - effectiveExtraHeaderHeight) > 1;
+    const headerHeightChanged = this._weekStandardHeaderHeight === null
+      ? effectiveSharedHeaderHeight !== null
+      : effectiveSharedHeaderHeight === null || Math.abs(this._weekStandardHeaderHeight - effectiveSharedHeaderHeight) > 1;
     const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
 
-    if (offsetChanged || containerTopChanged) {
-      this._weekStandardFixedOffsetHeight = measuredOffset;
+    if (extraHeaderHeightChanged || headerHeightChanged || containerTopChanged) {
+      this._weekStandardExtraHeaderHeight = effectiveExtraHeaderHeight;
+      this._weekStandardHeaderHeight = effectiveSharedHeaderHeight;
       this._weekStandardContainerTopInViewport = measuredContainerTop;
+      this.render();
+    }
+  }
+
+  updateWeekCompactStackedHeaderHeightFromDom() {
+    if (this._viewMode !== 'week-compact' || !this._root) return;
+    if (this.isEventManagementDialogOpen()) return;
+
+    const container = this._root.querySelector('.week-compact-container');
+    const dayHeaders = Array.from(this._root.querySelectorAll('.week-day-header'));
+    if (!container || dayHeaders.length === 0) return;
+
+    const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
+      && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
+
+    if (!hasRenderedStackedDayBadges) {
+      if (this._weekCompactHeaderHeight !== null) {
+        this._weekCompactHeaderHeight = null;
+        this.render();
+      }
+      return;
+    }
+
+    const previousHeaderHeightStyle = container.style.getPropertyValue('--week-compact-header-height');
+    if (previousHeaderHeightStyle) {
+      container.style.removeProperty('--week-compact-header-height');
+    }
+
+    const measuredHeaderHeight = Math.ceil(Math.max(
+      0,
+      ...dayHeaders.map((header) => header.getBoundingClientRect?.().height || 0)
+    ));
+
+    if (previousHeaderHeightStyle) {
+      container.style.setProperty('--week-compact-header-height', previousHeaderHeightStyle);
+    }
+
+    if (!Number.isFinite(measuredHeaderHeight) || measuredHeaderHeight <= 0) return;
+
+    const headerHeightChanged = this._weekCompactHeaderHeight === null || Math.abs(this._weekCompactHeaderHeight - measuredHeaderHeight) > 1;
+    if (headerHeightChanged) {
+      this._weekCompactHeaderHeight = measuredHeaderHeight;
       this.render();
     }
   }
@@ -5133,6 +5216,8 @@ class SkylightCalendarCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
+        min-height: var(--week-compact-header-height, auto);
+        box-sizing: border-box;
       }
 
       .week-day-header-main {
@@ -5148,7 +5233,24 @@ class SkylightCalendarCard extends HTMLElement {
         justify-content: center;
         gap: 10px;
         margin-top: 2px;
-		min-height: 32px;
+        min-height: 32px;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row .day-badges,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row .day-badges {
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow: visible;
       }
 
       .week-day-forecast,
@@ -5701,7 +5803,7 @@ class SkylightCalendarCard extends HTMLElement {
       }
 
       .time-column-header-spacer {
-        height: 60px;
+        height: var(--week-standard-time-header-spacer-height, 60px);
         background: transparent;
         flex-shrink: 0;
       }
@@ -5763,6 +5865,8 @@ class SkylightCalendarCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
+        min-height: var(--week-standard-day-header-height, auto);
+        box-sizing: border-box;
       }
 
       .week-standard-day-name {
@@ -7193,6 +7297,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.updateCompactHeaderWrapState();
     this.updateCalendarBadgesScrollState();
     this.updateWeekStandardFixedOffsetHeightFromDom();
+    this.updateWeekCompactStackedHeaderHeightFromDom();
     this.observeHeaderResize();
     this.observeMonthGridResize();
     if (this._viewMode === 'month' && this._config.compact_height && !this.shouldShowAllEventsInMonth()) {
@@ -7482,11 +7587,12 @@ class SkylightCalendarCard extends HTMLElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayNames = this.getWeekdayNames();
-    const containerStyle = this.getCompactContainerStyle();
+    const headerHeightStyle = this._weekCompactHeaderHeight ? `--week-compact-header-height: ${this._weekCompactHeaderHeight}px;` : '';
+    const containerStyle = `${headerHeightStyle}${this.getCompactContainerStyle()}`;
 
     return `
       ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-compact-container" style="${containerStyle}">
+      <div class="week-compact-container day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
           const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
@@ -7545,19 +7651,22 @@ class SkylightCalendarCard extends HTMLElement {
 
     const compactMaxHeight = this.getCompactMaxHeight(this._weekStandardContainerTopInViewport);
     const fallbackOffsetHeight = 127 + allDayHeight;
-    const staticOffsetHeight = this._weekStandardFixedOffsetHeight || fallbackOffsetHeight;
+    const headerOffsetAdjustment = this._weekStandardHeaderHeight ? Math.max(0, this._weekStandardHeaderHeight - 95) : 0;
+    const staticOffsetHeight = fallbackOffsetHeight + headerOffsetAdjustment;
     const availableSlotHeight = compactMaxHeight ? compactMaxHeight - staticOffsetHeight : null;
     const compactHourHeight = availableSlotHeight && availableSlotHeight > 0 ? Math.floor(availableSlotHeight / hours.length) : null;
     const hourHeight = compactHourHeight ? Math.max(20, Math.min(preferredHourHeight, compactHourHeight)) : preferredHourHeight;
     const timelineHeight = hourHeight * hours.length;
     const dayTimeSlotsStyle = `height: ${timelineHeight}px; min-height: ${timelineHeight}px;`;
-    const containerStyle = this.getCompactContainerStyle(compactMaxHeight);
+    const timeHeaderSpacerHeight = this._weekStandardHeaderHeight ? Math.max(60, this._weekStandardHeaderHeight - 35) : null;
+    const headerHeightStyle = this._weekStandardHeaderHeight ? `--week-standard-day-header-height: ${this._weekStandardHeaderHeight}px;--week-standard-time-header-spacer-height: ${timeHeaderSpacerHeight}px;` : '';
+    const containerStyle = `${headerHeightStyle}${this.getCompactContainerStyle(compactMaxHeight)}`;
 
     const showCurrentTimeBar = this._config.show_current_time_bar && this.shouldShowCurrentTimeBar(today, startHour, endHour);
 
     return `
       ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''}" style="${containerStyle}">
+      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''} day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
           <div class="time-column-header-spacer"></div>
@@ -12583,6 +12692,7 @@ class SkylightCalendarCard extends HTMLElement {
       event_tint_opacity: 80,
       event_color_bar_width: 18,
       day_badges: [],
+      day_badge_layout_week: 'inline',
       hide_calendars: false,
       hide_header: false,
       hide_year: false,
@@ -12698,7 +12808,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
       past_event_mode: normalizedPastEventMode,
       color_scheme: SkylightCalendarCard.prototype.normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path),
-      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size)
+      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size),
+      day_badge_layout_week: SkylightCalendarCard.prototype.normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
 

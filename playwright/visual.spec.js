@@ -92,6 +92,25 @@ const richDescriptionEvents = {
   ]
 };
 
+const stackedDayBadgeEvents = {
+  'calendar.family': [
+    { summary: 'School Day', start: '2026-03-16', end: '2026-03-17' },
+    { summary: 'Library Day', start: '2026-03-16T15:30:00Z', end: '2026-03-16T16:30:00Z' },
+    { summary: 'Dinner', start: '2026-03-17T18:00:00Z', end: '2026-03-17T19:00:00Z' }
+  ],
+  'calendar.work': [
+    { summary: 'Planning', start: '2026-03-18T13:00:00Z', end: '2026-03-18T14:00:00Z' }
+  ]
+};
+
+const stackedDayBadgeConfig = {
+  day_badge_layout_week: 'stacked',
+  day_badges: [
+    { conditions: { title: 'School Day' }, icon: 'mdi:school', text: 'School Day' },
+    { conditions: { title: 'Library Day' }, icon: 'mdi:book-open-page-variant', text: 'Library Day' }
+  ]
+};
+
 const defaultColors = { 'calendar.family': '#ff5f66', 'calendar.work': '#14c8bd' };
 
 const cases = [
@@ -101,6 +120,47 @@ const cases = [
   { name: 'week-basic-dark', config: { default_view: 'week', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-compact-basic-light', config: { default_view: 'week-compact', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-standard-basic-light', config: { default_view: 'week-standard', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
+  {
+    name: 'week-standard-stacked-day-badges',
+    config: { default_view: 'week-standard', color_scheme: 'light', ...stackedDayBadgeConfig },
+    darkMode: false,
+    events: stackedDayBadgeEvents,
+    viewLabel: 'Schedule',
+    assert: async (card) => {
+      const mondayHeader = card.locator('.week-standard-day-column[data-date^="2026-03-16"] .week-standard-day-header');
+      await expect(mondayHeader.locator('.day-badge')).toHaveCount(2);
+      await expect(mondayHeader).toContainText('School Day');
+      await expect(mondayHeader).toContainText('Library Day');
+
+      const headerHeights = await card.locator('.week-standard-day-header').evaluateAll((headers) =>
+        headers.map((header) => Math.round(header.getBoundingClientRect().height))
+      );
+      expect(new Set(headerHeights).size).toBe(1);
+
+      const timeHeaderHeight = await card.locator('.time-column-header-spacer').evaluate((spacer) => Math.round(spacer.getBoundingClientRect().height));
+      const extraSpacerHeight = await card.locator('.time-column-extra-spacer').evaluate((spacer) => Math.round(spacer.getBoundingClientRect().height));
+      expect(timeHeaderHeight).not.toBe(headerHeights[0]);
+      expect(timeHeaderHeight + extraSpacerHeight).toBe(headerHeights[0]);
+
+      const slotTops = await card.locator('.day-time-slots').evaluateAll((slots) =>
+        slots.map((slot) => Math.round(slot.getBoundingClientRect().top))
+      );
+      expect(new Set(slotTops).size).toBe(1);
+    }
+  },
+  {
+    name: 'week-compact-stacked-day-badges',
+    config: { default_view: 'week-compact', color_scheme: 'light', ...stackedDayBadgeConfig },
+    darkMode: false,
+    events: stackedDayBadgeEvents,
+    viewLabel: 'Week',
+    assert: async (card) => {
+      const mondayHeader = card.locator('.week-day-column[data-date^="2026-03-16"] .week-day-header');
+      await expect(mondayHeader.locator('.day-badge')).toHaveCount(2);
+      await expect(mondayHeader).toContainText('School Day');
+      await expect(mondayHeader).toContainText('Library Day');
+    }
+  },
   { name: 'schedule-basic-light', config: { default_view: 'schedule', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
   { name: 'schedule-basic-dark', config: { default_view: 'schedule', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Schedule' },
   { name: 'agenda-basic-light', config: { default_view: 'agenda', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Agenda' },
