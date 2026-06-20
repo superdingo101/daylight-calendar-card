@@ -444,7 +444,7 @@ test('day_badge_layout_week controls week header layout classes', () => {
   assert.doesNotMatch(stackedStandardCard.renderWeekStandard(), /--week-standard-header-height:/);
   assert.doesNotMatch(stackedCompactCard.renderWeekCompact(), /--week-compact-header-height:/);
 
-  stackedStandardCard._weekStandardExtraHeaderHeight = 26;
+  stackedStandardCard._weekStandardHeaderHeight = 86;
   assert.match(stackedStandardCard.renderWeekStandard(), /style="--week-standard-header-height: 86px;/);
 
   stackedCompactCard._weekCompactHeaderHeight = 92;
@@ -487,7 +487,7 @@ function makeWeekMeasurementRoot({ containerSelector, headerSelector, headers, p
   };
 }
 
-test('stacked week-standard header measurement shares tallest header height and uses baseline delta', () => {
+test('stacked week-standard header measurement shares tallest header height without compact offset double count', () => {
   const originalGetComputedStyle = window.getComputedStyle;
   window.getComputedStyle = (element) => element ? { rowGap: '6px', gap: '6px' } : originalGetComputedStyle(element);
 
@@ -502,6 +502,7 @@ test('stacked week-standard header measurement shares tallest header height and 
     inlineCard.getCompactMaxHeight = () => 223;
     inlineCard.updateWeekStandardFixedOffsetHeightFromDom();
     assert.equal(inlineCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(inlineCard._weekStandardHeaderHeight, null);
     assert.equal(inlineCard._weekStandardFixedOffsetHeight, null);
     assert.doesNotMatch(inlineCard.renderWeekStandard(), /--week-standard-header-height:/);
 
@@ -515,6 +516,7 @@ test('stacked week-standard header measurement shares tallest header height and 
     stackedNoBadgesCard.getCompactMaxHeight = () => 223;
     stackedNoBadgesCard.updateWeekStandardFixedOffsetHeightFromDom();
     assert.equal(stackedNoBadgesCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(stackedNoBadgesCard._weekStandardHeaderHeight, null);
     assert.equal(stackedNoBadgesCard._weekStandardFixedOffsetHeight, null);
     assert.doesNotMatch(stackedNoBadgesCard.renderWeekStandard(), /--week-standard-header-height:/);
 
@@ -532,10 +534,11 @@ test('stacked week-standard header measurement shares tallest header height and 
     stackedExtraCard.getCompactMaxHeight = () => 223;
     stackedExtraCard.updateWeekStandardFixedOffsetHeightFromDom();
     assert.equal(stackedExtraCard._weekStandardExtraHeaderHeight, 36);
+    assert.equal(stackedExtraCard._weekStandardHeaderHeight, 96);
     assert.equal(stackedExtraCard._weekStandardFixedOffsetHeight, null);
     assert.match(stackedExtraCard.renderWeekStandard(), /--week-standard-header-height: 96px;/);
 
-    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 60px;"/);
+    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 96px;"/);
   } finally {
     window.getComputedStyle = originalGetComputedStyle;
   }
