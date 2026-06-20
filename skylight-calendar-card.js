@@ -1153,6 +1153,13 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
+  normalizeDayBadgeLayoutWeek(value) {
+    return this.normalizeEnumValue(value, {
+      allowed: ['inline', 'stacked'],
+      fallback: 'inline'
+    });
+  }
+
   normalizeEntityStringMap(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return {};
@@ -1505,6 +1512,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'event_styles', defaultValue: ({ derived }) => derived.normalizedEventStyles, normalize: ({ derived }) => derived.normalizedEventStyles },
       { key: 'day_styles', defaultValue: ({ derived }) => derived.normalizedDayStyles, normalize: ({ derived }) => derived.normalizedDayStyles },
       { key: 'day_badges', defaultValue: ({ derived }) => derived.normalizedDayBadges, normalize: ({ derived }) => derived.normalizedDayBadges },
+      { key: 'day_badge_layout_week', defaultValue: ({ derived }) => derived.normalizedDayBadgeLayoutWeek, normalize: ({ derived }) => derived.normalizedDayBadgeLayoutWeek },
       { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [] },
       { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || false },
       { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : 'var(--primary-color)' },
@@ -1578,6 +1586,7 @@ class SkylightCalendarCard extends HTMLElement {
         resolveLanguage(rawConfig.locale || rawConfig.language || this._hass?.locale?.language || this._hass?.language)
       ),
       normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
+      normalizedDayBadgeLayoutWeek: this.normalizeDayBadgeLayoutWeek(rawConfig.day_badge_layout_week),
       normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
       normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
       normalizedHeaderBackgroundOpacity,
@@ -5148,7 +5157,24 @@ class SkylightCalendarCard extends HTMLElement {
         justify-content: center;
         gap: 10px;
         margin-top: 2px;
-		min-height: 32px;
+        min-height: 32px;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row .day-badges,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row .day-badges {
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow: visible;
       }
 
       .week-day-forecast,
@@ -7486,7 +7512,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return `
       ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-compact-container" style="${containerStyle}">
+      <div class="week-compact-container day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
           const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
@@ -7557,7 +7583,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return `
       ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''}" style="${containerStyle}">
+      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''} day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
           <div class="time-column-header-spacer"></div>
@@ -12583,6 +12609,7 @@ class SkylightCalendarCard extends HTMLElement {
       event_tint_opacity: 80,
       event_color_bar_width: 18,
       day_badges: [],
+      day_badge_layout_week: 'inline',
       hide_calendars: false,
       hide_header: false,
       hide_year: false,
@@ -12698,7 +12725,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
       past_event_mode: normalizedPastEventMode,
       color_scheme: SkylightCalendarCard.prototype.normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path),
-      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size)
+      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size),
+      day_badge_layout_week: SkylightCalendarCard.prototype.normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
 

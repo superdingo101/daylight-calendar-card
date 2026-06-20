@@ -128,6 +128,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_styles: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   day_styles: 'setConfig applies visual layout and styling options',
   day_badges: 'setConfig schema keeps normalized fields from being overwritten by raw config',
+  day_badge_layout_week: 'day_badge_layout_week controls week header layout classes',
   hide_times_for_calendars: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   show_current_time_bar: 'setConfig applies visual layout and styling options',
   header_color: 'setConfig applies visual layout and styling options',
@@ -245,7 +246,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -359,7 +360,8 @@ test('setConfig applies visual layout and styling options', () => {
     default_hidden_calendars: ['calendar.family'],
     virtual_calendars: [{ name: 'home', icon: 'mdi:house', entities: ['calendar.family'] }],
     day_styles: [{ when: { day_of_week: [1] }, style: { background: '#111' } }],
-    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }]
+    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }],
+    day_badge_layout_week: 'stacked'
   });
 
   assert.equal(card._config.default_view, 'week-compact');
@@ -389,6 +391,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.shorten_event_times, true);
   assert.equal(card._config.time_zone, 'America/New_York');
   assert.equal(card._config.display_full_weekday_names, true);
+  assert.equal(card._config.day_badge_layout_week, 'stacked');
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
   assert.equal(card._config.header_background_opacity, 55);
@@ -414,6 +417,25 @@ test('setConfig applies visual layout and styling options', () => {
   assert.deepEqual(card._config.default_hidden_calendars, ['calendar.family']);
   assert.equal(card._hiddenCalendars.has('calendar.family'), true);
   assert.equal(card._config.virtual_calendars[0].name, 'home');
+});
+
+
+test('day_badge_layout_week controls week header layout classes', () => {
+  const inlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  const explicitInlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'inline' });
+  const stackedCompactCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  const stackedStandardCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked' });
+
+  assert.equal(inlineCard._config.day_badge_layout_week, 'inline');
+  assert.match(inlineCard.renderWeekCompact(), /week-compact-container day-badge-layout-inline/);
+  assert.match(explicitInlineCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-inline/);
+  assert.match(stackedCompactCard.renderWeekCompact(), /week-compact-container day-badge-layout-stacked/);
+  assert.match(stackedStandardCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-stacked/);
+
+  const styles = stackedCompactCard.getStyles();
+  assert.match(styles, /\.week-compact-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /\.week-standard-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /flex-direction:\s*column;/);
 });
 
 test('shorten_event_times defaults to unchanged event time formatting', () => {
@@ -694,7 +716,8 @@ test('setConfig normalizes fallback values and aliases', () => {
     background_transparent: true,
     header_background_transparent: true,
     event_title_prefix: 'bad-value',
-    color_scheme: 'invalid'
+    color_scheme: 'invalid',
+    day_badge_layout_week: 'sideways'
   });
 
   assert.equal(card._config.default_view, 'week-standard');
@@ -702,6 +725,7 @@ test('setConfig normalizes fallback values and aliases', () => {
   assert.equal(card._config.header_background_opacity, 100);
   assert.equal(card._config.event_title_prefix, 'none');
   assert.equal(card._config.color_scheme, 'auto');
+  assert.equal(card._config.day_badge_layout_week, 'inline');
 });
 
 test('setConfig schema keeps normalized fields from being overwritten by raw config', () => {
