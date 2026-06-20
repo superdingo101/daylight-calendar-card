@@ -3860,28 +3860,11 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  getStackedDayBadgeOffsetFromHeaders(dayHeaders) {
-    return Math.ceil(Math.max(
-      0,
-      ...dayHeaders.map((header) => {
-        const badges = header.querySelector?.('.day-badges');
-        if (!badges?.querySelector?.('.day-badge')) return 0;
-
-        const metaRow = badges.closest?.('.week-day-meta-row') || header.querySelector?.('.week-day-meta-row');
-        const metaRowStyle = metaRow && typeof window.getComputedStyle === 'function'
-          ? window.getComputedStyle(metaRow)
-          : null;
-        const stackedGap = parseFloat(metaRowStyle?.rowGap || metaRowStyle?.gap) || 0;
-        const badgesHeight = badges.getBoundingClientRect?.().height || 0;
-        return badgesHeight + stackedGap;
-      })
-    ));
-  }
-
   updateWeekStandardFixedOffsetHeightFromDom() {
     if (this._viewMode !== 'week-standard' || !this._root) return;
     if (this.isEventManagementDialogOpen()) return;
 
+    const baselineHeaderHeight = 60;
     const container = this._root.querySelector('.week-standard-container');
     const dayHeaders = Array.from(this._root.querySelectorAll('.week-standard-day-header'));
     if (!container || dayHeaders.length === 0) return;
@@ -3909,15 +3892,18 @@ class SkylightCalendarCard extends HTMLElement {
       container.style.removeProperty('--week-standard-header-height');
     }
 
-    const extraHeaderHeight = this.getStackedDayBadgeOffsetFromHeaders(dayHeaders);
+    const measuredSharedHeaderHeight = Math.ceil(Math.max(
+      baselineHeaderHeight,
+      ...dayHeaders.map((header) => header.getBoundingClientRect?.().height || 0)
+    ));
 
     if (previousHeaderHeightStyle) {
       container.style.setProperty('--week-standard-header-height', previousHeaderHeightStyle);
     }
 
-    if (!Number.isFinite(extraHeaderHeight)) return;
+    if (!Number.isFinite(measuredSharedHeaderHeight)) return;
 
-    const effectiveExtraHeaderHeight = Math.max(0, extraHeaderHeight);
+    const effectiveExtraHeaderHeight = Math.max(0, measuredSharedHeaderHeight - baselineHeaderHeight);
     const extraHeaderHeightChanged = Math.abs(this._weekStandardExtraHeaderHeight - effectiveExtraHeaderHeight) > 1;
     const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
 

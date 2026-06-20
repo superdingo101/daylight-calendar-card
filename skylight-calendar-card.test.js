@@ -487,7 +487,7 @@ function makeWeekMeasurementRoot({ containerSelector, headerSelector, headers, p
   };
 }
 
-test('stacked week-standard header measurement applies only badge area delta', () => {
+test('stacked week-standard header measurement shares tallest header height and uses baseline delta', () => {
   const originalGetComputedStyle = window.getComputedStyle;
   window.getComputedStyle = (element) => element ? { rowGap: '6px', gap: '6px' } : originalGetComputedStyle(element);
 
@@ -531,11 +531,11 @@ test('stacked week-standard header measurement applies only badge area delta', (
     stackedExtraCard._viewMode = 'week-standard';
     stackedExtraCard.getCompactMaxHeight = () => 223;
     stackedExtraCard.updateWeekStandardFixedOffsetHeightFromDom();
-    assert.equal(stackedExtraCard._weekStandardExtraHeaderHeight, 26);
+    assert.equal(stackedExtraCard._weekStandardExtraHeaderHeight, 36);
     assert.equal(stackedExtraCard._weekStandardFixedOffsetHeight, null);
-    assert.match(stackedExtraCard.renderWeekStandard(), /--week-standard-header-height: 86px;/);
+    assert.match(stackedExtraCard.renderWeekStandard(), /--week-standard-header-height: 96px;/);
 
-    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 70px;"/);
+    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 60px;"/);
   } finally {
     window.getComputedStyle = originalGetComputedStyle;
   }

@@ -131,6 +131,19 @@ const cases = [
       await expect(mondayHeader.locator('.day-badge')).toHaveCount(2);
       await expect(mondayHeader).toContainText('School Day');
       await expect(mondayHeader).toContainText('Library Day');
+
+      const headerHeights = await card.locator('.week-standard-day-header').evaluateAll((headers) =>
+        headers.map((header) => Math.round(header.getBoundingClientRect().height))
+      );
+      expect(new Set(headerHeights).size).toBe(1);
+
+      const timeHeaderHeight = await card.locator('.time-column-header-spacer').evaluate((spacer) => Math.round(spacer.getBoundingClientRect().height));
+      expect(timeHeaderHeight).toBe(headerHeights[0]);
+
+      const slotTops = await card.locator('.day-time-slots').evaluateAll((slots) =>
+        slots.map((slot) => Math.round(slot.getBoundingClientRect().top))
+      );
+      expect(new Set(slotTops).size).toBe(1);
     }
   },
   {
