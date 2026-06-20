@@ -138,7 +138,9 @@ const cases = [
       expect(new Set(headerHeights).size).toBe(1);
 
       const timeHeaderHeight = await card.locator('.time-column-header-spacer').evaluate((spacer) => Math.round(spacer.getBoundingClientRect().height));
-      expect(timeHeaderHeight).toBe(headerHeights[0]);
+      const extraSpacerHeight = await card.locator('.time-column-extra-spacer').evaluate((spacer) => Math.round(spacer.getBoundingClientRect().height));
+      expect(timeHeaderHeight).not.toBe(headerHeights[0]);
+      expect(timeHeaderHeight + extraSpacerHeight).toBe(headerHeights[0]);
 
       const slotTops = await card.locator('.day-time-slots').evaluateAll((slots) =>
         slots.map((slot) => Math.round(slot.getBoundingClientRect().top))
