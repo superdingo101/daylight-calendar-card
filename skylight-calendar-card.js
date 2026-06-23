@@ -1777,6 +1777,39 @@ const normalizeAdvancedRuleMatch = (rawMatch, { defaultScope = 'event', localeOv
   return hasMatch ? match : null;
 };
 
+const normalizeLegacyDayStyleMatch = (rule, { localeOverride = null, normalizeDayOfWeekRule, normalizeAdvancedRuleMatch }) => {
+  const rawCondition = String(rule.condition || '').trim().toLowerCase();
+  if (!rawCondition) return null;
+
+  const isNegatedCondition = rawCondition.startsWith('!');
+  const condition = isNegatedCondition ? rawCondition.slice(1) : rawCondition;
+  if (!condition) return null;
+
+  if (!['today', 'past', 'future', 'weekend', 'weekday', 'day_of_week', 'has_event'].includes(condition)) return null;
+  if (isNegatedCondition && condition !== 'has_event') return null;
+
+  const dayMatch = {};
+  if (condition === 'has_event') {
+    const eventMatch = {};
+    if (rule.calendar !== undefined && rule.calendar !== null && String(rule.calendar).trim()) {
+      eventMatch.calendar = rule.calendar;
+    }
+    if (rule.title_match !== undefined && rule.title_match !== null && rule.title_match !== '') {
+      eventMatch.title = rule.title_match;
+    }
+    if (!Object.keys(eventMatch).length) return null;
+    dayMatch[isNegatedCondition ? 'no_event' : 'has_event'] = eventMatch;
+  } else if (condition === 'day_of_week') {
+    const dayOfWeek = normalizeDayOfWeekRule(rule.day_of_week ?? rule.day ?? rule.days, localeOverride);
+    if (!dayOfWeek.length) return null;
+    dayMatch.day_of_week = dayOfWeek;
+  } else {
+    dayMatch[condition] = true;
+  }
+
+  return normalizeAdvancedRuleMatch({ day: dayMatch }, 'day', localeOverride);
+};
+
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
 
 function getDaylightCalendarCardVersion() {
@@ -2804,36 +2837,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeLegacyDayStyleMatch(rule, localeOverride = null) {
-    const rawCondition = String(rule.condition || '').trim().toLowerCase();
-    if (!rawCondition) return null;
-
-    const isNegatedCondition = rawCondition.startsWith('!');
-    const condition = isNegatedCondition ? rawCondition.slice(1) : rawCondition;
-    if (!condition) return null;
-
-    if (!['today', 'past', 'future', 'weekend', 'weekday', 'day_of_week', 'has_event'].includes(condition)) return null;
-    if (isNegatedCondition && condition !== 'has_event') return null;
-
-    const dayMatch = {};
-    if (condition === 'has_event') {
-      const eventMatch = {};
-      if (rule.calendar !== undefined && rule.calendar !== null && String(rule.calendar).trim()) {
-        eventMatch.calendar = rule.calendar;
-      }
-      if (rule.title_match !== undefined && rule.title_match !== null && rule.title_match !== '') {
-        eventMatch.title = rule.title_match;
-      }
-      if (!Object.keys(eventMatch).length) return null;
-      dayMatch[isNegatedCondition ? 'no_event' : 'has_event'] = eventMatch;
-    } else if (condition === 'day_of_week') {
-      const dayOfWeek = this.normalizeDayOfWeekRule(rule.day_of_week ?? rule.day ?? rule.days, localeOverride);
-      if (!dayOfWeek.length) return null;
-      dayMatch.day_of_week = dayOfWeek;
-    } else {
-      dayMatch[condition] = true;
-    }
-
-    return this.normalizeAdvancedRuleMatch({ day: dayMatch }, 'day', localeOverride);
+    return normalizeLegacyDayStyleMatch(rule, {
+      localeOverride,
+      normalizeDayOfWeekRule: this.normalizeDayOfWeekRule.bind(this),
+      normalizeAdvancedRuleMatch: this.normalizeAdvancedRuleMatch.bind(this)
+    });
   }
 
   normalizeDayStyles(rawRules, localeOverride = null) {
