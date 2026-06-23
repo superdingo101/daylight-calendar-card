@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "rollup -c",
+    "check:build": "npm run build && git diff --exit-code -- skylight-calendar-card.js",
     "test": "node --test skylight-calendar-card.test.js",
     "test:visual": "playwright test"
   },

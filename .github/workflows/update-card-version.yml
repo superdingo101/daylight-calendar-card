@@ -22,6 +22,14 @@ jobs:
         with:
           ref: main
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Validate requested version
         id: version
         env:
@@ -45,12 +53,15 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          perl -0pi -e "s/const DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+';/const DAYLIGHT_CALENDAR_CARD_VERSION = '$VERSION';/" skylight-calendar-card.js
+          perl -0pi -e "s/const DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+';/const DAYLIGHT_CALENDAR_CARD_VERSION = '$VERSION';/" src/skylight-calendar-card.js
+          npm run build
 
-          DETECTED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
-          echo "Detected version: $DETECTED_VERSION"
+          DETECTED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          GENERATED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          echo "Detected source version: $DETECTED_VERSION"
+          echo "Detected generated version: $GENERATED_VERSION"
 
-          if [ "$DETECTED_VERSION" != "$VERSION" ]; then
+          if [ "$DETECTED_VERSION" != "$VERSION" ] || [ "$GENERATED_VERSION" != "$VERSION" ]; then
             echo "ERROR: Failed to update DAYLIGHT_CALENDAR_CARD_VERSION"
             exit 1
           fi
@@ -62,9 +73,16 @@ jobs:
 
       - name: Verify release staging checks
         run: |
-          VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          GENERATED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
 
-          echo "Detected version: $VERSION"
+          echo "Detected source version: $VERSION"
+          echo "Detected generated version: $GENERATED_VERSION"
+
+          if [ "$GENERATED_VERSION" != "$VERSION" ]; then
+            echo "ERROR: Generated bundle version does not match source version"
+            exit 1
+          fi
 
           if [ -z "$VERSION" ] || [ "$VERSION" = "dev" ] || echo "$VERSION" | grep -q "__"; then
             echo "ERROR: Invalid DAYLIGHT_CALENDAR_CARD_VERSION"
@@ -85,8 +103,9 @@ jobs:
           title: Prepare release ${{ steps.version.outputs.version }}
           commit-message: Prepare release ${{ steps.version.outputs.version }}
           body: |
-            Updates `DAYLIGHT_CALENDAR_CARD_VERSION` to `${{ steps.version.outputs.version }}`.
+            Updates `DAYLIGHT_CALENDAR_CARD_VERSION` in `src/skylight-calendar-card.js` to `${{ steps.version.outputs.version }}` and rebuilds `skylight-calendar-card.js`.
 
             This workflow validated the version string and the same source checks used by the release staging workflow before opening this PR.
           add-paths: |
+            src/skylight-calendar-card.js
             skylight-calendar-card.js
