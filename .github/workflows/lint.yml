@@ -19,5 +19,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Check JS syntax
+      - name: Check source JS syntax
+        run: node --check src/skylight-calendar-card.js
+
+      - name: Check generated JS syntax
         run: node --check skylight-calendar-card.js

@@ -2,10 +2,13 @@
   "name": "skylight-calendar-card",
   "private": true,
   "scripts": {
+    "build": "rollup -c",
+    "check:build": "npm run build && git diff --exit-code -- skylight-calendar-card.js",
     "test": "node --test skylight-calendar-card.test.js",
     "test:visual": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.0"
+    "@playwright/test": "^1.54.0",
+    "rollup": "^4.62.2"
   }
 }
