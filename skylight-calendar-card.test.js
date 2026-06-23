@@ -3819,3 +3819,40 @@ test('advanced style conflict behavior is per property with priority and earlier
   assert.equal(dayStyle.background, '#555555');
   assert.equal(dayStyle.opacity, 0.8);
 });
+
+test('date utility helpers preserve local date and ISO week behavior', async () => {
+  const {
+    formatLocalDate,
+    getDateRangeChunks,
+    getIsoWeekNumber,
+    parseLocalDate,
+    parsePossiblyLocalDateTime
+  } = await import('./src/utils/date-utils.js');
+
+  assert.equal(formatLocalDate(new Date(2026, 5, 3)), '2026-06-03');
+  assert.equal(formatLocalDate(new Date('invalid')), '');
+  assert.deepEqual(
+    [parseLocalDate('2026-06-03').getFullYear(), parseLocalDate('2026-06-03').getMonth(), parseLocalDate('2026-06-03').getDate()],
+    [2026, 5, 3]
+  );
+  assert.deepEqual(
+    [parsePossiblyLocalDateTime('2026-06-03T04:05:06').getFullYear(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getMonth(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getDate(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getHours()],
+    [2026, 5, 3, 4]
+  );
+  assert.equal(getIsoWeekNumber(new Date(2021, 0, 4)), 1);
+  assert.equal(getIsoWeekNumber(new Date(2020, 11, 31)), 53);
+
+  const chunks = getDateRangeChunks(new Date(2026, 0, 1, 12), new Date(2026, 0, 5, 9), 2);
+  assert.equal(chunks.length, 3);
+  assert.equal(formatLocalDate(chunks[0].startDate), '2026-01-01');
+  assert.equal(formatLocalDate(chunks[0].endDate), '2026-01-02');
+  assert.equal(formatLocalDate(chunks[2].startDate), '2026-01-05');
+});
+
+test('string utility helpers preserve normalization and attribute escaping', async () => {
+  const { escapeHtmlAttribute, normalizeEventTextValue } = await import('./src/utils/string-utils.js');
+
+  assert.equal(normalizeEventTextValue('  Team\n\tSync  '), 'Team Sync');
+  assert.equal(normalizeEventTextValue('ＡＢＣ'), 'ABC');
+  assert.equal(escapeHtmlAttribute('Team "sync" & <review> \'plan\''), 'Team &quot;sync&quot; &amp; &lt;review&gt; &#39;plan&#39;');
+});
