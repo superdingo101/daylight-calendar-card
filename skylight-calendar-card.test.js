@@ -3882,3 +3882,87 @@ test('normalization utility helpers preserve dashboard, enum, map, and boolean b
   assert.equal(normalizeBooleanStyleValue(' false '), false);
   assert.equal(normalizeBooleanStyleValue('maybe'), null);
 });
+
+test('event normalizer module preserves identity, all-day detection, and start dates', async () => {
+  const {
+    getEventDateTimeInfo,
+    getEventIdentityKey,
+    getEventStartDate,
+    normalizeCalendarEvent
+  } = await import('./src/events/event-normalizer.js');
+
+  const rawEvent = {
+    uid: 'abc',
+    start: { date: '2026-06-23' },
+    end: { date: '2026-06-24' },
+    summary: 'Holiday'
+  };
+  const parseLocalDateForTest = (value) => new Date(`${value}T00:00:00`);
+
+  assert.equal(
+    getEventIdentityKey('calendar.work', rawEvent),
+    'calendar.work|abc||2026-06-23|2026-06-24|Holiday'
+  );
+  assert.deepEqual(normalizeCalendarEvent(rawEvent, { entityId: 'calendar.work', color: '#123456' }), {
+    ...rawEvent,
+    entityId: 'calendar.work',
+    color: '#123456'
+  });
+  assert.equal(getEventStartDate(rawEvent, { parseLocalDate: parseLocalDateForTest }).getFullYear(), 2026);
+
+  const allDayInfo = getEventDateTimeInfo(rawEvent, { parseCalendarDate: parseLocalDateForTest });
+  assert.equal(allDayInfo.isAllDay, true);
+  assert.equal(allDayInfo.eventStart.getDate(), 23);
+
+  const timedInfo = getEventDateTimeInfo({ start: { dateTime: '2026-06-23T10:00:00Z' }, end: { dateTime: '2026-06-23T11:00:00Z' } });
+  assert.equal(timedInfo.isAllDay, false);
+});
+
+test('rule modules preserve event, day, badge, and priority matching behavior', async () => {
+  const {
+    matchesAdvancedRule,
+    matchTextCondition,
+    eventMatchesNormalizedRule,
+    dayMatchesNormalizedRule
+  } = await import('./src/rules/condition-matcher.js');
+  const { normalizeAdvancedRuleMatch } = await import('./src/rules/style-rules.js');
+
+  const event = {
+    entityId: 'calendar.work',
+    summary: 'Team Sync',
+    location: 'Conference Room',
+    description: 'Quarterly planning',
+    start: { dateTime: '2026-06-23T10:00:00Z' },
+    end: { dateTime: '2026-06-23T11:00:00Z' }
+  };
+  const helpers = {
+    getEventCalendarMatchTokens: () => ['calendar.work', 'Work'],
+    getEventDateTimeInfo: () => ({ isAllDay: false }),
+    isPastEvent: () => false,
+    normalizeEventTextValue: (value) => String(value ?? '').trim().replace(/\s+/g, ' ')
+  };
+
+  assert.equal(matchTextCondition(event.summary, 'contains:team', helpers), true);
+  assert.equal(eventMatchesNormalizedRule(event, { calendar: 'work', title: { substring: 'Sync' }, all_day: false }, helpers), true);
+  assert.equal(eventMatchesNormalizedRule(event, { title: 'Team', not: { location: 'Kitchen' } }, helpers), true);
+
+  const normalizedEventStyleMatch = normalizeAdvancedRuleMatch({ title_contains: 'team', calendar_entity: 'calendar.work' }, { defaultScope: 'event' });
+  assert.equal(matchesAdvancedRule(normalizedEventStyleMatch, { event }, helpers).matches, true);
+
+  const normalizeDayOfWeekRule = (value) => Array.isArray(value) ? value : [value];
+  const normalizedDayStyleMatch = normalizeAdvancedRuleMatch(
+    { day: { weekday: true, day_of_week: 2, has_event: { title_contains: 'team' } } },
+    { defaultScope: 'day', normalizeDayOfWeekRule }
+  );
+  const dayResult = matchesAdvancedRule(normalizedDayStyleMatch, {
+    date: new Date('2026-06-23T00:00:00'),
+    dayEvents: [event]
+  }, helpers);
+  assert.equal(dayResult.matches, true);
+  assert.equal(dayResult.matchedEvent, event);
+
+  assert.equal(dayMatchesNormalizedRule({ no_event: { title: 'Dentist' } }, {
+    date: new Date('2026-06-23T00:00:00'),
+    dayEvents: [event]
+  }, helpers).matches, true);
+});
