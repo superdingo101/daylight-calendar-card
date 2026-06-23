@@ -8,16 +8,6 @@
 // 3. Copy the strings from 'en' and translate each value
 // ============================================================================
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
-
-function getDaylightCalendarCardVersion() {
-  return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
-    ? 'dev'
-    : DAYLIGHT_CALENDAR_CARD_VERSION;
-}
-
-console.info(`Daylight Calendar Card ${getDaylightCalendarCardVersion()} loaded from skylight-calendar-card.js`);
-
 const TRANSLATIONS = {
   en: {
     locale: 'en-US',
@@ -908,6 +898,16 @@ const TRANSLATIONS = {
     }
   }
 };
+
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
+
+function getDaylightCalendarCardVersion() {
+  return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
+    ? 'dev'
+    : DAYLIGHT_CALENDAR_CARD_VERSION;
+}
+
+console.info(`Daylight Calendar Card ${getDaylightCalendarCardVersion()} loaded from skylight-calendar-card.js`);
 
 // ============================================================================
 // TRANSLATION HELPER FUNCTIONS
