@@ -8,7 +8,7 @@ The project was formerly named Skylight Calendar Card. The public name is now Da
 
 * Keep changes small, focused, and directly related to the prompt.
 * Do not perform broad rewrites, formatting sweeps, dependency upgrades, or architectural refactors unless explicitly requested.
-* Preserve `skylight-calendar-card.js` as the shipped HACS file.
+* Preserve `skylight-calendar-card.js` as the shipped HACS/manual-install artifact.
 * Preserve both `daylight-calendar-card` and legacy `skylight-calendar-card` custom element compatibility.
 * Reuse existing helpers, patterns, tests, and fixtures before adding new abstractions.
 * Do not change defaults or visual behavior unless the prompt asks for it.
@@ -16,21 +16,49 @@ The project was formerly named Skylight Calendar Card. The public name is now Da
 
 ## Repository structure
 
-* `skylight-calendar-card.js` is the main shipped source file.
+* `src/` is the authored source of truth.
+* `src/skylight-calendar-card.js` is the Rollup entry point and main custom element source.
+* The root `skylight-calendar-card.js` file is the generated shipped artifact for HACS/manual installs.
+* `rollup.config.mjs` builds `src/skylight-calendar-card.js` into the root `skylight-calendar-card.js` artifact.
+* The generated root `skylight-calendar-card.js` artifact must remain committed.
+* Do not hand-edit the root `skylight-calendar-card.js` file as source-of-truth. Make source changes in `src/`, then run `npm run build` and commit the regenerated artifact when it changes.
 * `skylight-calendar-card.test.js` contains Node tests using `node:test`.
 * `playwright/visual.spec.js` contains visual/browser behavior tests.
 * `docs/` contains the Mintlify documentation site.
 * `hacs.json` controls HACS metadata.
 
-## Working in `skylight-calendar-card.js`
+## Module boundaries
 
-This file is large and tightly coupled. Before editing:
+Current modules are organized around these boundaries. Future modules may be added, but new modules should preserve the same separation principles and keep card-instance orchestration separate from pure/data-only helpers.
 
-1. Find the existing feature area.
-2. Make the smallest safe change.
-3. Avoid moving unrelated code.
-4. Avoid cleanup-only edits.
-5. Add or update tests for behavior changes.
+* `src/skylight-calendar-card.js`: main custom element, lifecycle, orchestration, rendering, DOM, CSS, Home Assistant integration glue.
+* `src/translations.js`: translation data.
+* `src/constants.js`: shared static constants.
+* `src/defaults.js`: default config values, option lists, aliases, and stub config creation.
+* `src/utils/`: pure utility helpers.
+* `src/events/`: event data normalization and event-related non-rendering helpers.
+* `src/rules/`: rule normalization and condition matching helpers.
+
+## Modularization guardrails
+
+* Prefer extracting pure/data-only logic before rendering or DOM logic.
+* Keep render methods, Lit/HTML templates, CSS, DOM querying, lifecycle methods, modal rendering, editor rendering, and Home Assistant service orchestration in `src/skylight-calendar-card.js` unless a prompt explicitly asks to move that area.
+* New modules should receive explicit inputs/helpers rather than importing or depending on card instance state.
+* Do not pass the whole card instance into helper modules unless explicitly justified.
+* Preserve public config option names, custom element names, CSS class names, DOM structure, and visual behavior.
+* Preserve both Daylight and legacy Skylight compatibility.
+* Keep refactors small and narrowly scoped.
+
+## Working in `src/`
+
+Most source work should start in `src/`. `src/skylight-calendar-card.js` remains large and tightly coupled because it owns lifecycle, rendering, DOM, CSS, and orchestration. Before editing:
+
+1. Find the existing feature area and existing module boundary.
+2. Reuse existing modules/helpers before adding new ones.
+3. Make the smallest safe change.
+4. Avoid moving unrelated code.
+5. Avoid cleanup-only edits.
+6. Add or update tests for behavior changes.
 
 When adding or changing a config option, check:
 
@@ -42,21 +70,33 @@ When adding or changing a config option, check:
 * visual tests, if layout changes
 * docs, if users need to configure it
 
-## Tests
+## Tests and validation
 
 Use the relevant checks:
 
 ```
+npm ci --no-audit --fund=false
+npm run build
+git diff --exit-code -- skylight-calendar-card.js
+node --check src/skylight-calendar-card.js
 node --check skylight-calendar-card.js
+node --check <changed-or-new-src-file>.js
 npm test
 npm run test:visual
 ```
 
-* Run `node --check skylight-calendar-card.js` after JavaScript edits.
-* Run `npm test` after logic, config, translation, matching, or compatibility changes.
-* Run `npm run test:visual` after CSS, layout, rendering, modal, responsive, or DOM changes.
+* Run `npm ci --no-audit --fund=false` when dependencies need to be installed or refreshed.
+* Run `npm run build` after source changes that should affect the shipped artifact.
+* Run `git diff --exit-code -- skylight-calendar-card.js` after `npm run build` to verify whether the generated artifact is fresh.
+* Run `node --check src/skylight-calendar-card.js` after JavaScript edits that affect the main source file.
+* Run `node --check skylight-calendar-card.js` after regenerating the shipped artifact.
+* Run `node --check` for any changed or newly added `src/**/*.js` files.
+* Run `npm test` after logic, config, translation, matching, compatibility, or build-output changes.
+* Run `npm run test:visual` when rendering, CSS, DOM, layout, modal, responsive behavior, or visual output could be affected.
 * Do not update visual snapshots unless the visual change is intentional.
 * Do not claim tests passed unless they were actually run.
+* Do not claim the generated artifact is fresh unless `npm run build` and `git diff --exit-code -- skylight-calendar-card.js` were actually run.
+* If `npm run build` changes the root `skylight-calendar-card.js` file, commit the regenerated artifact with the source change.
 
 ## Documentation
 
@@ -81,6 +121,9 @@ Summarize work like this:
 - ...
 
 ## Tests
+- ...
+
+## Generated artifact
 - ...
 
 ## Notes / risks
