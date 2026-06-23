@@ -1,3 +1,5 @@
+import { COMMON_NAMED_COLORS } from './constants.js';
+import { createDefaultStubConfig, DEFAULT_LANGUAGE, DEFAULT_VIEW } from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
@@ -13,8 +15,6 @@ console.info(`Daylight Calendar Card ${getDaylightCalendarCardVersion()} loaded 
 // ============================================================================
 // TRANSLATION HELPER FUNCTIONS
 // ============================================================================
-
-const DEFAULT_LANGUAGE = 'en';
 
 const normalizeLanguage = (language) => {
   if (!language) return DEFAULT_LANGUAGE;
@@ -42,37 +42,7 @@ const translate = (language, key, params = {}) => {
 // ============================================================================
 
 class SkylightCalendarCard extends HTMLElement {
-  static COMMON_NAMED_COLORS = {
-    black: '#000000',
-    white: '#FFFFFF',
-    red: '#FF0000',
-    lime: '#00FF00',
-    green: '#008000',
-    'lime/green': '#00FF00',
-    limegreen: '#00FF00',
-    blue: '#0000FF',
-    yellow: '#FFFF00',
-    cyan: '#00FFFF',
-    aqua: '#00FFFF',
-    'cyan/aqua': '#00FFFF',
-    magenta: '#FF00FF',
-    fuchsia: '#FF00FF',
-    'magenta/fuchsia': '#FF00FF',
-    silver: '#C0C0C0',
-    gray: '#808080',
-    grey: '#808080',
-    maroon: '#800000',
-    olive: '#808000',
-    darkgreen: '#008000',
-    'dark green': '#008000',
-    'green dark': '#008000',
-    greendark: '#008000',
-    purple: '#800080',
-    teal: '#008080',
-    navy: '#000080',
-    orange: '#FFA500',
-    pink: '#FFC0CB'
-  };
+  static COMMON_NAMED_COLORS = COMMON_NAMED_COLORS;
 
   constructor() {
     super();
@@ -80,7 +50,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._config = {};
     this._events = [];
     this._currentDate = new Date();
-    this._viewMode = 'month'; // 'month', 'week-compact', 'week-standard', or 'agenda'
+    this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._fetching = false;
     this._lastFetch = null;
@@ -568,7 +538,7 @@ class SkylightCalendarCard extends HTMLElement {
       { key: 'calendar_badge_icons', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_icons || {} },
       { key: 'calendar_person_entities', defaultValue: ({ derived }) => derived.normalizedCalendarPersonEntities, normalize: ({ derived }) => derived.normalizedCalendarPersonEntities },
       { key: 'max_events', defaultValue: ({ rawConfig }) => rawConfig.max_events },
-      { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || 'month', normalize: ({ derived }) => derived.normalizedDefaultView || 'month' },
+      { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW, normalize: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW },
       { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [0, 1, 2, 3, 4, 5, 6] },
       { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? null },
       { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? null },
@@ -11759,59 +11729,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return {
-      title: 'Family Calendar',
-      entities: ['calendar.personal'],
-      default_view: 'month',
-      first_day_of_week: 0,
-      week_days: [0, 1, 2, 3, 4, 5, 6],
-      week_start_hour: 0,
-      week_end_hour: 23,
-      lock_schedule_hours: false,
-      hide_the_past: false,
-      past_event_mode: 'none',
-      disable_swipe_controls: false,
-      show_all_events_month: false,
-      show_all_details_month: false,
-      hide_empty_days: false,
-      agenda_compact_events: false,
-      shorten_event_times: false,
-      time_zone: '',
-      display_full_weekday_names: false,
-      compact_width: false,
-      show_current_time_bar: false,
-      show_event_location: false,
-      use_short_location: false,
-      event_location_font_size: 9,
-      background_opacity: 0,
-      header_background_opacity: 0,
-      event_calendar_friendly_name: false,
-      event_title_prefix: 'none',
-      combine_style: 'bars',
-      combine_background: 'primary',
-      event_color_mode: 'classic',
-      event_neutral_background: '#F8F3E9',
-      event_tint_opacity: 80,
-      event_color_bar_width: 18,
-      day_badges: [],
-      day_badge_layout_week: 'inline',
-      hide_calendars: false,
-      hide_header: false,
-      hide_year: false,
-      hide_controls: false,
-      hide_navigation_buttons: false,
-      hide_add_event_button: false,
-      hide_view_selector: false,
-      hide_dark_mode_toggle: false,
-      show_dashboard_nav_button: false,
-      header_dashboard_path: null,
-      header_weather_sensor: '',
-      calendar_person_entities: {},
-      default_hidden_calendars: [],
-      color_scheme: 'auto',
-      enable_event_management: true,
-      event_modal_size: 'medium'
-    };
+    return createDefaultStubConfig();
   }
 
   getCardSize() {
