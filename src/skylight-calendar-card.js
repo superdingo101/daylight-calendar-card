@@ -1,5 +1,35 @@
 import { COMMON_NAMED_COLORS } from './constants.js';
-import { createDefaultStubConfig, DEFAULT_LANGUAGE, DEFAULT_VIEW } from './defaults.js';
+import {
+  COMBINE_BACKGROUND_MODE_OPTIONS,
+  COMBINE_STYLE_OPTIONS,
+  createDefaultStubConfig,
+  DAY_BADGE_LAYOUT_WEEK_OPTIONS,
+  DEFAULT_BACKGROUND_IMAGE_POSITION,
+  DEFAULT_BACKGROUND_IMAGE_REPEAT,
+  DEFAULT_BACKGROUND_IMAGE_SIZE,
+  DEFAULT_COMBINE_BACKGROUND,
+  DEFAULT_CONFIG_VALUES,
+  DEFAULT_COMBINE_STYLE,
+  DEFAULT_DAY_BADGE_LAYOUT_WEEK,
+  DEFAULT_EVENT_COLOR_BAR_WIDTH,
+  DEFAULT_EVENT_COLOR_MODE,
+  DEFAULT_EVENT_MODAL_SIZE,
+  DEFAULT_EVENT_NEUTRAL_BACKGROUND,
+  DEFAULT_EVENT_TINT_OPACITY,
+  DEFAULT_EVENT_TITLE_PREFIX,
+  DEFAULT_LANGUAGE,
+  DEFAULT_PAST_EVENT_MODE,
+  DEFAULT_THEME_MODE,
+  DEFAULT_VIEW,
+  EVENT_COLOR_MODE_OPTIONS,
+  EVENT_MODAL_SIZE_OPTIONS,
+  EVENT_TITLE_PREFIX_ALIASES,
+  EVENT_TITLE_PREFIX_OPTIONS,
+  HIDDEN_CALENDAR_VISIBILITY_VALUES,
+  PAST_EVENT_MODE_OPTIONS,
+  THEME_MODE_OPTIONS,
+  VISIBLE_CALENDAR_VISIBILITY_VALUES
+} from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
@@ -62,10 +92,10 @@ class SkylightCalendarCard extends HTMLElement {
     this._activeLanguage = DEFAULT_LANGUAGE;
     this._hasCustomTitle = false;
     this._isDarkMode = false;
-    this._themeMode = 'auto';
+    this._themeMode = DEFAULT_THEME_MODE;
     this._systemThemeMediaQuery = null;
     this._handleSystemThemeChange = (event) => {
-      if (this._themeMode !== 'auto') {
+      if (this._themeMode !== DEFAULT_THEME_MODE) {
         return;
       }
 
@@ -199,39 +229,33 @@ class SkylightCalendarCard extends HTMLElement {
 
   normalizeDefaultDarkMode(value) {
     if (value === true) return 'dark';
-    if (value === false || value === undefined || value === null || value === '') return 'auto';
+    if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
 
     return this.normalizeEnumValue(value, {
-      allowed: ['auto', 'light', 'dark'],
-      fallback: 'auto'
+      allowed: THEME_MODE_OPTIONS,
+      fallback: DEFAULT_THEME_MODE
     });
   }
 
   normalizeEventTitlePrefixMode(value) {
     return this.normalizeEnumValue(value, {
-      aliases: {
-        icon: 'badge_icon',
-        badge: 'badge_icon',
-        badgeicon: 'badge_icon',
-        friendly: 'friendly_name',
-        friendlyname: 'friendly_name'
-      },
-      allowed: ['friendly_name', 'badge_icon', 'none'],
-      fallback: 'none'
+      aliases: EVENT_TITLE_PREFIX_ALIASES,
+      allowed: EVENT_TITLE_PREFIX_OPTIONS,
+      fallback: DEFAULT_EVENT_TITLE_PREFIX
     });
   }
 
   normalizePastEventMode(value) {
     return this.normalizeEnumValue(value, {
-      allowed: ['none', 'hide', 'muted'],
-      fallback: 'none'
+      allowed: PAST_EVENT_MODE_OPTIONS,
+      fallback: DEFAULT_PAST_EVENT_MODE
     });
   }
 
   normalizeDayBadgeLayoutWeek(value) {
     return this.normalizeEnumValue(value, {
-      allowed: ['inline', 'stacked'],
-      fallback: 'inline'
+      allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
+      fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
     });
   }
 
@@ -327,9 +351,9 @@ class SkylightCalendarCard extends HTMLElement {
       Object.entries(visibilityMap).forEach(([entityId, value]) => {
         if (!knownEntities.has(entityId)) return;
         const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
-        if (normalizedValue === false || normalizedValue === 'hide' || normalizedValue === 'hidden' || normalizedValue === 'off') {
+        if (HIDDEN_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
           hiddenCalendars.add(entityId);
-        } else if (normalizedValue === true || normalizedValue === 'show' || normalizedValue === 'shown' || normalizedValue === 'visible' || normalizedValue === 'on') {
+        } else if (VISIBLE_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
           hiddenCalendars.delete(entityId);
         }
       });
@@ -532,92 +556,92 @@ class SkylightCalendarCard extends HTMLElement {
     return [
       { key: 'title', defaultValue: ({ rawConfig, language }) => this._hasCustomTitle ? rawConfig.title : translate(language, 'defaultTitle') },
       { key: 'entities', defaultValue: ({ rawConfig }) => rawConfig.entities },
-      { key: 'firstDayOfWeek', defaultValue: ({ rawConfig }) => rawConfig.first_day_of_week || 0 },
+      { key: 'firstDayOfWeek', defaultValue: ({ rawConfig }) => rawConfig.first_day_of_week || DEFAULT_CONFIG_VALUES.firstDayOfWeek },
       { key: 'colors', defaultValue: ({ derived }) => derived.normalizedCalendarColors },
-      { key: 'calendar_names', defaultValue: ({ rawConfig }) => rawConfig.calendar_names || {} },
-      { key: 'calendar_badge_icons', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_icons || {} },
+      { key: 'calendar_names', defaultValue: ({ rawConfig }) => rawConfig.calendar_names || { ...DEFAULT_CONFIG_VALUES.calendar_names } },
+      { key: 'calendar_badge_icons', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_icons || { ...DEFAULT_CONFIG_VALUES.calendar_badge_icons } },
       { key: 'calendar_person_entities', defaultValue: ({ derived }) => derived.normalizedCalendarPersonEntities, normalize: ({ derived }) => derived.normalizedCalendarPersonEntities },
       { key: 'max_events', defaultValue: ({ rawConfig }) => rawConfig.max_events },
       { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW, normalize: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW },
-      { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [0, 1, 2, 3, 4, 5, 6] },
-      { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? null },
-      { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? null },
-      { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? null, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? null },
-      { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || null },
-      { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || false },
-      { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || false },
-      { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || false },
-      { key: 'hide_the_past', defaultValue: ({ rawConfig }) => rawConfig.hide_the_past || false, normalize: ({ rawConfig }) => rawConfig.hide_the_past || false },
+      { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [...DEFAULT_CONFIG_VALUES.week_days] },
+      { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? DEFAULT_CONFIG_VALUES.rolling_days_week_compact },
+      { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? DEFAULT_CONFIG_VALUES.rolling_days_schedule },
+      { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
+      { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
+      { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
+      { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
+      { key: 'hide_the_past', defaultValue: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past, normalize: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past },
       { key: 'past_event_mode', defaultValue: ({ derived }) => derived.normalizedPastEventMode, normalize: ({ derived }) => derived.normalizedPastEventMode },
-      { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || false },
-      { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false },
-      { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? false },
-      { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? false },
+      { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || DEFAULT_CONFIG_VALUES.hide_empty_days },
+      { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? DEFAULT_CONFIG_VALUES.agenda_compact_events, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? DEFAULT_CONFIG_VALUES.agenda_compact_events },
+      { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? DEFAULT_CONFIG_VALUES.display_full_weekday_names },
+      { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? DEFAULT_CONFIG_VALUES.shorten_event_times },
       { key: 'time_zone', defaultValue: ({ derived }) => derived.normalizedTimeZone, normalize: ({ derived }) => derived.normalizedTimeZone },
-      { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? false },
+      { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? DEFAULT_CONFIG_VALUES.disable_swipe_controls },
       { key: 'week_start_hour', defaultValue: ({ derived }) => derived.normalizedWeekStartHour },
       { key: 'week_end_hour', defaultValue: ({ derived }) => derived.normalizedWeekEndHour },
-      { key: 'lock_schedule_hours', defaultValue: ({ rawConfig }) => rawConfig.lock_schedule_hours ?? false },
-      { key: 'compact_height', defaultValue: ({ rawConfig }) => rawConfig.compact_height || false },
-      { key: 'compact_width', defaultValue: ({ rawConfig }) => rawConfig.compact_width || false },
-      { key: 'height_scale', defaultValue: ({ rawConfig }) => rawConfig.height_scale || 1.0 },
-      { key: 'compact_header', defaultValue: ({ rawConfig }) => rawConfig.compact_header || false },
-      { key: 'hide_year', defaultValue: ({ rawConfig }) => rawConfig.hide_year || false },
-      { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || false },
-      { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || false },
-      { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || false },
-      { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || false },
-      { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || false },
-      { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || false },
-      { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || false },
-      { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || false },
-      { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || false },
+      { key: 'lock_schedule_hours', defaultValue: ({ rawConfig }) => rawConfig.lock_schedule_hours ?? DEFAULT_CONFIG_VALUES.lock_schedule_hours },
+      { key: 'compact_height', defaultValue: ({ rawConfig }) => rawConfig.compact_height || DEFAULT_CONFIG_VALUES.compact_height },
+      { key: 'compact_width', defaultValue: ({ rawConfig }) => rawConfig.compact_width || DEFAULT_CONFIG_VALUES.compact_width },
+      { key: 'height_scale', defaultValue: ({ rawConfig }) => rawConfig.height_scale || DEFAULT_CONFIG_VALUES.height_scale },
+      { key: 'compact_header', defaultValue: ({ rawConfig }) => rawConfig.compact_header || DEFAULT_CONFIG_VALUES.compact_header },
+      { key: 'hide_year', defaultValue: ({ rawConfig }) => rawConfig.hide_year || DEFAULT_CONFIG_VALUES.hide_year },
+      { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
+      { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
+      { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
+      { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
+      { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
+      { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || DEFAULT_CONFIG_VALUES.hide_view_selector },
+      { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || DEFAULT_CONFIG_VALUES.hide_dark_mode_toggle },
+      { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || DEFAULT_CONFIG_VALUES.show_dashboard_nav_button },
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => this.normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => this.normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
-      { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || false },
-      { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || false },
-      { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || false },
-      { key: 'event_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_font_size ?? 11 },
-      { key: 'event_time_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_time_font_size ?? 9 },
-      { key: 'event_location_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_location_font_size ?? 9 },
-      { key: 'event_calendar_friendly_name', defaultValue: ({ rawConfig }) => rawConfig.event_calendar_friendly_name || false },
+      { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
+      { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
+      { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || DEFAULT_CONFIG_VALUES.use_short_location },
+      { key: 'event_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_font_size ?? DEFAULT_CONFIG_VALUES.event_font_size },
+      { key: 'event_time_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_time_font_size ?? DEFAULT_CONFIG_VALUES.event_time_font_size },
+      { key: 'event_location_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_location_font_size ?? DEFAULT_CONFIG_VALUES.event_location_font_size },
+      { key: 'event_calendar_friendly_name', defaultValue: ({ rawConfig }) => rawConfig.event_calendar_friendly_name || DEFAULT_CONFIG_VALUES.event_calendar_friendly_name },
       { key: 'event_title_prefix', defaultValue: ({ derived }) => derived.normalizedEventTitlePrefix, normalize: ({ derived }) => derived.normalizedEventTitlePrefix },
       { key: 'event_font_colors', defaultValue: ({ derived }) => derived.normalizedEventFontColors },
       { key: 'event_styles', defaultValue: ({ derived }) => derived.normalizedEventStyles, normalize: ({ derived }) => derived.normalizedEventStyles },
       { key: 'day_styles', defaultValue: ({ derived }) => derived.normalizedDayStyles, normalize: ({ derived }) => derived.normalizedDayStyles },
       { key: 'day_badges', defaultValue: ({ derived }) => derived.normalizedDayBadges, normalize: ({ derived }) => derived.normalizedDayBadges },
       { key: 'day_badge_layout_week', defaultValue: ({ derived }) => derived.normalizedDayBadgeLayoutWeek, normalize: ({ derived }) => derived.normalizedDayBadgeLayoutWeek },
-      { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [] },
-      { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || false },
-      { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : 'var(--primary-color)' },
+      { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [...DEFAULT_CONFIG_VALUES.hide_times_for_calendars] },
+      { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || DEFAULT_CONFIG_VALUES.show_current_time_bar },
+      { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : DEFAULT_CONFIG_VALUES.header_color },
       { key: 'header_text_color', defaultValue: ({ derived }) => derived.normalizedHeaderTextColor },
-      { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= 100, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= 100 },
+      { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.header_background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.header_background_opacity_transparent_threshold },
       { key: 'header_background_opacity', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity },
-      { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= 100, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= 100 },
+      { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.header_background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.header_background_opacity_transparent_threshold },
       { key: 'background_opacity', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity, normalize: ({ derived }) => derived.normalizedBackgroundOpacity },
-      { key: 'background_image_url', defaultValue: ({ rawConfig }) => rawConfig.background_image_url || null },
-      { key: 'background_image_size', defaultValue: ({ rawConfig }) => rawConfig.background_image_size || 'cover' },
-      { key: 'background_image_position', defaultValue: ({ rawConfig }) => rawConfig.background_image_position || 'center' },
-      { key: 'background_image_repeat', defaultValue: ({ rawConfig }) => rawConfig.background_image_repeat || 'no-repeat' },
-      { key: 'combine_calendars', defaultValue: ({ rawConfig }) => rawConfig.combine_calendars ?? false },
-      { key: 'combine_style', defaultValue: ({ rawConfig }) => this.normalizeCombineStyle(rawConfig.combine_style ?? 'bars') },
-      { key: 'combine_background', defaultValue: ({ rawConfig }) => this.normalizeCombineBackground(rawConfig.combine_background ?? 'primary') },
+      { key: 'background_image_url', defaultValue: ({ rawConfig }) => rawConfig.background_image_url || DEFAULT_CONFIG_VALUES.background_image_url },
+      { key: 'background_image_size', defaultValue: ({ rawConfig }) => rawConfig.background_image_size || DEFAULT_BACKGROUND_IMAGE_SIZE },
+      { key: 'background_image_position', defaultValue: ({ rawConfig }) => rawConfig.background_image_position || DEFAULT_BACKGROUND_IMAGE_POSITION },
+      { key: 'background_image_repeat', defaultValue: ({ rawConfig }) => rawConfig.background_image_repeat || DEFAULT_BACKGROUND_IMAGE_REPEAT },
+      { key: 'combine_calendars', defaultValue: ({ rawConfig }) => rawConfig.combine_calendars ?? DEFAULT_CONFIG_VALUES.combine_calendars },
+      { key: 'combine_style', defaultValue: ({ rawConfig }) => this.normalizeCombineStyle(rawConfig.combine_style ?? DEFAULT_COMBINE_STYLE) },
+      { key: 'combine_background', defaultValue: ({ rawConfig }) => this.normalizeCombineBackground(rawConfig.combine_background ?? DEFAULT_COMBINE_BACKGROUND) },
       { key: 'combine_calendars_width', defaultValue: ({ derived }) => derived.normalizedCombineWidth, normalize: ({ derived }) => derived.normalizedCombineWidth },
       { key: 'event_color_bar_width', defaultValue: ({ derived }) => derived.normalizedEventBarWidth, normalize: ({ derived }) => derived.normalizedEventBarWidth },
-      { key: 'event_color_mode', defaultValue: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? 'classic'), normalize: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? 'classic') },
-      { key: 'event_neutral_background', defaultValue: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9', normalize: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9' },
-      { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80), normalize: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80) },
-      { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management !== false },
+      { key: 'event_color_mode', defaultValue: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? DEFAULT_EVENT_COLOR_MODE), normalize: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? DEFAULT_EVENT_COLOR_MODE) },
+      { key: 'event_neutral_background', defaultValue: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || DEFAULT_EVENT_NEUTRAL_BACKGROUND, normalize: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || DEFAULT_EVENT_NEUTRAL_BACKGROUND },
+      { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY), normalize: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY) },
+      { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
       { key: 'event_modal_size', defaultValue: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size) },
-      { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [] },
-      { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [] },
+      { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
+      { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
-      { key: 'virtual_calendars', defaultValue: ({ rawConfig }) => this.normalizeVirtualCalendars(rawConfig.virtual_calendars || []) },
-      { key: 'language', defaultValue: ({ rawConfig }) => rawConfig.language || null },
-      { key: 'locale', defaultValue: ({ rawConfig }) => rawConfig.locale || null },
+      { key: 'virtual_calendars', defaultValue: ({ rawConfig }) => this.normalizeVirtualCalendars(rawConfig.virtual_calendars || [...DEFAULT_CONFIG_VALUES.virtual_calendars]) },
+      { key: 'language', defaultValue: ({ rawConfig }) => rawConfig.language || DEFAULT_CONFIG_VALUES.language },
+      { key: 'locale', defaultValue: ({ rawConfig }) => rawConfig.locale || DEFAULT_CONFIG_VALUES.locale },
       { key: 'color_scheme', defaultValue: ({ rawConfig }) => this.normalizeDefaultDarkMode(rawConfig.color_scheme), normalize: ({ rawConfig }) => this.normalizeDefaultDarkMode(rawConfig.color_scheme) },
-      { key: 'preference_storage_key', defaultValue: ({ rawConfig }) => rawConfig.preference_storage_key || null }
+      { key: 'preference_storage_key', defaultValue: ({ rawConfig }) => rawConfig.preference_storage_key || DEFAULT_CONFIG_VALUES.preference_storage_key }
     ];
   }
 
@@ -649,7 +673,7 @@ class SkylightCalendarCard extends HTMLElement {
     const hasEventBarWidth = Number.isFinite(rawEventBarWidth) && rawEventBarWidth > 0;
     const normalizedCombineWidth = hasCombineWidth
       ? rawCombineWidth
-      : (hasEventBarWidth ? rawEventBarWidth : 18);
+      : (hasEventBarWidth ? rawEventBarWidth : DEFAULT_EVENT_COLOR_BAR_WIDTH);
 
     return {
       normalizedDefaultView,
@@ -750,7 +774,7 @@ class SkylightCalendarCard extends HTMLElement {
       this.checkAllCalendarCapabilities();
     }
 
-    if (this._themeMode === 'auto') {
+    if (this._themeMode === DEFAULT_THEME_MODE) {
       const hassDarkMode = this._hass?.themes?.darkMode;
       if (typeof hassDarkMode === 'boolean' && this._isDarkMode !== hassDarkMode) {
         this._isDarkMode = hassDarkMode;
@@ -973,29 +997,29 @@ class SkylightCalendarCard extends HTMLElement {
 
   normalizeCombineStyle(styleValue) {
     return this.normalizeEnumValue(styleValue, {
-      allowed: ['stripes', 'bars', 'dots'],
-      fallback: 'bars'
+      allowed: COMBINE_STYLE_OPTIONS,
+      fallback: DEFAULT_COMBINE_STYLE
     });
   }
 
   normalizeEventColorMode(modeValue) {
     return this.normalizeEnumValue(modeValue, {
-      allowed: ['classic', 'left-neutral', 'left-tint'],
-      fallback: 'classic'
+      allowed: EVENT_COLOR_MODE_OPTIONS,
+      fallback: DEFAULT_EVENT_COLOR_MODE
     });
   }
 
   normalizeCombineBackground(backgroundValue) {
     const normalized = String(backgroundValue || '').trim();
-    if (!normalized) return 'primary';
+    if (!normalized) return DEFAULT_COMBINE_BACKGROUND;
 
     const lower = normalized.toLowerCase();
-    if (lower === 'neutral' || lower === 'primary') {
+    if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(lower)) {
       return lower;
     }
 
     const hex = this.colorToHex(normalized);
-    return hex || 'primary';
+    return hex || DEFAULT_COMBINE_BACKGROUND;
   }
 
   getEmptyAdvancedMatch() {
@@ -6275,7 +6299,7 @@ class SkylightCalendarCard extends HTMLElement {
     const rawHeaderBackgroundColor = this.normalizeSingleColor(this._config.header_color);
     const resolvedHeaderBackgroundBase = typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
       ? calendarBaseBackground
-      : (rawHeaderBackgroundColor || 'var(--primary-color)');
+      : (rawHeaderBackgroundColor || DEFAULT_CONFIG_VALUES.header_color);
     const normalizedHeaderBackgroundOpacity = this.normalizeBackgroundOpacity(
       this._config.header_background_opacity,
       this._config.header_background_transparent ? 100 : 0
@@ -8310,18 +8334,18 @@ class SkylightCalendarCard extends HTMLElement {
   getCombinedBackgroundColor(visibleColors, fallbackColor) {
     const primaryColor = visibleColors[0] || fallbackColor;
     const option = this.normalizeCombineBackground(this._config?.combine_background);
-    if (option === 'primary') return primaryColor;
-    if (option === 'neutral') return '#F8F3E9';
+    if (option === DEFAULT_COMBINE_BACKGROUND) return primaryColor;
+    if (option === 'neutral') return DEFAULT_EVENT_NEUTRAL_BACKGROUND;
     return option;
   }
 
   getEventNeutralBackgroundColor() {
     const normalized = this.normalizeSingleColor(this._config?.event_neutral_background);
-    return normalized || '#F8F3E9';
+    return normalized || DEFAULT_EVENT_NEUTRAL_BACKGROUND;
   }
 
   getEventTintBackgroundColor(primaryColor) {
-    const tintTransparency = this.normalizeBackgroundOpacity(this._config?.event_tint_opacity, 80);
+    const tintTransparency = this.normalizeBackgroundOpacity(this._config?.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY);
     const tintOpacity = 1 - (tintTransparency / 100);
     const baseRgb = this._isDarkMode
       ? { r: 42, g: 47, b: 54 }
@@ -8337,7 +8361,7 @@ class SkylightCalendarCard extends HTMLElement {
     if (Number.isFinite(configuredWidth) && configuredWidth > 0) return configuredWidth;
     const combineWidth = Number(this._config?.combine_calendars_width);
     if (Number.isFinite(combineWidth) && combineWidth > 0) return combineWidth;
-    return 18;
+    return DEFAULT_EVENT_COLOR_BAR_WIDTH;
   }
 
   getEventBackgroundColor(event) {
@@ -11714,7 +11738,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   normalizeEventModalSize(value) {
     const normalized = String(value || '').trim().toLowerCase();
-    return ['narrow', 'medium', 'wide', 'full'].includes(normalized) ? normalized : 'medium';
+    return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
   }
 
   getEventModalSizeClass() {
@@ -11757,7 +11781,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       v: 1,
       color: '#3f51b5'
     };
-    this._combineBackgroundMode = 'primary';
+    this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
     this._combineBackgroundHexDraft = '';
     this._openDisclosureKeys = new Set();
     this._dashboardOptions = [];
@@ -11793,7 +11817,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
   syncCombineBackgroundEditorState(backgroundValue) {
     const rawValue = String(backgroundValue || '').trim();
     const normalizedLower = rawValue.toLowerCase();
-    if (normalizedLower === 'neutral' || normalizedLower === 'primary') {
+    if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(normalizedLower)) {
       this._combineBackgroundMode = normalizedLower;
       this._combineBackgroundHexDraft = '';
       return;
@@ -11806,7 +11830,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       return;
     }
 
-    this._combineBackgroundMode = 'primary';
+    this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
     this._combineBackgroundHexDraft = '';
   }
 
@@ -11824,7 +11848,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     this._config = {
       ...SkylightCalendarCard.getStubConfig(),
       ...config,
-      default_view: normalizedDefaultView || (SkylightCalendarCard.getStubConfig().default_view || 'month'),
+      default_view: normalizedDefaultView || (SkylightCalendarCard.getStubConfig().default_view || DEFAULT_VIEW),
       past_event_mode: normalizedPastEventMode,
       color_scheme: SkylightCalendarCard.prototype.normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path),
@@ -11880,7 +11904,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
   normalizeDefaultViewForEditor(value) {
     if (value === 'week') return 'week-compact';
     if (value === 'schedule') return 'week-standard';
-    return value || 'month';
+    return value || DEFAULT_VIEW;
   }
 
   getEventCalendarBubbleMode() {
@@ -11920,9 +11944,9 @@ class SkylightCalendarCardEditor extends HTMLElement {
       event_font_size: 11,
       event_time_font_size: 9,
       event_location_font_size: 9,
-      combine_calendars_width: 18,
-      event_color_bar_width: 18,
-      event_tint_opacity: 80,
+      combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
+      event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
+      event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
       first_day_of_week: 0,
       header_background_opacity: 0,
       background_opacity: 0
@@ -12823,7 +12847,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       <div class="field-row">
         <div class="field field-inline">
           <label for="event_neutral_background">Neutral event background color</label>
-          ${this.renderColorInputControl({ id: 'event_neutral_background', field: 'event_neutral_background', value: this._config.event_neutral_background || '#F8F3E9' })}
+          ${this.renderColorInputControl({ id: 'event_neutral_background', field: 'event_neutral_background', value: this._config.event_neutral_background || DEFAULT_EVENT_NEUTRAL_BACKGROUND })}
         </div>
       </div>
       ` : ''}
@@ -12831,7 +12855,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       <div class="field-row">
         <div class="field field-inline">
           <label for="event_tint_opacity">Tint opacity</label>
-          <input id="event_tint_opacity" data-field="event_tint_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this._config.event_tint_opacity ?? 80)}">
+          <input id="event_tint_opacity" data-field="event_tint_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this._config.event_tint_opacity ?? DEFAULT_EVENT_TINT_OPACITY)}">
         </div>
       </div>
       ` : ''}
@@ -12839,7 +12863,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       <div class="field-row">
         <div class="field field-inline">
           <label for="event_color_bar_width">Event color bar width (px)</label>
-          <input id="event_color_bar_width" data-field="event_color_bar_width" data-type="number" type="number" min="1" value="${Number(this._config.event_color_bar_width ?? this._config.combine_calendars_width ?? 18)}">
+          <input id="event_color_bar_width" data-field="event_color_bar_width" data-type="number" type="number" min="1" value="${Number(this._config.event_color_bar_width ?? this._config.combine_calendars_width ?? DEFAULT_EVENT_COLOR_BAR_WIDTH)}">
         </div>
       </div>
       ` : ''}
@@ -12900,7 +12924,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <label for="event_modal_size">Event modal size</label>
           <select id="event_modal_size" data-field="event_modal_size">
             <option value="narrow" ${this._config.event_modal_size === 'narrow' ? 'selected' : ''}>Narrow</option>
-            <option value="medium" ${this._config.event_modal_size === 'medium' || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
+            <option value="medium" ${this._config.event_modal_size === DEFAULT_EVENT_MODAL_SIZE || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
             <option value="wide" ${this._config.event_modal_size === 'wide' ? 'selected' : ''}>Wide</option>
             <option value="full" ${this._config.event_modal_size === 'full' ? 'selected' : ''}>Full</option>
           </select>
@@ -13819,7 +13843,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
           nextConfig.background_opacity = this.normalizeBackgroundOpacity(parsedValue, 0);
           nextConfig.background_transparent = nextConfig.background_opacity >= 100;
         } else if (field === 'event_tint_opacity') {
-          nextConfig.event_tint_opacity = this.normalizeBackgroundOpacity(parsedValue, 80);
+          nextConfig.event_tint_opacity = this.normalizeBackgroundOpacity(parsedValue, DEFAULT_EVENT_TINT_OPACITY);
         } else {
           nextConfig[field] = parsedValue;
         }
