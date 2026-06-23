@@ -3856,3 +3856,29 @@ test('string utility helpers preserve normalization and attribute escaping', asy
   assert.equal(normalizeEventTextValue('ＡＢＣ'), 'ABC');
   assert.equal(escapeHtmlAttribute('Team "sync" & <review> \'plan\''), 'Team &quot;sync&quot; &amp; &lt;review&gt; &#39;plan&#39;');
 });
+
+test('normalization utility helpers preserve dashboard, enum, map, and boolean behavior', async () => {
+  const {
+    normalizeBooleanStyleValue,
+    normalizeDashboardPath,
+    normalizeEntityStringMap,
+    normalizeEnumValue
+  } = await import('./src/utils/normalization-utils.js');
+
+  assert.equal(normalizeDashboardPath(' lovelace/home '), '/lovelace/home');
+  assert.equal(normalizeDashboardPath('/lovelace/home'), '/lovelace/home');
+  assert.equal(normalizeDashboardPath('   '), null);
+  assert.equal(normalizeDashboardPath(null), null);
+
+  assert.equal(normalizeEnumValue(' Week ', { aliases: { week: 'week-compact' }, allowed: ['month', 'week-compact'], fallback: 'month' }), 'week-compact');
+  assert.equal(normalizeEnumValue('bad', { allowed: ['month'], fallback: 'month' }), 'month');
+
+  assert.deepEqual(normalizeEntityStringMap({ ' calendar.work ': ' Work ', '': 'Empty', 'calendar.blank': '   ', 'calendar.number': 5 }), {
+    'calendar.work': 'Work'
+  });
+  assert.deepEqual(normalizeEntityStringMap(['calendar.work']), {});
+
+  assert.equal(normalizeBooleanStyleValue(true), true);
+  assert.equal(normalizeBooleanStyleValue(' false '), false);
+  assert.equal(normalizeBooleanStyleValue('maybe'), null);
+});

@@ -38,6 +38,12 @@ import {
   parseLocalDate,
   parsePossiblyLocalDateTime
 } from './utils/date-utils.js';
+import {
+  normalizeBooleanStyleValue,
+  normalizeDashboardPath,
+  normalizeEntityStringMap,
+  normalizeEnumValue
+} from './utils/normalization-utils.js';
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
@@ -215,10 +221,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeDashboardPath(pathValue) {
-    if (typeof pathValue !== 'string') return null;
-    const trimmedPath = pathValue.trim();
-    if (!trimmedPath) return null;
-    return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
+    return normalizeDashboardPath(pathValue);
   }
 
   getConfiguredDashboardPath() {
@@ -229,10 +232,8 @@ class SkylightCalendarCard extends HTMLElement {
     return !!(this._config?.show_dashboard_nav_button && this.getConfiguredDashboardPath());
   }
 
-  normalizeEnumValue(value, { aliases = {}, allowed = [], fallback }) {
-    const normalizedValue = String(value ?? '').trim().toLowerCase();
-    const mappedValue = aliases[normalizedValue] ?? normalizedValue;
-    return allowed.includes(mappedValue) ? mappedValue : fallback;
+  normalizeEnumValue(value, options) {
+    return normalizeEnumValue(value, options);
   }
 
   normalizeDefaultDarkMode(value) {
@@ -268,28 +269,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeEntityStringMap(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return Object.entries(value).reduce((acc, [key, mappedValue]) => {
-      const normalizedKey = typeof key === 'string' ? key.trim() : '';
-      const normalizedValue = typeof mappedValue === 'string' ? mappedValue.trim() : '';
-      if (normalizedKey && normalizedValue) {
-        acc[normalizedKey] = normalizedValue;
-      }
-      return acc;
-    }, {});
+    return normalizeEntityStringMap(value);
   }
 
   normalizeBooleanStyleValue(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-      const normalizedValue = value.trim().toLowerCase();
-      if (normalizedValue === 'true') return true;
-      if (normalizedValue === 'false') return false;
-    }
-    return null;
+    return normalizeBooleanStyleValue(value);
   }
 
   applyThemeMode(mode = this._themeMode) {
