@@ -83,7 +83,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_times_for_calendars: [],
   show_current_time_bar: false,
   header_color: 'var(--primary-color)',
-  header_background_opacity_transparent_threshold: 100,
+  background_opacity_transparent_threshold: 100,
   background_image_url: null,
   combine_calendars: false,
   enable_event_management: true,
