@@ -1276,6 +1276,26 @@ test('calendar entity helpers resolve names, colors, visibility, virtual badges,
   assert.equal(getCalendarBadgePersonEntityId('virtual:family_group', { family_group: 'person.family' }), 'person.family');
 });
 
+test('calendar entity helpers resolve virtual badges for combined events', async () => {
+  const {
+    getVirtualBadgeForEvent,
+    normalizeVirtualCalendars
+  } = await import('./src/calendars/calendar-entities.js');
+  const virtualCalendars = normalizeVirtualCalendars([
+    { id: 'family_group', name: 'Family Group', entities: ['calendar.family', 'calendar.school'] },
+    { id: 'work_group', name: 'Work Group', entities: ['calendar.work'] }
+  ], { normalizeSingleColor: (value) => value || null });
+
+  assert.equal(getVirtualBadgeForEvent(virtualCalendars, {
+    isCombinedCalendarEvent: true,
+    sourceEntityIds: ['calendar.school', 'calendar.family']
+  })?.id, 'family_group');
+  assert.equal(getVirtualBadgeForEvent(virtualCalendars, {
+    isCombinedCalendarEvent: true,
+    sourceEntityIds: ['calendar.unknown']
+  }), null);
+});
+
 test('preference_storage_key customizes persisted preference storage key', () => {
   const originalLocation = window.location;
   window.location = { pathname: '/lovelace-family/0', hash: '' };
@@ -4431,6 +4451,41 @@ test('event display helpers preserve title time location and style data decision
     translate: (key, params) => key === 'untitledEvent' ? 'Untitled event' : `${params.title}, ${params.time}`
   });
   assert.equal(scheduleInfo.displayTitle, 'Untitled event, 10:00 PM');
+});
+
+test('event display helper detects combined events inside one visible virtual calendar', async () => {
+  const { isCombinedEventWithinSingleVirtualCalendar } = await import('./src/events/event-display.js');
+  const event = {
+    isCombinedCalendarEvent: true,
+    sourceEvents: [
+      { entityId: 'calendar.family' },
+      { entityId: 'calendar.school' }
+    ]
+  };
+  const getVirtualBadgeForEntity = (entityId) => ['calendar.family', 'calendar.school'].includes(entityId)
+    ? { id: 'family_group' }
+    : null;
+
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar(event, { getVirtualBadgeForEntity }), true);
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar(event, {
+    hiddenCalendars: new Set(['calendar.school']),
+    getVirtualBadgeForEntity
+  }), false);
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar({
+    ...event,
+    sourceEvents: [{ entityId: 'calendar.family' }, { entityId: 'calendar.work' }]
+  }, {
+    getVirtualBadgeForEntity: (entityId) => entityId === 'calendar.family' ? { id: 'family_group' } : { id: 'work_group' }
+  }), false);
+});
+
+test('editor schema normalizes default view aliases for editor controls', async () => {
+  const { normalizeDefaultViewForEditor } = await import('./src/editor/editor-schema.js');
+
+  assert.equal(normalizeDefaultViewForEditor('week'), 'week-compact');
+  assert.equal(normalizeDefaultViewForEditor('schedule'), 'week-standard');
+  assert.equal(normalizeDefaultViewForEditor('agenda'), 'agenda');
+  assert.equal(normalizeDefaultViewForEditor(''), 'month');
 });
 
 test('event form helper preserves validation message keys and normalized data', async () => {
