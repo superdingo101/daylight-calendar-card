@@ -143,6 +143,7 @@ import {
   isAgendaRangeWithinWindow
 } from './views/agenda-view-model.js';
 import { renderAgendaView } from './renderers/agenda-renderer.js';
+import { renderWeekCompactView } from './renderers/week-compact-renderer.js';
 import {
   renderMonthDayHeaders,
   renderMonthDays,
@@ -5899,46 +5900,28 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderWeekCompact() {
-    const weekDays = this.getWeekDays();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dayNames = this.getWeekdayNames();
-    const headerHeightStyle = this._weekCompactHeaderHeight ? `--week-compact-header-height: ${this._weekCompactHeaderHeight}px;` : '';
-    const containerStyle = `${headerHeightStyle}${this.getCompactContainerStyle()}`;
 
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-compact-container day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
-        ${weekDays.map(date => {
-          const isToday = date.toDateString() === today.toDateString();
-          const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
-          const events = this.sortEventsForDate(dayEventsForMatching.filter((event) => !this.isEventHiddenByStyle(event)), date);
-          const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-
-          return `
-            <div class="week-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}" data-click-target="day-header"${dayStyleAttr}>
-              <div class="week-day-header">
-                <div class="week-day-header-main">
-                  <div class="week-day-name">${dayNames[date.getDay()]}</div>
-                  <div class="week-day-meta-row">
-                    <div class="week-day-date">${date.getDate()}</div>
-                    ${this.renderDayBadges(date, dayEventsForMatching)}
-                    ${this.renderDayForecast(date, 'week-compact')}
-                  </div>
-                </div>
-              </div>
-              <div class="week-day-events">
-                ${events.map(event => {
-                  return this.renderWeekCompactEvent(event, date);
-                }).join('')}
-                ${events.length === 0 ? `<div style="color: #9ca3af; font-size: 13px; text-align: center; margin-top: 20px;">${this.t('noEvents')}</div>` : ''}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderWeekCompactView({
+      config: this._config,
+      weekDays: this.getWeekDays(),
+      today,
+      dayNames: this.getWeekdayNames(),
+      headerHeight: this._weekCompactHeaderHeight,
+      helpers: {
+        getCompactContainerStyle: () => this.getCompactContainerStyle(),
+        renderCalendarBadges: () => this.renderCalendarBadges(),
+        getEventsForDay: (date, options) => this.getEventsForDay(date, options),
+        isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
+        sortEventsForDate: (events, date) => this.sortEventsForDate(events, date),
+        getDayStyleAttributes: (date, events, isToday) => this.getDayStyleAttributes(date, events, isToday),
+        renderDayBadges: (date, events) => this.renderDayBadges(date, events),
+        renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
+        renderWeekCompactEvent: (event, date) => this.renderWeekCompactEvent(event, date),
+        t: (key, params) => this.t(key, params)
+      }
+    });
   }
 
   renderWeekStandard() {
