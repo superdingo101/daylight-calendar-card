@@ -4364,6 +4364,75 @@ test('day badge module preserves normalization, safe resolution, and render prep
   assert.equal(normalizedRules[1].match.event.title, 'Helper');
 });
 
+
+test('event display helpers preserve title time location and style data decisions', async () => {
+  const {
+    getDisplayLocation,
+    getEventBubbleFontColor,
+    getEventFontSizeDisplayValue,
+    getModalCalendarBadgesForEvent,
+    getScheduleVisualInfo,
+    getVisibleCalendarBadgesForEvent,
+    shouldShowCombinedCornerBubbles,
+    shouldShowEventLocation,
+    shouldShowEventTime
+  } = await import('./src/events/event-display.js');
+
+  assert.equal(getEventFontSizeDisplayValue(13, 11), '13px');
+  assert.equal(getEventFontSizeDisplayValue(' 0.75rem ', 9), '0.75rem');
+  assert.equal(getEventFontSizeDisplayValue('', 9), '9px');
+
+  const hiddenCalendars = new Set(['calendar.hidden']);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.hidden' }, { hideTimesForCalendars: ['calendar.hidden'] }), false);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.visible' }, { hideTimesForCalendars: ['calendar.hidden'] }), true);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.visible' }, { styleOverrides: { hide_time: true } }), false);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.hidden' }, { styleOverrides: { show_time: true }, hideTimesForCalendars: ['calendar.hidden'] }), true);
+  assert.equal(shouldShowEventTime({ isCombinedCalendarEvent: true, sourceEntityIds: ['calendar.hidden'] }, { hiddenCalendars }), false);
+
+  const event = { entityId: 'calendar.a', location: 'Room 101, Main Building' };
+  assert.equal(shouldShowEventLocation(event, { showEventLocation: true }), true);
+  assert.equal(shouldShowEventLocation(event, { styleOverrides: { show_event_location: false }, showEventLocation: true }), false);
+  assert.equal(shouldShowEventLocation({ entityId: 'calendar.a', location: '' }, { showEventLocation: true }), false);
+  assert.equal(getDisplayLocation('Room 101, Main Building', { useShortLocation: true }), 'Room');
+  assert.equal(getDisplayLocation('123 Main Street, Springfield', { useShortLocation: true }), '123 Main Street');
+  assert.equal(getDisplayLocation('Studio', { useShortLocation: true }), 'Studio');
+
+  assert.equal(getEventBubbleFontColor({ entityId: 'calendar.a' }, {
+    eventFontColors: { 'calendar.a': '#123456' },
+    normalizeSingleColor: (color) => color,
+    getEventBackgroundColor: () => '#ffffff',
+    getContrastColor: () => '#000000'
+  }), '#123456');
+  assert.equal(getEventBubbleFontColor({ entityId: 'calendar.a' }, {
+    styleOverrides: { event_font_color: '#abcdef' },
+    normalizeSingleColor: (color) => color,
+    getEventBackgroundColor: () => '#ffffff',
+    getContrastColor: () => '#000000'
+  }), '#abcdef');
+
+  const combinedEvent = {
+    isCombinedCalendarEvent: true,
+    color: '#999999',
+    sourceCalendars: [
+      { entityId: 'calendar.hidden', color: '#111111' },
+      { entityId: 'calendar.visible', color: '#222222' }
+    ]
+  };
+  assert.deepEqual(getVisibleCalendarBadgesForEvent(combinedEvent, { hiddenCalendars }), [{ entityId: 'calendar.visible', color: '#222222' }]);
+  assert.deepEqual(getModalCalendarBadgesForEvent(combinedEvent, { hiddenCalendars }), [{ entityId: 'calendar.visible', color: '#222222' }]);
+  assert.equal(shouldShowCombinedCornerBubbles(combinedEvent, { combineCalendars: true, styleOverrides: { hasDuplicateBackgroundColors: true } }), true);
+  assert.equal(shouldShowCombinedCornerBubbles(combinedEvent, { combineCalendars: true, isSingleVirtualCalendar: true, styleOverrides: { hasDuplicateBackgroundColors: true } }), false);
+
+  const scheduleInfo = getScheduleVisualInfo({ summary: '', start: { dateTime: '2026-05-01T22:00:00Z' }, end: { dateTime: '2026-05-03T01:00:00Z' } }, {
+    getEventDateTimeInfo: () => ({ eventStart: new Date('2026-05-01T22:00:00Z'), eventEnd: new Date('2026-05-03T01:00:00Z'), isAllDay: false }),
+    shouldRenderTimedEventAsAllDayInSchedule: () => true,
+    shouldShowEventTime: () => true,
+    formatEventTime: () => '10:00 PM',
+    translate: (key, params) => key === 'untitledEvent' ? 'Untitled event' : `${params.title}, ${params.time}`
+  });
+  assert.equal(scheduleInfo.displayTitle, 'Untitled event, 10:00 PM');
+});
+
 test('event form helper preserves validation message keys and normalized data', async () => {
   const { normalizeEventFormData } = await import('./src/events/event-form.js');
 
