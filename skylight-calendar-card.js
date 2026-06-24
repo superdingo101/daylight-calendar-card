@@ -2491,6 +2491,198 @@ const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId = null, 
   ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
 });
 
+function getMonthGridDates(currentDate, firstDayOfWeek) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const startDay = (firstDay - firstDayOfWeek + 7) % 7;
+  const days = [];
+
+  for (let i = startDay - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i;
+    days.push({ day, date: new Date(year, month - 1, day), isOtherMonth: true });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push({ day, date: new Date(year, month, day), isOtherMonth: false });
+  }
+
+  const totalCells = startDay + daysInMonth;
+  const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let day = 1; day <= remainingCells; day++) {
+    days.push({ day, date: new Date(year, month + 1, day), isOtherMonth: true });
+  }
+
+  return days;
+}
+
+function getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks) {
+  const anchorDate = new Date(currentDate);
+  anchorDate.setHours(0, 0, 0, 0);
+
+  const currentDay = anchorDate.getDay();
+  const diff = (currentDay - firstDayOfWeek + 7) % 7;
+  const weekStart = new Date(anchorDate);
+  weekStart.setDate(anchorDate.getDate() - diff);
+
+  const totalWeeks = rollingWeeks + 1;
+  const totalDays = totalWeeks * 7;
+  const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const days = [];
+
+  for (let i = 0; i < totalDays; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    days.push({ day: date.getDate(), date, isOtherMonth: date < currentMonthStart });
+  }
+
+  return days;
+}
+
+function getMonthVisibleDateRange(currentDate, firstDayOfWeek, rollingWeeks = null) {
+  if (rollingWeeks !== null) {
+    const days = getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks);
+    const startDate = new Date(days[0].date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(days[days.length - 1].date);
+    endDate.setHours(23, 59, 59, 999);
+    return { startDate, endDate };
+  }
+
+  const days = getMonthGridDates(currentDate, firstDayOfWeek);
+  const startDate = new Date(days[0].date);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(days[days.length - 1].date);
+  endDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate };
+}
+
+function getRollingDaysForView(viewMode, config) {
+  if (viewMode === 'week-compact' && config.rolling_days_week_compact !== null) {
+    return config.rolling_days_week_compact;
+  }
+
+  if (viewMode === 'week-standard' && config.rolling_days_schedule !== null) {
+    return config.rolling_days_schedule;
+  }
+
+  return null;
+}
+
+function getWeekDays({ currentDate, weekStart, weekDays, rollingDays }) {
+  if (rollingDays !== null) {
+    const days = [];
+    const startDate = new Date(currentDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i <= rollingDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  }
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    if (weekDays.includes(date.getDay())) {
+      days.push(date);
+    }
+  }
+  return days;
+}
+
+function getWeekVisibleDateRange(weekDays) {
+  const startDate = new Date(weekDays[0]);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(weekDays[weekDays.length - 1]);
+  endDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate };
+}
+
+function getAgendaRollingDays(config) {
+  if (config?.rolling_days_agenda !== null && config?.rolling_days_agenda !== undefined) {
+    return config.rolling_days_agenda;
+  }
+
+  return null;
+}
+
+function getAgendaPeriodDaySpan(config) {
+  const rollingDays = getAgendaRollingDays(config);
+  return rollingDays !== null ? rollingDays : 14;
+}
+
+function createAgendaWindow(today, daySpan) {
+  const startDate = new Date(today);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + daySpan);
+  endDate.setHours(23, 59, 59, 999);
+  const visibleStartDate = new Date(startDate);
+  const visibleEndDate = new Date(endDate);
+  visibleEndDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate, visibleStartDate, visibleEndDate };
+}
+
+function getAgendaDays(startDate, endDate) {
+  const days = [];
+  const cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return days;
+}
+
+function getAgendaVisibleDateRange(startDate, endDate) {
+  const visibleStartDate = new Date(startDate);
+  visibleStartDate.setHours(0, 0, 0, 0);
+  const visibleEndDate = new Date(endDate);
+  visibleEndDate.setHours(23, 59, 59, 999);
+  return { startDate: visibleStartDate, endDate: visibleEndDate };
+}
+
+function isAgendaRangeWithinWindow(range, windowStartDate, windowEndDate) {
+  if (!range?.startDate || !range?.endDate || !windowStartDate || !windowEndDate) {
+    return false;
+  }
+
+  const rangeStart = new Date(range.startDate);
+  rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(range.endDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+  const windowStart = new Date(windowStartDate);
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = new Date(windowEndDate);
+  windowEnd.setHours(23, 59, 59, 999);
+
+  return rangeStart >= windowStart && rangeEnd <= windowEnd;
+}
+
+function buildAgendaDayEntries(agendaDays, { getEventsForDay, isEventHiddenByStyle, sortEventsForDate, hideEmptyDays }) {
+  return agendaDays
+    .map((date) => ({
+      date,
+      matchingEvents: getEventsForDay(date, { includeHiddenStyledEvents: true }),
+      events: null
+    }))
+    .map((entry) => ({
+      ...entry,
+      events: sortEventsForDate(entry.matchingEvents.filter((event) => !isEventHiddenByStyle(event)), entry.date)
+    }))
+    .filter((entry) => !hideEmptyDays || entry.events.length > 0);
+}
+
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
 
 function getDaylightCalendarCardVersion() {
@@ -4365,56 +4557,15 @@ class SkylightCalendarCard extends HTMLElement {
   getVisibleDateRange() {
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
-      const startDate = new Date(this._agendaStartDate);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(this._agendaEndDate);
-      endDate.setHours(23, 59, 59, 999);
-      return { startDate, endDate };
+      return getAgendaVisibleDateRange(this._agendaStartDate, this._agendaEndDate);
     }
 
-    // Month rolling-weeks mode: from start of anchor week through configured weeks.
-    if (this._viewMode === 'month' && this._config.rolling_weeks !== null) {
-      const anchorDate = new Date(this._currentDate);
-      anchorDate.setHours(0, 0, 0, 0);
-      const currentDay = anchorDate.getDay();
-      const diff = (currentDay - this._config.firstDayOfWeek + 7) % 7;
-
-      const startDate = new Date(anchorDate);
-      startDate.setDate(anchorDate.getDate() - diff);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + ((this._config.rolling_weeks + 1) * 7) - 1);
-      endDate.setHours(23, 59, 59, 999);
-      return { startDate, endDate };
-    }
-
-    // Standard month mode: full rendered grid (including adjacent month cells).
     if (this._viewMode === 'month') {
-      const year = this._currentDate.getFullYear();
-      const month = this._currentDate.getMonth();
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startOffset = (firstDay - this._config.firstDayOfWeek + 7) % 7;
-      const totalCells = startOffset + daysInMonth;
-      const trailingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-
-      const startDate = new Date(year, month, 1 - startOffset);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(year, month, daysInMonth + trailingCells);
-      endDate.setHours(23, 59, 59, 999);
-
-      return { startDate, endDate };
+      return getMonthVisibleDateRange(this._currentDate, this._config.firstDayOfWeek, this._config.rolling_weeks);
     }
 
     // Week views: from first shown day to last shown day.
-    const weekDays = this.getWeekDays();
-    const startDate = new Date(weekDays[0]);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(weekDays[weekDays.length - 1]);
-    endDate.setHours(23, 59, 59, 999);
-    return { startDate, endDate };
+    return getWeekVisibleDateRange(this.getWeekDays());
   }
 
   getDateRangeChunks(startDate, endDate, chunkDays = 30) {
@@ -5028,16 +5179,11 @@ class SkylightCalendarCard extends HTMLElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     this._currentDate = new Date(today);
-    this._agendaStartDate = new Date(today);
-
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + this.getAgendaPeriodDaySpan());
-    endDate.setHours(23, 59, 59, 999);
-    this._agendaEndDate = endDate;
-    this._agendaVisibleStartDate = new Date(today);
-    const visibleEndDate = new Date(endDate);
-    visibleEndDate.setHours(23, 59, 59, 999);
-    this._agendaVisibleEndDate = visibleEndDate;
+    const agendaWindow = createAgendaWindow(today, this.getAgendaPeriodDaySpan());
+    this._agendaStartDate = agendaWindow.startDate;
+    this._agendaEndDate = agendaWindow.endDate;
+    this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
+    this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
   }
 
   ensureAgendaWindowInitialized() {
@@ -5047,18 +5193,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getAgendaDays() {
     this.ensureAgendaWindowInitialized();
-    const days = [];
-    const cursor = new Date(this._agendaStartDate);
-    cursor.setHours(0, 0, 0, 0);
-    const end = new Date(this._agendaEndDate);
-    end.setHours(0, 0, 0, 0);
-
-    while (cursor <= end) {
-      days.push(new Date(cursor));
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return days;
+    return getAgendaDays(this._agendaStartDate, this._agendaEndDate);
   }
 
   getAgendaVisibleDateRangeFromDom() {
@@ -5107,20 +5242,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   isAgendaRangeWithinCurrentWindow(range) {
-    if (!range?.startDate || !range?.endDate || !this._agendaStartDate || !this._agendaEndDate) {
-      return false;
-    }
-
-    const rangeStart = new Date(range.startDate);
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(range.endDate);
-    rangeEnd.setHours(23, 59, 59, 999);
-    const windowStart = new Date(this._agendaStartDate);
-    windowStart.setHours(0, 0, 0, 0);
-    const windowEnd = new Date(this._agendaEndDate);
-    windowEnd.setHours(23, 59, 59, 999);
-
-    return rangeStart >= windowStart && rangeEnd <= windowEnd;
+    return isAgendaRangeWithinWindow(range, this._agendaStartDate, this._agendaEndDate);
   }
 
   updateAgendaPeriodLabelInDom() {
@@ -5174,57 +5296,24 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getAgendaRollingDays() {
-    if (this._config?.rolling_days_agenda !== null && this._config?.rolling_days_agenda !== undefined) {
-      return this._config.rolling_days_agenda;
-    }
-
-    return null;
+    return getAgendaRollingDays(this._config);
   }
 
   getAgendaPeriodDaySpan() {
-    const rollingDays = this.getAgendaRollingDays();
-    return rollingDays !== null ? rollingDays : 14;
+    return getAgendaPeriodDaySpan(this._config);
   }
 
   getRollingDaysForView(viewMode = this._viewMode) {
-    if (viewMode === 'week-compact' && this._config.rolling_days_week_compact !== null) {
-      return this._config.rolling_days_week_compact;
-    }
-
-    if (viewMode === 'week-standard' && this._config.rolling_days_schedule !== null) {
-      return this._config.rolling_days_schedule;
-    }
-
-    return null;
+    return getRollingDaysForView(viewMode, this._config);
   }
 
   getWeekDays(viewMode = this._viewMode) {
-    const rollingDays = this.getRollingDaysForView(viewMode);
-
-    // If rolling days are set, show current date + N days
-    if (rollingDays !== null) {
-      const days = [];
-      const startDate = new Date(this._currentDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i <= rollingDays; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        days.push(date);
-      }
-      return days;
-    }
-
-    // Otherwise use the week-based approach
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(this._weekStart);
-      date.setDate(this._weekStart.getDate() + i);
-      if (this._config.week_days.includes(date.getDay())) {
-        days.push(date);
-      }
-    }
-    return days;
+    return getWeekDays({
+      currentDate: this._currentDate,
+      weekStart: this._weekStart,
+      weekDays: this._config.week_days,
+      rollingDays: this.getRollingDaysForView(viewMode)
+    });
   }
 
   getStyles() {
@@ -8551,17 +8640,12 @@ class SkylightCalendarCard extends HTMLElement {
     const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'long', year: 'numeric' }));
     const agendaRows = [];
     const shouldHideEmptyDays = this._viewMode === 'agenda' && !!this._config.hide_empty_days;
-    const agendaDayEntries = agendaDays
-      .map((date) => ({
-        date,
-        matchingEvents: this.getEventsForDay(date, { includeHiddenStyledEvents: true }),
-        events: null
-      }))
-      .map((entry) => ({
-        ...entry,
-        events: this.sortEventsForDate(entry.matchingEvents.filter((event) => !this.isEventHiddenByStyle(event)), entry.date)
-      }))
-      .filter((entry) => !shouldHideEmptyDays || entry.events.length > 0);
+    const agendaDayEntries = buildAgendaDayEntries(agendaDays, {
+      getEventsForDay: this.getEventsForDay.bind(this),
+      isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
+      sortEventsForDate: this.sortEventsForDate.bind(this),
+      hideEmptyDays: shouldHideEmptyDays
+    });
 
     agendaDayEntries.forEach((entry, index) => {
       const { date, events } = entry;
@@ -9479,98 +9563,35 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDays() {
-    const year = this._currentDate.getFullYear();
-    const month = this._currentDate.getMonth();
-
     // If rolling_weeks is set, show current week + N additional weeks
     if (this._config.rolling_weeks !== null && this._viewMode === 'month') {
       return this.renderRollingWeeks();
     }
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const daysInPrevMonth = new Date(year, month, 0).getDate();
-
-    const today = new Date();
-    const isToday = (d) => {
-      return d.getDate() === today.getDate() &&
-             d.getMonth() === today.getMonth() &&
-             d.getFullYear() === today.getFullYear();
-    };
-
     const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
     let html = '';
-    let dayIndex = 0;
-    const startDay = (firstDay - this._config.firstDayOfWeek + 7) % 7;
 
-    // Previous month days
-    for (let i = startDay - 1; i >= 0; i--) {
-      const day = daysInPrevMonth - i;
-      const date = new Date(year, month - 1, day);
+    getMonthGridDates(this._currentDate, this._config.firstDayOfWeek).forEach((dayEntry, dayIndex) => {
       if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
+        html += this.renderMonthWeekNumberCell(dayEntry.date);
       }
-      html += this.renderDay(day, date, true);
-      dayIndex++;
-    }
-
-    // Current month days
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
-      }
-      html += this.renderDay(day, date, false);
-      dayIndex++;
-    }
-
-    // Next month days
-    const totalCells = startDay + daysInMonth;
-    const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-    for (let day = 1; day <= remainingCells; day++) {
-      const date = new Date(year, month + 1, day);
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
-      }
-      html += this.renderDay(day, date, true);
-      dayIndex++;
-    }
+      html += this.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+    });
 
     return html;
   }
 
   renderRollingWeeks() {
-    const anchorDate = new Date(this._currentDate);
-    anchorDate.setHours(0, 0, 0, 0);
-
-    // Find the start of the current week based on firstDayOfWeek
-    const currentDay = anchorDate.getDay();
-    const diff = (currentDay - this._config.firstDayOfWeek + 7) % 7;
-    const weekStart = new Date(anchorDate);
-    weekStart.setDate(anchorDate.getDate() - diff);
-
-    // Calculate total days to show: (rolling_weeks + 1) * 7 days
-    const totalWeeks = this._config.rolling_weeks + 1;
-    const totalDays = totalWeeks * 7;
-
     const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
     let html = '';
 
-    // Render all days in the rolling weeks
-    for (let i = 0; i < totalDays; i++) {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
-      if (shouldShowWeekNumbers && i % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
+    getRollingMonthGridDates(this._currentDate, this._config.firstDayOfWeek, this._config.rolling_weeks).forEach((dayEntry, dayIndex) => {
+      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
+        html += this.renderMonthWeekNumberCell(dayEntry.date);
       }
 
-      // In rolling-weeks month view, keep trailing (next-month) days visually active
-      // while still dimming any leading days from the previous month.
-      const currentMonthStart = new Date(this._currentDate.getFullYear(), this._currentDate.getMonth(), 1);
-      const isOtherMonth = date < currentMonthStart;
-
-      html += this.renderDay(date.getDate(), date, isOtherMonth);
-    }
+      html += this.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+    });
 
     return html;
   }
