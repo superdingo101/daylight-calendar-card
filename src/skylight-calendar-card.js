@@ -139,7 +139,6 @@ import {
   getWeekVisibleDateRange
 } from './views/week-view-model.js';
 import {
-  buildAgendaDayEntries,
   createAgendaWindow,
   getAgendaDays as getAgendaDaysViewModel,
   getAgendaPeriodDaySpan as getAgendaPeriodDaySpanViewModel,
@@ -147,6 +146,7 @@ import {
   getAgendaVisibleDateRange,
   isAgendaRangeWithinWindow
 } from './views/agenda-view-model.js';
+import { renderAgendaView } from './renderers/agenda-renderer.js';
 import {
   getCalendarBadgePersonEntityId as getCalendarBadgePersonEntityIdHelper,
   getCalendarColor as getCalendarColorHelper,
@@ -6042,76 +6042,46 @@ class SkylightCalendarCard extends HTMLElement {
     const agendaDays = this.getAgendaDays();
     const agendaEventMinHeight = this.getAgendaEventMinHeight();
     const compactMaxHeight = this.getCompactMaxHeight(this._agendaContainerTopInViewport);
-    const containerStyle = this.getCompactContainerStyle(compactMaxHeight);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayNames = this.getWeekdayNames();
     const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'long', year: 'numeric' }));
-    const agendaRows = [];
-    const shouldHideEmptyDays = this._viewMode === 'agenda' && !!this._config.hide_empty_days;
-    const agendaDayEntries = buildAgendaDayEntries(agendaDays, {
-      getEventsForDay: this.getEventsForDay.bind(this),
-      isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
-      sortEventsForDate: this.sortEventsForDate.bind(this),
-      hideEmptyDays: shouldHideEmptyDays
-    });
 
-    agendaDayEntries.forEach((entry, index) => {
-      const { date, events } = entry;
-      if (index > 0) {
-        const previousDate = agendaDayEntries[index - 1].date;
-        const monthChanged = previousDate.getMonth() !== date.getMonth() || previousDate.getFullYear() !== date.getFullYear();
-        if (monthChanged) {
-          agendaRows.push(`<div class="agenda-month-banner">${this.escapeHtml(monthFormatter.format(date))}</div>`);
-        }
+    return renderAgendaView({
+      agendaDays,
+      agendaEventMinHeight,
+      compactMaxHeight,
+      config: this._config,
+      today,
+      dayNames,
+      monthFormatter,
+      helpers: {
+        escapeHtml: this.escapeHtml.bind(this),
+        formatEventTimeRange: this.formatEventTimeRange.bind(this),
+        getCompactContainerStyle: this.getCompactContainerStyle.bind(this),
+        getDisplayLocation: this.getDisplayLocation.bind(this),
+        getDayStyleAttributes: this.getDayStyleAttributes.bind(this),
+        getEventBubbleFontColor: this.getEventBubbleFontColor.bind(this),
+        getEventBubbleFontSize: this.getEventBubbleFontSize.bind(this),
+        getEventDaySegment: this.getEventDaySegment.bind(this),
+        getEventLocationFontSize: this.getEventLocationFontSize.bind(this),
+        getEventStyle: this.getEventStyle.bind(this),
+        getEventTimeFontSize: this.getEventTimeFontSize.bind(this),
+        getEventsForDay: this.getEventsForDay.bind(this),
+        isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
+        renderCalendarBadges: this.renderCalendarBadges.bind(this),
+        renderCombinedCornerBubbles: this.renderCombinedCornerBubbles.bind(this),
+        renderDayForecast: this.renderDayForecast.bind(this),
+        renderEventIcon: this.renderEventIcon.bind(this),
+        renderEventStyleCornerIcon: this.renderEventStyleCornerIcon.bind(this),
+        renderEventTitleWithPrefix: this.renderEventTitleWithPrefix.bind(this),
+        shouldShowCombinedCornerBubbles: this.shouldShowCombinedCornerBubbles.bind(this),
+        shouldShowEventLocation: this.shouldShowEventLocation.bind(this),
+        shouldShowEventTime: this.shouldShowEventTime.bind(this),
+        sortEventsForDate: this.sortEventsForDate.bind(this),
+        t: this.t.bind(this)
       }
-
-      const isToday = date.toDateString() === today.toDateString();
-      const dayStyle = this.getDayStyleAttributes(date, entry.matchingEvents, isToday);
-      const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-      agendaRows.push(`
-        <div class="agenda-day-row ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
-          <div class="agenda-day-label">
-            <div class="agenda-day-weekday">${dayNames[date.getDay()]}</div>
-            <div class="agenda-day-date">${date.getDate()}</div>
-            ${this.renderDayForecast(date, 'agenda')}
-          </div>
-          <div class="agenda-day-events">
-            ${events.map(event => {
-              const daySegment = this.getEventDaySegment(event, date);
-              if (!daySegment) return '';
-              const { segmentStart, segmentEnd, isAllDaySegment } = daySegment;
-              const timeLabel = isAllDaySegment
-                ? this.t('allDay')
-                : this.formatEventTimeRange(segmentStart, segmentEnd);
-              const eventStyle = this.getEventStyle(event);
-              const eventAgendaMinHeight = this.shouldShowCombinedCornerBubbles(event)
-                ? `calc(${agendaEventMinHeight} + 16px)`
-                : agendaEventMinHeight;
-
-              return `
-                <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-                  <div class="agenda-event-title">${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}</div>
-                  ${this.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
-                  ${this.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
-                  ${this.renderEventIcon(event)}
-                  ${this.renderEventStyleCornerIcon(event)}
-                  ${this.renderCombinedCornerBubbles(event)}
-                </div>
-              `;
-            }).join('')}
-            ${events.length === 0 ? `<div class="agenda-empty-day">${this.t('noEvents')}</div>` : ''}
-          </div>
-        </div>
-      `);
     });
-
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="agenda-container" id="agenda-container" style="${containerStyle}">
-        ${agendaRows.join('')}
-      </div>
-    `;
   }
 
   getScheduleHourRangeForWeek(weekDays) {
