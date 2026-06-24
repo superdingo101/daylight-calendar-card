@@ -31,13 +31,25 @@ The project was formerly named Skylight Calendar Card. The public name is now Da
 
 Current modules are organized around these boundaries. Future modules may be added, but new modules should preserve the same separation principles and keep card-instance orchestration separate from pure/data-only helpers.
 
-* `src/skylight-calendar-card.js`: main custom element, lifecycle, orchestration, rendering, DOM, CSS, Home Assistant integration glue.
+* `src/skylight-calendar-card.js`: main custom element, lifecycle, Home Assistant orchestration, rendering/templates, DOM measurement, scroll restoration, CSS, modal/editor DOM behavior, and event handlers.
 * `src/translations.js`: translation data.
 * `src/constants.js`: shared static constants.
 * `src/defaults.js`: default config values, option lists, aliases, and stub config creation.
-* `src/utils/`: pure utility helpers.
-* `src/events/`: event data normalization and event-related non-rendering helpers.
-* `src/rules/`: rule normalization and condition matching helpers.
+* `src/utils/`: pure utility helpers for dates, normalization, and strings.
+* `src/events/event-normalizer.js`: Home Assistant calendar event normalization and combined-event data shaping.
+* `src/events/event-form.js`: event form validation and create/update data normalization.
+* `src/events/event-service.js`: Home Assistant calendar event service and WebSocket payload helpers.
+* `src/events/event-display.js`: non-rendering event display decisions and display metadata.
+* `src/rules/condition-matcher.js`: condition and value matching helpers.
+* `src/rules/style-rules.js`: style rule normalization and matching helpers.
+* `src/badges/day-badges.js`: day badge normalization, matching, and display data helpers.
+* `src/weather/weather-utils.js`: weather formatting, icon, temperature, and forecast utility helpers.
+* `src/weather/weather-service.js`: weather entity discovery and Home Assistant weather service payload helpers.
+* `src/editor/editor-schema.js`: editor default values, option metadata, and config normalization helpers.
+* `src/views/month-view-model.js`: month-grid date and visible-range view-model helpers.
+* `src/views/week-view-model.js`: week and rolling-days view-model helpers.
+* `src/views/agenda-view-model.js`: agenda visible-range and rolling-days view-model helpers.
+* `src/calendars/calendar-entities.js`: calendar entity metadata, colors, names, virtual calendar badges, writable calendars, and person mappings.
 
 ## Modularization guardrails
 
