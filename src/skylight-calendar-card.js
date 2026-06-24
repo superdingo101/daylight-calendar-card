@@ -82,6 +82,19 @@ import {
   normalizeEventMatchConditions as normalizeRuleEventMatchConditions,
   normalizeLegacyDayStyleMatch as normalizeRuleLegacyDayStyleMatch
 } from './rules/style-rules.js';
+import {
+  getHeaderWeatherEntityRenderSignature,
+  getWeatherEntityForecast,
+  mapWeatherConditionToIcon as mapWeatherConditionToIconHelper,
+  normalizeForecastForDate,
+  normalizeHeaderWeatherData,
+  normalizeWeatherTemperature as normalizeWeatherTemperatureHelper
+} from './weather/weather-utils.js';
+import {
+  buildWeatherForecastRequestMessage,
+  buildWeatherForecastSubscriptionMessage,
+  isWeatherEntityId
+} from './weather/weather-service.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
 
@@ -10493,7 +10506,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   async ensureWeatherForecastSubscription() {
     const entityId = this._config?.header_weather_sensor;
-    if (!entityId || !entityId.startsWith('weather.')) {
+    if (!isWeatherEntityId(entityId)) {
       this.teardownWeatherForecastSubscription();
       return;
     }
@@ -10524,11 +10537,7 @@ class SkylightCalendarCard extends HTMLElement {
             this._pendingHeaderSensorRender = true;
           }
         },
-        {
-          type: 'weather/subscribe_forecast',
-          entity_id: entityId,
-          forecast_type: 'daily'
-        }
+        buildWeatherForecastSubscriptionMessage(entityId)
       )
       .then((unsubscribe) => {
         const generationMatches = subscriptionGeneration === this._weatherForecastSubscriptionGeneration;
@@ -10562,7 +10571,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   async refreshWeatherForecastData() {
     const entityId = this._config?.header_weather_sensor;
-    if (!entityId || !entityId.startsWith('weather.')) return;
+    if (!isWeatherEntityId(entityId)) return;
     if (!this._hass || this._weatherForecastRefreshInFlight) return;
     if (this._weatherForecastByEntity.has(entityId)) return;
     const now = Date.now();
@@ -10571,11 +10580,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this._weatherForecastRefreshInFlight = true;
     try {
-      const wsResponse = await this._hass.callWS({
-        type: 'weather/get_forecasts',
-        entity_ids: [entityId],
-        forecast_type: 'daily'
-      });
+      const wsResponse = await this._hass.callWS(buildWeatherForecastRequestMessage(entityId));
 
       const dailyForecast = wsResponse?.[entityId]?.forecast;
       if (Array.isArray(dailyForecast)) {
@@ -10597,23 +10602,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getHeaderEntityRenderSignature(entityState) {
-    if (!entityState) return '';
-    const attrs = entityState.attributes || {};
-    return JSON.stringify({
-      state: entityState.state,
-      temperature: attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? null,
-      condition: attrs.condition ?? null,
-      friendly_name: attrs.friendly_name ?? null,
-      entity_picture: attrs.entity_picture ?? null,
-      forecast: Array.isArray(attrs.forecast)
-        ? attrs.forecast.map((forecastItem) => ({
-          datetime: forecastItem?.datetime ?? forecastItem?.date ?? null,
-          condition: forecastItem?.condition ?? null,
-          high: forecastItem?.temperature ?? forecastItem?.temphigh ?? forecastItem?.high ?? null,
-          low: forecastItem?.templow ?? forecastItem?.low ?? forecastItem?.temperature_low ?? null
-        }))
-        : null
-    });
+    return getHeaderWeatherEntityRenderSignature(entityState);
   }
 
   getFormattedHeaderSensorTime() {
@@ -10626,54 +10615,18 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeWeatherTemperature(value) {
-    const numericValue = Number(value);
-    if (!Number.isFinite(numericValue)) return null;
-    return `${Math.round(numericValue)}°`;
+    return normalizeWeatherTemperatureHelper(value);
   }
 
   mapWeatherConditionToIcon(conditionValue) {
-    const condition = String(conditionValue || '').trim().toLowerCase().replace(/_/g, '-');
-    if (!condition || condition === 'unknown' || condition === 'unavailable') return '';
-
-    const iconMap = {
-      sunny: 'mdi:weather-sunny',
-      clear: 'mdi:weather-sunny',
-      'clear-night': 'mdi:weather-night',
-      partlycloudy: 'mdi:weather-partly-cloudy',
-      cloudy: 'mdi:weather-cloudy',
-      overcast: 'mdi:weather-cloudy',
-      rainy: 'mdi:weather-rainy',
-      pouring: 'mdi:weather-pouring',
-      snow: 'mdi:weather-snowy',
-      snowy: 'mdi:weather-snowy',
-      'snowy-rainy': 'mdi:weather-snowy-rainy',
-      hail: 'mdi:weather-hail',
-      lightning: 'mdi:weather-lightning',
-      'lightning-rainy': 'mdi:weather-lightning-rainy',
-      windy: 'mdi:weather-windy',
-      'windy-variant': 'mdi:weather-windy-variant',
-      fog: 'mdi:weather-fog',
-      exceptional: 'mdi:alert-circle-outline'
-    };
-
-    return iconMap[condition] || '';
+    return mapWeatherConditionToIconHelper(conditionValue);
   }
 
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
-    if (!weatherEntity) return null;
-
-    const attrs = weatherEntity.attributes || {};
-    const condition = attrs.condition || weatherEntity.state;
-    const conditionIcon = this.mapWeatherConditionToIcon(condition);
-    const temperature = this.normalizeWeatherTemperature(
-      attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? weatherEntity.state
-    );
-
-    if (!conditionIcon || !temperature) return null;
-    return { conditionIcon, temperature };
+    return normalizeHeaderWeatherData(weatherEntity);
   }
 
   getFormattedHeaderWeather() {
@@ -10687,28 +10640,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
     const wsForecast = this._weatherForecastByEntity.get(sensorEntityId);
-    const forecasts = Array.isArray(wsForecast) && wsForecast.length > 0
-      ? wsForecast
-      : weatherEntity?.attributes?.forecast;
-    if (!Array.isArray(forecasts) || forecasts.length === 0) return null;
-
-    const targetDateKey = this.getDateKey(date);
-    const match = forecasts.find((item) => {
-      const forecastDateValue = item?.datetime || item?.date;
-      if (!forecastDateValue) return false;
-      const forecastDate = new Date(forecastDateValue);
-      if (Number.isNaN(forecastDate.getTime())) return false;
-      return this.getDateKey(forecastDate) === targetDateKey;
-    });
-
-    if (!match) return null;
-
-    const highTemp = this.normalizeWeatherTemperature(match.temperature ?? match.temphigh ?? match.high);
-    const lowTemp = this.normalizeWeatherTemperature(match.templow ?? match.low ?? match.temperature_low);
-    const conditionIcon = this.mapWeatherConditionToIcon(match.condition);
-
-    if (!conditionIcon || !highTemp) return null;
-    return { conditionIcon, highTemp, lowTemp };
+    const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
+    return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
