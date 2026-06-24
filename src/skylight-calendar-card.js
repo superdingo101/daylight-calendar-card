@@ -32,6 +32,19 @@ import {
 } from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
 import {
+  normalizeDayBadgeBlock as normalizeDayBadgeBlockHelper,
+  normalizeDayBadgeConditions as normalizeDayBadgeConditionsHelper,
+  normalizeDayBadgeDisplayColor as normalizeDayBadgeDisplayColorHelper,
+  normalizeDayBadges as normalizeDayBadgesHelper,
+  normalizeResolvedDayBadgeDisplayColor as normalizeResolvedDayBadgeDisplayColorHelper,
+  isFullValueTemplate as isFullValueTemplateHelper,
+  parseEventDescriptionJson as parseEventDescriptionJsonHelper,
+  buildDayBadgeResolutionContext as buildDayBadgeResolutionContextHelper,
+  resolveSafePath as resolveSafePathHelper,
+  resolveDayBadgeDisplayValue as resolveDayBadgeDisplayValueHelper,
+  resolveDayBadgeForRender as resolveDayBadgeForRenderHelper
+} from './badges/day-badges.js';
+import {
   formatLocalDate,
   getDateRangeChunks,
   getIsoWeekNumber,
@@ -1219,166 +1232,65 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   normalizeDayBadgeBlock(rule = {}) {
-    const normalized = {};
-    const text = this.normalizeEventTextValue(rule.text);
-    const icon = this.normalizeEventTextValue(rule.icon);
-    const normalizedText = text || '';
-    const normalizedIcon = icon || '';
-    if (normalizedText) normalized.text = normalizedText;
-    if (normalizedIcon) normalized.icon = normalizedIcon;
-
-    const backgroundColor = this.normalizeDayBadgeDisplayColor(rule.background_color);
-    if (backgroundColor) normalized.background_color = backgroundColor;
-    const color = this.normalizeDayBadgeDisplayColor(rule.color);
-    if (color) normalized.color = color;
-
-    const size = this.normalizeStyleSizeValue(rule.size);
-    if (size) normalized.size = size;
-
-    const fontSize = this.normalizeStyleSizeValue(rule.font_size);
-    if (fontSize) normalized.font_size = fontSize;
-    return normalized;
+    return normalizeDayBadgeBlockHelper(rule, {
+      normalizeEventTextValue: this.normalizeEventTextValue.bind(this),
+      normalizeDayBadgeDisplayColor: this.normalizeDayBadgeDisplayColor.bind(this),
+      normalizeStyleSizeValue: this.normalizeStyleSizeValue.bind(this)
+    });
   }
 
   isFullValueTemplate(value) {
-    return typeof value === 'string' && /^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/.test(value);
+    return isFullValueTemplateHelper(value);
   }
 
   normalizeDayBadgeDisplayColor(value) {
-    if (this.isFullValueTemplate(value)) return String(value).trim();
-    return this.normalizeSingleColor(value);
+    return normalizeDayBadgeDisplayColorHelper(value, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   normalizeResolvedDayBadgeDisplayColor(value) {
-    const normalized = this.normalizeSingleColor(value);
-    if (typeof normalized !== 'string') return undefined;
-    const trimmed = normalized.trim();
-    if (!trimmed) return undefined;
-
-    if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
-    if (/^rgba?\(\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
-    if (/^hsla?\(\s*[+-]?(?:\d+|\d*\.\d+)(?:deg|grad|rad|turn)?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
-
-    return undefined;
+    return normalizeResolvedDayBadgeDisplayColorHelper(value, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   parseEventDescriptionJson(event) {
-    const raw = String(event?.description || '').trim();
-    if (!raw.startsWith('{') || !raw.endsWith('}')) return undefined;
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
-      return parsed;
-    } catch {
-      return undefined;
-    }
+    return parseEventDescriptionJsonHelper(event);
   }
 
   buildDayBadgeResolutionContext(date, matchedEvent) {
-    const event = matchedEvent && typeof matchedEvent === 'object' ? matchedEvent : {};
-    const calendar = event.entityId || event.entity_id || event.calendar;
-    const title = event.summary || event.title;
-    return {
-      date: date instanceof Date && !Number.isNaN(date.getTime()) ? this.formatLocalDate(date) : date,
-      calendar,
-      title,
-      event: {
-        ...event,
-        calendar,
-        entity_id: event.entity_id || event.entityId,
-        title,
-        summary: event.summary || event.title,
-        description_json: this.parseEventDescriptionJson(event)
-      }
-    };
+    return buildDayBadgeResolutionContextHelper(date, matchedEvent, {
+      formatLocalDate: this.formatLocalDate.bind(this)
+    });
   }
 
   resolveSafePath(path, context) {
-    if (typeof path !== 'string' || !path) return undefined;
-    const blockedSegments = new Set(['__proto__', 'prototype', 'constructor']);
-    const segments = path.split('.');
-    if (!segments.length) return undefined;
-
-    let current = context;
-    for (const segment of segments) {
-      if (!/^[A-Za-z0-9_-]+$/.test(segment) || blockedSegments.has(segment)) return undefined;
-      if (current === null || current === undefined || (typeof current !== 'object' && typeof current !== 'function')) return undefined;
-      if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined;
-      current = current[segment];
-    }
-
-    if (current === null || current === undefined) return undefined;
-    if (['string', 'number', 'boolean'].includes(typeof current)) return String(current);
-    return undefined;
+    return resolveSafePathHelper(path, context);
   }
 
   resolveDayBadgeDisplayValue(value, context) {
-    if (typeof value !== 'string') return value;
-    const match = value.match(/^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/);
-    if (!match) return value;
-    return this.resolveSafePath(match[1], context);
+    return resolveDayBadgeDisplayValueHelper(value, context);
   }
 
   resolveDayBadgeForRender(rule, date, matchedEvent) {
-    const context = this.buildDayBadgeResolutionContext(date, matchedEvent);
-    const resolved = { ...rule };
-    ['icon', 'text', 'background_color', 'color'].forEach((field) => {
-      const value = this.resolveDayBadgeDisplayValue(rule[field], context);
-      if (value === undefined || value === null || String(value).trim() === '') {
-        delete resolved[field];
-        return;
-      }
-
-      if (field === 'background_color' || field === 'color') {
-        const normalizedColor = this.normalizeResolvedDayBadgeDisplayColor(value);
-        if (normalizedColor) {
-          resolved[field] = normalizedColor;
-        } else {
-          delete resolved[field];
-        }
-        return;
-      }
-
-      resolved[field] = String(value).trim();
+    return resolveDayBadgeForRenderHelper(rule, date, matchedEvent, {
+      formatLocalDate: this.formatLocalDate.bind(this),
+      normalizeResolvedDayBadgeDisplayColor: this.normalizeResolvedDayBadgeDisplayColor.bind(this)
     });
-    return resolved;
   }
 
   normalizeDayBadgeConditions(rawConditions) {
-    return this.normalizeEventMatchConditions(rawConditions);
+    return normalizeDayBadgeConditionsHelper(rawConditions, {
+      normalizeEventMatchConditions: this.normalizeEventMatchConditions.bind(this)
+    });
   }
 
   normalizeDayBadges(rawRules) {
-    if (!Array.isArray(rawRules)) return [];
-
-    return rawRules
-      .map((rule, index) => {
-        if (!rule || typeof rule !== 'object') return null;
-        const rawMatch = rule.match && typeof rule.match === 'object'
-          ? rule.match
-          : (rule.conditions && typeof rule.conditions === 'object' ? { event: rule.conditions } : null);
-        const match = this.normalizeAdvancedRuleMatch(rawMatch, 'event');
-        if (!match) return null;
-
-        const output = this.normalizeDayBadgeBlock(rule);
-        if (!output.text && !output.icon) return null;
-
-        const numericPriority = Number(rule.priority);
-        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
-        const normalized = {
-          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `day-badge-${index + 1}`,
-          type: 'day_badge',
-          priority,
-          index,
-          match,
-          output,
-          conditions: match.event
-        };
-        Object.assign(normalized, output);
-        return normalized;
-      })
-      .filter(Boolean);
+    return normalizeDayBadgesHelper(rawRules, {
+      normalizeAdvancedRuleMatch: this.normalizeAdvancedRuleMatch.bind(this),
+      normalizeDayBadgeBlock: this.normalizeDayBadgeBlock.bind(this)
+    });
   }
 
 

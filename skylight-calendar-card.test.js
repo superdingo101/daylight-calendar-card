@@ -2318,6 +2318,90 @@ test('hidden events do not contribute to month overflow counts', () => {
 });
 
 
+
+test('day badge helper module delegates preserve normalization and resolution behavior', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const block = card.normalizeDayBadgeBlock({
+    text: '  School  ',
+    icon: ' mdi:school ',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: 'red',
+    size: 24,
+    font_size: ' 0.85rem '
+  });
+
+  assert.deepEqual(block, {
+    text: 'School',
+    icon: 'mdi:school',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: '#FF0000',
+    size: '24px',
+    font_size: '0.85rem'
+  });
+  assert.equal(card.isFullValueTemplate('{{event.description_json.foo}}'), true);
+  assert.equal(card.isFullValueTemplate('Label {{ event.description_json.foo }}'), false);
+});
+
+test('day badge safe path resolution blocks prototype segments and missing/non-scalar values', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const context = {
+    event: {
+      description_json: {
+        label: 'School',
+        count: 3,
+        active: true,
+        nested: { label: 'Nested' },
+        items: ['a']
+      }
+    }
+  };
+
+  assert.equal(card.resolveSafePath('event.description_json.label', context), 'School');
+  assert.equal(card.resolveSafePath('event.description_json.count', context), '3');
+  assert.equal(card.resolveSafePath('event.description_json.active', context), 'true');
+  assert.equal(card.resolveSafePath('event.description_json.missing', context), undefined);
+  assert.equal(card.resolveSafePath('event.description_json.nested', context), undefined);
+  assert.equal(card.resolveSafePath('event.description_json.items', context), undefined);
+  assert.equal(card.resolveSafePath('event.__proto__.polluted', context), undefined);
+  assert.equal(card.resolveSafePath('event.prototype.polluted', context), undefined);
+  assert.equal(card.resolveSafePath('event.constructor.polluted', context), undefined);
+});
+
+test('day badge display value and description JSON helpers preserve primitive template semantics', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { description: '{"badge_text":"School","count":2,"enabled":false}' };
+  const context = card.buildDayBadgeResolutionContext(new Date('2026-05-01T00:00:00Z'), event);
+
+  assert.deepEqual(card.parseEventDescriptionJson(event), { badge_text: 'School', count: 2, enabled: false });
+  assert.equal(card.parseEventDescriptionJson({ description: '{bad json}' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '["array"]' }), undefined);
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.badge_text }}', context), 'School');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.count }}', context), '2');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'false');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.missing }}', context), undefined);
+  assert.equal(card.resolveDayBadgeDisplayValue('School: {{ event.description_json.badge_text }}', context), 'School: {{ event.description_json.badge_text }}');
+});
+
+test('day badge render resolution removes empty fields and validates resolved colors', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { description: '{"text":"School","icon":"mdi:school","empty":"","bad_color":"not-a-color","good_color":"#123456"}' };
+  const resolved = card.resolveDayBadgeForRender({
+    text: '{{ event.description_json.text }}',
+    icon: '{{ event.description_json.empty }}',
+    background_color: '{{ event.description_json.good_color }}',
+    color: '{{ event.description_json.bad_color }}',
+    size: '20px',
+    font_size: '12px'
+  }, new Date('2026-05-01T00:00:00Z'), event);
+
+  assert.equal(resolved.text, 'School');
+  assert.equal(resolved.icon, undefined);
+  assert.equal(resolved.background_color, '#123456');
+  assert.equal(resolved.color, undefined);
+  assert.equal(resolved.size, '20px');
+  assert.equal(resolved.font_size, '12px');
+});
+
 test('day_badges renders text badge when event title matches', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'ballet' }, text: 'PL', background_color: '#ff4b2b', color: '#000000' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
@@ -3965,4 +4049,95 @@ test('rule modules preserve event, day, badge, and priority matching behavior', 
     date: new Date('2026-06-23T00:00:00'),
     dayEvents: [event]
   }, helpers).matches, true);
+});
+
+test('day badge module preserves normalization, safe resolution, and render preparation behavior', async () => {
+  const {
+    isFullValueTemplate,
+    normalizeDayBadgeBlock,
+    normalizeDayBadgeDisplayColor,
+    normalizeResolvedDayBadgeDisplayColor,
+    parseEventDescriptionJson,
+    buildDayBadgeResolutionContext,
+    resolveSafePath,
+    resolveDayBadgeDisplayValue,
+    resolveDayBadgeForRender,
+    normalizeDayBadges
+  } = await import('./src/badges/day-badges.js');
+
+  const normalizeSingleColor = (value) => ({ red: '#FF0000', blue: '#0000FF' }[String(value || '').trim().toLowerCase()] || String(value || '').trim() || null);
+  const normalizeEventTextValueForTest = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
+  const normalizeStyleSizeValueForTest = (value) => {
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    return Number.isFinite(numeric) && numeric > 0 ? `${numeric}px` : trimmed;
+  };
+
+  assert.deepEqual(normalizeDayBadgeBlock({
+    text: '  Bus  ',
+    icon: ' mdi:bus ',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: 'red',
+    size: 18,
+    font_size: '11px'
+  }, {
+    normalizeEventTextValue: normalizeEventTextValueForTest,
+    normalizeDayBadgeDisplayColor: (value) => normalizeDayBadgeDisplayColor(value, { normalizeSingleColor }),
+    normalizeStyleSizeValue: normalizeStyleSizeValueForTest
+  }), {
+    text: 'Bus',
+    icon: 'mdi:bus',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: '#FF0000',
+    size: '18px',
+    font_size: '11px'
+  });
+  assert.equal(isFullValueTemplate('{{event.description_json.badge_color}}'), true);
+  assert.equal(isFullValueTemplate('Bus {{ event.description_json.badge_color }}'), false);
+  assert.equal(normalizeResolvedDayBadgeDisplayColor('blue', { normalizeSingleColor }), '#0000FF');
+  assert.equal(normalizeResolvedDayBadgeDisplayColor('not-a-color', { normalizeSingleColor }), undefined);
+
+  const event = { entityId: 'calendar.helper', summary: 'Helper', description: '{"label":"Bus","count":4,"enabled":true,"color":"#112233","empty":"","nested":{"x":1}}' };
+  const context = buildDayBadgeResolutionContext(new Date('2026-05-01T00:00:00Z'), event, { formatLocalDate: () => '2026-05-01' });
+  assert.deepEqual(parseEventDescriptionJson(event), { label: 'Bus', count: 4, enabled: true, color: '#112233', empty: '', nested: { x: 1 } });
+  assert.equal(parseEventDescriptionJson({ description: '{bad json}' }), undefined);
+  assert.equal(resolveSafePath('event.description_json.label', context), 'Bus');
+  assert.equal(resolveSafePath('event.description_json.count', context), '4');
+  assert.equal(resolveSafePath('event.__proto__.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.prototype.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.constructor.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.description_json.missing', context), undefined);
+  assert.equal(resolveSafePath('event.description_json.nested', context), undefined);
+  assert.equal(resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'true');
+  assert.equal(resolveDayBadgeDisplayValue('Literal {{ event.description_json.label }}', context), 'Literal {{ event.description_json.label }}');
+
+  assert.deepEqual(resolveDayBadgeForRender({
+    text: '{{ event.description_json.label }}',
+    icon: '{{ event.description_json.empty }}',
+    background_color: '{{ event.description_json.color }}',
+    color: '{{ event.description_json.nested }}',
+    size: '18px'
+  }, new Date('2026-05-01T00:00:00Z'), event, {
+    formatLocalDate: () => '2026-05-01',
+    normalizeResolvedDayBadgeDisplayColor: (value) => normalizeResolvedDayBadgeDisplayColor(value, { normalizeSingleColor })
+  }), {
+    text: 'Bus',
+    background_color: '#112233',
+    size: '18px'
+  });
+
+  const normalizedRules = normalizeDayBadges([
+    { conditions: { title_contains: 'helper' }, text: 'H' },
+    { match: { event: { title: 'Helper' } }, icon: 'mdi:calendar' }
+  ], {
+    normalizeAdvancedRuleMatch: (rawMatch) => ({ event: rawMatch.event || rawMatch }),
+    normalizeDayBadgeBlock: (rule) => normalizeDayBadgeBlock(rule, {
+      normalizeEventTextValue: normalizeEventTextValueForTest,
+      normalizeDayBadgeDisplayColor: (value) => normalizeDayBadgeDisplayColor(value, { normalizeSingleColor }),
+      normalizeStyleSizeValue: normalizeStyleSizeValueForTest
+    })
+  });
+  assert.equal(normalizedRules[0].conditions.title_contains, 'helper');
+  assert.equal(normalizedRules[1].match.event.title, 'Helper');
 });
