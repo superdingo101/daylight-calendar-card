@@ -1286,6 +1286,66 @@ function renderEditorWeekdayCheckboxes({ selectedWeekdays }) {
     `;
 }
 
+function renderDayBadge(badge, { escapeHtml }) {
+  const style = [
+    badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
+    badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
+    badge.size ? `--dcc-day-badge-size: ${badge.size};` : '',
+    badge.font_size ? `--dcc-day-badge-font-size: ${badge.font_size};` : ''
+  ].join(' ');
+  const hasIcon = Boolean(badge.icon);
+  const hasText = Boolean(badge.text);
+  const content = [
+    hasIcon ? `<ha-icon icon="${escapeHtml(badge.icon)}"></ha-icon>` : '',
+    hasText ? `<span class="day-badge-text">${escapeHtml(badge.text)}</span>` : ''
+  ].join('');
+  const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  return `<span class="${classes}" style="${style}">${content}</span>`;
+}
+
+function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges }) {
+  const badges = getDayBadges(date, dayEvents);
+  if (!badges.length) return '';
+
+  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml })).join('');
+
+  return `<div class="day-badges">${badgesHtml}</div>`;
+}
+
+function getDayForecastClass(viewMode = 'week-compact') {
+  return viewMode === 'week-standard'
+    ? 'week-standard-day-forecast'
+    : viewMode === 'month'
+      ? 'month-day-forecast'
+      : viewMode === 'agenda'
+        ? 'agenda-day-forecast'
+        : 'week-day-forecast';
+}
+
+function renderWeatherIcon(icon, { escapeHtml }) {
+  return `<span class="forecast-condition"><ha-icon icon="${escapeHtml(icon)}"></ha-icon></span>`;
+}
+
+function renderForecastTemperatures(forecast, { escapeHtml }) {
+  return `<span class="forecast-temperatures">
+          <span class="forecast-temp-high">${escapeHtml(forecast.highTemp)}</span>
+          ${forecast.lowTemp ? `<span class="forecast-temp-low">${escapeHtml(forecast.lowTemp)}</span>` : ''}
+        </span>`;
+}
+
+function renderDayForecast(date, viewMode = 'week-compact', { escapeHtml, getForecastForDate }) {
+  const forecast = getForecastForDate(date);
+  if (!forecast) return '';
+  const forecastClass = getDayForecastClass(viewMode);
+
+  return `
+      <div class="${forecastClass}">
+        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml })}
+        ${renderForecastTemperatures(forecast, { escapeHtml })}
+      </div>
+    `;
+}
+
 function normalizeDayBadgeBlock(rule = {}, {
   normalizeEventTextValue,
   normalizeDayBadgeDisplayColor,
@@ -10608,27 +10668,10 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayBadges(date, dayEvents) {
-    const badges = this.getDayBadges(date, dayEvents);
-    if (!badges.length) return '';
-
-    const badgesHtml = badges.map((badge) => {
-      const style = [
-        badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
-        badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
-        badge.size ? `--dcc-day-badge-size: ${badge.size};` : '',
-        badge.font_size ? `--dcc-day-badge-font-size: ${badge.font_size};` : ''
-      ].join(' ');
-      const hasIcon = Boolean(badge.icon);
-      const hasText = Boolean(badge.text);
-      const content = [
-        hasIcon ? `<ha-icon icon="${this.escapeHtml(badge.icon)}"></ha-icon>` : '',
-        hasText ? `<span class="day-badge-text">${this.escapeHtml(badge.text)}</span>` : ''
-      ].join('');
-      const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
-      return `<span class="${classes}" style="${style}">${content}</span>`;
-    }).join('');
-
-    return `<div class="day-badges">${badgesHtml}</div>`;
+    return renderDayBadges(date, dayEvents, {
+      escapeHtml: this.escapeHtml.bind(this),
+      getDayBadges: this.getDayBadges.bind(this)
+    });
   }
 
   renderDay(dayNum, date, isOtherMonth) {
@@ -13283,25 +13326,10 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
-    const forecast = this.getForecastForDate(date);
-    if (!forecast) return '';
-    const forecastClass = viewMode === 'week-standard'
-      ? 'week-standard-day-forecast'
-      : viewMode === 'month'
-        ? 'month-day-forecast'
-        : viewMode === 'agenda'
-          ? 'agenda-day-forecast'
-          : 'week-day-forecast';
-
-    return `
-      <div class="${forecastClass}">
-        <span class="forecast-condition"><ha-icon icon="${this.escapeHtml(forecast.conditionIcon)}"></ha-icon></span>
-        <span class="forecast-temperatures">
-          <span class="forecast-temp-high">${this.escapeHtml(forecast.highTemp)}</span>
-          ${forecast.lowTemp ? `<span class="forecast-temp-low">${this.escapeHtml(forecast.lowTemp)}</span>` : ''}
-        </span>
-      </div>
-    `;
+    return renderDayForecast(date, viewMode, {
+      escapeHtml: this.escapeHtml.bind(this),
+      getForecastForDate: this.getForecastForDate.bind(this)
+    });
   }
 
   formatDate(date) {
