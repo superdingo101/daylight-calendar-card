@@ -241,6 +241,46 @@ test('YAML config coverage inventory tracks every normalized schema option', () 
   assert.deepEqual(extraInventoryKeys, [], `unexpected inventory entries: ${extraInventoryKeys.join(', ')}`);
 });
 
+
+
+test('editor schema metadata preserves config key order and editor defaults', () => {
+  const card = makeCard();
+  const schemaKeys = card.getConfigNormalizationSchema().map((field) => field.key);
+  assert.deepEqual(schemaKeys.slice(0, 12), [
+    'title',
+    'entities',
+    'firstDayOfWeek',
+    'colors',
+    'calendar_names',
+    'calendar_badge_icons',
+    'calendar_person_entities',
+    'max_events',
+    'default_view',
+    'week_days',
+    'rolling_days_week_compact',
+    'rolling_days_schedule'
+  ]);
+  assert.deepEqual(schemaKeys.slice(-7), [
+    'hide_badge_calendars',
+    'default_hidden_calendars',
+    'virtual_calendars',
+    'language',
+    'locale',
+    'color_scheme',
+    'preference_storage_key'
+  ]);
+
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  assert.equal(editor.getEditorDefaultValue('week_start_hour'), 0);
+  assert.equal(editor.getEditorDefaultValue('week_end_hour'), 23);
+  assert.equal(editor.getEditorDefaultValue('event_font_size'), 11);
+  assert.equal(editor.getEditorDefaultValue('event_time_font_size'), 9);
+  assert.equal(editor.getEditorDefaultValue('event_location_font_size'), 9);
+  assert.equal(editor.getEditorDefaultValue('event_tint_opacity'), 80);
+  assert.equal(editor.getEditorDefaultValue('unknown_editor_field'), 0);
+});
+
 test('getStubConfig and normalized defaults include key configuration defaults', () => {
   const stub = Card.getStubConfig();
   const requiredStubKeys = [
