@@ -2937,6 +2937,108 @@ function renderAgendaView({
     `;
 }
 
+function renderMonthDayHeaders({ weekdayNames, firstDayOfWeek, shouldShowWeekNumbers }) {
+  const orderedDays = [
+    ...weekdayNames.slice(firstDayOfWeek),
+    ...weekdayNames.slice(0, firstDayOfWeek)
+  ];
+
+  const dayHeaders = orderedDays.map(day => `
+      <div class="day-header">${day}</div>
+    `).join('');
+
+  if (!shouldShowWeekNumbers) {
+    return dayHeaders;
+  }
+
+  return `<div class="month-week-number-header"></div>${dayHeaders}`;
+}
+
+function renderMonthGridDays({ currentDate, firstDayOfWeek, shouldShowWeekNumbers, helpers }) {
+  let html = '';
+
+  getMonthGridDates(currentDate, firstDayOfWeek).forEach((dayEntry, dayIndex) => {
+    if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
+      html += helpers.renderMonthWeekNumberCell(dayEntry.date);
+    }
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+  });
+
+  return html;
+}
+
+function renderRollingWeeks({ currentDate, firstDayOfWeek, rollingWeeks, shouldShowWeekNumbers, helpers }) {
+  let html = '';
+
+  getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks).forEach((dayEntry, dayIndex) => {
+    if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
+      html += helpers.renderMonthWeekNumberCell(dayEntry.date);
+    }
+
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+  });
+
+  return html;
+}
+
+function renderMonthDays({ currentDate, config, viewMode, shouldShowWeekNumbers, helpers }) {
+  // If rolling_weeks is set, show current week + N additional weeks
+  if (config.rolling_weeks !== null && viewMode === 'month') {
+    return renderRollingWeeks({
+      currentDate,
+      firstDayOfWeek: config.firstDayOfWeek,
+      rollingWeeks: config.rolling_weeks,
+      shouldShowWeekNumbers,
+      helpers
+    });
+  }
+
+  return renderMonthGridDays({
+    currentDate,
+    firstDayOfWeek: config.firstDayOfWeek,
+    shouldShowWeekNumbers,
+    helpers
+  });
+}
+
+function renderMonthView({
+  compactMaxHeight,
+  config,
+  currentDate,
+  isCompactMonth,
+  monthWeekRows,
+  shouldShowHeaderBadges,
+  shouldShowWeekNumbers,
+  viewMode,
+  weekdayNames,
+  helpers
+}) {
+  const monthStyle = isCompactMonth ? helpers.getCompactMonthGridStyle(monthWeekRows, compactMaxHeight) : '';
+  const monthClass = [
+    'calendar-grid',
+    isCompactMonth ? 'compact-month' : '',
+    shouldShowWeekNumbers ? 'month-week-numbers' : ''
+  ].filter(Boolean).join(' ');
+
+  return `
+        ${shouldShowHeaderBadges ? helpers.renderCalendarBadges() : ''}
+        <div class="${monthClass}" style="${monthStyle}">
+          ${renderMonthDayHeaders({
+            weekdayNames,
+            firstDayOfWeek: config.firstDayOfWeek,
+            shouldShowWeekNumbers
+          })}
+          ${renderMonthDays({
+            currentDate,
+            config,
+            viewMode,
+            shouldShowWeekNumbers,
+            helpers
+          })}
+        </div>
+      `;
+}
+
 function normalizeVirtualCalendars(virtualCalendars, { normalizeSingleColor }) {
   if (!Array.isArray(virtualCalendars)) return [];
 
@@ -8799,20 +8901,23 @@ class SkylightCalendarCard extends HTMLElement {
       const compactMaxHeight = isCompactMonth && !this.hasFixedHeightParentAllocation() ? this.getCompactMaxHeight(this._monthContainerTopInViewport) : null;
       const monthWeekRows = this.getMonthWeekRowCount();
       const showMonthWeekNumbers = this.shouldShowMonthWeekNumbers();
-      const monthStyle = isCompactMonth ? this.getCompactMonthGridStyle(monthWeekRows, compactMaxHeight) : '';
-      const monthClass = [
-        'calendar-grid',
-        isCompactMonth ? 'compact-month' : '',
-        showMonthWeekNumbers ? 'month-week-numbers' : ''
-      ].filter(Boolean).join(' ');
-
-      return `
-        ${shouldShowHeaderBadges ? this.renderCalendarBadges() : ''}
-        <div class="${monthClass}" style="${monthStyle}">
-          ${this.renderDayHeaders()}
-          ${this.renderDays()}
-        </div>
-      `;
+      return renderMonthView({
+        compactMaxHeight,
+        config: this._config,
+        currentDate: this._currentDate,
+        isCompactMonth,
+        monthWeekRows,
+        shouldShowHeaderBadges,
+        shouldShowWeekNumbers: showMonthWeekNumbers,
+        viewMode: this._viewMode,
+        weekdayNames: this.getWeekdayNames(),
+        helpers: {
+          getCompactMonthGridStyle: (weekRows, maxHeight) => this.getCompactMonthGridStyle(weekRows, maxHeight),
+          renderCalendarBadges: () => this.renderCalendarBadges(),
+          renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+          renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
+        }
+      });
     } else if (this._viewMode === 'week-compact') {
       return this.renderWeekCompact();
     } else if (this._viewMode === 'week-standard') {
@@ -8823,20 +8928,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayHeaders() {
-    const days = this.getWeekdayNames();
-    const firstDay = this._config.firstDayOfWeek;
-    const orderedDays = [...days.slice(firstDay), ...days.slice(0, firstDay)];
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-
-    const dayHeaders = orderedDays.map(day => `
-      <div class="day-header">${day}</div>
-    `).join('');
-
-    if (!shouldShowWeekNumbers) {
-      return dayHeaders;
-    }
-
-    return `<div class="month-week-number-header"></div>${dayHeaders}`;
+    return renderMonthDayHeaders({
+      weekdayNames: this.getWeekdayNames(),
+      firstDayOfWeek: this._config.firstDayOfWeek,
+      shouldShowWeekNumbers: this.shouldShowMonthWeekNumbers()
+    });
   }
 
   renderWeekCompact() {
@@ -9790,37 +9886,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDays() {
-    // If rolling_weeks is set, show current week + N additional weeks
-    if (this._config.rolling_weeks !== null && this._viewMode === 'month') {
-      return this.renderRollingWeeks();
-    }
-
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-    let html = '';
-
-    getMonthGridDates(this._currentDate, this._config.firstDayOfWeek).forEach((dayEntry, dayIndex) => {
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(dayEntry.date);
+    return renderMonthDays({
+      currentDate: this._currentDate,
+      config: this._config,
+      viewMode: this._viewMode,
+      shouldShowWeekNumbers: this.shouldShowMonthWeekNumbers(),
+      helpers: {
+        renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+        renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
       }
-      html += this.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
     });
-
-    return html;
-  }
-
-  renderRollingWeeks() {
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-    let html = '';
-
-    getRollingMonthGridDates(this._currentDate, this._config.firstDayOfWeek, this._config.rolling_weeks).forEach((dayEntry, dayIndex) => {
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(dayEntry.date);
-      }
-
-      html += this.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
-    });
-
-    return html;
   }
 
   getMaxVisibleEventsForMonthDay() {
