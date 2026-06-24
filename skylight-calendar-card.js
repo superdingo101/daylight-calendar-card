@@ -3094,6 +3094,93 @@ function renderEventDetailsModal({
     `;
 }
 
+function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }) {
+  if (badgeItems.length === 0) return '';
+
+  return `
+      <div class="calendar-badges-container">
+        <div class="calendar-badges">
+          ${badgeItems.map((badgeItem) => renderCalendarBadge({
+            badgeItem,
+            hideCalendarNames,
+            inline: false,
+            helpers
+          })).join('')}
+        </div>
+      </div>
+    `;
+}
+
+function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, helpers }) {
+  if (badgeItems.length === 0) return '';
+
+  return `
+      <div class="calendar-badges-inline">
+        ${badgeItems.map((badgeItem) => renderCalendarBadge({
+          badgeItem,
+          hideCalendarNames,
+          inline: true,
+          helpers
+        })).join('')}
+      </div>
+    `;
+}
+
+function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) {
+  const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : helpers.lightenColor(badgeItem.color, 0.85);
+  const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : helpers.getContractColor(badgeBackground);
+  const inlineClass = inline ? ' calendar-badge-inline' : '';
+  const cursorStyle = inline ? '' : '\n                          cursor: pointer;';
+
+  return `
+            <div class="calendar-badge${inlineClass} ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
+                 data-entity="${badgeItem.entityId}"
+                 style="background: ${badgeBackground};
+                        border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};${cursorStyle}">
+              ${renderCalendarBadgeIcon({
+                entityId: badgeItem.entityId,
+                name: badgeItem.name,
+                color: badgeItem.color,
+                isHidden: badgeItem.isHidden,
+                iconOverride: badgeItem.icon,
+                helpers
+              })}
+              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers })}
+            </div>
+          `;
+}
+
+function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers }) {
+  const personStateLabel = helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
+  return `
+      <span class="calendar-badge-label" style="color: ${badgeTextColor}">
+        <span class="calendar-badge-name">${helpers.escapeHtml(badgeItem.name)}</span>
+        ${personStateLabel ? `<span class="calendar-badge-person-state">${helpers.escapeHtml(personStateLabel)}</span>` : ''}
+      </span>
+    `;
+}
+
+function renderCalendarBadgeIcon({ entityId, name, color, isHidden, iconOverride = null, helpers }) {
+  const configuredBadgeIcon = iconOverride || helpers.getCalendarBadgeIcon(entityId);
+  const hasPersonEntity = !!helpers.getCalendarBadgePersonEntityId(entityId);
+  const personPictureUrl = configuredBadgeIcon ? null : helpers.getPersonEntityPictureUrl(helpers.getCalendarBadgePersonState(entityId));
+  const iconBackground = isHidden ? '#9ca3af' : helpers.normalizeSingleColor(color);
+  const personIconClass = hasPersonEntity ? ' calendar-badge-person-icon' : '';
+
+  if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
+    return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}"><ha-icon icon="${helpers.escapeHtml(configuredBadgeIcon)}"></ha-icon></div>`;
+  }
+
+  if (configuredBadgeIcon || personPictureUrl) {
+    const imageUrl = configuredBadgeIcon || personPictureUrl;
+    const normalizedUrl = helpers.normalizeBackgroundImageUrl(imageUrl) || imageUrl;
+    return `<div class="calendar-badge-icon calendar-badge-photo${personIconClass}" style="background: ${iconBackground}"><img src="${helpers.escapeHtml(normalizedUrl)}" alt="${helpers.escapeHtml(name)}" loading="lazy"></div>`;
+  }
+
+  const initial = name.charAt(0).toUpperCase();
+  return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}">${helpers.escapeHtml(initial)}</div>`;
+}
+
 function formatDateTimeLocal(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -9336,29 +9423,27 @@ class SkylightCalendarCard extends HTMLElement {
     `;
   }
 
+  getCalendarBadgeRenderHelpers() {
+    return {
+      escapeHtml: (value) => this.escapeHtml(value),
+      formatPersonStateLabel: (state) => this.formatPersonStateLabel(state),
+      getCalendarBadgeIcon: (entityId) => this.getCalendarBadgeIcon(entityId),
+      getCalendarBadgePersonEntityId: (entityId) => this.getCalendarBadgePersonEntityId(entityId),
+      getCalendarBadgePersonState: (entityId) => this.getCalendarBadgePersonState(entityId),
+      getContractColor: (color) => this.getContractColor(color),
+      getPersonEntityPictureUrl: (state) => this.getPersonEntityPictureUrl(state),
+      lightenColor: (color, amount) => this.lightenColor(color, amount),
+      normalizeBackgroundImageUrl: (url) => this.normalizeBackgroundImageUrl(url),
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color)
+    };
+  }
+
   renderCalendarBadgesInline() {
-    const badgeItems = this.getVirtualBadgeItems();
-    if (badgeItems.length === 0) return '';
-    const hideCalendarNames = !!this._config.hide_calendar_names;
-
-    return `
-      <div class="calendar-badges-inline">
-        ${badgeItems.map((badgeItem) => {
-          const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : this.lightenColor(badgeItem.color, 0.85);
-          const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : this.getContractColor(badgeBackground);
-
-          return `
-            <div class="calendar-badge calendar-badge-inline ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
-                 data-entity="${badgeItem.entityId}"
-                 style="background: ${badgeBackground};
-                        border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};">
-              ${this.renderCalendarBadgeIcon(badgeItem.entityId, badgeItem.name, badgeItem.color, badgeItem.isHidden, badgeItem.icon)}
-              ${hideCalendarNames ? '' : this.renderCalendarBadgeLabel(badgeItem, badgeTextColor)}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderCalendarBadgesInline({
+      badgeItems: this.getVirtualBadgeItems(),
+      hideCalendarNames: !!this._config.hide_calendar_names,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderHeaderTitle() {
@@ -9832,31 +9917,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderCalendarBadges() {
-    const badgeItems = this.getVirtualBadgeItems();
-    if (badgeItems.length === 0) return '';
-    const hideCalendarNames = !!this._config.hide_calendar_names;
-
-    return `
-      <div class="calendar-badges-container">
-        <div class="calendar-badges">
-          ${badgeItems.map((badgeItem) => {
-            const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : this.lightenColor(badgeItem.color, 0.85);
-            const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : this.getContractColor(badgeBackground);
-
-            return `
-              <div class="calendar-badge ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
-                   data-entity="${badgeItem.entityId}"
-                   style="background: ${badgeBackground};
-                          border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};
-                          cursor: pointer;">
-                ${this.renderCalendarBadgeIcon(badgeItem.entityId, badgeItem.name, badgeItem.color, badgeItem.isHidden, badgeItem.icon)}
-                ${hideCalendarNames ? '' : this.renderCalendarBadgeLabel(badgeItem, badgeTextColor)}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+    return renderCalendarBadges({
+      badgeItems: this.getVirtualBadgeItems(),
+      hideCalendarNames: !!this._config.hide_calendar_names,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderAllDayEventsForDay(allDayLanes, allDayHeight) {
@@ -13336,34 +13401,22 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderCalendarBadgeLabel(badgeItem, badgeTextColor) {
-    const personStateLabel = this.formatPersonStateLabel(this.getCalendarBadgePersonState(badgeItem.entityId));
-    return `
-      <span class="calendar-badge-label" style="color: ${badgeTextColor}">
-        <span class="calendar-badge-name">${this.escapeHtml(badgeItem.name)}</span>
-        ${personStateLabel ? `<span class="calendar-badge-person-state">${this.escapeHtml(personStateLabel)}</span>` : ''}
-      </span>
-    `;
+    return renderCalendarBadgeLabel({
+      badgeItem,
+      badgeTextColor,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderCalendarBadgeIcon(entityId, name, color, isHidden, iconOverride = null) {
-    const configuredBadgeIcon = iconOverride || this.getCalendarBadgeIcon(entityId);
-    const hasPersonEntity = !!this.getCalendarBadgePersonEntityId(entityId);
-    const personPictureUrl = configuredBadgeIcon ? null : this.getPersonEntityPictureUrl(this.getCalendarBadgePersonState(entityId));
-    const iconBackground = isHidden ? '#9ca3af' : this.normalizeSingleColor(color);
-    const personIconClass = hasPersonEntity ? ' calendar-badge-person-icon' : '';
-
-    if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
-      return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}"><ha-icon icon="${this.escapeHtml(configuredBadgeIcon)}"></ha-icon></div>`;
-    }
-
-    if (configuredBadgeIcon || personPictureUrl) {
-      const imageUrl = configuredBadgeIcon || personPictureUrl;
-      const normalizedUrl = this.normalizeBackgroundImageUrl(imageUrl) || imageUrl;
-      return `<div class="calendar-badge-icon calendar-badge-photo${personIconClass}" style="background: ${iconBackground}"><img src="${this.escapeHtml(normalizedUrl)}" alt="${this.escapeHtml(name)}" loading="lazy"></div>`;
-    }
-
-    const initial = name.charAt(0).toUpperCase();
-    return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}">${this.escapeHtml(initial)}</div>`;
+    return renderCalendarBadgeIcon({
+      entityId,
+      name,
+      color,
+      isHidden,
+      iconOverride,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderEventDescription(description) {
