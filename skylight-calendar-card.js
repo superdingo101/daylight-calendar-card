@@ -2491,6 +2491,182 @@ const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId = null, 
   ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
 });
 
+function getVisibleCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVirtualBadgeForEvent, normalizeSingleColor, configColors = {} } = {}) {
+  const virtualCalendar = getVirtualBadgeForEvent?.(event);
+  if (virtualCalendar) {
+    const visibleSourceEntityIds = virtualCalendar.entities.filter((entityId) => !hiddenCalendars.has(entityId));
+    if (visibleSourceEntityIds.length === 0) return [];
+    const fallbackColor = event?.color || normalizeSingleColor?.(configColors[virtualCalendar.entities[0]]);
+    return [{ entityId: `virtual:${virtualCalendar.id}`, color: virtualCalendar.color || fallbackColor }];
+  }
+
+  if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+    return event.sourceCalendars.filter(calendar => !hiddenCalendars.has(calendar.entityId));
+  }
+
+  return [{ entityId: event.entityId, color: event.color }];
+}
+
+function isCombinedEventWithinSingleVirtualCalendar(event, { hiddenCalendars = new Set(), getVirtualBadgeForEntity } = {}) {
+  if (!event?.isCombinedCalendarEvent || !Array.isArray(event?.sourceEvents)) return false;
+
+  const visibleSources = event.sourceEvents.filter((sourceEvent) => !hiddenCalendars.has(sourceEvent.entityId));
+  if (visibleSources.length <= 1) return false;
+
+  const virtualIds = new Set();
+  for (const sourceEvent of visibleSources) {
+    const virtualCalendar = getVirtualBadgeForEntity?.(sourceEvent.entityId);
+    if (!virtualCalendar) return false;
+    virtualIds.add(virtualCalendar.id);
+    if (virtualIds.size > 1) return false;
+  }
+
+  return virtualIds.size === 1;
+}
+
+function shouldShowCombinedCornerBubbles(event, { combineCalendars = false, isSingleVirtualCalendar = false, styleOverrides = null } = {}) {
+  if (!event?.isCombinedCalendarEvent || !combineCalendars) return false;
+  if (isSingleVirtualCalendar) return false;
+  return !!styleOverrides?.hasDuplicateBackgroundColors;
+}
+
+function getModalCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVisibleCalendarBadges } = {}) {
+  if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+    const sourceBadges = event.sourceCalendars
+      .filter((calendar) => calendar?.entityId && !hiddenCalendars.has(calendar.entityId))
+      .map((calendar) => ({ entityId: calendar.entityId, color: calendar.color || event.color }));
+    if (sourceBadges.length > 0) {
+      return sourceBadges;
+    }
+  }
+
+  return getVisibleCalendarBadges?.(event) || [];
+}
+
+function getEventFontSizeDisplayValue(configuredSize, fallbackPx = 11) {
+  if (configuredSize === undefined || configuredSize === null || configuredSize === '') {
+    return `${fallbackPx}px`;
+  }
+
+  if (typeof configuredSize === 'number' && Number.isFinite(configuredSize)) {
+    return `${configuredSize}px`;
+  }
+
+  const normalized = String(configuredSize).trim();
+  if (!normalized) return `${fallbackPx}px`;
+  return /^\d+(\.\d+)?$/.test(normalized) ? `${normalized}px` : normalized;
+}
+
+function shouldShowEventLocation(event, { styleOverrides = null, showEventLocation = false } = {}) {
+  const showLocation = styleOverrides?.show_event_location ?? showEventLocation;
+  return !!(showLocation && event?.location);
+}
+
+function getDisplayLocation(location, { styleOverrides = null, useShortLocation = false } = {}) {
+  const normalizedLocation = normalizeEventTextValue(location);
+  if (!normalizedLocation) return '';
+  const shouldShorten = styleOverrides?.use_short_location ?? useShortLocation;
+  if (!shouldShorten) return normalizedLocation;
+
+  const numberMatch = normalizedLocation.match(/\b\d+[A-Za-z0-9-]*\b/);
+  if (!numberMatch) {
+    return normalizedLocation;
+  }
+
+  const numberIndex = numberMatch.index ?? -1;
+  const hasPrefix = numberIndex > 0;
+  if (hasPrefix) {
+    const prefix = normalizedLocation
+      .slice(0, numberIndex)
+      .replace(/[\s,;:\/\\|-]+$/g, '')
+      .trim();
+    if (prefix) {
+      return prefix;
+    }
+    return normalizedLocation;
+  }
+
+  const commonStreetEndingPattern = /\b(street|st\.?|road|rd\.?|avenue|ave\.?|boulevard|blvd\.?|drive|dr\.?|lane|ln\.?|court|ct\.?|circle|cir\.?|place|pl\.?|parkway|pkwy\.?|way|terrace|ter\.?|highway|hwy\.?)\b/i;
+  const firstSegmentEnd = normalizedLocation.search(/[,;]/);
+  const streetSegment = firstSegmentEnd >= 0
+    ? normalizedLocation.slice(0, firstSegmentEnd)
+    : normalizedLocation;
+  const endingMatch = streetSegment.match(commonStreetEndingPattern);
+  if (!endingMatch) {
+    return normalizedLocation;
+  }
+
+  const endingStart = endingMatch.index ?? -1;
+  if (endingStart < 0) {
+    return normalizedLocation;
+  }
+
+  const endingText = endingMatch[0] || '';
+  const shortened = streetSegment
+    .slice(0, endingStart + endingText.length)
+    .replace(/[,\s;:\/\\|-]+$/g, '')
+    .trim();
+
+  return shortened || normalizedLocation;
+}
+
+function shouldShowEventTime(event, { styleOverrides = null, hiddenCalendars = new Set(), hideTimesForCalendars = [] } = {}) {
+  if (!event) return true;
+  if (styleOverrides?.hide_time === true) return false;
+  if (styleOverrides?.show_time === true) return true;
+
+  const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
+    ? event.sourceEntityIds.filter(entityId => !hiddenCalendars.has(entityId))
+    : [event.entityId];
+
+  if (visibleEntityIds.length === 0) {
+    return false;
+  }
+
+  return visibleEntityIds.some(entityId => !hideTimesForCalendars.includes(entityId));
+}
+
+function getEventBubbleFontColor(event, { styleOverrides = null, hiddenCalendars = new Set(), eventFontColors = {}, normalizeSingleColor, getEventBackgroundColor, getContrastColor } = {}) {
+  if (!event) return 'white';
+  if (styleOverrides?.event_font_color) {
+    return styleOverrides.event_font_color;
+  }
+
+  const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
+    ? event.sourceEntityIds.filter(entityId => !hiddenCalendars.has(entityId))
+    : [event.entityId];
+
+  const preferredEntityId = visibleEntityIds[0] || event.entityId;
+  const configuredColor = preferredEntityId
+    ? normalizeSingleColor?.(eventFontColors?.[preferredEntityId])
+    : null;
+  if (configuredColor) {
+    return configuredColor;
+  }
+
+  return getContrastColor?.(getEventBackgroundColor?.(event)) || 'white';
+}
+
+function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, translate }) {
+  const { eventStart, eventEnd, isAllDay } = getEventDateTimeInfo(event);
+  const rendersAsAllDay = isAllDay || shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
+  const displayTitle = event.summary || translate('untitledEvent');
+  const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && shouldShowTime(event);
+
+  return {
+    eventStart,
+    eventEnd,
+    isAllDay,
+    rendersAsAllDay,
+    displayTitle: shouldIncludeStartTime
+      ? translate('eventTitleWithStartTime', {
+          title: displayTitle,
+          time: formatEventTime(eventStart, { schedule: true })
+        })
+      : displayTitle
+  };
+}
+
 function getMonthGridDates(currentDate, firstDayOfWeek) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -9154,19 +9330,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getVisibleCalendarBadgesForEvent(event) {
-    const virtualCalendar = this.getVirtualBadgeForEvent(event);
-    if (virtualCalendar) {
-      const visibleSourceEntityIds = virtualCalendar.entities.filter((entityId) => !this._hiddenCalendars.has(entityId));
-      if (visibleSourceEntityIds.length === 0) return [];
-      const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
-      return [{ entityId: `virtual:${virtualCalendar.id}`, color: virtualCalendar.color || fallbackColor }];
-    }
-
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
-      return event.sourceCalendars.filter(calendar => !this._hiddenCalendars.has(calendar.entityId));
-    }
-
-    return [{ entityId: event.entityId, color: event.color }];
+    return getVisibleCalendarBadgesForEvent(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVirtualBadgeForEvent: (badgeEvent) => this.getVirtualBadgeForEvent(badgeEvent),
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color),
+      configColors: this._config.colors
+    });
   }
 
   renderEventIcon(event) {
@@ -9211,27 +9380,18 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   isCombinedEventWithinSingleVirtualCalendar(event) {
-    if (!event?.isCombinedCalendarEvent || !Array.isArray(event?.sourceEvents)) return false;
-
-    const visibleSources = event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
-    if (visibleSources.length <= 1) return false;
-
-    const virtualIds = new Set();
-    for (const sourceEvent of visibleSources) {
-      const virtualCalendar = this.getVirtualBadgeForEntity(sourceEvent.entityId);
-      if (!virtualCalendar) return false;
-      virtualIds.add(virtualCalendar.id);
-      if (virtualIds.size > 1) return false;
-    }
-
-    return virtualIds.size === 1;
+    return isCombinedEventWithinSingleVirtualCalendar(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVirtualBadgeForEntity: (entityId) => this.getVirtualBadgeForEntity(entityId)
+    });
   }
 
   shouldShowCombinedCornerBubbles(event) {
-    if (!event?.isCombinedCalendarEvent || !this._config.combine_calendars) return false;
-    if (this.isCombinedEventWithinSingleVirtualCalendar(event)) return false;
-    const styleOverrides = this.getEventStyleOverrides(event);
-    return !!styleOverrides?.hasDuplicateBackgroundColors;
+    return shouldShowCombinedCornerBubbles(event, {
+      combineCalendars: this._config.combine_calendars,
+      isSingleVirtualCalendar: this.isCombinedEventWithinSingleVirtualCalendar(event),
+      styleOverrides: this.getEventStyleOverrides(event)
+    });
   }
 
   renderCombinedCornerBubbles(event) {
@@ -9334,18 +9494,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getEventFontSize(event = null, configKey = 'event_font_size', fallbackPx = 11) {
     const styleOverrides = event ? this.getEventStyleOverrides(event) : null;
-    const configuredSize = styleOverrides?.[configKey] ?? this._config?.[configKey];
-    if (configuredSize === undefined || configuredSize === null || configuredSize === '') {
-      return `${fallbackPx}px`;
-    }
-
-    if (typeof configuredSize === 'number' && Number.isFinite(configuredSize)) {
-      return `${configuredSize}px`;
-    }
-
-    const normalized = String(configuredSize).trim();
-    if (!normalized) return `${fallbackPx}px`;
-    return /^\d+(\.\d+)?$/.test(normalized) ? `${normalized}px` : normalized;
+    return getEventFontSizeDisplayValue(styleOverrides?.[configKey] ?? this._config?.[configKey], fallbackPx);
   }
 
   getEventBubbleFontSize(event = null) {
@@ -9361,97 +9510,36 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   shouldShowEventLocation(event) {
-    const styleOverrides = this.getEventStyleOverrides(event);
-    const showLocation = styleOverrides?.show_event_location ?? this._config.show_event_location;
-    return !!(showLocation && event?.location);
+    return shouldShowEventLocation(event, {
+      styleOverrides: this.getEventStyleOverrides(event),
+      showEventLocation: this._config.show_event_location
+    });
   }
 
   getDisplayLocation(location, event = null) {
-    const normalizedLocation = this.normalizeEventTextValue(location);
-    if (!normalizedLocation) return '';
-    const styleOverrides = event ? this.getEventStyleOverrides(event) : null;
-    const shouldShorten = styleOverrides?.use_short_location ?? this._config?.use_short_location;
-    if (!shouldShorten) return normalizedLocation;
-
-    const numberMatch = normalizedLocation.match(/\b\d+[A-Za-z0-9-]*\b/);
-    if (!numberMatch) {
-      return normalizedLocation;
-    }
-
-    const numberIndex = numberMatch.index ?? -1;
-    const hasPrefix = numberIndex > 0;
-    if (hasPrefix) {
-      const prefix = normalizedLocation
-        .slice(0, numberIndex)
-        .replace(/[\s,;:\/\\|-]+$/g, '')
-        .trim();
-      if (prefix) {
-        return prefix;
-      }
-      return normalizedLocation;
-    }
-
-    const commonStreetEndingPattern = /\b(street|st\.?|road|rd\.?|avenue|ave\.?|boulevard|blvd\.?|drive|dr\.?|lane|ln\.?|court|ct\.?|circle|cir\.?|place|pl\.?|parkway|pkwy\.?|way|terrace|ter\.?|highway|hwy\.?)\b/i;
-    const firstSegmentEnd = normalizedLocation.search(/[,;]/);
-    const streetSegment = firstSegmentEnd >= 0
-      ? normalizedLocation.slice(0, firstSegmentEnd)
-      : normalizedLocation;
-    const endingMatch = streetSegment.match(commonStreetEndingPattern);
-    if (!endingMatch) {
-      return normalizedLocation;
-    }
-
-    const endingStart = endingMatch.index ?? -1;
-    if (endingStart < 0) {
-      return normalizedLocation;
-    }
-
-    const endingText = endingMatch[0] || '';
-    const shortened = streetSegment
-      .slice(0, endingStart + endingText.length)
-      .replace(/[,\s;:\/\\|-]+$/g, '')
-      .trim();
-
-    return shortened || normalizedLocation;
+    return getDisplayLocation(location, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      useShortLocation: this._config?.use_short_location
+    });
   }
 
   getEventBubbleFontColor(event) {
-    if (!event) return 'white';
-    const styleOverrides = this.getEventStyleOverrides(event);
-    if (styleOverrides?.event_font_color) {
-      return styleOverrides.event_font_color;
-    }
-
-    const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
-      ? event.sourceEntityIds.filter(entityId => !this._hiddenCalendars.has(entityId))
-      : [event.entityId];
-
-    const preferredEntityId = visibleEntityIds[0] || event.entityId;
-    const configuredColor = preferredEntityId
-      ? this.normalizeSingleColor(this._config?.event_font_colors?.[preferredEntityId])
-      : null;
-    if (configuredColor) {
-      return configuredColor;
-    }
-
-    return this.getContractColor(this.getEventBackgroundColor(event));
+    return getEventBubbleFontColor(event, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      hiddenCalendars: this._hiddenCalendars,
+      eventFontColors: this._config?.event_font_colors,
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color),
+      getEventBackgroundColor: (colorEvent) => this.getEventBackgroundColor(colorEvent),
+      getContrastColor: (color) => this.getContractColor(color)
+    });
   }
 
   shouldShowEventTime(event) {
-    if (!event) return true;
-    const styleOverrides = this.getEventStyleOverrides(event);
-    if (styleOverrides?.hide_time === true) return false;
-    if (styleOverrides?.show_time === true) return true;
-
-    const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
-      ? event.sourceEntityIds.filter(entityId => !this._hiddenCalendars.has(entityId))
-      : [event.entityId];
-
-    if (visibleEntityIds.length === 0) {
-      return false;
-    }
-
-    return visibleEntityIds.some(entityId => !this._config.hide_times_for_calendars.includes(entityId));
+    return shouldShowEventTime(event, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      hiddenCalendars: this._hiddenCalendars,
+      hideTimesForCalendars: this._config.hide_times_for_calendars
+    });
   }
 
   shouldShowCurrentTimeBar(today, startHour, endHour) {
@@ -10324,23 +10412,13 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getScheduleVisualInfo(event) {
-    const { eventStart, eventEnd, isAllDay } = this.getEventDateTimeInfo(event);
-    const rendersAsAllDay = isAllDay || this.shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
-    const displayTitle = event.summary || this.t('untitledEvent');
-    const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && this.shouldShowEventTime(event);
-
-    return {
-      eventStart,
-      eventEnd,
-      isAllDay,
-      rendersAsAllDay,
-      displayTitle: shouldIncludeStartTime
-        ? this.t('eventTitleWithStartTime', {
-            title: displayTitle,
-            time: this.formatEventTime(eventStart, { schedule: true })
-          })
-        : displayTitle
-    };
+    return getScheduleVisualInfo(event, {
+      getEventDateTimeInfo: (infoEvent) => this.getEventDateTimeInfo(infoEvent),
+      shouldRenderTimedEventAsAllDayInSchedule: (eventStart, eventEnd) => this.shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd),
+      shouldShowEventTime: (timeEvent) => this.shouldShowEventTime(timeEvent),
+      formatEventTime: (date, options) => this.formatEventTime(date, options),
+      translate: (key, params) => this.t(key, params)
+    });
   }
 
   getEventDaySegment(event, date, options = {}) {
@@ -12367,16 +12445,10 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   getModalCalendarBadgesForEvent(event) {
-    if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
-      const sourceBadges = event.sourceCalendars
-        .filter((calendar) => calendar?.entityId && !this._hiddenCalendars.has(calendar.entityId))
-        .map((calendar) => ({ entityId: calendar.entityId, color: calendar.color || event.color }));
-      if (sourceBadges.length > 0) {
-        return sourceBadges;
-      }
-    }
-
-    return this.getVisibleCalendarBadgesForEvent(event);
+    return getModalCalendarBadgesForEvent(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVisibleCalendarBadges: (badgeEvent) => this.getVisibleCalendarBadgesForEvent(badgeEvent)
+    });
   }
 
   showEventModal(event, onCloseBack = null) {
