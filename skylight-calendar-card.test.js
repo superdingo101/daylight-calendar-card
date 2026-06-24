@@ -1206,6 +1206,76 @@ test('calendar_names overrides displayed calendar labels', () => {
   assert.doesNotMatch(card.renderCalendarBadges(), /Family Friendly Name/);
 });
 
+test('calendar entity helpers resolve names, colors, visibility, virtual badges, writable calendars, and person mappings', async () => {
+  const {
+    getCalendarBadgePersonEntityId,
+    getCalendarColor,
+    getCalendarName,
+    getVirtualBadgeItems,
+    getWritableCalendars,
+    normalizeVirtualCalendars
+  } = await import('./src/calendars/calendar-entities.js');
+  const normalizeSingleColor = (value) => value || null;
+  const virtualCalendars = normalizeVirtualCalendars([
+    {
+      id: 'family_group',
+      name: 'Family Group',
+      icon: 'mdi:account-group',
+      color: '#445566',
+      entities: ['calendar.family', 'calendar.work', 'calendar.family']
+    }
+  ], { normalizeSingleColor });
+
+  assert.equal(getCalendarName('calendar.family', {
+    hassStates: { 'calendar.family': { attributes: { friendly_name: 'Family Friendly Name' } } }
+  }), 'Family Friendly Name');
+  assert.equal(getCalendarName('calendar.family', {
+    calendarNames: { 'calendar.family': 'Household' },
+    hassStates: { 'calendar.family': { attributes: { friendly_name: 'Family Friendly Name' } } }
+  }), 'Household');
+  assert.equal(getCalendarName('calendar.school'), 'school');
+  assert.equal(getCalendarName('virtual:family_group', { virtualCalendars }), 'Family Group');
+
+  assert.equal(getCalendarColor('calendar.family', 0, {
+    colors: { 'calendar.family': '#112233' },
+    getDefaultColor: () => '#AABBCC',
+    normalizeSingleColor
+  }), '#112233');
+  assert.equal(getCalendarColor('calendar.work', 1, {
+    colors: {},
+    getDefaultColor: () => '#4ECDC4',
+    normalizeSingleColor
+  }), '#4ECDC4');
+
+  const badgeItems = getVirtualBadgeItems({
+    entities: ['calendar.family', 'calendar.work', 'calendar.school'],
+    virtualCalendars,
+    hideBadgeCalendars: ['calendar.school'],
+    hiddenCalendars: new Set(['calendar.family', 'calendar.work']),
+    getCalendarColor: (_entityId, index) => ['#111111', '#222222', '#333333'][index],
+    getCalendarName: (entityId) => entityId,
+    getCalendarBadgeIcon: () => null
+  });
+  assert.deepEqual(badgeItems, [{
+    id: 'family_group',
+    entityId: 'virtual:family_group',
+    name: 'Family Group',
+    icon: 'mdi:account-group',
+    color: '#445566',
+    entities: ['calendar.family', 'calendar.work'],
+    isHidden: true,
+    type: 'virtual'
+  }]);
+
+  assert.deepEqual(getWritableCalendars(['calendar.family', 'calendar.work', 'calendar.school'], {
+    'calendar.family': { canCreate: true, isReadonly: false },
+    'calendar.work': { canCreate: true, isReadonly: true },
+    'calendar.school': { canCreate: false, isReadonly: false }
+  }), ['calendar.family']);
+  assert.equal(getCalendarBadgePersonEntityId('calendar.family', { 'calendar.family': 'person.ian' }), 'person.ian');
+  assert.equal(getCalendarBadgePersonEntityId('virtual:family_group', { family_group: 'person.family' }), 'person.family');
+});
+
 test('preference_storage_key customizes persisted preference storage key', () => {
   const originalLocation = window.location;
   window.location = { pathname: '/lovelace-family/0', hash: '' };

@@ -135,6 +135,17 @@ import {
   getAgendaVisibleDateRange,
   isAgendaRangeWithinWindow
 } from './views/agenda-view-model.js';
+import {
+  getCalendarBadgePersonEntityId as getCalendarBadgePersonEntityIdHelper,
+  getCalendarColor as getCalendarColorHelper,
+  getCalendarName as getCalendarNameHelper,
+  getVirtualBadgeById as getVirtualBadgeByIdHelper,
+  getVirtualBadgeForEntity as getVirtualBadgeForEntityHelper,
+  getVirtualBadgeForEvent as getVirtualBadgeForEventHelper,
+  getVirtualBadgeItems as getVirtualBadgeItemsHelper,
+  getWritableCalendars as getWritableCalendarsHelper,
+  normalizeVirtualCalendars as normalizeVirtualCalendarsHelper
+} from './calendars/calendar-entities.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
 
@@ -1626,105 +1637,37 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   normalizeVirtualCalendars(virtualCalendars) {
-    if (!Array.isArray(virtualCalendars)) return [];
-
-    return virtualCalendars
-      .map((entry, index) => {
-        if (!entry || typeof entry !== 'object') return null;
-        const id = typeof entry.id === 'string' && entry.id.trim()
-          ? entry.id.trim()
-          : `virtual_${index + 1}`;
-        const entities = Array.isArray(entry.entities)
-          ? Array.from(new Set(entry.entities
-            .map((entityId) => typeof entityId === 'string' ? entityId.trim() : '')
-            .filter(Boolean)))
-          : [];
-        if (entities.length === 0) return null;
-        return {
-          id,
-          name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : id,
-          icon: typeof entry.icon === 'string' && entry.icon.trim() ? entry.icon.trim() : null,
-          color: this.normalizeSingleColor(entry.color),
-          entities
-        };
-      })
-      .filter(Boolean);
+    return normalizeVirtualCalendarsHelper(virtualCalendars, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   getVirtualBadgeById(virtualId) {
-    return (this._config.virtual_calendars || []).find((virtualCalendar) => virtualCalendar.id === virtualId) || null;
+    return getVirtualBadgeByIdHelper(this._config.virtual_calendars || [], virtualId);
   }
 
   getVirtualBadgeForEntity(entityId) {
-    return (this._config.virtual_calendars || []).find((virtualCalendar) => virtualCalendar.entities.includes(entityId)) || null;
+    return getVirtualBadgeForEntityHelper(this._config.virtual_calendars || [], entityId);
   }
 
   getVirtualBadgeForEvent(event) {
-    if (!event) return null;
-
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds) && event.sourceEntityIds.length > 0) {
-      const virtualCalendars = event.sourceEntityIds
-        .map((entityId) => this.getVirtualBadgeForEntity(entityId))
-        .filter(Boolean);
-      if (virtualCalendars.length > 0) {
-        return virtualCalendars[0];
-      }
-      return null;
-    }
-
-    return this.getVirtualBadgeForEntity(event.entityId);
+    return getVirtualBadgeForEventHelper(this._config.virtual_calendars || [], event);
   }
 
   getVirtualBadgeItems() {
-    const hiddenBadgeCalendars = new Set(this._config.hide_badge_calendars || []);
-    const items = [];
-    const insertedVirtualIds = new Set();
-
-    this._config.entities.forEach((entityId, originalIndex) => {
-      const virtualCalendar = this.getVirtualBadgeForEntity(entityId);
-      if (virtualCalendar && !insertedVirtualIds.has(virtualCalendar.id)) {
-        const configuredEntities = virtualCalendar.entities.filter((configuredEntityId) => this._config.entities.includes(configuredEntityId));
-        const hasVisibleEntity = configuredEntities.some((configuredEntityId) => !hiddenBadgeCalendars.has(configuredEntityId));
-        if (hasVisibleEntity) {
-          const color = virtualCalendar.color || this.getCalendarColor(entityId, originalIndex);
-          const isHidden = configuredEntities.every((configuredEntityId) => this._hiddenCalendars.has(configuredEntityId));
-          items.push({
-            id: virtualCalendar.id,
-            entityId: `virtual:${virtualCalendar.id}`,
-            name: virtualCalendar.name,
-            icon: virtualCalendar.icon,
-            color,
-            entities: configuredEntities,
-            isHidden,
-            type: 'virtual'
-          });
-        }
-        insertedVirtualIds.add(virtualCalendar.id);
-        return;
-      }
-
-      if (virtualCalendar || hiddenBadgeCalendars.has(entityId)) return;
-      const color = this.getCalendarColor(entityId, originalIndex);
-      items.push({
-        id: entityId,
-        entityId,
-        name: this.getCalendarName(entityId),
-        icon: this.getCalendarBadgeIcon(entityId),
-        color,
-        entities: [entityId],
-        isHidden: this._hiddenCalendars.has(entityId),
-        type: 'entity'
-      });
+    return getVirtualBadgeItemsHelper({
+      entities: this._config.entities,
+      virtualCalendars: this._config.virtual_calendars || [],
+      hideBadgeCalendars: this._config.hide_badge_calendars || [],
+      hiddenCalendars: this._hiddenCalendars,
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getCalendarName: this.getCalendarName.bind(this),
+      getCalendarBadgeIcon: this.getCalendarBadgeIcon.bind(this)
     });
-
-    return items;
   }
 
   getWritableCalendars() {
-    return this._config.entities.filter(entityId => {
-      const caps = this._calendarCapabilities[entityId];
-      return caps && caps.canCreate && !caps.isReadonly;
-    });
+    return getWritableCalendarsHelper(this._config.entities, this._calendarCapabilities);
   }
 
   getEventIdentityKey(entityId, event) {
@@ -1751,10 +1694,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCalendarColor(entityId, index = 0) {
-    return this.normalizeSingleColor(
-      this._config?.colors?.[entityId] ||
-      this.getDefaultColor(index)
-    );
+    return getCalendarColorHelper(entityId, index, {
+      colors: this._config?.colors || {},
+      getDefaultColor: this.getDefaultColor.bind(this),
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   async fetchEventsForCalendar(entityId, colorIndex, chunks) {
@@ -10270,28 +10214,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCalendarName(entityId) {
-    if (!entityId) {
-      return '';
-    }
-
-    if (entityId.startsWith('virtual:')) {
-      const virtualId = entityId.replace('virtual:', '');
-      const virtualBadge = this.getVirtualBadgeById(virtualId);
-      if (virtualBadge?.name) {
-        return virtualBadge.name;
-      }
-      return virtualId;
-    }
-
-    // Check if there's a custom name mapping
-    if (this._config.calendar_names && this._config.calendar_names[entityId]) {
-      return this._config.calendar_names[entityId];
-    }
-
-    // Otherwise use friendly_name from entity or entity ID
-    const entity = this._hass?.states[entityId];
-    const fallbackName = entityId.includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
-    return entity?.attributes?.friendly_name || fallbackName;
+    return getCalendarNameHelper(entityId, {
+      calendarNames: this._config.calendar_names || {},
+      hassStates: this._hass?.states || {},
+      virtualCalendars: this._config.virtual_calendars || []
+    });
   }
 
   getCalendarBadgeIcon(entityId) {
@@ -10305,19 +10232,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCalendarBadgePersonEntityId(badgeEntityId) {
-    const mappings = this._config?.calendar_person_entities || {};
-    if (!badgeEntityId) return null;
-
-    if (mappings[badgeEntityId]) {
-      return mappings[badgeEntityId];
-    }
-
-    if (badgeEntityId.startsWith('virtual:')) {
-      const virtualId = badgeEntityId.replace('virtual:', '');
-      return mappings[virtualId] || null;
-    }
-
-    return null;
+    return getCalendarBadgePersonEntityIdHelper(badgeEntityId, this._config?.calendar_person_entities || {});
   }
 
   getCalendarBadgePersonState(badgeEntityId) {
