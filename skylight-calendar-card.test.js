@@ -1088,6 +1088,50 @@ test('rolling_weeks month mode renders configured rolling rows from first day of
   assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-05-24')}"`));
 });
 
+
+test('month grid includes leading and trailing days and range boundaries', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'month', first_day_of_week: 1 });
+  card._currentDate = new Date(2026, 1, 10); // February 2026 starts on Sunday.
+  card._events = [];
+
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(card.getVisibleDateRange()).map(([key, value]) => [key, localDateKey(value)])),
+    { startDate: '2026-01-26', endDate: '2026-03-01' }
+  );
+
+  const daysHtml = card.renderDays();
+  assert.equal((daysHtml.match(/class="day-cell/g) || []).length, 35);
+  assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-01-26')}"`));
+  assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-03-01')}"`));
+});
+
+test('week visible date range follows configured week days and week start', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    default_view: 'week-compact',
+    first_day_of_week: 0,
+    week_days: [0, 2, 4]
+  });
+  card._currentDate = new Date(2026, 4, 13, 12);
+  card.setWeekStart();
+
+  assert.deepEqual(dateKeys(card.getWeekDays('week-compact')), ['2026-05-10', '2026-05-12', '2026-05-14']);
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(card.getVisibleDateRange()).map(([key, value]) => [key, localDateKey(value)])),
+    { startDate: '2026-05-10', endDate: '2026-05-14' }
+  );
+});
+
+test('agenda window generation preserves inclusive current day plus default span', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card._agendaStartDate = new Date(2026, 2, 7);
+  card._agendaEndDate = new Date(2026, 2, 21, 23, 59, 59, 999);
+
+  assert.equal(card.getAgendaPeriodDaySpan(), 14);
+  assert.equal(card.getAgendaDays().length, 15);
+  assert.deepEqual([card.getAgendaDays()[0], card.getAgendaDays().at(-1)].map(localDateKey), ['2026-03-07', '2026-03-21']);
+});
+
 test('show_week_numbers_month adds month-only week number headers and cells', () => {
   const card = makeCard({ entities: ['calendar.family'], show_week_numbers_month: true });
   card._currentDate = new Date('2026-05-13T12:00:00Z');
