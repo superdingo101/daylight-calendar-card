@@ -2983,6 +2983,75 @@ function renderWeekCompactView({
     `;
 }
 
+function renderWeekStandardView({
+  allDayHeight,
+  allDayLayout,
+  config,
+  containerStyle,
+  dayNames,
+  dayTimeSlotsStyle,
+  endHour,
+  hasAllDayEvents,
+  hourHeight,
+  hours,
+  showCurrentTimeBar,
+  startHour,
+  today,
+  weekDays,
+  helpers
+}) {
+  return `
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
+      <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+        <!-- Time column -->
+        <div class="time-column">
+          <div class="time-column-header-spacer"></div>
+          ${hasAllDayEvents ? `<div class="time-column-allday-spacer" style="height: ${allDayHeight}px;"></div>` : ''}
+          <div class="time-column-extra-spacer"></div>
+          ${hours.map(hour => `
+            <div class="time-slot" style="height: ${hourHeight}px;">
+              <span class="time-slot-label">${helpers.formatScheduleHour(hour)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Day columns -->
+        ${weekDays.map(date => {
+          const isToday = date.toDateString() === today.toDateString();
+          const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });
+          const dayEvents = helpers.sortEventsForDate(dayEventsForMatching.filter((event) => !helpers.isEventHiddenByStyle(event)), date);
+          const dateKey = helpers.getDateKey(date);
+          const allDayLanes = allDayLayout.dayLanesByDateKey.get(dateKey) || [];
+          const dayStyle = helpers.getDayStyleAttributes(date, dayEventsForMatching, isToday);
+          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
+
+          return `
+            <div class="week-standard-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
+              <div class="week-standard-day-header" data-click-target="day-header">
+                <div class="week-day-header-main">
+                  <div class="week-standard-day-name">${dayNames[date.getDay()]}</div>
+                  <div class="week-day-meta-row">
+                    <div class="week-standard-day-date">${date.getDate()}</div>
+                    ${helpers.renderDayBadges(date, dayEventsForMatching)}
+                    ${helpers.renderDayForecast(date, 'week-standard')}
+                  </div>
+                </div>
+              </div>
+              ${hasAllDayEvents ? helpers.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
+              <div class="day-time-slots" style="${dayTimeSlotsStyle}">
+                ${hours.map(hour => `
+                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
+                `).join('')}
+                ${showCurrentTimeBar && isToday ? helpers.renderCurrentTimeLine(startHour, hourHeight) : ''}
+                ${helpers.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+}
+
 function renderMonthDayHeaders({ weekdayNames, firstDayOfWeek, shouldShowWeekNumbers }) {
   const orderedDays = [
     ...weekdayNames.slice(firstDayOfWeek),
@@ -9045,56 +9114,36 @@ class SkylightCalendarCard extends HTMLElement {
 
     const showCurrentTimeBar = this._config.show_current_time_bar && this.shouldShowCurrentTimeBar(today, startHour, endHour);
 
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''} day-badge-layout-${this._config.day_badge_layout_week}" style="${containerStyle}">
-        <!-- Time column -->
-        <div class="time-column">
-          <div class="time-column-header-spacer"></div>
-          ${hasAllDayEvents ? `<div class="time-column-allday-spacer" style="height: ${allDayHeight}px;"></div>` : ''}
-          <div class="time-column-extra-spacer"></div>
-          ${hours.map(hour => `
-            <div class="time-slot" style="height: ${hourHeight}px;">
-              <span class="time-slot-label">${this.formatScheduleHour(hour)}</span>
-            </div>
-          `).join('')}
-        </div>
-
-        <!-- Day columns -->
-        ${weekDays.map(date => {
-          const isToday = date.toDateString() === today.toDateString();
-          const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
-          const dayEvents = this.sortEventsForDate(dayEventsForMatching.filter((event) => !this.isEventHiddenByStyle(event)), date);
-          const dateKey = this.getDateKey(date);
-          const allDayLanes = allDayLayout.dayLanesByDateKey.get(dateKey) || [];
-          const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-
-          return `
-            <div class="week-standard-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
-              <div class="week-standard-day-header" data-click-target="day-header">
-                <div class="week-day-header-main">
-                  <div class="week-standard-day-name">${dayNames[date.getDay()]}</div>
-                  <div class="week-day-meta-row">
-                    <div class="week-standard-day-date">${date.getDate()}</div>
-                    ${this.renderDayBadges(date, dayEventsForMatching)}
-                    ${this.renderDayForecast(date, 'week-standard')}
-                  </div>
-                </div>
-              </div>
-              ${hasAllDayEvents ? this.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
-              <div class="day-time-slots" style="${dayTimeSlotsStyle}">
-                ${hours.map(hour => `
-                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
-                `).join('')}
-                ${showCurrentTimeBar && isToday ? this.renderCurrentTimeLine(startHour, hourHeight) : ''}
-                ${this.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderWeekStandardView({
+      allDayHeight,
+      allDayLayout,
+      config: this._config,
+      containerStyle,
+      dayNames,
+      dayTimeSlotsStyle,
+      endHour,
+      hasAllDayEvents,
+      hourHeight,
+      hours,
+      showCurrentTimeBar,
+      startHour,
+      today,
+      weekDays,
+      helpers: {
+        formatScheduleHour: (hour) => this.formatScheduleHour(hour),
+        getDateKey: (date) => this.getDateKey(date),
+        getDayStyleAttributes: (date, events, isToday) => this.getDayStyleAttributes(date, events, isToday),
+        getEventsForDay: (date, options) => this.getEventsForDay(date, options),
+        isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
+        renderAllDayEventsForDay: (allDayLanes, height) => this.renderAllDayEventsForDay(allDayLanes, height),
+        renderCalendarBadges: () => this.renderCalendarBadges(),
+        renderCurrentTimeLine: (rangeStartHour, height) => this.renderCurrentTimeLine(rangeStartHour, height),
+        renderDayBadges: (date, events) => this.renderDayBadges(date, events),
+        renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
+        renderTimedEventsForDay: (events, date, rangeStartHour, rangeEndHour, height) => this.renderTimedEventsForDay(events, date, rangeStartHour, rangeEndHour, height),
+        sortEventsForDate: (events, date) => this.sortEventsForDate(events, date)
+      }
+    });
   }
 
   renderAgenda() {
