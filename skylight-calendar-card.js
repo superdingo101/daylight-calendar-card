@@ -2937,6 +2937,115 @@ function renderAgendaView({
     `;
 }
 
+function renderEventDetailsModal({
+  event,
+  startDate,
+  endDate,
+  isAllDay,
+  calendarName,
+  visibleBadges,
+  capabilities,
+  hasUID,
+  canEdit,
+  canDelete,
+  canForward,
+  canModify,
+  helpers
+}) {
+  const {
+    escapeHtml,
+    formatDate,
+    formatEventTime,
+    formatDuration,
+    renderEventDescription,
+    t
+  } = helpers;
+
+  const combinedBadgeHtml = event.isCombinedCalendarEvent
+    ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
+    : `<div class="modal-calendar-badge" style="background: ${event.color}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
+
+  return `
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">${escapeHtml(event.summary || t('untitledEvent'))}</h3>
+          ${combinedBadgeHtml}
+        </div>
+        <button class="modal-close" id="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <div class="modal-label">📅 ${t('start')}</div>
+          <div class="modal-value">
+            ${formatDate(startDate)}${!isAllDay ? ` ${t('at')} ${formatEventTime(startDate)}` : ` (${t('allDay')})`}
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">🏁 ${t('end')}</div>
+          <div class="modal-value">
+            ${formatDate(endDate)}${!isAllDay ? ` ${t('at')} ${formatEventTime(endDate)}` : ` (${t('allDay')})`}
+          </div>
+        </div>
+        ${!isAllDay ? `
+          <div class="modal-row">
+            <div class="modal-label">⏱️ ${t('duration')}</div>
+            <div class="modal-value">${formatDuration(startDate, endDate)}</div>
+          </div>
+        ` : ''}
+        ${event.location ? `
+          <div class="modal-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">${escapeHtml(event.location)}</div>
+          </div>
+        ` : ''}
+        ${event.description ? `
+          <div class="modal-row modal-row-description">
+            <div class="modal-label">📝 ${t('description')}</div>
+            <div class="modal-value event-description-content">${renderEventDescription(event.description)}</div>
+          </div>
+        ` : ''}
+        ${event.attendees && event.attendees.length > 0 ? `
+          <div class="modal-row">
+            <div class="modal-label">👥 ${t('attendees')}</div>
+            <div class="modal-value">
+              ${event.attendees.map(a => escapeHtml(a.email || a.displayName || t('unknownAttendee'))).join(', ')}
+            </div>
+          </div>
+        ` : ''}
+        ${event.rrule ? `
+          <div class="modal-row">
+            <div class="modal-label">🔁 ${t('recurrence')}</div>
+            <div class="modal-value">${t('recurringEvent')}</div>
+          </div>
+        ` : ''}
+
+        ${!canModify && !capabilities.isReadonly && capabilities.isGoogleCalendar ? `
+          <div class="info-banner warning">
+            <strong>${t('googleCalendarLimitationTitle')}</strong> ${t('googleCalendarLimitationBody')}
+          </div>
+        ` : ''}
+
+        ${!canModify && !hasUID && !capabilities.isGoogleCalendar ? `
+          <div class="info-banner warning">
+            <strong>${t('cannotModifyTitle')}</strong> ${t('cannotModifyBody')}
+          </div>
+        ` : ''}
+
+        ${(canEdit || canDelete || canForward) ? `
+          <div class="modal-actions">
+            <div class="modal-actions-left">
+              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+            </div>
+            <div class="modal-actions-right">
+              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
+              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
 function renderWeekCompactView({
   config,
   weekDays,
@@ -12682,10 +12791,11 @@ class SkylightCalendarCard extends HTMLElement {
     // Get calendar info and capabilities
     const calendarName = this.getCalendarName(event.entityId);
     const capabilities = this._calendarCapabilities[event.entityId] || {};
-    const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-    const combinedBadgeHtml = event.isCombinedCalendarEvent
-      ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${this.escapeHtml(this.getCalendarName(calendar.entityId))}</span>`).join('')}</div>`
-      : `<div class="modal-calendar-badge" style="background: ${event.color}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${this.escapeHtml(calendarName)}</div>`;
+    const visibleBadges = this.getModalCalendarBadgesForEvent(event)
+      .map((calendar) => ({
+        ...calendar,
+        name: this.getCalendarName(calendar.entityId)
+      }));
 
     // For edit/delete to work, we need:
     // 1. Event management enabled
@@ -12701,85 +12811,28 @@ class SkylightCalendarCard extends HTMLElement {
     const canDelete = canModify; // WebSocket delete works for all calendars including Google
     const canForward = !!this._config.enable_event_management && this.getWritableCalendars().length > 0;
 
-    content.innerHTML = `
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">${this.escapeHtml(event.summary || this.t('untitledEvent'))}</h3>
-          ${combinedBadgeHtml}
-        </div>
-        <button class="modal-close" id="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-row">
-          <div class="modal-label">📅 ${this.t('start')}</div>
-          <div class="modal-value">
-            ${this.formatDate(startDate)}${!isAllDay ? ` ${this.t('at')} ${this.formatEventTime(startDate)}` : ` (${this.t('allDay')})`}
-          </div>
-        </div>
-        <div class="modal-row">
-          <div class="modal-label">🏁 ${this.t('end')}</div>
-          <div class="modal-value">
-            ${this.formatDate(endDate)}${!isAllDay ? ` ${this.t('at')} ${this.formatEventTime(endDate)}` : ` (${this.t('allDay')})`}
-          </div>
-        </div>
-        ${!isAllDay ? `
-          <div class="modal-row">
-            <div class="modal-label">⏱️ ${this.t('duration')}</div>
-            <div class="modal-value">${this.formatDuration(startDate, endDate)}</div>
-          </div>
-        ` : ''}
-        ${event.location ? `
-          <div class="modal-row">
-            <div class="modal-label">📍 ${this.t('location')}</div>
-            <div class="modal-value">${this.escapeHtml(event.location)}</div>
-          </div>
-        ` : ''}
-        ${event.description ? `
-          <div class="modal-row modal-row-description">
-            <div class="modal-label">📝 ${this.t('description')}</div>
-            <div class="modal-value event-description-content">${this.renderEventDescription(event.description)}</div>
-          </div>
-        ` : ''}
-        ${event.attendees && event.attendees.length > 0 ? `
-          <div class="modal-row">
-            <div class="modal-label">👥 ${this.t('attendees')}</div>
-            <div class="modal-value">
-              ${event.attendees.map(a => this.escapeHtml(a.email || a.displayName || this.t('unknownAttendee'))).join(', ')}
-            </div>
-          </div>
-        ` : ''}
-        ${event.rrule ? `
-          <div class="modal-row">
-            <div class="modal-label">🔁 ${this.t('recurrence')}</div>
-            <div class="modal-value">${this.t('recurringEvent')}</div>
-          </div>
-        ` : ''}
-
-        ${!canModify && !capabilities.isReadonly && capabilities.isGoogleCalendar ? `
-          <div class="info-banner warning">
-            <strong>${this.t('googleCalendarLimitationTitle')}</strong> ${this.t('googleCalendarLimitationBody')}
-          </div>
-        ` : ''}
-
-        ${!canModify && !hasUID && !capabilities.isGoogleCalendar ? `
-          <div class="info-banner warning">
-            <strong>${this.t('cannotModifyTitle')}</strong> ${this.t('cannotModifyBody')}
-          </div>
-        ` : ''}
-
-        ${(canEdit || canDelete || canForward) ? `
-          <div class="modal-actions">
-            <div class="modal-actions-left">
-              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${this.t('delete')}</button>` : ''}
-            </div>
-            <div class="modal-actions-right">
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${this.t('forwardEvent')}</button>` : ''}
-              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${this.t('editEvent')}</button>` : ''}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-    `;
+    content.innerHTML = renderEventDetailsModal({
+      event,
+      startDate,
+      endDate,
+      isAllDay,
+      calendarName,
+      visibleBadges,
+      capabilities,
+      hasUID,
+      canEdit,
+      canDelete,
+      canForward,
+      canModify,
+      helpers: {
+        escapeHtml: this.escapeHtml.bind(this),
+        formatDate: this.formatDate.bind(this),
+        formatEventTime: this.formatEventTime.bind(this),
+        formatDuration: this.formatDuration.bind(this),
+        renderEventDescription: this.renderEventDescription.bind(this),
+        t: this.t.bind(this)
+      }
+    });
 
     modal.classList.add('show');
     this.setModalBackHandler(onCloseBack);
