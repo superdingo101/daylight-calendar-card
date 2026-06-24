@@ -1486,6 +1486,74 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
 });
 
+
+test('weather utility maps Home Assistant conditions to mdi icons with fallback', async () => {
+  const { mapWeatherConditionToIcon } = await import('./src/weather/weather-utils.js');
+
+  assert.equal(mapWeatherConditionToIcon('sunny'), 'mdi:weather-sunny');
+  assert.equal(mapWeatherConditionToIcon('clear_night'), 'mdi:weather-night');
+  assert.equal(mapWeatherConditionToIcon('lightning-rainy'), 'mdi:weather-lightning-rainy');
+  assert.equal(mapWeatherConditionToIcon('unknown'), '');
+  assert.equal(mapWeatherConditionToIcon('unavailable'), '');
+  assert.equal(mapWeatherConditionToIcon('not-a-real-condition'), '');
+  assert.equal(mapWeatherConditionToIcon(null), '');
+});
+
+test('weather utility normalizes header weather data and preserves temperature unit display', async () => {
+  const { normalizeHeaderWeatherData } = await import('./src/weather/weather-utils.js');
+
+  assert.deepEqual(normalizeHeaderWeatherData({
+    state: 'sunny',
+    attributes: { temperature: 21.4 }
+  }), { conditionIcon: 'mdi:weather-sunny', temperature: '21°' });
+  assert.deepEqual(normalizeHeaderWeatherData({
+    state: 'cloudy',
+    attributes: { condition: 'rainy', current_temperature: 18.6 }
+  }), { conditionIcon: 'mdi:weather-rainy', temperature: '19°' });
+  assert.equal(normalizeHeaderWeatherData({ state: 'unavailable', attributes: { temperature: 20 } }), null);
+  assert.equal(normalizeHeaderWeatherData({ state: 'sunny', attributes: {} }), null);
+  assert.equal(normalizeHeaderWeatherData(null), null);
+});
+
+test('weather utility normalizes forecast items and handles missing or empty data', async () => {
+  const { normalizeForecastForDate } = await import('./src/weather/weather-utils.js');
+  const getDateKey = (date) => date.toISOString().slice(0, 10);
+
+  assert.deepEqual(normalizeForecastForDate([
+    { datetime: '2026-05-13T12:00:00Z', condition: 'sunny', temperature: 22, templow: 11 },
+    { date: '2026-05-14', condition: 'partlycloudy', temphigh: 24.2, temperature_low: 12.4 }
+  ], new Date('2026-05-14T00:00:00Z'), getDateKey), {
+    conditionIcon: 'mdi:weather-partly-cloudy',
+    highTemp: '24°',
+    lowTemp: '12°'
+  });
+  assert.equal(normalizeForecastForDate([], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate(null, new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate([{ date: '2026-05-14', condition: 'unknown', temperature: 20 }], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate([{ date: '2026-05-14', condition: 'sunny' }], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+});
+
+test('weather service builds Home Assistant forecast websocket payloads', async () => {
+  const {
+    buildWeatherForecastRequestMessage,
+    buildWeatherForecastSubscriptionMessage,
+    isWeatherEntityId
+  } = await import('./src/weather/weather-service.js');
+
+  assert.deepEqual(buildWeatherForecastSubscriptionMessage('weather.home'), {
+    type: 'weather/subscribe_forecast',
+    entity_id: 'weather.home',
+    forecast_type: 'daily'
+  });
+  assert.deepEqual(buildWeatherForecastRequestMessage('weather.home'), {
+    type: 'weather/get_forecasts',
+    entity_ids: ['weather.home'],
+    forecast_type: 'daily'
+  });
+  assert.equal(isWeatherEntityId('weather.home'), true);
+  assert.equal(isWeatherEntityId('sensor.home'), false);
+  assert.equal(isWeatherEntityId(''), false);
+});
 test('agenda view renders daily weather forecast', () => {
   const card = makeCard({
     entities: ['calendar.family'],
