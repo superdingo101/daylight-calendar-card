@@ -95,6 +95,20 @@ import {
   buildWeatherForecastSubscriptionMessage,
   isWeatherEntityId
 } from './weather/weather-service.js';
+import {
+  buildRRuleFromInputs as buildRRuleFromInputsHelper,
+  normalizeEventFormData,
+  resolveTimedEventRange as resolveTimedEventRangeHelper
+} from './events/event-form.js';
+import {
+  buildCreateEventWebSocketPayload,
+  buildDeleteEventPayload,
+  buildDeleteEventWebSocketPayload,
+  buildEventServiceData,
+  buildUpdateEventServiceData,
+  buildUpdateEventWebSocketPayload,
+  getRecurringUpdateControls
+} from './events/event-service.js';
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.5.0';
 
@@ -8466,29 +8480,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   buildRRuleFromInputs({ frequency, interval, untilDate, count, byDay }) {
-    const parts = [`FREQ=${frequency}`];
-    const parsedInterval = parseInt(interval, 10);
-
-    if (!Number.isNaN(parsedInterval) && parsedInterval > 1) {
-      parts.push(`INTERVAL=${parsedInterval}`);
-    }
-
-    if (Array.isArray(byDay) && byDay.length > 0) {
-      parts.push(`BYDAY=${byDay.join(',')}`);
-    }
-
-    const parsedCount = parseInt(count, 10);
-    if (!Number.isNaN(parsedCount) && parsedCount > 0) {
-      parts.push(`COUNT=${parsedCount}`);
-    } else if (untilDate) {
-      const until = new Date(`${untilDate}T23:59:59`);
-      if (!Number.isNaN(until.getTime())) {
-        const compactUntil = until.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-        parts.push(`UNTIL=${compactUntil}`);
-      }
-    }
-
-    return parts.join(';');
+    return buildRRuleFromInputsHelper({ frequency, interval, untilDate, count, byDay });
   }
 
   parseRRule(rrule = '') {
@@ -8608,20 +8600,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   resolveTimedEventRange(startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) {
-    const start = this.parsePossiblyLocalDateTime(startValue);
-    if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
-      return { start: null, end: null };
-    }
-
-    const parsedEnd = endValue ? this.parsePossiblyLocalDateTime(endValue) : null;
-    if (parsedEnd instanceof Date && !Number.isNaN(parsedEnd.getTime())) {
-      return { start, end: parsedEnd };
-    }
-
-    return {
-      start,
-      end: new Date(start.getTime() + fallbackDurationMs)
-    };
+    return resolveTimedEventRangeHelper(startValue, endValue, fallbackDurationMs);
   }
 
   showCreateEventModal(defaultDate = null, defaultTime = null, options = {}) {
@@ -8934,61 +8913,23 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
 
-      if (!title) {
-        this.showFormError(errorDiv, this.t('eventTitleRequired'));
+      const formResult = normalizeEventFormData({
+        title,
+        location,
+        description,
+        isAllDay,
+        startDate: this.getRootElementById('event-start-date').value,
+        endDate: this.getRootElementById('event-end-date').value,
+        startDateTime: this.getRootElementById('event-start').value,
+        endDateTime: this.getRootElementById('event-end').value
+      });
+
+      if (!formResult.valid) {
+        this.showFormError(errorDiv, this.t(formResult.errorKey));
         return;
       }
 
-      let eventData = {
-        summary: title,
-        location: location || undefined,
-        description: description || undefined
-      };
-
-      if (isAllDay) {
-        const startDate = this.getRootElementById('event-start-date').value;
-        const endDate = this.getRootElementById('event-end-date').value;
-
-        if (!startDate || !endDate) {
-          this.showFormError(errorDiv, this.t('startEndDatesRequired'));
-          return;
-        }
-
-        // Validate that end date is on or after start date
-        const start = this.parseLocalDate(startDate);
-        const end = this.parseLocalDate(endDate);
-
-        if (end < start) {
-          this.showFormError(errorDiv, this.t('endDateBeforeStart'));
-          return;
-        }
-
-        // For Home Assistant, end date is exclusive, so add 1 day
-        const exclusiveEndDate = new Date(end);
-        exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
-        const exclusiveEndDateStr = this.formatLocalDate(exclusiveEndDate);
-
-        eventData.start = { date: startDate };
-        eventData.end = { date: exclusiveEndDateStr };
-      } else {
-        const startDateTime = this.getRootElementById('event-start').value;
-        const endDateTime = this.getRootElementById('event-end').value;
-
-        if (!startDateTime) {
-          this.showFormError(errorDiv, this.t('startEndTimesRequired'));
-          return;
-        }
-
-        const { start, end } = this.resolveTimedEventRange(startDateTime, endDateTime);
-
-        if (end <= start) {
-          this.showFormError(errorDiv, this.t('endTimeBeforeStart'));
-          return;
-        }
-
-        eventData.start = { dateTime: start.toISOString() };
-        eventData.end = { dateTime: end.toISOString() };
-      }
+      let eventData = formResult.eventData;
 
       if (recurringCheckbox.checked) {
         const frequency = this.getRootElementById('event-recurrence-frequency').value;
@@ -8999,19 +8940,31 @@ class SkylightCalendarCard extends HTMLElement {
         const untilDate = recurrenceEndMode === 'on' ? untilDateRaw : '';
         const recurrenceCount = recurrenceEndMode === 'after' ? recurrenceCountRaw : '';
         const byDay = Array.from(this._root.querySelectorAll('.event-recurrence-weekday:checked')).map((el) => el.value);
+        const recurrenceResult = normalizeEventFormData({
+          title,
+          location,
+          description,
+          isAllDay,
+          startDate: this.getRootElementById('event-start-date').value,
+          endDate: this.getRootElementById('event-end-date').value,
+          startDateTime: this.getRootElementById('event-start').value,
+          endDateTime: this.getRootElementById('event-end').value,
+          recurrence: {
+            enabled: true,
+            frequency,
+            interval,
+            untilDate,
+            count: recurrenceCount,
+            byDay
+          }
+        });
 
-        if (frequency === 'WEEKLY' && byDay.length === 0) {
-          this.showFormError(errorDiv, this.t('recurrenceSelectWeekday'));
+        if (!recurrenceResult.valid) {
+          this.showFormError(errorDiv, this.t(recurrenceResult.errorKey));
           return;
         }
 
-        eventData.rrule = this.buildRRuleFromInputs({
-          frequency,
-          interval,
-          untilDate,
-          count: recurrenceCount,
-          byDay: frequency === 'WEEKLY' ? byDay : []
-        });
+        eventData = recurrenceResult.eventData;
       }
 
       // Disable submit button
@@ -9318,62 +9271,24 @@ class SkylightCalendarCard extends HTMLElement {
       const location = this.getRootElementById('event-location').value.trim();
       const description = this.getRootElementById('event-description').value.trim();
 
-      if (!title) {
-        this.showFormError(errorDiv, this.t('eventTitleRequired'));
+      const formResult = normalizeEventFormData({
+        title,
+        location,
+        description,
+        isAllDay: isAllDayChecked,
+        startDate: this.getRootElementById('event-start-date').value,
+        endDate: this.getRootElementById('event-end-date').value,
+        startDateTime: this.getRootElementById('event-start').value,
+        endDateTime: this.getRootElementById('event-end').value,
+        fallbackDurationMs: Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000)
+      });
+
+      if (!formResult.valid) {
+        this.showFormError(errorDiv, this.t(formResult.errorKey));
         return;
       }
 
-      let eventData = {
-        summary: title,
-        location: location || undefined,
-        description: description || undefined
-      };
-
-      if (isAllDayChecked) {
-        const startDateStr = this.getRootElementById('event-start-date').value;
-        const endDateStr = this.getRootElementById('event-end-date').value;
-
-        if (!startDateStr || !endDateStr) {
-          this.showFormError(errorDiv, this.t('startEndDatesRequired'));
-          return;
-        }
-
-        // Validate that end date is on or after start date
-        const start = this.parseLocalDate(startDateStr);
-        const end = this.parseLocalDate(endDateStr);
-
-        if (end < start) {
-          this.showFormError(errorDiv, this.t('endDateBeforeStart'));
-          return;
-        }
-
-        // For Home Assistant, end date is exclusive, so add 1 day
-        const exclusiveEndDate = new Date(end);
-        exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
-        const exclusiveEndDateStr = this.formatLocalDate(exclusiveEndDate);
-
-        eventData.start = { date: startDateStr };
-        eventData.end = { date: exclusiveEndDateStr };
-      } else {
-        const startDateTime = this.getRootElementById('event-start').value;
-        const endDateTime = this.getRootElementById('event-end').value;
-        const existingDurationMs = Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000);
-
-        if (!startDateTime) {
-          this.showFormError(errorDiv, this.t('startEndTimesRequired'));
-          return;
-        }
-
-        const { start, end } = this.resolveTimedEventRange(startDateTime, endDateTime, existingDurationMs);
-
-        if (end <= start) {
-          this.showFormError(errorDiv, this.t('endTimeBeforeStart'));
-          return;
-        }
-
-        eventData.start = { dateTime: start.toISOString() };
-        eventData.end = { dateTime: end.toISOString() };
-      }
+      let eventData = formResult.eventData;
 
       if (recurringCheckbox.checked) {
         const frequency = this.getRootElementById('event-recurrence-frequency').value;
@@ -9384,19 +9299,32 @@ class SkylightCalendarCard extends HTMLElement {
         const untilDate = recurrenceEndMode === 'on' ? untilDateRaw : '';
         const recurrenceCount = recurrenceEndMode === 'after' ? recurrenceCountRaw : '';
         const byDay = Array.from(this._root.querySelectorAll('.event-recurrence-weekday:checked')).map((el) => el.value);
+        const recurrenceResult = normalizeEventFormData({
+          title,
+          location,
+          description,
+          isAllDay: isAllDayChecked,
+          startDate: this.getRootElementById('event-start-date').value,
+          endDate: this.getRootElementById('event-end-date').value,
+          startDateTime: this.getRootElementById('event-start').value,
+          endDateTime: this.getRootElementById('event-end').value,
+          fallbackDurationMs: Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000),
+          recurrence: {
+            enabled: true,
+            frequency,
+            interval,
+            untilDate,
+            count: recurrenceCount,
+            byDay
+          }
+        });
 
-        if (frequency === 'WEEKLY' && byDay.length === 0) {
-          this.showFormError(errorDiv, this.t('recurrenceSelectWeekday'));
+        if (!recurrenceResult.valid) {
+          this.showFormError(errorDiv, this.t(recurrenceResult.errorKey));
           return;
         }
 
-        eventData.rrule = this.buildRRuleFromInputs({
-          frequency,
-          interval,
-          untilDate,
-          count: recurrenceCount,
-          byDay: frequency === 'WEEKLY' ? byDay : []
-        });
+        eventData = recurrenceResult.eventData;
       }
 
       // Disable submit button
@@ -9467,47 +9395,10 @@ class SkylightCalendarCard extends HTMLElement {
       throw new Error(this.t('missingUidError'));
     }
 
-    const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
-
-    const recurrenceId = (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null;
-    const recurrenceRange = (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null;
+    const { isRecurringUpdate, recurrenceId, recurrenceRange } = getRecurringUpdateControls(originalEvent, eventData, editScope);
 
     if (isRecurringUpdate && !movingCalendar && this._hass.connection?.sendMessagePromise) {
-      const dtstart = eventData.start.dateTime || eventData.start.date;
-      const dtend = eventData.end.dateTime || eventData.end.date;
-
-      const eventPayload = {
-        summary: eventData.summary,
-        dtstart,
-        dtend
-      };
-
-      if (eventData.location) {
-        eventPayload.location = eventData.location;
-      }
-
-      if (eventData.description) {
-        eventPayload.description = eventData.description;
-      }
-
-      if (eventData.rrule) {
-        eventPayload.rrule = eventData.rrule;
-      }
-
-      const wsPayload = {
-        type: 'calendar/event/update',
-        entity_id: originalEvent.entityId,
-        uid: originalEvent.uid,
-        event: eventPayload
-      };
-
-      if (recurrenceId) {
-        wsPayload.recurrence_id = recurrenceId;
-      }
-
-      if (recurrenceRange) {
-        wsPayload.recurrence_range = recurrenceRange;
-      }
+      const wsPayload = buildUpdateEventWebSocketPayload(originalEvent, eventData, recurrenceId, recurrenceRange);
 
       try {
         await this._hass.connection.sendMessagePromise(wsPayload);
@@ -9521,43 +9412,7 @@ class SkylightCalendarCard extends HTMLElement {
     const hasUpdateService = !!this._hass.services?.calendar?.update_event;
     if (capabilities.canUpdate && !movingCalendar && hasUpdateService) {
       try {
-        const serviceData = {
-          entity_id: originalEvent.entityId,
-          uid: originalEvent.uid,
-          summary: eventData.summary
-        };
-
-        // Add location if provided
-        if (eventData.location) {
-          serviceData.location = eventData.location;
-        }
-
-        // Add description if provided
-        if (eventData.description) {
-          serviceData.description = eventData.description;
-        }
-
-        // Add date/time fields
-        if (eventData.start.date) {
-          serviceData.start_date = eventData.start.date;
-          serviceData.end_date = eventData.end.date;
-        } else {
-          serviceData.start_date_time = eventData.start.dateTime;
-          serviceData.end_date_time = eventData.end.dateTime;
-        }
-
-        if (eventData.rrule) {
-          serviceData.rrule = eventData.rrule;
-        }
-
-        // Add recurrence controls for recurring event edits
-        if (recurrenceId) {
-          serviceData.recurrence_id = recurrenceId;
-        }
-
-        if (recurrenceRange) {
-          serviceData.recurrence_range = recurrenceRange;
-        }
+        const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
 
         await this._hass.callService('calendar', 'update_event', serviceData);
         return;
@@ -9595,21 +9450,7 @@ class SkylightCalendarCard extends HTMLElement {
     // This is the official Calendar WebSocket API that the HA Calendar UI uses
     try {
       if (this._hass.connection && this._hass.connection.sendMessagePromise && uid) {
-        const payload = {
-          type: 'calendar/event/delete',
-          entity_id: calendarId,
-          uid: uid
-        };
-
-        // Add recurrence_id if deleting a specific instance
-        if (recurrenceId) {
-          payload.recurrence_id = recurrenceId;
-        }
-
-        // Add recurrence_range if deleting this and future events
-        if (recurrenceRange) {
-          payload.recurrence_range = recurrenceRange;
-        }
+        const payload = buildDeleteEventWebSocketPayload(calendarId, uid, recurrenceId, recurrenceRange);
 
         await this._hass.connection.sendMessagePromise(payload);
         return; // Success via WebSocket
@@ -9620,20 +9461,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
 
     // Fallback to service call (works for Local Calendar and some others)
-    const serviceData = {
-      entity_id: calendarId,
-      uid: uid
-    };
-
-    // Add recurrence_id if deleting a specific instance
-    if (recurrenceId) {
-      serviceData.recurrence_id = recurrenceId;
-    }
-
-    // Add recurrence_range if deleting this and future events
-    if (recurrenceRange) {
-      serviceData.recurrence_range = recurrenceRange;
-    }
+    const serviceData = buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange);
 
     try {
       await this._hass.callService('calendar', 'delete_event', serviceData);
@@ -9651,44 +9479,14 @@ class SkylightCalendarCard extends HTMLElement {
     const isRecurring = !!eventData.rrule;
 
     // Build service-style data (used by both API variants)
-    const baseData = {
-      entity_id: calendarId,
-      summary: eventData.summary
-    };
-
-    if (eventData.location) {
-      baseData.location = eventData.location;
-    }
-
-    if (eventData.description) {
-      baseData.description = eventData.description;
-    }
-
-    if (eventData.start.date) {
-      baseData.start_date = eventData.start.date;
-      baseData.end_date = eventData.end.date;
-    } else {
-      baseData.start_date_time = eventData.start.dateTime;
-      baseData.end_date_time = eventData.end.dateTime;
-    }
+    const baseData = buildEventServiceData(calendarId, eventData);
 
     if (isRecurring) {
       baseData.rrule = eventData.rrule;
 
       // HA recurring event support is exposed through Calendar WebSocket API.
       // WebSocket schema expects event.dtstart / event.dtend (not start/end keys).
-      const wsPayload = {
-        type: 'calendar/event/create',
-        entity_id: calendarId,
-        event: {
-          summary: baseData.summary,
-          location: baseData.location,
-          description: baseData.description,
-          rrule: baseData.rrule,
-          dtstart: eventData.start.dateTime || eventData.start.date,
-          dtend: eventData.end.dateTime || eventData.end.date
-        }
-      };
+      const wsPayload = buildCreateEventWebSocketPayload(calendarId, eventData);
 
       try {
         if (this._hass.connection?.sendMessagePromise) {

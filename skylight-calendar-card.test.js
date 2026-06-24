@@ -4209,3 +4209,140 @@ test('day badge module preserves normalization, safe resolution, and render prep
   assert.equal(normalizedRules[0].conditions.title_contains, 'helper');
   assert.equal(normalizedRules[1].match.event.title, 'Helper');
 });
+
+test('event form helper preserves validation message keys and normalized data', async () => {
+  const { normalizeEventFormData } = await import('./src/events/event-form.js');
+
+  assert.deepEqual(normalizeEventFormData({ title: '', isAllDay: true }), { valid: false, errorKey: 'eventTitleRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: true, startDate: '', endDate: '2026-05-01' }), { valid: false, errorKey: 'startEndDatesRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: false, startDateTime: '', endDateTime: '2026-05-01T11:00' }), { valid: false, errorKey: 'startEndTimesRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: true, startDate: '2026-05-02', endDate: '2026-05-01' }), { valid: false, errorKey: 'endDateBeforeStart' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: false, startDateTime: '2026-05-01T11:00', endDateTime: '2026-05-01T10:00' }), { valid: false, errorKey: 'endTimeBeforeStart' });
+
+  const allDay = normalizeEventFormData({
+    title: 'All day',
+    location: '',
+    description: 'Notes',
+    isAllDay: true,
+    startDate: '2026-05-01',
+    endDate: '2026-05-01'
+  });
+  assert.equal(allDay.valid, true);
+  assert.deepEqual(allDay.eventData, {
+    summary: 'All day',
+    location: undefined,
+    description: 'Notes',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  });
+
+  const timed = normalizeEventFormData({
+    title: 'Timed',
+    location: 'Room',
+    description: '',
+    isAllDay: false,
+    startDateTime: '2026-05-01T10:00',
+    endDateTime: '2026-05-01T11:00'
+  });
+  assert.equal(timed.valid, true);
+  assert.equal(timed.eventData.summary, 'Timed');
+  assert.equal(timed.eventData.location, 'Room');
+  assert.equal(timed.eventData.description, undefined);
+  assert.equal(timed.eventData.start.dateTime, new Date('2026-05-01T10:00').toISOString());
+  assert.equal(timed.eventData.end.dateTime, new Date('2026-05-01T11:00').toISOString());
+});
+
+test('event service helpers preserve create update and delete payload shapes', async () => {
+  const {
+    buildCreateEventWebSocketPayload,
+    buildDeleteEventPayload,
+    buildDeleteEventWebSocketPayload,
+    buildEventServiceData,
+    buildUpdateEventServiceData,
+    buildUpdateEventWebSocketPayload,
+    getRecurringUpdateControls
+  } = await import('./src/events/event-service.js');
+
+  const allDayEventData = {
+    summary: 'All day',
+    location: 'Home',
+    description: 'Desc',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  assert.deepEqual(buildEventServiceData('calendar.home', allDayEventData), {
+    entity_id: 'calendar.home',
+    summary: 'All day',
+    location: 'Home',
+    description: 'Desc',
+    start_date: '2026-05-01',
+    end_date: '2026-05-02'
+  });
+
+  const timedEventData = {
+    summary: 'Timed',
+    start: { dateTime: '2026-05-01T10:00:00.000Z' },
+    end: { dateTime: '2026-05-01T11:00:00.000Z' },
+    rrule: 'FREQ=WEEKLY;BYDAY=FR'
+  };
+  assert.deepEqual(buildEventServiceData('calendar.work', timedEventData), {
+    entity_id: 'calendar.work',
+    summary: 'Timed',
+    start_date_time: '2026-05-01T10:00:00.000Z',
+    end_date_time: '2026-05-01T11:00:00.000Z',
+    rrule: 'FREQ=WEEKLY;BYDAY=FR'
+  });
+
+  assert.deepEqual(buildCreateEventWebSocketPayload('calendar.work', timedEventData), {
+    type: 'calendar/event/create',
+    entity_id: 'calendar.work',
+    event: {
+      summary: 'Timed',
+      location: undefined,
+      description: undefined,
+      rrule: 'FREQ=WEEKLY;BYDAY=FR',
+      dtstart: '2026-05-01T10:00:00.000Z',
+      dtend: '2026-05-01T11:00:00.000Z'
+    }
+  });
+
+  const originalEvent = { entityId: 'calendar.work', uid: 'uid-1', recurrence_id: 'rid-1', rrule: 'FREQ=WEEKLY' };
+  const controls = getRecurringUpdateControls(originalEvent, timedEventData, 'future');
+  assert.deepEqual(controls, { isRecurringUpdate: true, recurrenceId: 'rid-1', recurrenceRange: 'THISANDFUTURE' });
+  assert.deepEqual(buildUpdateEventServiceData(originalEvent, timedEventData, controls.recurrenceId, controls.recurrenceRange), {
+    entity_id: 'calendar.work',
+    summary: 'Timed',
+    start_date_time: '2026-05-01T10:00:00.000Z',
+    end_date_time: '2026-05-01T11:00:00.000Z',
+    rrule: 'FREQ=WEEKLY;BYDAY=FR',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildUpdateEventWebSocketPayload(originalEvent, timedEventData, controls.recurrenceId, controls.recurrenceRange), {
+    type: 'calendar/event/update',
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    event: {
+      summary: 'Timed',
+      dtstart: '2026-05-01T10:00:00.000Z',
+      dtend: '2026-05-01T11:00:00.000Z',
+      rrule: 'FREQ=WEEKLY;BYDAY=FR'
+    },
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildDeleteEventPayload('calendar.work', 'uid-1', 'rid-1', 'THISANDFUTURE'), {
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildDeleteEventWebSocketPayload('calendar.work', 'uid-1', 'rid-1', 'THISANDFUTURE'), {
+    type: 'calendar/event/delete',
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+});
