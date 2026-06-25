@@ -167,6 +167,7 @@ import {
   renderCalendarBadgesInline as renderCalendarBadgesInlineMarkup
 } from './renderers/calendar-badge-renderer.js';
 import { renderCreateEventForm, renderEditEventForm } from './renderers/event-form-renderer.js';
+import { renderDayCell } from './renderers/day-cell-renderer.js';
 import { renderWeekCompactView } from './renderers/week-compact-renderer.js';
 import { renderWeekStandardView } from './renderers/week-standard-renderer.js';
 import {
@@ -6876,24 +6877,25 @@ class SkylightCalendarCard extends HTMLElement {
     const visibleEvents = hasOverflow ? Math.max(0, maxVisible - 1) : maxVisible;
     const hiddenEventCount = Math.max(0, dayEvents.length - visibleEvents);
 
-    let classes = 'day-cell';
-    if (isOtherMonth) classes += ' other-month';
-    if (isToday) classes += ' today';
     const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-    classes += dayStyle.className ? ` ${dayStyle.className}` : '';
-    const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
 
-    return `
-      <div class="${classes}" data-date="${date.toISOString()}"${dayStyleAttr}>
-        <div class="day-header-row">
-          <div class="day-number">${dayNum}</div>
-          ${this.renderDayBadges(date, dayEventsForMatching)}
-          ${this.renderDayForecast(date, 'month')}
-        </div>
-        ${dayEvents.slice(0, visibleEvents).map(event => this.renderMonthDayEvent(event, date)).join('')}
-        ${hiddenEventCount > 0 ? `<div class="more-events" data-click-target="more-events">${this.t('moreEvents', { count: hiddenEventCount })}</div>` : ''}
-      </div>
-    `;
+    return renderDayCell({
+      date,
+      dayEvents,
+      dayEventsForMatching,
+      dayNum,
+      dayStyle,
+      hiddenEventCount,
+      isOtherMonth,
+      isToday,
+      visibleEvents,
+      helpers: {
+        renderDayBadges: this.renderDayBadges.bind(this),
+        renderDayForecast: this.renderDayForecast.bind(this),
+        renderMonthDayEvent: this.renderMonthDayEvent.bind(this),
+        t: this.t.bind(this)
+      }
+    });
   }
 
   renderMonthDayEvent(event, date) {
