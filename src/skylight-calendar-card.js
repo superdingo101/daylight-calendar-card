@@ -76,6 +76,27 @@ import {
   normalizeEntityStringMap,
   normalizeEnumValue
 } from './utils/normalization-utils.js';
+import {
+  blendRgb as blendRgbHelper,
+  colorToHex as colorToHexHelper,
+  colorWithAlpha as colorWithAlphaHelper,
+  getContrastColor as getContrastColorHelper,
+  normalizeColorMap as normalizeColorMapHelper,
+  normalizeSingleColor as normalizeSingleColorHelper,
+  parseColorToRgb as parseColorToRgbHelper
+} from './utils/color-utils.js';
+import {
+  normalizeBackgroundOpacity as normalizeBackgroundOpacityHelper,
+  normalizeCombineBackground as normalizeCombineBackgroundHelper,
+  normalizeCombineStyle as normalizeCombineStyleHelper,
+  normalizeDayBadgeLayoutWeek as normalizeDayBadgeLayoutWeekHelper,
+  normalizeDefaultHiddenCalendars as normalizeDefaultHiddenCalendarsHelper,
+  normalizeEventColorMode as normalizeEventColorModeHelper,
+  normalizeEventModalSize as normalizeEventModalSizeHelper,
+  normalizeEventTitlePrefixMode as normalizeEventTitlePrefixModeHelper,
+  normalizePastEventMode as normalizePastEventModeHelper,
+  normalizeThemeMode as normalizeThemeModeHelper
+} from './config/config-normalizers.js';
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 import {
   getEventDateTimeInfo as getNormalizedEventDateTimeInfo,
@@ -389,35 +410,19 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeDefaultDarkMode(value) {
-    if (value === true) return 'dark';
-    if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
-
-    return this.normalizeEnumValue(value, {
-      allowed: THEME_MODE_OPTIONS,
-      fallback: DEFAULT_THEME_MODE
-    });
+    return normalizeThemeModeHelper(value);
   }
 
   normalizeEventTitlePrefixMode(value) {
-    return this.normalizeEnumValue(value, {
-      aliases: EVENT_TITLE_PREFIX_ALIASES,
-      allowed: EVENT_TITLE_PREFIX_OPTIONS,
-      fallback: DEFAULT_EVENT_TITLE_PREFIX
-    });
+    return normalizeEventTitlePrefixModeHelper(value);
   }
 
   normalizePastEventMode(value) {
-    return this.normalizeEnumValue(value, {
-      allowed: PAST_EVENT_MODE_OPTIONS,
-      fallback: DEFAULT_PAST_EVENT_MODE
-    });
+    return normalizePastEventModeHelper(value);
   }
 
   normalizeDayBadgeLayoutWeek(value) {
-    return this.normalizeEnumValue(value, {
-      allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
-      fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
-    });
+    return normalizeDayBadgeLayoutWeekHelper(value);
   }
 
   normalizeEntityStringMap(value) {
@@ -481,29 +486,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeDefaultHiddenCalendars(config = {}) {
-    const knownEntities = new Set(Array.isArray(config.entities) ? config.entities : []);
-    const hiddenCalendars = new Set();
-
-    if (Array.isArray(config.default_hidden_calendars)) {
-      config.default_hidden_calendars.forEach((entityId) => {
-        if (knownEntities.has(entityId)) hiddenCalendars.add(entityId);
-      });
-    }
-
-    const visibilityMap = config.default_calendar_visibility || config.calendar_visibility || {};
-    if (visibilityMap && typeof visibilityMap === 'object' && !Array.isArray(visibilityMap)) {
-      Object.entries(visibilityMap).forEach(([entityId, value]) => {
-        if (!knownEntities.has(entityId)) return;
-        const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
-        if (HIDDEN_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
-          hiddenCalendars.add(entityId);
-        } else if (VISIBLE_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
-          hiddenCalendars.delete(entityId);
-        }
-      });
-    }
-
-    return Array.from(hiddenCalendars);
+    return normalizeDefaultHiddenCalendarsHelper(config);
   }
 
   loadPersistedPreferences() {
@@ -926,91 +909,38 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   normalizeColorMap(colorMap) {
-    if (!colorMap || typeof colorMap !== 'object') return {};
-
-    return Object.entries(colorMap).reduce((acc, [entityId, color]) => {
-      const normalized = this.normalizeSingleColor(color);
-      if (normalized !== undefined && normalized !== null && normalized !== '') {
-        acc[entityId] = normalized;
-      }
-      return acc;
-    }, {});
+    return normalizeColorMapHelper(colorMap, {
+      normalizeColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   normalizeSingleColor(colorValue) {
-    if (colorValue === undefined || colorValue === null) {
-      return colorValue;
-    }
-
-    const trimmed = String(colorValue).trim();
-    if (!trimmed) return trimmed;
-
-    const normalizedName = trimmed
-      .toLowerCase()
-      .replace(/[()]/g, '')
-      .replace(/\s*\/\s*/g, '/')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const mappedColor = SkylightCalendarCard.COMMON_NAMED_COLORS[normalizedName];
-    if (mappedColor) {
-      return mappedColor;
-    }
-
-    return trimmed;
+    return normalizeSingleColorHelper(colorValue);
   }
 
   colorToHex(color) {
-    if (!color) return null;
-
-    const normalizedColor = this.normalizeSingleColor(color);
-    if (typeof normalizedColor !== 'string') return null;
-
-    const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
-    if (hex3Match) {
-      const [r, g, b] = hex3Match[1].split('');
-      return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
-    }
-
-    const hex6Match = normalizedColor.match(/^#([\da-fA-F]{6})$/);
-    if (hex6Match) {
-      return `#${hex6Match[1].toUpperCase()}`;
-    }
-
-    return null;
+    return colorToHexHelper(color, {
+      normalizeColor: this.normalizeSingleColor.bind(this)
+    });
   }
 
   colorToRgb(color) {
-    const normalizedColor = this.normalizeSingleColor(color);
-    if (typeof normalizedColor === 'string') {
-      const rgbMatch = normalizedColor
-        .match(/^rgba?\((.+)\)$/i);
-      if (rgbMatch) {
-        const normalizedChannels = rgbMatch[1]
-          .replace(/\s*\/\s*.*/, '')
-          .replace(/,/g, ' ')
-          .trim()
-          .split(/\s+/)
-          .slice(0, 3)
-          .map((channel) => Number(channel));
-
-        if (normalizedChannels.length === 3 && normalizedChannels.every((value) => Number.isFinite(value))) {
-          const [r, g, b] = normalizedChannels.map((value) => Math.max(0, Math.min(255, Math.round(value))));
-          return { r, g, b };
-        }
-      }
-    }
-
-    const hex = this.colorToHex(normalizedColor);
-    if (hex) {
-      return {
-        r: parseInt(hex.slice(1, 3), 16),
-        g: parseInt(hex.slice(3, 5), 16),
-        b: parseInt(hex.slice(5, 7), 16)
-      };
-    }
-
-    return this.resolveComputedCssColorToRgb(normalizedColor);
+    return parseColorToRgbHelper(color, {
+      normalizeColor: this.normalizeSingleColor.bind(this),
+      resolveComputedCssColorToRgb: this.resolveComputedCssColorToRgb.bind(this)
+    });
   }
+
+  colorWithAlpha(color, alpha = 1) {
+    return colorWithAlphaHelper(color, alpha, {
+      colorToRgb: this.colorToRgb.bind(this)
+    });
+  }
+
+  blendRgb(top, bottom, topAlpha = 1) {
+    return blendRgbHelper(top, bottom, topAlpha);
+  }
+
 
 
   resolveComputedCssColorToRgb(color) {
@@ -1041,52 +971,18 @@ class SkylightCalendarCard extends HTMLElement {
     };
   }
 
-  colorWithAlpha(color, alpha = 1) {
-    const rgb = this.colorToRgb(color);
-    if (!rgb) return color;
-
-    const clamped = Math.max(0, Math.min(1, alpha));
-    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
-  }
-
-  blendRgb(top, bottom, topAlpha = 1) {
-    if (!top && !bottom) return null;
-    if (!top) return bottom;
-    if (!bottom) return top;
-    const clampedAlpha = Math.max(0, Math.min(1, topAlpha));
-    return {
-      r: Math.round((top.r * clampedAlpha) + (bottom.r * (1 - clampedAlpha))),
-      g: Math.round((top.g * clampedAlpha) + (bottom.g * (1 - clampedAlpha))),
-      b: Math.round((top.b * clampedAlpha) + (bottom.b * (1 - clampedAlpha)))
-    };
-  }
-
-
   normalizeCombineStyle(styleValue) {
-    return this.normalizeEnumValue(styleValue, {
-      allowed: COMBINE_STYLE_OPTIONS,
-      fallback: DEFAULT_COMBINE_STYLE
-    });
+    return normalizeCombineStyleHelper(styleValue);
   }
 
   normalizeEventColorMode(modeValue) {
-    return this.normalizeEnumValue(modeValue, {
-      allowed: EVENT_COLOR_MODE_OPTIONS,
-      fallback: DEFAULT_EVENT_COLOR_MODE
-    });
+    return normalizeEventColorModeHelper(modeValue);
   }
 
   normalizeCombineBackground(backgroundValue) {
-    const normalized = String(backgroundValue || '').trim();
-    if (!normalized) return DEFAULT_COMBINE_BACKGROUND;
-
-    const lower = normalized.toLowerCase();
-    if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(lower)) {
-      return lower;
-    }
-
-    const hex = this.colorToHex(normalized);
-    return hex || DEFAULT_COMBINE_BACKGROUND;
+    return normalizeCombineBackgroundHelper(backgroundValue, {
+      colorToHex: this.colorToHex.bind(this)
+    });
   }
 
   getEmptyAdvancedMatch() {
@@ -4482,11 +4378,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getContractColor(backgroundColor) {
-    const rgb = this.colorToRgb(backgroundColor);
-    if (!rgb) return 'white';
-
-    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-    return luminance > 0.6 ? 'black' : 'white';
+    return getContrastColorHelper(backgroundColor, {
+      colorToRgb: this.colorToRgb.bind(this)
+    });
   }
 
   getIndicatorColors(visibleColors, combineStyle, combineBackgroundOption) {
@@ -7015,17 +6909,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeBackgroundOpacity(opacityValue, fallback = 0) {
-    const numericOpacity = Number(opacityValue);
-    if (!Number.isFinite(numericOpacity)) {
-      return fallback;
-    }
-
-    return Math.min(100, Math.max(0, numericOpacity));
+    return normalizeBackgroundOpacityHelper(opacityValue, fallback);
   }
 
   normalizeEventModalSize(value) {
-    const normalized = String(value || '').trim().toLowerCase();
-    return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+    return normalizeEventModalSizeHelper(value);
   }
 
   getEventModalSizeClass() {

@@ -4,7 +4,7 @@
   "scripts": {
     "build": "rollup -c",
     "check:build": "npm run build && git diff --exit-code -- skylight-calendar-card.js",
-    "test": "node --test skylight-calendar-card.test.js ha-state-helpers.test.mjs",
+    "test": "node --test skylight-calendar-card.test.js ha-state-helpers.test.mjs color-config-normalizers.test.mjs",
     "test:visual": "playwright test"
   },
   "devDependencies": {
