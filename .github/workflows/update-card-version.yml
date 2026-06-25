@@ -53,10 +53,10 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          perl -0pi -e "s/const DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+';/const DAYLIGHT_CALENDAR_CARD_VERSION = '$VERSION';/" src/skylight-calendar-card.js
+          perl -0pi -e "s/const DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+';/const DAYLIGHT_CALENDAR_CARD_VERSION = '$VERSION';/" src/version.js
           npm run build
 
-          DETECTED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          DETECTED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/version.js | sed -E "s/.*'([^']+)'.*/\1/")"
           GENERATED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
           echo "Detected source version: $DETECTED_VERSION"
           echo "Detected generated version: $GENERATED_VERSION"
@@ -73,7 +73,7 @@ jobs:
 
       - name: Verify release staging checks
         run: |
-          VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/version.js | sed -E "s/.*'([^']+)'.*/\1/")"
           GENERATED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
 
           echo "Detected source version: $VERSION"
@@ -103,9 +103,9 @@ jobs:
           title: Prepare release ${{ steps.version.outputs.version }}
           commit-message: Prepare release ${{ steps.version.outputs.version }}
           body: |
-            Updates `DAYLIGHT_CALENDAR_CARD_VERSION` in `src/skylight-calendar-card.js` to `${{ steps.version.outputs.version }}` and rebuilds `skylight-calendar-card.js`.
+            Updates `DAYLIGHT_CALENDAR_CARD_VERSION` in `src/version.js` to `${{ steps.version.outputs.version }}` and rebuilds `skylight-calendar-card.js`.
 
             This workflow validated the version string and the same source checks used by the release staging workflow before opening this PR.
           add-paths: |
-            src/skylight-calendar-card.js
+            src/version.js
             skylight-calendar-card.js
