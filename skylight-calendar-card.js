@@ -3693,6 +3693,127 @@ ${renderEventFields({
     `;
 }
 
+function renderStandardHeader({
+  canAddEvents,
+  shouldShowControls,
+  helpers
+}) {
+  return `
+      <div class="header">
+        <div class="header-left">
+          ${helpers.renderDashboardNavButton()}
+          ${helpers.renderHeaderTitle()}
+        </div>
+        ${shouldShowControls ? `
+          <div class="header-controls">
+            ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
+            ${helpers.renderThemeToggle()}
+            <div class="period-controls">
+              ${helpers.renderPeriodNavigationButtons('previous')}
+              <div class="month-year">${helpers.getPeriodLabel()}</div>
+              ${helpers.renderPeriodNavigationButtons('next')}
+              ${helpers.renderPeriodNavigationButtons('today')}
+            </div>
+            ${helpers.renderViewModeButtons()}
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
+function renderCompactHeader({
+  canAddEvents,
+  shouldShowCalendars,
+  shouldShowControls,
+  helpers
+}) {
+  return `
+      <div class="header header-compact">
+        <div class="compact-header-left">
+          ${helpers.renderDashboardNavButton()}
+          ${helpers.renderHeaderTitle()}
+          ${shouldShowCalendars ? helpers.renderCalendarBadgesInline() : ''}
+        </div>
+        ${shouldShowControls ? `
+          <div class="header-controls compact-header-controls">
+            <div class="compact-period-controls">
+              ${helpers.renderPeriodNavigationButtons('previous')}
+              <div class="month-year">${helpers.getPeriodLabel()}</div>
+              ${helpers.renderPeriodNavigationButtons('next')}
+              ${helpers.renderPeriodNavigationButtons('today')}
+            </div>
+            ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
+            ${helpers.renderThemeToggle()}
+            ${helpers.renderViewModeButtons()}
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
+function renderHeaderTitle({
+  title,
+  headerTime,
+  headerWeather,
+  helpers
+}) {
+  return `
+      <div class="header-title-wrap">
+        <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
+        ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
+        ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+      </div>
+    `;
+}
+
+function renderDashboardNavButton({ shouldShow, helpers }) {
+  if (!shouldShow) return '';
+  return `<button class="dashboard-nav-button" id="header-dashboard-btn" aria-label="${helpers.t('openDashboard')}" title="${helpers.t('openDashboard')}">⌂</button>`;
+}
+
+function renderPeriodNavigationButtons({
+  buttonType,
+  hideNavigationButtons,
+  shouldDisablePreviousNavigation,
+  helpers
+}) {
+  if (hideNavigationButtons) return '';
+
+  if (buttonType === 'previous') {
+    return `<button class="nav-button" id="prev-period" ${shouldDisablePreviousNavigation ? 'disabled' : ''}>‹</button>`;
+  }
+
+  if (buttonType === 'next') {
+    return '<button class="nav-button" id="next-period">›</button>';
+  }
+
+  if (buttonType === 'today') {
+    return `<button class="today-button" id="today">${helpers.t('today')}</button>`;
+  }
+
+  return '';
+}
+
+function renderViewModeButtons({ hideViewSelector, viewMode, helpers }) {
+  if (hideViewSelector) return '';
+
+  return `
+      <div class="view-mode-buttons">
+        <select class="view-mode-select" id="view-mode-select" aria-label="Select calendar view">
+          <option value="month" ${viewMode === 'month' ? 'selected' : ''}>${helpers.t('month')}</option>
+          <option value="week-compact" ${viewMode === 'week-compact' ? 'selected' : ''}>${helpers.t('week')}</option>
+          <option value="week-standard" ${viewMode === 'week-standard' ? 'selected' : ''}>${helpers.t('schedule')}</option>
+          <option value="agenda" ${viewMode === 'agenda' ? 'selected' : ''}>${helpers.t('agenda')}</option>
+        </select>
+      </div>
+    `;
+}
+
+function renderThemeToggle({ hideDarkModeToggle, isDarkMode }) {
+  if (hideDarkModeToggle) return '';
+  return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${isDarkMode ? '☀︎' : '☾'}</button>`;
+}
+
 function renderDayCellHeader({
   date,
   dayEventsForMatching,
@@ -9614,32 +9735,30 @@ class SkylightCalendarCard extends HTMLElement {
     }
   }
 
+  getHeaderRenderHelpers() {
+    return {
+      escapeHtml: (value) => this.escapeHtml(value),
+      getPeriodLabel: () => this.getPeriodLabel(),
+      renderCalendarBadgesInline: () => this.renderCalendarBadgesInline(),
+      renderDashboardNavButton: () => this.renderDashboardNavButton(),
+      renderHeaderTitle: () => this.renderHeaderTitle(),
+      renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
+      renderThemeToggle: () => this.renderThemeToggle(),
+      renderViewModeButtons: () => this.renderViewModeButtons(),
+      t: (key, params) => this.t(key, params)
+    };
+  }
+
   renderStandardHeader() {
     const writableCalendars = this.getWritableCalendars();
     const canAddEvents = this._config.enable_event_management && writableCalendars.length > 0 && !this._config.hide_add_event_button;
     const shouldShowControls = !this._config.hide_controls;
 
-    return `
-      <div class="header">
-        <div class="header-left">
-          ${this.renderDashboardNavButton()}
-          ${this.renderHeaderTitle()}
-        </div>
-        ${shouldShowControls ? `
-          <div class="header-controls">
-            ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${this.t('addEvent')}</button>` : ''}
-            ${this.renderThemeToggle()}
-            <div class="period-controls">
-              ${this.renderPeriodNavigationButtons('previous')}
-              <div class="month-year">${this.getPeriodLabel()}</div>
-              ${this.renderPeriodNavigationButtons('next')}
-              ${this.renderPeriodNavigationButtons('today')}
-            </div>
-            ${this.renderViewModeButtons()}
-          </div>
-        ` : ''}
-      </div>
-    `;
+    return renderStandardHeader({
+      canAddEvents,
+      shouldShowControls,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderCompactHeader() {
@@ -9648,28 +9767,12 @@ class SkylightCalendarCard extends HTMLElement {
     const shouldShowCalendars = !this._config.hide_calendars;
     const shouldShowControls = !this._config.hide_controls;
 
-    return `
-      <div class="header header-compact">
-        <div class="compact-header-left">
-          ${this.renderDashboardNavButton()}
-          ${this.renderHeaderTitle()}
-          ${shouldShowCalendars ? this.renderCalendarBadgesInline() : ''}
-        </div>
-        ${shouldShowControls ? `
-          <div class="header-controls compact-header-controls">
-            <div class="compact-period-controls">
-              ${this.renderPeriodNavigationButtons('previous')}
-              <div class="month-year">${this.getPeriodLabel()}</div>
-              ${this.renderPeriodNavigationButtons('next')}
-              ${this.renderPeriodNavigationButtons('today')}
-            </div>
-            ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${this.t('addEvent')}" title="${this.t('addEvent')}">+</button>` : ''}
-            ${this.renderThemeToggle()}
-            ${this.renderViewModeButtons()}
-          </div>
-        ` : ''}
-      </div>
-    `;
+    return renderCompactHeader({
+      canAddEvents,
+      shouldShowCalendars,
+      shouldShowControls,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   getCalendarBadgeRenderHelpers() {
@@ -9698,56 +9801,43 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
-    return `
-      <div class="header-title-wrap">
-        <h2 class="header-title">${this.escapeHtml(this._config.title || '')}</h2>
-        ${headerTime ? `<span class="header-time">${this.escapeHtml(headerTime)}</span>` : ''}
-        ${headerWeather ? `<span class="header-weather"><ha-icon icon="${this.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${this.escapeHtml(headerWeather.temperature)}</span>` : ''}
-      </div>
-    `;
+    return renderHeaderTitle({
+      title: this._config.title,
+      headerTime,
+      headerWeather,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderDashboardNavButton() {
-    if (!this.shouldShowDashboardNavButton()) return '';
-    return `<button class="dashboard-nav-button" id="header-dashboard-btn" aria-label="${this.t('openDashboard')}" title="${this.t('openDashboard')}">⌂</button>`;
+    return renderDashboardNavButton({
+      shouldShow: this.shouldShowDashboardNavButton(),
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderPeriodNavigationButtons(buttonType) {
-    if (this._config.hide_navigation_buttons) return '';
-
-    if (buttonType === 'previous') {
-      return `<button class="nav-button" id="prev-period" ${this.shouldDisablePreviousNavigation() ? 'disabled' : ''}>‹</button>`;
-    }
-
-    if (buttonType === 'next') {
-      return '<button class="nav-button" id="next-period">›</button>';
-    }
-
-    if (buttonType === 'today') {
-      return `<button class="today-button" id="today">${this.t('today')}</button>`;
-    }
-
-    return '';
+    return renderPeriodNavigationButtons({
+      buttonType,
+      hideNavigationButtons: this._config.hide_navigation_buttons,
+      shouldDisablePreviousNavigation: this.shouldDisablePreviousNavigation(),
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderViewModeButtons() {
-    if (this._config.hide_view_selector) return '';
-
-    return `
-      <div class="view-mode-buttons">
-        <select class="view-mode-select" id="view-mode-select" aria-label="Select calendar view">
-          <option value="month" ${this._viewMode === 'month' ? 'selected' : ''}>${this.t('month')}</option>
-          <option value="week-compact" ${this._viewMode === 'week-compact' ? 'selected' : ''}>${this.t('week')}</option>
-          <option value="week-standard" ${this._viewMode === 'week-standard' ? 'selected' : ''}>${this.t('schedule')}</option>
-          <option value="agenda" ${this._viewMode === 'agenda' ? 'selected' : ''}>${this.t('agenda')}</option>
-        </select>
-      </div>
-    `;
+    return renderViewModeButtons({
+      hideViewSelector: this._config.hide_view_selector,
+      viewMode: this._viewMode,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderThemeToggle() {
-    if (this._config.hide_dark_mode_toggle) return '';
-    return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${this._isDarkMode ? '☀︎' : '☾'}</button>`;
+    return renderThemeToggle({
+      hideDarkModeToggle: this._config.hide_dark_mode_toggle,
+      isDarkMode: this._isDarkMode
+    });
   }
 
   getPeriodLabel() {
