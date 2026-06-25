@@ -137,11 +137,7 @@ import {
   getPersonEntityPictureUrl as getPersonEntityPictureUrlHelper,
   getPersonStateLabel as getPersonStateLabelHelper
 } from './ha/ha-state-helpers.js';
-import {
-  buildWeatherForecastRequestMessage,
-  buildWeatherForecastSubscriptionMessage,
-  isWeatherEntityId
-} from './weather/weather-service.js';
+import { createWeatherForecastController } from './weather/weather-controller.js';
 import {
   buildRRuleFromInputs as buildRRuleFromInputsHelper,
   normalizeEventFormData,
@@ -324,14 +320,17 @@ class SkylightCalendarCard extends HTMLElement {
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
     this._pendingHeaderSensorRender = false;
-    this._weatherForecastByEntity = new Map();
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
-    this._weatherForecastSubscriptionGeneration = 0;
-    this._weatherForecastRefreshInFlight = false;
-    this._weatherForecastRefreshRetryAtByEntity = new Map();
+    this._weatherForecastController = createWeatherForecastController({
+      getHass: () => this._hass,
+      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      onForecastUpdated: () => {
+        if (!this.isEventManagementDialogOpen()) {
+          this.renderPreservingAgendaScroll();
+        } else {
+          this._pendingHeaderSensorRender = true;
+        }
+      }
+    });
     this._modalVisibilityObserver = null;
     this._monthMeasureRaf = null;
     this._monthMeasureRenderRaf = null;
@@ -814,11 +813,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._loadedEventRange = null;
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
-    if (previousHeaderWeatherSensor !== this._config.header_weather_sensor) {
-      this.teardownWeatherForecastSubscription();
-      this._weatherForecastByEntity.clear();
-      this._weatherForecastRefreshRetryAtByEntity.clear();
-    }
+    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
@@ -6417,111 +6412,15 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   teardownWeatherForecastSubscription() {
-    this._weatherForecastSubscriptionGeneration += 1;
-    if (typeof this._weatherForecastUnsubscribe === 'function') {
-      this._weatherForecastUnsubscribe();
-    }
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
+    this._weatherForecastController.teardownSubscription();
   }
 
-  async ensureWeatherForecastSubscription() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!isWeatherEntityId(entityId)) {
-      this.teardownWeatherForecastSubscription();
-      return;
-    }
-
-    if (!this._hass?.connection?.subscribeMessage) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionEntityId === entityId && this._weatherForecastUnsubscribe) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionInFlight && this._weatherForecastSubscriptionInFlightEntityId === entityId) {
-      return this._weatherForecastSubscriptionInFlight;
-    }
-
-    this.teardownWeatherForecastSubscription();
-    const subscriptionGeneration = this._weatherForecastSubscriptionGeneration;
-    this._weatherForecastSubscriptionInFlightEntityId = entityId;
-
-    const setupPromise = this._hass.connection.subscribeMessage(
-        (message) => {
-          const nextForecast = Array.isArray(message?.forecast) ? message.forecast : [];
-          this._weatherForecastByEntity.set(entityId, nextForecast);
-          if (!this.isEventManagementDialogOpen()) {
-            this.renderPreservingAgendaScroll();
-          } else {
-            this._pendingHeaderSensorRender = true;
-          }
-        },
-        buildWeatherForecastSubscriptionMessage(entityId)
-      )
-      .then((unsubscribe) => {
-        const generationMatches = subscriptionGeneration === this._weatherForecastSubscriptionGeneration;
-        const entityMatches = entityId === this._weatherForecastSubscriptionInFlightEntityId;
-        if (!generationMatches || !entityMatches) {
-          if (typeof unsubscribe === 'function') {
-            unsubscribe();
-          }
-          return;
-        }
-
-        this._weatherForecastUnsubscribe = unsubscribe;
-        this._weatherForecastSubscriptionEntityId = entityId;
-      })
-      .catch(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastUnsubscribe = null;
-          this._weatherForecastSubscriptionEntityId = null;
-        }
-      })
-      .finally(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastSubscriptionInFlight = null;
-          this._weatherForecastSubscriptionInFlightEntityId = null;
-        }
-      });
-
-    this._weatherForecastSubscriptionInFlight = setupPromise;
-    return setupPromise;
+  ensureWeatherForecastSubscription() {
+    return this._weatherForecastController.ensureSubscription();
   }
 
-  async refreshWeatherForecastData() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!isWeatherEntityId(entityId)) return;
-    if (!this._hass || this._weatherForecastRefreshInFlight) return;
-    if (this._weatherForecastByEntity.has(entityId)) return;
-    const now = Date.now();
-    const retryAt = this._weatherForecastRefreshRetryAtByEntity.get(entityId) || 0;
-    if (retryAt > now) return;
-
-    this._weatherForecastRefreshInFlight = true;
-    try {
-      const wsResponse = await this._hass.callWS(buildWeatherForecastRequestMessage(entityId));
-
-      const dailyForecast = wsResponse?.[entityId]?.forecast;
-      if (Array.isArray(dailyForecast)) {
-        this._weatherForecastByEntity.set(entityId, dailyForecast);
-        this._weatherForecastRefreshRetryAtByEntity.delete(entityId);
-        if (!this.isEventManagementDialogOpen()) {
-          this.renderPreservingAgendaScroll();
-        } else {
-          this._pendingHeaderSensorRender = true;
-        }
-      }
-    } catch (error) {
-      // forecast websocket may be unavailable in older HA versions; keep graceful fallback paths
-      const retryDelayMs = 5 * 60 * 1000;
-      this._weatherForecastRefreshRetryAtByEntity.set(entityId, now + retryDelayMs);
-    } finally {
-      this._weatherForecastRefreshInFlight = false;
-    }
+  refreshWeatherForecastData() {
+    return this._weatherForecastController.refreshForecastData();
   }
 
   getHeaderEntityRenderSignature(entityState) {
@@ -6563,7 +6462,7 @@ class SkylightCalendarCard extends HTMLElement {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
-    const wsForecast = this._weatherForecastByEntity.get(sensorEntityId);
+    const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
     const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
     return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
   }

@@ -4786,3 +4786,152 @@ test('event fetcher normalizes with calendar colors and de-duplicates chunk over
     { entityId: 'calendar.work', color: 'calendar.work:3:color' }
   ]);
 });
+
+test('weather controller ignores missing hass, missing/non-weather entities, and caches forecast by entity', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let entityId = 'sensor.outdoor';
+  let requestCount = 0;
+  let subscribeCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => null,
+    getWeatherEntityId: () => entityId,
+    requestForecast: async () => { requestCount += 1; },
+    subscribeForecast: async () => { subscribeCount += 1; return () => {}; }
+  });
+
+  await controller.ensureSubscription();
+  await controller.refreshForecastData();
+  assert.equal(subscribeCount, 0);
+  assert.equal(requestCount, 0);
+
+  entityId = null;
+  await controller.ensureSubscription();
+  await controller.refreshForecastData();
+  assert.equal(controller.getForecastForEntity('weather.home'), undefined);
+});
+
+test('weather controller subscribes with weather payload and avoids duplicate in-flight subscriptions', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let resolveSubscription;
+  let callback;
+  const messages = [];
+  let updated = null;
+  const unsubscribe = () => { unsubscribe.called = true; };
+  const controller = createWeatherForecastController({
+    getHass: () => ({ connection: {} }),
+    getWeatherEntityId: () => 'weather.home',
+    subscribeForecast: (nextCallback, message) => {
+      callback = nextCallback;
+      messages.push(message);
+      return new Promise((resolve) => { resolveSubscription = () => resolve(unsubscribe); });
+    },
+    onForecastUpdated: (entityId, forecast, details) => { updated = { entityId, forecast, details }; }
+  });
+
+  const first = controller.ensureSubscription();
+  const second = controller.ensureSubscription();
+  assert.equal(messages.length, 1);
+  assert.deepEqual(messages[0], {
+    type: 'weather/subscribe_forecast',
+    entity_id: 'weather.home',
+    forecast_type: 'daily'
+  });
+
+  callback({ forecast: [{ datetime: '2026-06-25', condition: 'sunny' }] });
+  assert.deepEqual(controller.getForecastForEntity('weather.home'), [{ datetime: '2026-06-25', condition: 'sunny' }]);
+  assert.deepEqual(updated, {
+    entityId: 'weather.home',
+    forecast: [{ datetime: '2026-06-25', condition: 'sunny' }],
+    details: { source: 'subscription' }
+  });
+
+  resolveSubscription();
+  await first;
+  await controller.ensureSubscription();
+  assert.equal(messages.length, 1);
+});
+
+test('weather controller refreshes with forecast payload, prevents duplicates, and caches successes', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let resolveRequest;
+  const messages = [];
+  const updates = [];
+  const controller = createWeatherForecastController({
+    getHass: () => ({}),
+    getWeatherEntityId: () => 'weather.home',
+    requestForecast: (message) => {
+      messages.push(message);
+      return new Promise((resolve) => { resolveRequest = () => resolve({ weather: {}, 'weather.home': { forecast: [{ date: '2026-06-25' }] } }); });
+    },
+    onForecastUpdated: (entityId, forecast, details) => updates.push({ entityId, forecast, details })
+  });
+
+  const first = controller.refreshForecastData();
+  const second = controller.refreshForecastData();
+  assert.equal(messages.length, 1);
+  assert.deepEqual(messages[0], {
+    type: 'weather/get_forecasts',
+    entity_ids: ['weather.home'],
+    forecast_type: 'daily'
+  });
+  resolveRequest();
+  await first;
+  await second;
+
+  assert.deepEqual(controller.getForecastForEntity('weather.home'), [{ date: '2026-06-25' }]);
+  assert.deepEqual(updates, [{
+    entityId: 'weather.home',
+    forecast: [{ date: '2026-06-25' }],
+    details: { source: 'refresh' }
+  }]);
+  await controller.refreshForecastData();
+  assert.equal(messages.length, 1);
+});
+
+test('weather controller records retry timing after failed refresh and suppresses until retry time', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let now = 1000;
+  let requestCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => ({}),
+    getWeatherEntityId: () => 'weather.home',
+    now: () => now,
+    retryDelayMs: 300000,
+    requestForecast: async () => {
+      requestCount += 1;
+      if (requestCount === 1) throw new Error('no forecasts');
+      return { 'weather.home': { forecast: [{ date: '2026-06-26' }] } };
+    }
+  });
+
+  await controller.refreshForecastData();
+  assert.equal(controller.refreshRetryAtByEntity.get('weather.home'), 301000);
+  await controller.refreshForecastData();
+  assert.equal(requestCount, 1);
+  now = 301001;
+  await controller.refreshForecastData();
+  assert.equal(requestCount, 2);
+  assert.equal(controller.refreshRetryAtByEntity.has('weather.home'), false);
+});
+
+test('weather controller config changes tear down subscription and clear forecasts and retries', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let entityId = 'weather.home';
+  let unsubscribeCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => ({ connection: {} }),
+    getWeatherEntityId: () => entityId,
+    subscribeForecast: async () => () => { unsubscribeCount += 1; }
+  });
+
+  await controller.ensureSubscription();
+  controller.forecastByEntity.set('weather.home', [{ date: '2026-06-25' }]);
+  controller.refreshRetryAtByEntity.set('weather.home', 1234);
+  entityId = 'weather.garden';
+  controller.handleConfigChanged('weather.home', 'weather.garden');
+
+  assert.equal(unsubscribeCount, 1);
+  assert.equal(controller.subscriptionEntityId, null);
+  assert.equal(controller.getForecastForEntity('weather.home'), undefined);
+  assert.equal(controller.refreshRetryAtByEntity.size, 0);
+});
