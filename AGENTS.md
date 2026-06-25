@@ -31,7 +31,7 @@ The project was formerly named Skylight Calendar Card. The public name is now Da
 
 Current modules are organized around these boundaries. Future modules may be added, but new modules should preserve the same separation principles and keep card-instance orchestration separate from pure/data-only helpers.
 
-* `src/skylight-calendar-card.js`: main custom element, lifecycle, Home Assistant orchestration, rendering/templates, DOM measurement, scroll restoration, CSS, modal/editor DOM behavior, and event handlers.
+* `src/skylight-calendar-card.js`: main custom element, lifecycle, Home Assistant orchestration, view composition, renderer callback wiring, DOM measurement, scroll restoration, modal/editor DOM behavior, preference persistence, service behavior, and event handlers.
 * `src/translations.js`: translation data.
 * `src/constants.js`: shared static constants.
 * `src/defaults.js`: default config values, option lists, aliases, and stub config creation.
@@ -50,11 +50,13 @@ Current modules are organized around these boundaries. Future modules may be add
 * `src/views/week-view-model.js`: week and rolling-days view-model helpers.
 * `src/views/agenda-view-model.js`: agenda visible-range and rolling-days view-model helpers.
 * `src/calendars/calendar-entities.js`: calendar entity metadata, colors, names, virtual calendar badges, writable calendars, and person mappings.
+* `src/renderers/`: extracted markup renderers for header, month, day cells, week compact, week standard, agenda, shared events, modals/forms, editor controls, calendar badges, and day/weather helpers. Renderers receive explicit data and callbacks from the card.
+* `src/styles/card-styles.js`: static card CSS used by the main custom element.
 
 ## Modularization guardrails
 
 * Prefer extracting pure/data-only logic before rendering or DOM logic.
-* Keep render methods, Lit/HTML templates, CSS, DOM querying, lifecycle methods, modal rendering, editor rendering, and Home Assistant service orchestration in `src/skylight-calendar-card.js` unless a prompt explicitly asks to move that area.
+* Keep lifecycle methods, card-instance view composition, renderer callback wiring, DOM querying, modal behavior, editor behavior, preference persistence, ResizeObserver/compact-height behavior, and Home Assistant service orchestration in `src/skylight-calendar-card.js` unless a prompt explicitly asks to move that area.
 * New modules should receive explicit inputs/helpers rather than importing or depending on card instance state.
 * Do not pass the whole card instance into helper modules unless explicitly justified.
 * Preserve public config option names, custom element names, CSS class names, DOM structure, and visual behavior.
@@ -63,7 +65,7 @@ Current modules are organized around these boundaries. Future modules may be add
 
 ## Working in `src/`
 
-Most source work should start in `src/`. `src/skylight-calendar-card.js` remains large and tightly coupled because it owns lifecycle, rendering, DOM, CSS, and orchestration. Before editing:
+Most source work should start in `src/`. `src/skylight-calendar-card.js` remains large and tightly coupled because it owns lifecycle, view composition, renderer callback wiring, DOM behavior, and orchestration. Before editing:
 
 1. Find the existing feature area and existing module boundary.
 2. Reuse existing modules/helpers before adding new ones.
