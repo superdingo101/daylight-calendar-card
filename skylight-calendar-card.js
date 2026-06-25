@@ -7573,6 +7573,175 @@ function buildWeatherForecastRequestMessage(entityId, forecastType = 'daily') {
   };
 }
 
+const DEFAULT_RETRY_DELAY_MS = 5 * 60 * 1000;
+
+class WeatherForecastController {
+  constructor({
+    getHass,
+    getWeatherEntityId,
+    onForecastUpdated = () => {},
+    now = () => Date.now(),
+    requestForecast = null,
+    subscribeForecast = null,
+    retryDelayMs = DEFAULT_RETRY_DELAY_MS
+  } = {}) {
+    this.getHass = getHass || (() => null);
+    this.getWeatherEntityId = getWeatherEntityId || (() => null);
+    this.onForecastUpdated = onForecastUpdated;
+    this.now = now;
+    this.requestForecast = requestForecast;
+    this.subscribeForecast = subscribeForecast;
+    this.retryDelayMs = retryDelayMs;
+
+    this.forecastByEntity = new Map();
+    this.subscriptionEntityId = null;
+    this.unsubscribe = null;
+    this.subscriptionInFlight = null;
+    this.subscriptionInFlightEntityId = null;
+    this.subscriptionGeneration = 0;
+    this.refreshInFlight = false;
+    this.refreshRetryAtByEntity = new Map();
+  }
+
+  getActiveWeatherEntityId() {
+    const entityId = this.getWeatherEntityId();
+    return isWeatherEntityId(entityId) ? entityId : null;
+  }
+
+  handleConfigChanged(previousEntityId, nextEntityId) {
+    if (previousEntityId !== nextEntityId) {
+      this.teardownSubscription();
+      this.clearForecasts();
+      this.clearRetryTimes();
+    }
+  }
+
+  clearForecasts() {
+    this.forecastByEntity.clear();
+  }
+
+  clearRetryTimes() {
+    this.refreshRetryAtByEntity.clear();
+  }
+
+  getForecastForEntity(entityId) {
+    return this.forecastByEntity.get(entityId);
+  }
+
+  getRenderSignature(entityId) {
+    const forecast = this.getForecastForEntity(entityId);
+    return JSON.stringify(Array.isArray(forecast) ? forecast : null);
+  }
+
+  teardownSubscription() {
+    this.subscriptionGeneration += 1;
+    if (typeof this.unsubscribe === 'function') {
+      this.unsubscribe();
+    }
+    this.unsubscribe = null;
+    this.subscriptionEntityId = null;
+    this.subscriptionInFlight = null;
+    this.subscriptionInFlightEntityId = null;
+  }
+
+  async ensureSubscription() {
+    const entityId = this.getActiveWeatherEntityId();
+    if (!entityId) {
+      this.teardownSubscription();
+      return undefined;
+    }
+
+    const hass = this.getHass();
+    const subscribeForecast = this.subscribeForecast || hass?.connection?.subscribeMessage?.bind(hass.connection);
+    if (typeof subscribeForecast !== 'function') {
+      return undefined;
+    }
+
+    if (this.subscriptionEntityId === entityId && this.unsubscribe) {
+      return undefined;
+    }
+
+    if (this.subscriptionInFlight && this.subscriptionInFlightEntityId === entityId) {
+      return this.subscriptionInFlight;
+    }
+
+    this.teardownSubscription();
+    const subscriptionGeneration = this.subscriptionGeneration;
+    this.subscriptionInFlightEntityId = entityId;
+
+    const setupPromise = subscribeForecast(
+      (message) => {
+        const nextForecast = Array.isArray(message?.forecast) ? message.forecast : [];
+        this.forecastByEntity.set(entityId, nextForecast);
+        this.onForecastUpdated(entityId, nextForecast, { source: 'subscription' });
+      },
+      buildWeatherForecastSubscriptionMessage(entityId)
+    )
+      .then((unsubscribe) => {
+        const generationMatches = subscriptionGeneration === this.subscriptionGeneration;
+        const entityMatches = entityId === this.subscriptionInFlightEntityId;
+        if (!generationMatches || !entityMatches) {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+          return;
+        }
+
+        this.unsubscribe = unsubscribe;
+        this.subscriptionEntityId = entityId;
+      })
+      .catch(() => {
+        if (subscriptionGeneration === this.subscriptionGeneration) {
+          this.unsubscribe = null;
+          this.subscriptionEntityId = null;
+        }
+      })
+      .finally(() => {
+        if (subscriptionGeneration === this.subscriptionGeneration) {
+          this.subscriptionInFlight = null;
+          this.subscriptionInFlightEntityId = null;
+        }
+      });
+
+    this.subscriptionInFlight = setupPromise;
+    return setupPromise;
+  }
+
+  async refreshForecastData() {
+    const entityId = this.getActiveWeatherEntityId();
+    if (!entityId) return undefined;
+    const hass = this.getHass();
+    if (!hass || this.refreshInFlight) return undefined;
+    if (this.forecastByEntity.has(entityId)) return undefined;
+    const now = this.now();
+    const retryAt = this.refreshRetryAtByEntity.get(entityId) || 0;
+    if (retryAt > now) return undefined;
+
+    const requestForecast = this.requestForecast || ((message) => hass.callWS(message));
+    if (typeof requestForecast !== 'function') return undefined;
+
+    this.refreshInFlight = true;
+    try {
+      const wsResponse = await requestForecast(buildWeatherForecastRequestMessage(entityId));
+      const dailyForecast = wsResponse?.[entityId]?.forecast;
+      if (Array.isArray(dailyForecast)) {
+        this.forecastByEntity.set(entityId, dailyForecast);
+        this.refreshRetryAtByEntity.delete(entityId);
+        this.onForecastUpdated(entityId, dailyForecast, { source: 'refresh' });
+      }
+    } catch (error) {
+      this.refreshRetryAtByEntity.set(entityId, now + this.retryDelayMs);
+    } finally {
+      this.refreshInFlight = false;
+    }
+    return undefined;
+  }
+}
+
+function createWeatherForecastController(dependencies) {
+  return new WeatherForecastController(dependencies);
+}
+
 const resolveTimedEventRange = (startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) => {
   const start = parsePossiblyLocalDateTime(startValue);
   if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
@@ -9699,14 +9868,17 @@ class SkylightCalendarCard extends HTMLElement {
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
     this._pendingHeaderSensorRender = false;
-    this._weatherForecastByEntity = new Map();
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
-    this._weatherForecastSubscriptionGeneration = 0;
-    this._weatherForecastRefreshInFlight = false;
-    this._weatherForecastRefreshRetryAtByEntity = new Map();
+    this._weatherForecastController = createWeatherForecastController({
+      getHass: () => this._hass,
+      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      onForecastUpdated: () => {
+        if (!this.isEventManagementDialogOpen()) {
+          this.renderPreservingAgendaScroll();
+        } else {
+          this._pendingHeaderSensorRender = true;
+        }
+      }
+    });
     this._modalVisibilityObserver = null;
     this._monthMeasureRaf = null;
     this._monthMeasureRenderRaf = null;
@@ -10189,11 +10361,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._loadedEventRange = null;
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
-    if (previousHeaderWeatherSensor !== this._config.header_weather_sensor) {
-      this.teardownWeatherForecastSubscription();
-      this._weatherForecastByEntity.clear();
-      this._weatherForecastRefreshRetryAtByEntity.clear();
-    }
+    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
@@ -15792,111 +15960,15 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   teardownWeatherForecastSubscription() {
-    this._weatherForecastSubscriptionGeneration += 1;
-    if (typeof this._weatherForecastUnsubscribe === 'function') {
-      this._weatherForecastUnsubscribe();
-    }
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
+    this._weatherForecastController.teardownSubscription();
   }
 
-  async ensureWeatherForecastSubscription() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!isWeatherEntityId(entityId)) {
-      this.teardownWeatherForecastSubscription();
-      return;
-    }
-
-    if (!this._hass?.connection?.subscribeMessage) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionEntityId === entityId && this._weatherForecastUnsubscribe) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionInFlight && this._weatherForecastSubscriptionInFlightEntityId === entityId) {
-      return this._weatherForecastSubscriptionInFlight;
-    }
-
-    this.teardownWeatherForecastSubscription();
-    const subscriptionGeneration = this._weatherForecastSubscriptionGeneration;
-    this._weatherForecastSubscriptionInFlightEntityId = entityId;
-
-    const setupPromise = this._hass.connection.subscribeMessage(
-        (message) => {
-          const nextForecast = Array.isArray(message?.forecast) ? message.forecast : [];
-          this._weatherForecastByEntity.set(entityId, nextForecast);
-          if (!this.isEventManagementDialogOpen()) {
-            this.renderPreservingAgendaScroll();
-          } else {
-            this._pendingHeaderSensorRender = true;
-          }
-        },
-        buildWeatherForecastSubscriptionMessage(entityId)
-      )
-      .then((unsubscribe) => {
-        const generationMatches = subscriptionGeneration === this._weatherForecastSubscriptionGeneration;
-        const entityMatches = entityId === this._weatherForecastSubscriptionInFlightEntityId;
-        if (!generationMatches || !entityMatches) {
-          if (typeof unsubscribe === 'function') {
-            unsubscribe();
-          }
-          return;
-        }
-
-        this._weatherForecastUnsubscribe = unsubscribe;
-        this._weatherForecastSubscriptionEntityId = entityId;
-      })
-      .catch(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastUnsubscribe = null;
-          this._weatherForecastSubscriptionEntityId = null;
-        }
-      })
-      .finally(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastSubscriptionInFlight = null;
-          this._weatherForecastSubscriptionInFlightEntityId = null;
-        }
-      });
-
-    this._weatherForecastSubscriptionInFlight = setupPromise;
-    return setupPromise;
+  ensureWeatherForecastSubscription() {
+    return this._weatherForecastController.ensureSubscription();
   }
 
-  async refreshWeatherForecastData() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!isWeatherEntityId(entityId)) return;
-    if (!this._hass || this._weatherForecastRefreshInFlight) return;
-    if (this._weatherForecastByEntity.has(entityId)) return;
-    const now = Date.now();
-    const retryAt = this._weatherForecastRefreshRetryAtByEntity.get(entityId) || 0;
-    if (retryAt > now) return;
-
-    this._weatherForecastRefreshInFlight = true;
-    try {
-      const wsResponse = await this._hass.callWS(buildWeatherForecastRequestMessage(entityId));
-
-      const dailyForecast = wsResponse?.[entityId]?.forecast;
-      if (Array.isArray(dailyForecast)) {
-        this._weatherForecastByEntity.set(entityId, dailyForecast);
-        this._weatherForecastRefreshRetryAtByEntity.delete(entityId);
-        if (!this.isEventManagementDialogOpen()) {
-          this.renderPreservingAgendaScroll();
-        } else {
-          this._pendingHeaderSensorRender = true;
-        }
-      }
-    } catch (error) {
-      // forecast websocket may be unavailable in older HA versions; keep graceful fallback paths
-      const retryDelayMs = 5 * 60 * 1000;
-      this._weatherForecastRefreshRetryAtByEntity.set(entityId, now + retryDelayMs);
-    } finally {
-      this._weatherForecastRefreshInFlight = false;
-    }
+  refreshWeatherForecastData() {
+    return this._weatherForecastController.refreshForecastData();
   }
 
   getHeaderEntityRenderSignature(entityState) {
@@ -15938,7 +16010,7 @@ class SkylightCalendarCard extends HTMLElement {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
-    const wsForecast = this._weatherForecastByEntity.get(sensorEntityId);
+    const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
     const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
     return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
   }
