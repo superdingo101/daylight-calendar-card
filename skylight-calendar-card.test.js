@@ -4624,3 +4624,165 @@ test('event service helpers preserve create update and delete payload shapes', a
     recurrence_range: 'THISANDFUTURE'
   });
 });
+
+test('event fetcher stable stringify sorts object keys recursively', async () => {
+  const { toStableString } = await import('./src/events/event-fetcher.js');
+
+  assert.equal(
+    toStableString({ b: 2, a: { d: 4, c: 3 }, e: [{ g: 7, f: 6 }] }),
+    '{"a":{"c":3,"d":4},"b":2,"e":[{"f":6,"g":7}]}'
+  );
+});
+
+test('event fetcher calendar data signature ignores entity color and is order independent', async () => {
+  const { getCalendarDataSignature } = await import('./src/events/event-fetcher.js');
+  const first = getCalendarDataSignature([
+    { entityId: 'calendar.work', color: '#fff', summary: 'B', start: { date: '2026-01-02' } },
+    { entityId: 'calendar.work', color: '#000', summary: 'A', start: { date: '2026-01-01' } }
+  ]);
+  const second = getCalendarDataSignature([
+    { entityId: 'calendar.work', color: 'red', summary: 'A', start: { date: '2026-01-01' } },
+    { entityId: 'calendar.work', color: 'blue', summary: 'B', start: { date: '2026-01-02' } }
+  ]);
+
+  assert.equal(first, second);
+});
+
+test('event fetcher mergeEvents replaces duplicate keys and sorts by start date', async () => {
+  const { mergeEvents } = await import('./src/events/event-fetcher.js');
+  const merged = mergeEvents(
+    [
+      { entityId: 'calendar.work', uid: '1', summary: 'Old', start: '2026-01-03' },
+      { entityId: 'calendar.work', uid: '2', summary: 'Middle', start: '2026-01-02' }
+    ],
+    [
+      { entityId: 'calendar.work', uid: '1', summary: 'New', start: '2026-01-01' }
+    ],
+    {
+      getEventIdentityKey: (entityId, event) => `${entityId}:${event.uid}`,
+      getEventStartDate: event => new Date(event.start)
+    }
+  );
+
+  assert.deepEqual(merged.map(event => event.summary), ['New', 'Middle']);
+});
+
+test('event fetcher loaded range coverage and stale refresh decisions match boundaries', async () => {
+  const { isDateRangeCoveredByLoadedEvents, shouldRefreshEvents } = await import('./src/events/event-fetcher.js');
+  const loaded = {
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-01-31T23:59:59Z')
+  };
+
+  assert.equal(isDateRangeCoveredByLoadedEvents(null, loaded.startDate, loaded.endDate), false);
+  assert.equal(isDateRangeCoveredByLoadedEvents(loaded, loaded.startDate, loaded.endDate), true);
+  assert.equal(isDateRangeCoveredByLoadedEvents(loaded, new Date('2025-12-31T23:59:59Z'), loaded.endDate), false);
+  assert.equal(shouldRefreshEvents({ lastFetch: null, now: 100000 }), true);
+  assert.equal(shouldRefreshEvents({ lastFetch: 40000, now: 100000 }), false);
+  assert.equal(shouldRefreshEvents({ lastFetch: 39999, now: 100000 }), true);
+});
+
+test('event fetcher sends WebSocket calendar event payload unchanged', async () => {
+  const { fetchEventsViaWebSocket } = await import('./src/events/event-fetcher.js');
+  let payload;
+  const hass = {
+    callWS(message) {
+      payload = message;
+      return Promise.resolve([{ summary: 'WS event' }]);
+    }
+  };
+
+  const result = await fetchEventsViaWebSocket({
+    hass,
+    entityId: 'calendar.work',
+    chunkStartStr: '2026-01-01T00:00:00.000Z',
+    chunkEndStr: '2026-01-31T23:59:59.999Z'
+  });
+
+  assert.deepEqual(payload, {
+    type: 'calendar/events',
+    entity_id: 'calendar.work',
+    start_date_time: '2026-01-01T00:00:00.000Z',
+    end_date_time: '2026-01-31T23:59:59.999Z'
+  });
+  assert.deepEqual(result, [{ summary: 'WS event' }]);
+});
+
+test('event fetcher falls back to REST URL and returns empty array after failed fetches', async () => {
+  const { fetchEventsForChunk } = await import('./src/events/event-fetcher.js');
+  const chunk = {
+    startDate: new Date('2026-01-01T12:34:56Z'),
+    endDate: new Date('2026-01-31T12:34:56Z')
+  };
+  let restUrl;
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    const restEvents = await fetchEventsForChunk({
+      hass: {
+        callWS: () => Promise.reject(new Error('no ws')),
+        callApi(method, url) {
+          restUrl = url;
+          assert.equal(method, 'GET');
+          return Promise.resolve([{ summary: 'REST event' }]);
+        }
+      },
+      entityId: 'calendar.work',
+      chunk,
+      formatLocalDate: date => date.toISOString().slice(0, 10)
+    });
+
+    assert.deepEqual(restEvents, [{ summary: 'REST event' }]);
+    assert.equal(restUrl, 'calendars/calendar.work?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z');
+
+    const failedEvents = await fetchEventsForChunk({
+      hass: {
+        callWS: () => Promise.reject(new Error('no ws')),
+        callApi: () => Promise.reject(new Error('no rest'))
+      },
+      entityId: 'calendar.work',
+      chunk,
+      formatLocalDate: date => date.toISOString().slice(0, 10)
+    });
+
+    assert.deepEqual(failedEvents, []);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test('event fetcher normalizes with calendar colors and de-duplicates chunk overlaps', async () => {
+  const { fetchEventsForCalendar } = await import('./src/events/event-fetcher.js');
+  const chunks = [
+    { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-02T00:00:00Z') },
+    { startDate: new Date('2026-01-02T00:00:00Z'), endDate: new Date('2026-01-03T00:00:00Z') }
+  ];
+  const hass = {
+    callWS: ({ start_date_time }) => Promise.resolve(
+      start_date_time === '2026-01-01T00:00:00.000Z'
+        ? [{ uid: '1', summary: 'First' }, { uid: '2', summary: 'Second' }]
+        : [{ uid: '1', summary: 'First duplicate' }]
+    )
+  };
+  const normalizedContexts = [];
+
+  const events = await fetchEventsForCalendar({
+    hass,
+    entityId: 'calendar.work',
+    colorIndex: 3,
+    chunks,
+    formatLocalDate: date => date.toISOString().slice(0, 10),
+    getCalendarColor: (entityId, index) => `${entityId}:${index}:color`,
+    getEventIdentityKey: (entityId, event) => `${entityId}:${event.uid}`,
+    normalizeCalendarEvent: (event, context) => {
+      normalizedContexts.push(context);
+      return { ...event, ...context };
+    }
+  });
+
+  assert.deepEqual(events.map(event => event.summary), ['First', 'Second']);
+  assert.deepEqual(normalizedContexts, [
+    { entityId: 'calendar.work', color: 'calendar.work:3:color' },
+    { entityId: 'calendar.work', color: 'calendar.work:3:color' }
+  ]);
+});

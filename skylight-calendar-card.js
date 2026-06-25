@@ -7994,6 +7994,151 @@ function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedE
   };
 }
 
+async function fetchEventsByCalendarInRange({
+  hass,
+  entities = [],
+  startDate,
+  endDate,
+  getDateRangeChunks,
+  formatLocalDate,
+  getCalendarColor,
+  getEventIdentityKey,
+  normalizeCalendarEvent
+}) {
+  const chunks = getDateRangeChunks(startDate, endDate, 30);
+  const eventsByCalendar = await Promise.all(
+    entities.map((entityId, index) => fetchEventsForCalendar({
+      hass,
+      entityId,
+      colorIndex: index,
+      chunks,
+      formatLocalDate,
+      getCalendarColor,
+      getEventIdentityKey,
+      normalizeCalendarEvent
+    }))
+  );
+
+  return entities.reduce((acc, entityId, index) => {
+    acc[entityId] = eventsByCalendar[index] || [];
+    return acc;
+  }, {});
+}
+
+async function fetchEventsForCalendar({
+  hass,
+  entityId,
+  colorIndex = 0,
+  chunks = [],
+  formatLocalDate,
+  getCalendarColor,
+  getEventIdentityKey,
+  normalizeCalendarEvent
+}) {
+  const seen = new Set();
+  const color = getCalendarColor(entityId, colorIndex);
+
+  const chunkEventLists = await Promise.all(
+    chunks.map(chunk => fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }))
+  );
+
+  const mergedEvents = [];
+  chunkEventLists.forEach(events => {
+    if (!events || !Array.isArray(events)) return;
+
+    events.forEach(event => {
+      const key = getEventIdentityKey(entityId, event);
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      mergedEvents.push(normalizeCalendarEvent(event, { entityId, color }));
+    });
+  });
+
+  return mergedEvents;
+}
+
+async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
+  const chunkStartStr = chunk.startDate.toISOString();
+  const chunkEndStr = chunk.endDate.toISOString();
+
+  try {
+    return await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
+  } catch (error) {
+    try {
+      const startDateOnly = formatLocalDate(chunk.startDate);
+      const endDateOnly = formatLocalDate(chunk.endDate);
+      return await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
+    } catch (error2) {
+      console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
+      return [];
+    }
+  }
+}
+
+async function fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr }) {
+  return hass.callWS({
+    type: 'calendar/events',
+    entity_id: entityId,
+    start_date_time: chunkStartStr,
+    end_date_time: chunkEndStr
+  });
+}
+
+function mergeEvents(existingEvents, incomingEvents, { getEventIdentityKey, getEventStartDate }) {
+  const mergedByKey = new Map();
+
+  existingEvents.forEach(event => {
+    mergedByKey.set(getEventIdentityKey(event.entityId, event), event);
+  });
+
+  incomingEvents.forEach(event => {
+    mergedByKey.set(getEventIdentityKey(event.entityId, event), event);
+  });
+
+  return sortEventsByStartDate(Array.from(mergedByKey.values()), { getEventStartDate });
+}
+
+function sortEventsByStartDate(events, { getEventStartDate }) {
+  return [...events].sort((a, b) => getEventStartDate(a) - getEventStartDate(b));
+}
+
+function toStableString(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(item => toStableString(item)).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${toStableString(value[key])}`);
+    return `{${entries.join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function getCalendarDataSignature(events = []) {
+  return events
+    .map(event => {
+      const { entityId, color, ...eventData } = event;
+      return toStableString(eventData);
+    })
+    .sort()
+    .join('|');
+}
+
+function isDateRangeCoveredByLoadedEvents(loadedEventRange, targetStartDate, targetEndDate) {
+  if (!loadedEventRange) return false;
+
+  return targetStartDate >= loadedEventRange.startDate &&
+         targetEndDate <= loadedEventRange.endDate;
+}
+
+function shouldRefreshEvents({ lastFetch, now = Date.now(), maxAge = 60000 } = {}) {
+  return !lastFetch || (now - lastFetch > maxAge);
+}
+
 function getMonthGridDates(currentDate, firstDayOfWeek) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -10869,17 +11014,17 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   async fetchEventsByCalendarInRange(startDate, endDate) {
-    const chunks = this.getDateRangeChunks(startDate, endDate, 30);
-    const eventsByCalendar = await Promise.all(
-      this._config.entities.map((entityId, index) =>
-        this.fetchEventsForCalendar(entityId, index, chunks)
-      )
-    );
-
-    return this._config.entities.reduce((acc, entityId, index) => {
-      acc[entityId] = eventsByCalendar[index] || [];
-      return acc;
-    }, {});
+    return fetchEventsByCalendarInRange({
+      hass: this._hass,
+      entities: this._config.entities,
+      startDate,
+      endDate,
+      getDateRangeChunks: this.getDateRangeChunks.bind(this),
+      formatLocalDate: this.formatLocalDate.bind(this),
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      normalizeCalendarEvent
+    });
   }
 
   getCalendarColor(entityId, index = 0) {
@@ -10891,100 +11036,49 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   async fetchEventsForCalendar(entityId, colorIndex, chunks) {
-    const seen = new Set();
-    const color = this.getCalendarColor(entityId, colorIndex);
-
-    const chunkEventLists = await Promise.all(
-      chunks.map(chunk => this.fetchEventsForChunk(entityId, chunk))
-    );
-
-    const mergedEvents = [];
-    chunkEventLists.forEach(events => {
-      if (!events || !Array.isArray(events)) return;
-
-      events.forEach(event => {
-        const key = this.getEventIdentityKey(entityId, event);
-        if (seen.has(key)) return;
-        seen.add(key);
-
-        mergedEvents.push(normalizeCalendarEvent(event, { entityId, color }));
-      });
+    return fetchEventsForCalendar({
+      hass: this._hass,
+      entityId,
+      colorIndex,
+      chunks,
+      formatLocalDate: this.formatLocalDate.bind(this),
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      normalizeCalendarEvent
     });
-
-    return mergedEvents;
   }
 
   async fetchEventsForChunk(entityId, chunk) {
-    const chunkStartStr = chunk.startDate.toISOString();
-    const chunkEndStr = chunk.endDate.toISOString();
-
-    try {
-      // Use WebSocket API to get calendar events.
-      // Home Assistant command name varies by version.
-      return await this.fetchEventsViaWebSocket(entityId, chunkStartStr, chunkEndStr);
-    } catch (error) {
-      // WebSocket API might not be available in older HA versions or for some integrations
-      // Try REST API fallback without logging (this is expected)
-      try {
-        const startDateOnly = this.formatLocalDate(chunk.startDate);
-        const endDateOnly = this.formatLocalDate(chunk.endDate);
-        return await this._hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
-      } catch (error2) {
-        // Both methods failed - this is a real error
-        console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
-        return [];
-      }
-    }
+    return fetchEventsForChunk({
+      hass: this._hass,
+      entityId,
+      chunk,
+      formatLocalDate: this.formatLocalDate.bind(this)
+    });
   }
 
   async fetchEventsViaWebSocket(entityId, chunkStartStr, chunkEndStr) {
-    return this._hass.callWS({
-      type: 'calendar/events',
-      entity_id: entityId,
-      start_date_time: chunkStartStr,
-      end_date_time: chunkEndStr
+    return fetchEventsViaWebSocket({
+      hass: this._hass,
+      entityId,
+      chunkStartStr,
+      chunkEndStr
     });
   }
 
   mergeEvents(existingEvents, incomingEvents) {
-    const mergedByKey = new Map();
-
-    existingEvents.forEach(event => {
-      mergedByKey.set(this.getEventIdentityKey(event.entityId, event), event);
+    return mergeEvents(existingEvents, incomingEvents, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      getEventStartDate: this.getEventStartDate.bind(this)
     });
-
-    incomingEvents.forEach(event => {
-      mergedByKey.set(this.getEventIdentityKey(event.entityId, event), event);
-    });
-
-    const merged = Array.from(mergedByKey.values());
-    merged.sort((a, b) => this.getEventStartDate(a) - this.getEventStartDate(b));
-    return merged;
   }
 
   toStableString(value) {
-    if (Array.isArray(value)) {
-      return `[${value.map(item => this.toStableString(item)).join(',')}]`;
-    }
-
-    if (value && typeof value === 'object') {
-      const entries = Object.keys(value)
-        .sort()
-        .map(key => `${JSON.stringify(key)}:${this.toStableString(value[key])}`);
-      return `{${entries.join(',')}}`;
-    }
-
-    return JSON.stringify(value);
+    return toStableString(value);
   }
 
   getCalendarDataSignature(events = []) {
-    return events
-      .map(event => {
-        const { entityId, color, ...eventData } = event;
-        return this.toStableString(eventData);
-      })
-      .sort()
-      .join('|');
+    return getCalendarDataSignature(events);
   }
 
   async updateEvents({ preserveScroll = false } = {}) {
@@ -11030,9 +11124,9 @@ class SkylightCalendarCard extends HTMLElement {
         this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
       });
 
-      const mergedEvents = Object.values(newEventsByCalendar)
-        .flat()
-        .sort((a, b) => this.getEventStartDate(a) - this.getEventStartDate(b));
+      const mergedEvents = sortEventsByStartDate(Object.values(newEventsByCalendar).flat(), {
+        getEventStartDate: this.getEventStartDate.bind(this)
+      });
 
       this._events = mergedEvents;
       this._loadedEventRange = { startDate, endDate };
@@ -11065,14 +11159,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   isDateRangeCoveredByLoadedEvents(targetStartDate, targetEndDate) {
-    if (!this._loadedEventRange) return false;
-
-    return targetStartDate >= this._loadedEventRange.startDate &&
-           targetEndDate <= this._loadedEventRange.endDate;
+    return isDateRangeCoveredByLoadedEvents(this._loadedEventRange, targetStartDate, targetEndDate);
   }
 
   async ensureEventsForCurrentRange({ force = false, renderIfCovered = false } = {}) {
-    const shouldRefreshForAge = !this._lastFetch || (Date.now() - this._lastFetch > 60000);
+    const shouldRefreshForAge = shouldRefreshEvents({ lastFetch: this._lastFetch });
     const { startDate: visibleStartDate, endDate: visibleEndDate } = this.getVisibleDateRange();
 
     // Background stale refreshes run through this path via hass updates.
