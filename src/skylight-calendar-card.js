@@ -100,13 +100,20 @@ import {
   normalizeLegacyDayStyleMatch as normalizeRuleLegacyDayStyleMatch
 } from './rules/style-rules.js';
 import {
-  getHeaderWeatherEntityRenderSignature,
   getWeatherEntityForecast,
   mapWeatherConditionToIcon as mapWeatherConditionToIconHelper,
   normalizeForecastForDate,
-  normalizeHeaderWeatherData,
   normalizeWeatherTemperature as normalizeWeatherTemperatureHelper
 } from './weather/weather-utils.js';
+import {
+  getEntityFriendlyName as getEntityFriendlyNameHelper,
+  getEntityRenderSignature as getEntityRenderSignatureHelper,
+  getFormattedHeaderSensorTime as getFormattedHeaderSensorTimeHelper,
+  getHeaderEntityRenderSignatureFromState,
+  getHeaderWeatherDisplayData,
+  getPersonEntityPictureUrl as getPersonEntityPictureUrlHelper,
+  getPersonStateLabel as getPersonStateLabelHelper
+} from './ha/ha-state-helpers.js';
 import {
   buildWeatherForecastRequestMessage,
   buildWeatherForecastSubscriptionMessage,
@@ -6672,16 +6679,18 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getHeaderEntityRenderSignature(entityState) {
-    return getHeaderWeatherEntityRenderSignature(entityState);
+    return getHeaderEntityRenderSignatureFromState(entityState);
   }
 
   getFormattedHeaderSensorTime() {
     const sensorEntityId = this._config?.header_time_sensor;
     if (!sensorEntityId) return '';
-    const sensorState = this._hass?.states?.[sensorEntityId]?.state;
-    const parsed = this.parseTimeValue(sensorState);
-    if (!parsed) return '';
-    return this.formatTime(parsed);
+    return getFormattedHeaderSensorTimeHelper(
+      this._hass,
+      sensorEntityId,
+      (value) => this.parseTimeValue(value),
+      (date) => this.formatTime(date)
+    );
   }
 
   normalizeWeatherTemperature(value) {
@@ -6695,8 +6704,7 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    const weatherEntity = this._hass?.states?.[sensorEntityId];
-    return normalizeHeaderWeatherData(weatherEntity);
+    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
   }
 
   getFormattedHeaderWeather() {
@@ -6777,26 +6785,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatPersonStateLabel(personState) {
-    if (!personState || !personState.state || ['unknown', 'unavailable'].includes(personState.state)) {
-      return '';
-    }
-
-    if (personState.state === 'home') return 'Home';
-    if (personState.state === 'not_home') return 'Away';
-
-    return String(personState.state)
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return getPersonStateLabelHelper(personState);
   }
 
   getPersonEntityPictureUrl(personState) {
-    const picture = personState?.attributes?.entity_picture;
-    if (typeof picture !== 'string' || !picture.trim()) return null;
-    const trimmedPicture = picture.trim();
-    if (trimmedPicture.startsWith('/') && typeof this._hass?.hassUrl === 'function') {
-      return this._hass.hassUrl(trimmedPicture);
-    }
-    return trimmedPicture;
+    return getPersonEntityPictureUrlHelper(this._hass, personState);
   }
 
   getCalendarBadgePersonRenderSignature(hass = this._hass) {
@@ -6806,15 +6799,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (personEntityIds.length === 0) return '';
 
-    return JSON.stringify(personEntityIds.map((entityId) => {
-      const entityState = hass?.states?.[entityId];
-      return {
-        entityId,
-        state: entityState?.state ?? null,
-        picture: entityState?.attributes?.entity_picture ?? null,
-        friendlyName: entityState?.attributes?.friendly_name ?? null
-      };
-    }));
+    return getEntityRenderSignatureHelper(hass, personEntityIds);
   }
 
   renderCalendarBadgeLabel(badgeItem, badgeTextColor) {
@@ -7241,7 +7226,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
   }
 
   getEntityFriendlyName(entityId) {
-    return this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+    return getEntityFriendlyNameHelper(this._hass, entityId);
   }
 
   getConfiguredEntityIndex(entityId) {

@@ -5120,6 +5120,94 @@ function getHeaderWeatherEntityRenderSignature(entityState) {
   });
 }
 
+function getEntityState(hass, entityId) {
+  if (!hass || !entityId) return null;
+  return hass.states?.[entityId] || null;
+}
+
+function getEntityFriendlyName(hass, entityId, fallback = entityId) {
+  const friendlyName = getEntityState(hass, entityId)?.attributes?.friendly_name;
+  return friendlyName || fallback;
+}
+
+function getEntityIcon(hass, entityId, fallback = null) {
+  const icon = getEntityState(hass, entityId)?.attributes?.icon;
+  return typeof icon === 'string' && icon.trim() ? icon.trim() : fallback;
+}
+
+function getEntityPicture(hass, entityId, fallback = null) {
+  const picture = getEntityState(hass, entityId)?.attributes?.entity_picture;
+  return typeof picture === 'string' && picture.trim() ? picture.trim() : fallback;
+}
+
+function resolveEntityPictureUrl(hass, picture, fallback = null) {
+  if (typeof picture !== 'string' || !picture.trim()) return fallback;
+  const trimmedPicture = picture.trim();
+  if (trimmedPicture.startsWith('/') && typeof hass?.hassUrl === 'function') {
+    return hass.hassUrl(trimmedPicture);
+  }
+  return trimmedPicture;
+}
+
+function getEntityPictureUrl(hass, entityId, fallback = null) {
+  return resolveEntityPictureUrl(hass, getEntityPicture(hass, entityId), fallback);
+}
+
+function getSensorDisplayValue(hass, entityId, fallback = '') {
+  const state = getEntityState(hass, entityId)?.state;
+  if (state === undefined || state === null || state === 'unknown' || state === 'unavailable') return fallback;
+  const displayState = String(state).trim();
+  return displayState || fallback;
+}
+
+function getFormattedHeaderSensorTime(hass, entityId, parseTimeValue, formatTime, fallback = '') {
+  const sensorState = getSensorDisplayValue(hass, entityId, null);
+  if (!sensorState || typeof parseTimeValue !== 'function' || typeof formatTime !== 'function') return fallback;
+  const parsed = parseTimeValue(sensorState);
+  return parsed ? formatTime(parsed) : fallback;
+}
+
+function getHeaderWeatherDisplayData(hass, entityId) {
+  return normalizeHeaderWeatherData(getEntityState(hass, entityId));
+}
+
+function getHeaderEntityRenderSignatureFromState(entityState) {
+  return getHeaderWeatherEntityRenderSignature(entityState);
+}
+
+function getHeaderEntityRenderSignature(hass, entityId) {
+  return getHeaderEntityRenderSignatureFromState(getEntityState(hass, entityId));
+}
+
+function getPersonStateLabel(personState) {
+  if (!personState || !personState.state || ['unknown', 'unavailable'].includes(personState.state)) {
+    return '';
+  }
+
+  if (personState.state === 'home') return 'Home';
+  if (personState.state === 'not_home') return 'Away';
+
+  return String(personState.state)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getPersonEntityPictureUrl(hass, personState) {
+  return resolveEntityPictureUrl(hass, personState?.attributes?.entity_picture, null);
+}
+
+function getEntityRenderSignature(hass, entityIds = []) {
+  return JSON.stringify(entityIds.map((entityId) => {
+    const entityState = getEntityState(hass, entityId);
+    return {
+      entityId,
+      state: entityState?.state ?? null,
+      picture: entityState?.attributes?.entity_picture ?? null,
+      friendlyName: entityState?.attributes?.friendly_name ?? null
+    };
+  }));
+}
+
 function isWeatherEntityId(entityId) {
   return !!entityId && entityId.startsWith('weather.');
 }
@@ -13511,16 +13599,18 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getHeaderEntityRenderSignature(entityState) {
-    return getHeaderWeatherEntityRenderSignature(entityState);
+    return getHeaderEntityRenderSignatureFromState(entityState);
   }
 
   getFormattedHeaderSensorTime() {
     const sensorEntityId = this._config?.header_time_sensor;
     if (!sensorEntityId) return '';
-    const sensorState = this._hass?.states?.[sensorEntityId]?.state;
-    const parsed = this.parseTimeValue(sensorState);
-    if (!parsed) return '';
-    return this.formatTime(parsed);
+    return getFormattedHeaderSensorTime(
+      this._hass,
+      sensorEntityId,
+      (value) => this.parseTimeValue(value),
+      (date) => this.formatTime(date)
+    );
   }
 
   normalizeWeatherTemperature(value) {
@@ -13534,8 +13624,7 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    const weatherEntity = this._hass?.states?.[sensorEntityId];
-    return normalizeHeaderWeatherData(weatherEntity);
+    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
   }
 
   getFormattedHeaderWeather() {
@@ -13616,26 +13705,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatPersonStateLabel(personState) {
-    if (!personState || !personState.state || ['unknown', 'unavailable'].includes(personState.state)) {
-      return '';
-    }
-
-    if (personState.state === 'home') return 'Home';
-    if (personState.state === 'not_home') return 'Away';
-
-    return String(personState.state)
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return getPersonStateLabel(personState);
   }
 
   getPersonEntityPictureUrl(personState) {
-    const picture = personState?.attributes?.entity_picture;
-    if (typeof picture !== 'string' || !picture.trim()) return null;
-    const trimmedPicture = picture.trim();
-    if (trimmedPicture.startsWith('/') && typeof this._hass?.hassUrl === 'function') {
-      return this._hass.hassUrl(trimmedPicture);
-    }
-    return trimmedPicture;
+    return getPersonEntityPictureUrl(this._hass, personState);
   }
 
   getCalendarBadgePersonRenderSignature(hass = this._hass) {
@@ -13645,15 +13719,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (personEntityIds.length === 0) return '';
 
-    return JSON.stringify(personEntityIds.map((entityId) => {
-      const entityState = hass?.states?.[entityId];
-      return {
-        entityId,
-        state: entityState?.state ?? null,
-        picture: entityState?.attributes?.entity_picture ?? null,
-        friendlyName: entityState?.attributes?.friendly_name ?? null
-      };
-    }));
+    return getEntityRenderSignature(hass, personEntityIds);
   }
 
   renderCalendarBadgeLabel(badgeItem, badgeTextColor) {
@@ -14080,7 +14146,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
   }
 
   getEntityFriendlyName(entityId) {
-    return this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+    return getEntityFriendlyName(this._hass, entityId);
   }
 
   getConfiguredEntityIndex(entityId) {
