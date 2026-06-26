@@ -59,8 +59,18 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
 
     This is especially likely if you installed the card before the Skylight → Daylight rename. The filename is still `skylight-calendar-card.js` for compatibility, but the HACS folder path should now be the Daylight folder.
 
+    <Note>
+      Recent versions of the card automatically detect this problem. If an old Skylight resource is loaded, you will see:
+
+      - A dismissible warning banner at the bottom of the dashboard with a **Help** link to this page and a **Dismiss** button. Dismissing the banner is remembered per browser, but a `console.warn` is still logged on every load until the stale resource is removed.
+      - The detected stale URL surfaced in the card editor's **About / Diagnostics** section.
+
+      If you see the banner or that diagnostic line, follow the checklist below to remove the old resource.
+    </Note>
+
     **Symptoms:**
 
+    - The stale-resource warning banner appears at the bottom of the dashboard
     - New options or features are missing
     - Documented options have no effect
     - The card editor looks outdated
@@ -102,7 +112,7 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
 
     6. **Verify the current editor loads**
 
-       Edit the card in your dashboard and scroll to the bottom of the card editor. Seeing the **About / Diagnostics** section is a good sign that the current frontend/editor is loading. If that section is missing, an old frontend resource is probably still being loaded.
+       Edit the card in your dashboard and scroll to the bottom of the card editor. Seeing the **About / Diagnostics** section is a good sign that the current frontend/editor is loading. If that section is missing, an old frontend resource is probably still being loaded. If Diagnostics shows an **Old Skylight resource detected** line, that line lists the exact stale URL to remove from **Settings → Dashboards → Resources**.
 
     7. **Include details when opening an issue**
 
