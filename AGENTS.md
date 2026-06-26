@@ -29,34 +29,44 @@ The project was formerly named Skylight Calendar Card. The public name is now Da
 
 ## Module boundaries
 
-Current modules are organized around these boundaries. Future modules may be added, but new modules should preserve the same separation principles and keep card-instance orchestration separate from pure/data-only helpers.
+The broad modularization refactor is complete through the post-Phase-33 cleanup checkpoint. Current modules are organized around these boundaries. Future modules may be added, but new extractions should be tied to real feature or bug work and should preserve the same separation principles: keep card-instance orchestration in the main custom element, and keep extracted modules explicit, focused, and independent from card instance state.
 
-* `src/skylight-calendar-card.js`: main custom element, lifecycle, Home Assistant orchestration, view composition, renderer callback wiring, DOM measurement, scroll restoration, modal/editor DOM behavior, preference persistence, service behavior, and event handlers.
+* `src/skylight-calendar-card.js`: Rollup entry point and main custom element. It intentionally owns custom element registration and lifecycle; config orchestration; preference persistence; Home Assistant `hass` setter behavior; capability checks; final event/weather refresh decisions; final render timing; view composition; renderer callback wiring; DOM reads/writes; ResizeObserver behavior; compact-height measurement; scroll restoration; modal behavior; event listeners; service behavior; and Daylight/legacy Skylight compatibility wrappers.
+* `src/version.js`: card version lookup helper. Do not update release/version behavior unless explicitly preparing a release.
 * `src/translations.js`: translation data.
 * `src/constants.js`: shared static constants.
 * `src/defaults.js`: default config values, option lists, aliases, and stub config creation.
-* `src/utils/`: pure utility helpers for dates, normalization, and strings.
+* `src/config/config-normalizers.js`: config normalization helpers for modes, colors, opacities, hidden calendars, and related public option values.
+* `src/utils/date-utils.js`: date parsing, local date formatting, range chunking, and ISO week helpers.
+* `src/utils/normalization-utils.js`: normalization helpers for enums, booleans, dashboard paths, and entity maps.
+* `src/utils/string-utils.js`: string and HTML-attribute escaping helpers.
+* `src/utils/color-utils.js`: color parsing, named-color handling, alpha blending, contrast, and color map normalization helpers.
+* `src/ha/ha-state-helpers.js`: Home Assistant entity state display helpers, render signatures, person labels/pictures, and header weather display data.
 * `src/events/event-normalizer.js`: Home Assistant calendar event normalization and combined-event data shaping.
-* `src/events/event-form.js`: event form validation and create/update data normalization.
-* `src/events/event-service.js`: Home Assistant calendar event service and WebSocket payload helpers.
 * `src/events/event-display.js`: non-rendering event display decisions and display metadata.
+* `src/events/event-fetcher.js`: calendar fetch/cache helpers, range coverage checks, stable signatures, merge/sort helpers, and WebSocket fetch orchestration helpers.
+* `src/events/event-form.js`: event form validation, recurrence helpers, and create/update data normalization.
+* `src/events/event-service.js`: Home Assistant calendar event service and WebSocket payload helpers.
 * `src/rules/condition-matcher.js`: condition and value matching helpers.
 * `src/rules/style-rules.js`: style rule normalization and matching helpers.
-* `src/badges/day-badges.js`: day badge normalization, matching, and display data helpers.
+* `src/badges/day-badges.js`: day badge normalization, matching, template resolution, and display data helpers.
 * `src/weather/weather-utils.js`: weather formatting, icon, temperature, and forecast utility helpers.
 * `src/weather/weather-service.js`: weather entity discovery and Home Assistant weather service payload helpers.
-* `src/editor/editor-schema.js`: editor default values, option metadata, and config normalization helpers.
+* `src/weather/weather-controller.js`: weather forecast controller helper for forecast cache/refresh state. The main card still owns final weather refresh decisions and render timing.
+* `src/editor/daylight-calendar-card-editor.js`: Daylight Calendar Card editor custom element registration and editor implementation.
+* `src/editor/editor-schema.js`: editor default values, option metadata, and config normalization schema helpers.
 * `src/views/month-view-model.js`: month-grid date and visible-range view-model helpers.
 * `src/views/week-view-model.js`: week and rolling-days view-model helpers.
-* `src/views/agenda-view-model.js`: agenda visible-range and rolling-days view-model helpers.
+* `src/views/agenda-view-model.js`: agenda window, visible-range, and rolling-days view-model helpers.
 * `src/calendars/calendar-entities.js`: calendar entity metadata, colors, names, virtual calendar badges, writable calendars, and person mappings.
 * `src/renderers/`: extracted markup renderers for header, month, day cells, week compact, week standard, agenda, shared events, modals/forms, editor controls, calendar badges, and day/weather helpers. Renderers receive explicit data and callbacks from the card.
 * `src/styles/card-styles.js`: static card CSS used by the main custom element.
 
 ## Modularization guardrails
 
+* The broad modularization refactor is complete; future extractions should be opportunistic and tied to real feature or bug work rather than extraction-only cleanup.
 * Prefer extracting pure/data-only logic before rendering or DOM logic.
-* Keep lifecycle methods, card-instance view composition, renderer callback wiring, DOM querying, modal behavior, editor behavior, preference persistence, ResizeObserver/compact-height behavior, and Home Assistant service orchestration in `src/skylight-calendar-card.js` unless a prompt explicitly asks to move that area.
+* Keep lifecycle methods, card-instance view composition, renderer callback wiring, DOM querying, modal behavior, event listener behavior, preference persistence, ResizeObserver/compact-height behavior, final render timing, final event/weather refresh decisions, capability checks, `hass` setter behavior, and Home Assistant service orchestration in `src/skylight-calendar-card.js` unless a prompt explicitly asks to move that area.
 * New modules should receive explicit inputs/helpers rather than importing or depending on card instance state.
 * Do not pass the whole card instance into helper modules unless explicitly justified.
 * Preserve public config option names, custom element names, CSS class names, DOM structure, and visual behavior.
@@ -65,7 +75,7 @@ Current modules are organized around these boundaries. Future modules may be add
 
 ## Working in `src/`
 
-Most source work should start in `src/`. `src/skylight-calendar-card.js` remains large and tightly coupled because it owns lifecycle, view composition, renderer callback wiring, DOM behavior, and orchestration. Before editing:
+Most source work should start in `src/`. `src/skylight-calendar-card.js` remains large and tightly coupled because it owns lifecycle, config orchestration, Home Assistant integration, final render timing, view composition, renderer callback wiring, DOM behavior, event listeners, preference persistence, modal behavior, and orchestration. Before editing:
 
 1. Find the existing feature area and existing module boundary.
 2. Reuse existing modules/helpers before adding new ones.
