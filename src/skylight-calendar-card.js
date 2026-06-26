@@ -3,49 +3,18 @@ import { registerDaylightCalendarCardEditor } from './editor/daylight-calendar-c
 import { getDaylightCalendarCardVersion } from './version.js';
 import { getCardStyles } from './styles/card-styles.js';
 import {
-  COMBINE_BACKGROUND_MODE_OPTIONS,
-  COMBINE_STYLE_OPTIONS,
   createDefaultStubConfig,
-  DAY_BADGE_LAYOUT_WEEK_OPTIONS,
-  DEFAULT_BACKGROUND_IMAGE_POSITION,
-  DEFAULT_BACKGROUND_IMAGE_REPEAT,
-  DEFAULT_BACKGROUND_IMAGE_SIZE,
   DEFAULT_COMBINE_BACKGROUND,
   DEFAULT_CONFIG_VALUES,
-  DEFAULT_COMBINE_STYLE,
-  DEFAULT_DAY_BADGE_LAYOUT_WEEK,
   DEFAULT_EVENT_COLOR_BAR_WIDTH,
-  DEFAULT_EVENT_COLOR_MODE,
-  DEFAULT_EVENT_MODAL_SIZE,
   DEFAULT_EVENT_NEUTRAL_BACKGROUND,
   DEFAULT_EVENT_TINT_OPACITY,
-  DEFAULT_EVENT_TITLE_PREFIX,
   DEFAULT_LANGUAGE,
-  DEFAULT_PAST_EVENT_MODE,
   DEFAULT_THEME_MODE,
-  DEFAULT_VIEW,
-  EVENT_COLOR_MODE_OPTIONS,
-  EVENT_MODAL_SIZE_OPTIONS,
-  EVENT_TITLE_PREFIX_ALIASES,
-  EVENT_TITLE_PREFIX_OPTIONS,
-  HIDDEN_CALENDAR_VISIBILITY_VALUES,
-  PAST_EVENT_MODE_OPTIONS,
-  THEME_MODE_OPTIONS,
-  VISIBLE_CALENDAR_VISIBILITY_VALUES
+  DEFAULT_VIEW
 } from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
-import {
-  createConfigNormalizationSchema,
-  getEditorDefaultValue as getEditorDefaultValueFromSchema,
-  getEventCalendarBubbleMode as getEventCalendarBubbleModeFromConfig,
-  normalizeDefaultViewForEditor as normalizeDefaultViewForEditorValue
-} from './editor/editor-schema.js';
-import {
-  renderEditorColorInputControl,
-  renderEditorSection,
-  renderEditorSubSection,
-  renderEditorWeekdayCheckboxes
-} from './renderers/editor-renderer.js';
+import { createConfigNormalizationSchema } from './editor/editor-schema.js';
 import {
   renderDayBadges as renderDayBadgesHtml,
   renderDayForecast as renderDayForecastHtml
@@ -129,7 +98,6 @@ import {
   normalizeWeatherTemperature as normalizeWeatherTemperatureHelper
 } from './weather/weather-utils.js';
 import {
-  getEntityFriendlyName as getEntityFriendlyNameHelper,
   getEntityRenderSignature as getEntityRenderSignatureHelper,
   getFormattedHeaderSensorTime as getFormattedHeaderSensorTimeHelper,
   getHeaderEntityRenderSignatureFromState,
