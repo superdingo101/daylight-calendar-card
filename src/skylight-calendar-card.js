@@ -69,6 +69,7 @@ import {
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 import {
   detectStaleSkylightResource,
+  STALE_RESOURCE_TROUBLESHOOTING_URL,
   STALE_RESOURCE_WARNING_STORAGE_KEY
 } from './utils/stale-resource-utils.js';
 import {
@@ -296,6 +297,19 @@ const showStaleResourceWarningBanner = (staleUrl) => {
   if (staleUrl) {
     message.title = staleUrl;
   }
+  const docsLink = document.createElement('a');
+  docsLink.href = STALE_RESOURCE_TROUBLESHOOTING_URL;
+  docsLink.target = '_blank';
+  docsLink.rel = 'noreferrer';
+  docsLink.textContent = 'Help';
+  docsLink.style.cssText = [
+    'color: #bbdefb',
+    'font-size: 12px',
+    'font-weight: 500',
+    'text-decoration: none',
+    'white-space: nowrap'
+  ].join(';');
+
   const dismissButton = document.createElement('button');
   dismissButton.type = 'button';
   dismissButton.textContent = 'Dismiss';
@@ -312,7 +326,7 @@ const showStaleResourceWarningBanner = (staleUrl) => {
   ].join(';');
   dismissButton.addEventListener('click', () => dismissStaleResourceWarning(banner));
 
-  banner.append(message, dismissButton);
+  banner.append(message, docsLink, dismissButton);
   document.body?.appendChild?.(banner);
 };
 
