@@ -69,7 +69,6 @@ import {
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 import {
   detectStaleSkylightResource,
-  STALE_RESOURCE_TROUBLESHOOTING_URL,
   STALE_RESOURCE_WARNING_STORAGE_KEY
 } from './utils/stale-resource-utils.js';
 import {
@@ -272,17 +271,16 @@ const showStaleResourceWarningBanner = (staleUrl) => {
   banner.setAttribute('role', 'status');
   banner.style.cssText = [
     'position: fixed',
-    'left: 50%',
-    'bottom: 24px',
-    'transform: translateX(-50%)',
+    'left: 0',
+    'right: 0',
+    'bottom: 0',
     'z-index: 2147483647',
     'box-sizing: border-box',
-    'max-width: min(560px, calc(100vw - 32px))',
+    'width: 100%',
     'display: flex',
     'align-items: center',
     'gap: 12px',
     'padding: 12px 16px',
-    'border-radius: 4px',
     'background: #323232',
     'color: #fff',
     'box-shadow: 0 3px 8px rgba(0, 0, 0, 0.32)',
@@ -293,19 +291,11 @@ const showStaleResourceWarningBanner = (staleUrl) => {
   ].join(';');
 
   const message = document.createElement('span');
-  message.textContent = 'Old Skylight Calendar Card resource detected. Remove the old resource from Settings → Dashboards → Resources.';
+  message.textContent = 'Old Skylight Calendar Card resource detected. Remove it from Settings → Dashboards → Resources.';
   message.style.cssText = 'min-width: 0; flex: 1 1 auto;';
   if (staleUrl) {
     message.title = staleUrl;
   }
-
-  const docsLink = document.createElement('a');
-  docsLink.href = STALE_RESOURCE_TROUBLESHOOTING_URL;
-  docsLink.target = '_blank';
-  docsLink.rel = 'noreferrer';
-  docsLink.textContent = 'Troubleshooting';
-  docsLink.style.cssText = 'color: #bbdefb; text-decoration: none; font-weight: 500; white-space: nowrap;';
-
   const dismissButton = document.createElement('button');
   dismissButton.type = 'button';
   dismissButton.textContent = 'Dismiss';
@@ -322,7 +312,7 @@ const showStaleResourceWarningBanner = (staleUrl) => {
   ].join(';');
   dismissButton.addEventListener('click', () => dismissStaleResourceWarning(banner));
 
-  banner.append(message, docsLink, dismissButton);
+  banner.append(message, dismissButton);
   document.body?.appendChild?.(banner);
 };
 
