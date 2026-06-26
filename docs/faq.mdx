@@ -80,11 +80,21 @@ The Daylight Calendar Card is a custom Lovelace card for Home Assistant that bri
     2. Go to **Frontend**.
     3. Find **Daylight Calendar Card** in the list.
     4. If an update is available, click the card entry and then click **Update**.
-    5. After HACS finishes downloading, hard-refresh your browser with **Ctrl\+Shift\+R** (Windows/Linux) or **Cmd\+Shift\+R** (Mac) to ensure the browser loads the new JavaScript file and not a cached version.
+    5. After HACS finishes downloading, hard-refresh your browser with `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac) to ensure the browser loads the new JavaScript file and not a cached version.
 
     <Tip>
       If the card still shows the old version number after updating, clear your browser cache or open the dashboard in a private/incognito window to confirm the update took effect.
     </Tip>
+  </Accordion>
+
+  <Accordion title="I updated through HACS, but I do not see the latest features. Why?">
+    HACS showing the latest version confirms that the current files are installed on disk. It does not prove that your browser or dashboard is loading the current frontend resource.
+
+    This is especially common if you installed the card before the Skylight → Daylight rename. Home Assistant may still have an old resource entry or cached file that points to the previous `skylight-calendar-card` folder, even though the JavaScript filename is still `skylight-calendar-card.js`.
+
+    Check **Settings → Dashboards → Resources**, remove duplicate or old Skylight resources, and make sure the active HACS resource uses `/hacsfiles/daylight-calendar-card/skylight-calendar-card.js`. Then hard-refresh the browser or try a private/incognito window.
+
+    See [Updated to the latest version, but still seeing old behavior](/troubleshooting#updated-to-the-latest-version-but-still-seeing-old-behavior) for the full checklist.
   </Accordion>
 
   <Accordion title="Can I use the card without writing YAML?">
