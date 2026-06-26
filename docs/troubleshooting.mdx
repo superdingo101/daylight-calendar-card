@@ -51,7 +51,10 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
     </Tip>
   </Accordion>
 
-  <Accordion title="Updated to the latest version, but still seeing old behavior">
+  <Accordion
+    title="Updated to the latest version, but still seeing old behavior"
+    id="updated-to-the-latest-version-but-still-seeing-old-behavior"
+  >
     If HACS shows the latest version but new frontend behavior is missing, the most common cause is a stale dashboard resource or browser cache. HACS confirms that the files are installed. It does not confirm that Home Assistant or your browser is loading the current file.
 
     This is especially likely if you installed the card before the Skylight → Daylight rename. The filename is still `skylight-calendar-card.js` for compatibility, but the HACS folder path should now be the Daylight folder.
