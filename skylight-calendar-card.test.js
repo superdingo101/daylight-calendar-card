@@ -4935,3 +4935,39 @@ test('weather controller config changes tear down subscription and clear forecas
   assert.equal(controller.getForecastForEntity('weather.home'), undefined);
   assert.equal(controller.refreshRetryAtByEntity.size, 0);
 });
+
+test('detectStaleSkylightResource detects old HACS skylight resource path', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/skylight-calendar-card/skylight-calendar-card.js' }],
+    querySelectorAll: () => []
+  });
+
+  assert.equal(result.detected, true);
+  assert.equal(result.staleUrl, '/hacsfiles/skylight-calendar-card/skylight-calendar-card.js');
+});
+
+test('detectStaleSkylightResource does not warn for current Daylight HACS resource path', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/daylight-calendar-card/skylight-calendar-card.js' }],
+    querySelectorAll: () => []
+  });
+
+  assert.equal(result.detected, false);
+  assert.equal(result.staleUrl, null);
+});
+
+test('detectStaleSkylightResource handles missing and empty document resources safely', () => {
+  assert.equal(Card.detectStaleSkylightResource(null).detected, false);
+  assert.equal(Card.detectStaleSkylightResource({}).detected, false);
+  assert.equal(Card.detectStaleSkylightResource({ scripts: [], querySelectorAll: () => [] }).detected, false);
+});
+
+test('detectStaleSkylightResource ignores unrelated scripts and links', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/other-card/other-card.js' }],
+    querySelectorAll: () => [{ href: '/local/daylight-calendar-card.js' }]
+  });
+
+  assert.equal(result.detected, false);
+  assert.equal(result.staleUrl, null);
+});
