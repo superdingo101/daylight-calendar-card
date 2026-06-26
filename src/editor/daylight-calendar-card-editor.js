@@ -39,6 +39,7 @@ import {
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
+import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
 
 function normalizeDefaultDarkMode(value) {
   if (value === true) return 'dark';
@@ -1234,11 +1235,19 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       </div>
     `);
 
+    const staleResourceDetection = detectStaleSkylightResource();
+    const staleResourceDiagnostics = staleResourceDetection.detected ? `
+      <p class="helper"><strong>Old Skylight resource detected:</strong> ${this.escapeHtml(staleResourceDetection.staleUrl)}</p>
+      <p class="helper">Remove the old resource from Settings → Dashboards → Resources and keep /hacsfiles/daylight-calendar-card/skylight-calendar-card.js. HACS showing the latest version confirms the file is installed, but not that this dashboard loaded the current frontend resource.</p>
+      <p class="helper"><a href="${STALE_RESOURCE_TROUBLESHOOTING_URL}" target="_blank" rel="noreferrer">Troubleshooting guide</a></p>
+    ` : '';
+
     const diagnosticsSection = this.renderSection('About / Diagnostics', `
       <p class="helper">Daylight Calendar Card</p>
       <p class="helper">Loaded version: ${this.escapeHtml(getDaylightCalendarCardVersion())}</p>
       <p class="helper">Resource file: skylight-calendar-card.js</p>
       <p class="helper">If this version does not match the version shown in HACS, Home Assistant may be loading a cached or stale resource.</p>
+      ${staleResourceDiagnostics}
     `);
 
     this.innerHTML = `

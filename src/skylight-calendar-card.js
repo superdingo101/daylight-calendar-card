@@ -68,6 +68,11 @@ import {
 } from './config/config-normalizers.js';
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 import {
+  detectStaleSkylightResource,
+  STALE_RESOURCE_TROUBLESHOOTING_URL,
+  STALE_RESOURCE_WARNING_STORAGE_KEY
+} from './utils/stale-resource-utils.js';
+import {
   getEventDateTimeInfo as getNormalizedEventDateTimeInfo,
   getEventIdentityKey as getNormalizedEventIdentityKey,
   getEventStartDate as getNormalizedEventStartDate,
@@ -230,12 +235,115 @@ const translate = (language, key, params = {}) => {
   return interpolate(strings[key] || fallback, params);
 };
 
+
+const STALE_RESOURCE_BANNER_ID = 'daylight-calendar-card-stale-resource-warning';
+let staleResourceWarningHandled = false;
+
+const logStaleResourceWarning = (staleUrl) => {
+  console.warn(
+    `Daylight Calendar Card: old Skylight resource detected${staleUrl ? ` (${staleUrl})` : ''}. ` +
+    'Remove it from Settings → Dashboards → Resources and keep /hacsfiles/daylight-calendar-card/skylight-calendar-card.js. ' +
+    'The filename may still be skylight-calendar-card.js; the important part is the daylight-calendar-card folder.'
+  );
+};
+
+const isStaleResourceWarningDismissed = () => {
+  try {
+    return window.localStorage?.getItem(STALE_RESOURCE_WARNING_STORAGE_KEY) === 'true';
+  } catch (_error) {
+    return false;
+  }
+};
+
+const dismissStaleResourceWarning = (banner) => {
+  try {
+    window.localStorage?.setItem(STALE_RESOURCE_WARNING_STORAGE_KEY, 'true');
+  } catch (_error) {
+    // Ignore storage failures; the banner can still be dismissed for this page view.
+  }
+  banner?.remove?.();
+};
+
+const showStaleResourceWarningBanner = (staleUrl) => {
+  if (isStaleResourceWarningDismissed() || document.getElementById?.(STALE_RESOURCE_BANNER_ID)) return;
+
+  const banner = document.createElement('div');
+  banner.id = STALE_RESOURCE_BANNER_ID;
+  banner.setAttribute('role', 'status');
+  banner.style.cssText = [
+    'position: fixed',
+    'left: 50%',
+    'bottom: 24px',
+    'transform: translateX(-50%)',
+    'z-index: 2147483647',
+    'box-sizing: border-box',
+    'max-width: min(560px, calc(100vw - 32px))',
+    'display: flex',
+    'align-items: center',
+    'gap: 12px',
+    'padding: 12px 16px',
+    'border-radius: 4px',
+    'background: #323232',
+    'color: #fff',
+    'box-shadow: 0 3px 8px rgba(0, 0, 0, 0.32)',
+    'font-family: var(--primary-font-family, Roboto, Arial, sans-serif)',
+    'font-size: 14px',
+    'line-height: 1.35',
+    'pointer-events: auto'
+  ].join(';');
+
+  const message = document.createElement('span');
+  message.textContent = 'Old Skylight Calendar Card resource detected. Remove the old resource from Settings → Dashboards → Resources.';
+  message.style.cssText = 'min-width: 0; flex: 1 1 auto;';
+  if (staleUrl) {
+    message.title = staleUrl;
+  }
+
+  const docsLink = document.createElement('a');
+  docsLink.href = STALE_RESOURCE_TROUBLESHOOTING_URL;
+  docsLink.target = '_blank';
+  docsLink.rel = 'noreferrer';
+  docsLink.textContent = 'Troubleshooting';
+  docsLink.style.cssText = 'color: #bbdefb; text-decoration: none; font-weight: 500; white-space: nowrap;';
+
+  const dismissButton = document.createElement('button');
+  dismissButton.type = 'button';
+  dismissButton.textContent = 'Dismiss';
+  dismissButton.style.cssText = [
+    'border: 0',
+    'background: transparent',
+    'color: #90caf9',
+    'font: inherit',
+    'font-weight: 500',
+    'text-transform: uppercase',
+    'cursor: pointer',
+    'padding: 4px',
+    'white-space: nowrap'
+  ].join(';');
+  dismissButton.addEventListener('click', () => dismissStaleResourceWarning(banner));
+
+  banner.append(message, docsLink, dismissButton);
+  document.body?.appendChild?.(banner);
+};
+
+const checkAndShowStaleResourceWarning = () => {
+  if (staleResourceWarningHandled) return;
+  staleResourceWarningHandled = true;
+
+  const detection = detectStaleSkylightResource();
+  if (!detection.detected) return;
+
+  logStaleResourceWarning(detection.staleUrl);
+  showStaleResourceWarningBanner(detection.staleUrl);
+};
+
 // ============================================================================
 // MAIN CALENDAR CARD CLASS
 // ============================================================================
 
 class SkylightCalendarCard extends HTMLElement {
   static COMMON_NAMED_COLORS = COMMON_NAMED_COLORS;
+  static detectStaleSkylightResource = detectStaleSkylightResource;
 
   constructor() {
     super();
@@ -1950,6 +2058,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   connectedCallback() {
+    checkAndShowStaleResourceWarning();
     window.addEventListener('resize', this._handleViewportResize);
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
