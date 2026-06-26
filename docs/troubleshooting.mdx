@@ -51,6 +51,69 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
     </Tip>
   </Accordion>
 
+  <Accordion title="Updated to the latest version, but still seeing old behavior">
+    If HACS shows the latest version but new frontend behavior is missing, the most common cause is a stale dashboard resource or browser cache. HACS confirms that the files are installed. It does not confirm that Home Assistant or your browser is loading the current file.
+
+    This is especially likely if you installed the card before the Skylight → Daylight rename. The filename is still `skylight-calendar-card.js` for compatibility, but the HACS folder path should now be the Daylight folder.
+
+    **Symptoms:**
+
+    - New options or features are missing
+    - Documented options have no effect
+    - The card editor looks outdated
+    - The card editor is missing the **About / Diagnostics** section
+
+    **Steps to fix:**
+
+    1. **Confirm HACS version**
+
+       Open **HACS → Frontend → Daylight Calendar Card** and confirm it shows the version you expect. This only confirms installation, so continue with the resource checks below if the dashboard still looks old.
+
+    2. **Check Dashboard Resources**
+
+       In Home Assistant, go to **Settings → Dashboards → Resources**. Look for every resource entry that points to `skylight-calendar-card.js`.
+
+    3. **Remove old Skylight resources**
+
+       Delete duplicate or old entries that point to the pre-rename folder, such as:
+
+       ```text
+       /hacsfiles/skylight-calendar-card/skylight-calendar-card.js
+       ```
+
+    4. **Keep only the current Daylight resource**
+
+       For a HACS install, the resource should use the Daylight folder:
+
+       ```text
+       /hacsfiles/daylight-calendar-card/skylight-calendar-card.js
+       ```
+
+       <Note>
+         The filename is intentionally still `skylight-calendar-card.js`. The important part is the folder path: `daylight-calendar-card`, not `skylight-calendar-card`.
+       </Note>
+
+    5. **Refresh or restart**
+
+       Hard-refresh your browser with **Ctrl\+Shift\+R** (Windows/Linux) or **Cmd\+Shift\+R** (Mac). If the old UI still appears, try a private/incognito window, clear your browser cache, or restart Home Assistant.
+
+    6. **Verify the current editor loads**
+
+       Edit the card in your dashboard and scroll to the bottom of the card editor. Seeing the **About / Diagnostics** section is a good sign that the current frontend/editor is loading. If that section is missing, an old frontend resource is probably still being loaded.
+
+    7. **Include details when opening an issue**
+
+       If you still need help, include screenshots of:
+
+       - The HACS version shown for Daylight Calendar Card
+       - **Settings → Dashboards → Resources**
+       - The bottom of the card editor, especially whether **About / Diagnostics** appears
+
+    <Tip>
+      This checklist is most useful when HACS shows the latest version but new options or editor sections are missing. Other bugs can have different causes.
+    </Tip>
+  </Accordion>
+
   <Accordion title='"Add Event" button is missing'>
     The **Add Event** button is hidden when event management is disabled or no writable calendar is available.
 

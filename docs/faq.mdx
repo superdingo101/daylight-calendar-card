@@ -87,6 +87,16 @@ The Daylight Calendar Card is a custom Lovelace card for Home Assistant that bri
     </Tip>
   </Accordion>
 
+  <Accordion title="I updated through HACS, but I do not see the latest features. Why?">
+    HACS showing the latest version confirms that the current files are installed on disk. It does not prove that your browser or dashboard is loading the current frontend resource.
+
+    This is especially common if you installed the card before the Skylight → Daylight rename. Home Assistant may still have an old resource entry or cached file that points to the previous `skylight-calendar-card` folder, even though the JavaScript filename is still `skylight-calendar-card.js`.
+
+    Check **Settings → Dashboards → Resources**, remove duplicate or old Skylight resources, and make sure the active HACS resource uses `/hacsfiles/daylight-calendar-card/skylight-calendar-card.js`. Then hard-refresh the browser or try a private/incognito window.
+
+    See [Updated to the latest version, but still seeing old behavior](/troubleshooting#updated-to-the-latest-version-but-still-seeing-old-behavior) for the full checklist.
+  </Accordion>
+
   <Accordion title="Can I use the card without writing YAML?">
     Yes. The card ships with a visual configuration editor that is accessible directly from the Home Assistant dashboard card editor. Click **Edit Dashboard**, add or edit a Daylight Calendar Card, and the graphical editor appears automatically. It covers all the common options including calendars, view modes, colors, and weather.
 
