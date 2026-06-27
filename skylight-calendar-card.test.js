@@ -94,6 +94,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   agenda_compact_events: 'agenda compact events use compact class and sizing',
   display_full_weekday_names: 'display_full_weekday_names renders localized long weekday labels',
   shorten_event_times: 'shorten_event_times removes minutes from whole-hour 12-hour event times',
+  time_zone: 'time_zone normalizes optional IANA zones and drives formatting and grouping',
   disable_swipe_controls: 'disable_swipe_controls disables swipe controls without affecting agenda',
   week_start_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
   week_end_hour: 'lock_schedule_hours keeps configured schedule hours from expanding to events',
@@ -127,6 +128,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_styles: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   day_styles: 'setConfig applies visual layout and styling options',
   day_badges: 'setConfig schema keeps normalized fields from being overwritten by raw config',
+  day_badge_layout_week: 'day_badge_layout_week controls week header layout classes',
   hide_times_for_calendars: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   show_current_time_bar: 'setConfig applies visual layout and styling options',
   header_color: 'setConfig applies visual layout and styling options',
@@ -239,12 +241,52 @@ test('YAML config coverage inventory tracks every normalized schema option', () 
   assert.deepEqual(extraInventoryKeys, [], `unexpected inventory entries: ${extraInventoryKeys.join(', ')}`);
 });
 
+
+
+test('editor schema metadata preserves config key order and editor defaults', () => {
+  const card = makeCard();
+  const schemaKeys = card.getConfigNormalizationSchema().map((field) => field.key);
+  assert.deepEqual(schemaKeys.slice(0, 12), [
+    'title',
+    'entities',
+    'firstDayOfWeek',
+    'colors',
+    'calendar_names',
+    'calendar_badge_icons',
+    'calendar_person_entities',
+    'max_events',
+    'default_view',
+    'week_days',
+    'rolling_days_week_compact',
+    'rolling_days_schedule'
+  ]);
+  assert.deepEqual(schemaKeys.slice(-7), [
+    'hide_badge_calendars',
+    'default_hidden_calendars',
+    'virtual_calendars',
+    'language',
+    'locale',
+    'color_scheme',
+    'preference_storage_key'
+  ]);
+
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  assert.equal(editor.getEditorDefaultValue('week_start_hour'), 0);
+  assert.equal(editor.getEditorDefaultValue('week_end_hour'), 23);
+  assert.equal(editor.getEditorDefaultValue('event_font_size'), 11);
+  assert.equal(editor.getEditorDefaultValue('event_time_font_size'), 9);
+  assert.equal(editor.getEditorDefaultValue('event_location_font_size'), 9);
+  assert.equal(editor.getEditorDefaultValue('event_tint_opacity'), 80);
+  assert.equal(editor.getEditorDefaultValue('unknown_editor_field'), 0);
+});
+
 test('getStubConfig and normalized defaults include key configuration defaults', () => {
   const stub = Card.getStubConfig();
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'display_full_weekday_names', 'compact_width',
+    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
     'show_current_time_bar', 'show_event_location', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -254,6 +296,59 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
+  assert.deepEqual(stub, {
+    title: 'Family Calendar',
+    entities: ['calendar.personal'],
+    default_view: 'month',
+    first_day_of_week: 0,
+    week_days: [0, 1, 2, 3, 4, 5, 6],
+    week_start_hour: 0,
+    week_end_hour: 23,
+    lock_schedule_hours: false,
+    hide_the_past: false,
+    past_event_mode: 'none',
+    disable_swipe_controls: false,
+    show_all_events_month: false,
+    show_all_details_month: false,
+    hide_empty_days: false,
+    agenda_compact_events: false,
+    shorten_event_times: false,
+    time_zone: '',
+    display_full_weekday_names: false,
+    compact_width: false,
+    show_current_time_bar: false,
+    show_event_location: false,
+    use_short_location: false,
+    event_location_font_size: 9,
+    background_opacity: 0,
+    header_background_opacity: 0,
+    event_calendar_friendly_name: false,
+    event_title_prefix: 'none',
+    combine_style: 'bars',
+    combine_background: 'primary',
+    event_color_mode: 'classic',
+    event_neutral_background: '#F8F3E9',
+    event_tint_opacity: 80,
+    event_color_bar_width: 18,
+    day_badges: [],
+    day_badge_layout_week: 'inline',
+    hide_calendars: false,
+    hide_header: false,
+    hide_year: false,
+    hide_controls: false,
+    hide_navigation_buttons: false,
+    hide_add_event_button: false,
+    hide_view_selector: false,
+    hide_dark_mode_toggle: false,
+    show_dashboard_nav_button: false,
+    header_dashboard_path: null,
+    header_weather_sensor: '',
+    calendar_person_entities: {},
+    default_hidden_calendars: [],
+    color_scheme: 'auto',
+    enable_event_management: true,
+    event_modal_size: 'medium'
+  });
 
   const normalized = makeCard({ entities: ['calendar.family'] })._config;
   for (const field of makeCard().getConfigNormalizationSchema()) {
@@ -331,6 +426,7 @@ test('setConfig applies visual layout and styling options', () => {
     event_title_prefix: 'icon',
     show_current_time_bar: true,
     shorten_event_times: true,
+    time_zone: 'America/New_York',
     display_full_weekday_names: true,
     header_color: '#123456',
     header_text_color: '#ffffff',
@@ -357,7 +453,8 @@ test('setConfig applies visual layout and styling options', () => {
     default_hidden_calendars: ['calendar.family'],
     virtual_calendars: [{ name: 'home', icon: 'mdi:house', entities: ['calendar.family'] }],
     day_styles: [{ when: { day_of_week: [1] }, style: { background: '#111' } }],
-    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }]
+    event_styles: [{ when: { title_contains: 'Meeting' }, style: { color: '#222' } }],
+    day_badge_layout_week: 'stacked'
   });
 
   assert.equal(card._config.default_view, 'week-compact');
@@ -385,7 +482,9 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.event_title_prefix, 'badge_icon');
   assert.equal(card._config.show_current_time_bar, true);
   assert.equal(card._config.shorten_event_times, true);
+  assert.equal(card._config.time_zone, 'America/New_York');
   assert.equal(card._config.display_full_weekday_names, true);
+  assert.equal(card._config.day_badge_layout_week, 'stacked');
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
   assert.equal(card._config.header_background_opacity, 55);
@@ -411,6 +510,158 @@ test('setConfig applies visual layout and styling options', () => {
   assert.deepEqual(card._config.default_hidden_calendars, ['calendar.family']);
   assert.equal(card._hiddenCalendars.has('calendar.family'), true);
   assert.equal(card._config.virtual_calendars[0].name, 'home');
+});
+
+
+test('day_badge_layout_week controls week header layout classes', () => {
+  const inlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  const explicitInlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'inline' });
+  const stackedCompactCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  const stackedStandardCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked' });
+
+  assert.equal(inlineCard._config.day_badge_layout_week, 'inline');
+  assert.match(inlineCard.renderWeekCompact(), /week-compact-container day-badge-layout-inline/);
+  assert.match(explicitInlineCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-inline/);
+  assert.match(stackedCompactCard.renderWeekCompact(), /week-compact-container day-badge-layout-stacked/);
+  assert.match(stackedStandardCard.renderWeekStandard(), /week-standard-container [^"]*day-badge-layout-stacked/);
+
+  const styles = stackedCompactCard.getStyles();
+  assert.match(styles, /\.week-compact-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /\.week-standard-container\.day-badge-layout-stacked \.week-day-meta-row/);
+  assert.match(styles, /flex-direction:\s*column;/);
+  assert.match(styles, /height:\s*var\(--week-standard-time-header-spacer-height, 60px\);/);
+  assert.match(styles, /min-height:\s*var\(--week-standard-day-header-height, auto\);/);
+  assert.match(styles, /min-height:\s*var\(--week-compact-header-height, auto\);/);
+
+  assert.doesNotMatch(inlineCard.renderWeekStandard?.() || '', /--week-standard-day-header-height:/);
+  assert.doesNotMatch(stackedStandardCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+  assert.doesNotMatch(stackedCompactCard.renderWeekCompact(), /--week-compact-header-height:/);
+
+  stackedStandardCard._weekStandardHeaderHeight = 86;
+  assert.match(stackedStandardCard.renderWeekStandard(), /style="--week-standard-day-header-height: 86px;--week-standard-time-header-spacer-height: 60px;/);
+
+  stackedCompactCard._weekCompactHeaderHeight = 92;
+  assert.match(stackedCompactCard.renderWeekCompact(), /style="--week-compact-header-height: 92px;/);
+});
+
+function makeMeasuredDayHeader({ headerHeight, badgeHeight = null }) {
+  const metaRow = {};
+  const badges = badgeHeight === null ? null : {
+    querySelector: (selector) => selector === '.day-badge' ? {} : null,
+    closest: (selector) => selector === '.week-day-meta-row' ? metaRow : null,
+    getBoundingClientRect: () => ({ height: badgeHeight })
+  };
+
+  return {
+    querySelector: (selector) => {
+      if (selector === '.day-badges') return badges;
+      if (selector === '.day-badges .day-badge') return badges ? {} : null;
+      if (selector === '.week-day-meta-row') return metaRow;
+      return null;
+    },
+    getBoundingClientRect: () => ({ height: headerHeight })
+  };
+}
+
+function makeWeekMeasurementRoot({ containerSelector, headerSelector, headers, previousHeaderVariable = '', headerVariableName = '--week-standard-day-header-height' }) {
+  const styleValues = new Map(previousHeaderVariable ? [[headerVariableName, previousHeaderVariable]] : []);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    },
+    getBoundingClientRect: () => ({ top: 24 })
+  };
+
+  return {
+    querySelector: (selector) => selector === containerSelector ? container : null,
+    querySelectorAll: (selector) => selector === headerSelector ? headers : []
+  };
+}
+
+test('stacked week-standard header measurement shares tallest header height without compact offset double count', () => {
+  const originalGetComputedStyle = window.getComputedStyle;
+  window.getComputedStyle = (element) => element ? { rowGap: '6px', gap: '6px' } : originalGetComputedStyle(element);
+
+  try {
+    const inlineCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'inline', compact_height: true });
+    inlineCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [makeMeasuredDayHeader({ headerHeight: 96, badgeHeight: 20 })]
+    });
+    inlineCard._viewMode = 'week-standard';
+    inlineCard.getCompactMaxHeight = () => 223;
+    inlineCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(inlineCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(inlineCard._weekStandardHeaderHeight, null);
+    assert.equal(inlineCard._weekStandardFixedOffsetHeight, null);
+    assert.doesNotMatch(inlineCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+
+    const stackedNoBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked', compact_height: true });
+    stackedNoBadgesCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [makeMeasuredDayHeader({ headerHeight: 96 })]
+    });
+    stackedNoBadgesCard._viewMode = 'week-standard';
+    stackedNoBadgesCard.getCompactMaxHeight = () => 223;
+    stackedNoBadgesCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(stackedNoBadgesCard._weekStandardExtraHeaderHeight, 0);
+    assert.equal(stackedNoBadgesCard._weekStandardHeaderHeight, null);
+    assert.equal(stackedNoBadgesCard._weekStandardFixedOffsetHeight, null);
+    assert.doesNotMatch(stackedNoBadgesCard.renderWeekStandard(), /--week-standard-day-header-height:/);
+
+    const stackedExtraCard = makeCard({ entities: ['calendar.family'], default_view: 'week-standard', day_badge_layout_week: 'stacked', compact_height: true, week_start_hour: 9, week_end_hour: 9 });
+    stackedExtraCard._root = makeWeekMeasurementRoot({
+      containerSelector: '.week-standard-container',
+      headerSelector: '.week-standard-day-header',
+      headers: [
+        makeMeasuredDayHeader({ headerHeight: 72 }),
+        makeMeasuredDayHeader({ headerHeight: 96, badgeHeight: 20 })
+      ],
+      previousHeaderVariable: '120px'
+    });
+    stackedExtraCard._viewMode = 'week-standard';
+    stackedExtraCard.getCompactMaxHeight = () => 223;
+    stackedExtraCard.updateWeekStandardFixedOffsetHeightFromDom();
+    assert.equal(stackedExtraCard._weekStandardExtraHeaderHeight, 36);
+    assert.equal(stackedExtraCard._weekStandardHeaderHeight, 96);
+    assert.equal(stackedExtraCard._weekStandardFixedOffsetHeight, null);
+    assert.match(stackedExtraCard.renderWeekStandard(), /--week-standard-day-header-height: 96px;--week-standard-time-header-spacer-height: 61px;/);
+
+    assert.match(stackedExtraCard.renderWeekStandard(), /class="time-slot" style="height: 95px;"/);
+  } finally {
+    window.getComputedStyle = originalGetComputedStyle;
+  }
+});
+
+test('stacked week-compact header measurement shares tallest header height only when badges render', () => {
+  const stackedNoBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  stackedNoBadgesCard._root = makeWeekMeasurementRoot({
+    containerSelector: '.week-compact-container',
+    headerSelector: '.week-day-header',
+    headers: [makeMeasuredDayHeader({ headerHeight: 92 }), makeMeasuredDayHeader({ headerHeight: 64 })],
+    headerVariableName: '--week-compact-header-height'
+  });
+  stackedNoBadgesCard._viewMode = 'week-compact';
+  stackedNoBadgesCard.updateWeekCompactStackedHeaderHeightFromDom();
+  assert.equal(stackedNoBadgesCard._weekCompactHeaderHeight, null);
+  assert.doesNotMatch(stackedNoBadgesCard.renderWeekCompact(), /--week-compact-header-height:/);
+
+  const stackedBadgesCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  stackedBadgesCard._root = makeWeekMeasurementRoot({
+    containerSelector: '.week-compact-container',
+    headerSelector: '.week-day-header',
+    headers: [makeMeasuredDayHeader({ headerHeight: 92, badgeHeight: 20 }), makeMeasuredDayHeader({ headerHeight: 64 })],
+    previousHeaderVariable: '120px',
+    headerVariableName: '--week-compact-header-height'
+  });
+  stackedBadgesCard._viewMode = 'week-compact';
+  stackedBadgesCard.updateWeekCompactStackedHeaderHeightFromDom();
+  assert.equal(stackedBadgesCard._weekCompactHeaderHeight, 92);
+  assert.match(stackedBadgesCard.renderWeekCompact(), /--week-compact-header-height: 92px;/);
 });
 
 test('shorten_event_times defaults to unchanged event time formatting', () => {
@@ -515,6 +766,128 @@ test('shorten_event_times leaves all-day event labels unaffected', () => {
   assert.doesNotMatch(html, /10 AM|10h/);
 });
 
+
+test('time_zone is optional and preserves default local formatting when unset', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US' });
+  const date = new Date('2026-01-01T12:00:00Z');
+
+  assert.equal(card._config.time_zone, null);
+  assert.equal(card.formatTime(date), new Intl.DateTimeFormat('en-US', card.getTimeFormatOptions()).format(date));
+});
+
+test('time_zone retains valid IANA zones and uses them in formatting', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+
+  assert.equal(card._config.time_zone, 'America/New_York');
+  assert.equal(card.formatTime(new Date('2026-01-01T12:00:00Z')), '7:00 AM');
+  assert.match(card.formatDate(new Date('2026-01-01T12:00:00Z')), /Thursday, January 1, 2026/);
+});
+
+test('time_zone ignores blank and invalid values safely', () => {
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const blank = makeCard({ entities: ['calendar.family'], time_zone: '   ' });
+    const invalid = makeCard({ entities: ['calendar.family'], time_zone: 'Not/AZone' });
+
+    assert.equal(blank._config.time_zone, null);
+    assert.equal(invalid._config.time_zone, null);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /invalid time_zone/);
+  } finally {
+    console.warn = originalWarn;
+  }
+});
+
+test('time_zone can render an ISO event time differently than the default zone', () => {
+  const defaultCard = makeCard({ entities: ['calendar.family'], locale: 'en-US' });
+  const zonedCard = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  const date = new Date('2026-01-01T12:00:00Z');
+
+  assert.equal(defaultCard.formatEventTime(date), '12:00 PM');
+  assert.equal(zonedCard.formatEventTime(date), '7:00 AM');
+  assert.notEqual(defaultCard.formatEventTime(date), zonedCard.formatEventTime(date));
+});
+
+test('time_zone controls event day grouping and week placement calculations', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  card._events = [{
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'Late UTC event',
+    start: { dateTime: '2026-01-02T02:00:00Z' },
+    end: { dateTime: '2026-01-02T03:00:00Z' }
+  }];
+
+  const jan1 = new Date(2026, 0, 1);
+  const jan2 = new Date(2026, 0, 2);
+  assert.equal(card.getEventsForDay(jan1).length, 1);
+  assert.equal(card.getEventsForDay(jan2).length, 0);
+
+  const segment = card.getEventDaySegment(card._events[0], jan1);
+  assert.equal(card.formatEventTimeRange(segment.segmentStart, segment.segmentEnd), '9:00 PM - 10:00 PM');
+  assert.equal(card.getLocalDayHourFloat(segment.segmentStart, jan1), 21);
+});
+
+test('time_zone does not shift synthetic display date labels west of browser zone', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    locale: 'en-US',
+    time_zone: 'America/New_York',
+    rolling_days_week_compact: 0
+  });
+  card._viewMode = 'week-compact';
+  card._currentDate = new Date('2026-01-01T00:00:00Z');
+
+  assert.equal(card.getPeriodLabel(), 'Jan 1, 2026');
+  assert.match(card.formatDisplayDate(card.getWeekDays()[0]), /Thursday, January 1, 2026/);
+});
+
+test('time_zone compares date-only all-day events using configured-zone day bounds', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  card._events = [{
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'New Year all-day',
+    start: { date: '2026-01-01' },
+    end: { date: '2026-01-02' }
+  }];
+
+  const dec31 = new Date('2025-12-31T00:00:00Z');
+  const jan1 = new Date('2026-01-01T00:00:00Z');
+  assert.equal(card.getEventsForDay(dec31).length, 0);
+  assert.equal(card.getEventsForDay(jan1).length, 1);
+
+  const segment = card.getEventDaySegment(card._events[0], jan1);
+  assert.equal(segment.isAllDaySegment, true);
+  assert.equal(segment.segmentStart.toISOString(), '2026-01-01T05:00:00.000Z');
+  assert.equal(segment.segmentEnd.toISOString(), '2026-01-02T05:00:00.000Z');
+});
+
+test('time_zone subtracts all-day modal end dates as configured-zone calendar days across DST', () => {
+  const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', time_zone: 'America/New_York' });
+  const content = { innerHTML: '', classList: { add: () => {}, remove: () => {} } };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+
+  card.getRootElementById = (id) => {
+    if (id === 'event-modal') return modal;
+    if (id === 'modal-content') return content;
+    return null;
+  };
+
+  card.showEventModal({
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'DST all-day',
+    start: { date: '2025-03-09' },
+    end: { date: '2025-03-10' }
+  });
+
+  assert.match(content.innerHTML, /Sunday, March 9, 2025 \(All Day\)/);
+  assert.doesNotMatch(content.innerHTML, /Saturday, March 8, 2025 \(All Day\)/);
+});
+
 test('default_hidden_calendars initializes hidden calendar badges', () => {
   const card = makeCard({
     entities: ['calendar.family', 'calendar.work'],
@@ -569,7 +942,8 @@ test('setConfig normalizes fallback values and aliases', () => {
     background_transparent: true,
     header_background_transparent: true,
     event_title_prefix: 'bad-value',
-    color_scheme: 'invalid'
+    color_scheme: 'invalid',
+    day_badge_layout_week: 'sideways'
   });
 
   assert.equal(card._config.default_view, 'week-standard');
@@ -577,6 +951,7 @@ test('setConfig normalizes fallback values and aliases', () => {
   assert.equal(card._config.header_background_opacity, 100);
   assert.equal(card._config.event_title_prefix, 'none');
   assert.equal(card._config.color_scheme, 'auto');
+  assert.equal(card._config.day_badge_layout_week, 'inline');
 });
 
 test('setConfig schema keeps normalized fields from being overwritten by raw config', () => {
@@ -713,6 +1088,50 @@ test('rolling_weeks month mode renders configured rolling rows from first day of
   assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-05-24')}"`));
 });
 
+
+test('month grid includes leading and trailing days and range boundaries', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'month', first_day_of_week: 1 });
+  card._currentDate = new Date(2026, 1, 10); // February 2026 starts on Sunday.
+  card._events = [];
+
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(card.getVisibleDateRange()).map(([key, value]) => [key, localDateKey(value)])),
+    { startDate: '2026-01-26', endDate: '2026-03-01' }
+  );
+
+  const daysHtml = card.renderDays();
+  assert.equal((daysHtml.match(/class="day-cell/g) || []).length, 35);
+  assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-01-26')}"`));
+  assert.ok(daysHtml.includes(`data-date="${localDateDataAttribute('2026-03-01')}"`));
+});
+
+test('week visible date range follows configured week days and week start', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    default_view: 'week-compact',
+    first_day_of_week: 0,
+    week_days: [0, 2, 4]
+  });
+  card._currentDate = new Date(2026, 4, 13, 12);
+  card.setWeekStart();
+
+  assert.deepEqual(dateKeys(card.getWeekDays('week-compact')), ['2026-05-10', '2026-05-12', '2026-05-14']);
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(card.getVisibleDateRange()).map(([key, value]) => [key, localDateKey(value)])),
+    { startDate: '2026-05-10', endDate: '2026-05-14' }
+  );
+});
+
+test('agenda window generation preserves inclusive current day plus default span', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card._agendaStartDate = new Date(2026, 2, 7);
+  card._agendaEndDate = new Date(2026, 2, 21, 23, 59, 59, 999);
+
+  assert.equal(card.getAgendaPeriodDaySpan(), 14);
+  assert.equal(card.getAgendaDays().length, 15);
+  assert.deepEqual([card.getAgendaDays()[0], card.getAgendaDays().at(-1)].map(localDateKey), ['2026-03-07', '2026-03-21']);
+});
+
 test('show_week_numbers_month adds month-only week number headers and cells', () => {
   const card = makeCard({ entities: ['calendar.family'], show_week_numbers_month: true });
   card._currentDate = new Date('2026-05-13T12:00:00Z');
@@ -785,6 +1204,96 @@ test('calendar_names overrides displayed calendar labels', () => {
   assert.equal(card.getCalendarName('calendar.family'), 'Household');
   assert.match(card.renderCalendarBadges(), /Household/);
   assert.doesNotMatch(card.renderCalendarBadges(), /Family Friendly Name/);
+});
+
+test('calendar entity helpers resolve names, colors, visibility, virtual badges, writable calendars, and person mappings', async () => {
+  const {
+    getCalendarBadgePersonEntityId,
+    getCalendarColor,
+    getCalendarName,
+    getVirtualBadgeItems,
+    getWritableCalendars,
+    normalizeVirtualCalendars
+  } = await import('./src/calendars/calendar-entities.js');
+  const normalizeSingleColor = (value) => value || null;
+  const virtualCalendars = normalizeVirtualCalendars([
+    {
+      id: 'family_group',
+      name: 'Family Group',
+      icon: 'mdi:account-group',
+      color: '#445566',
+      entities: ['calendar.family', 'calendar.work', 'calendar.family']
+    }
+  ], { normalizeSingleColor });
+
+  assert.equal(getCalendarName('calendar.family', {
+    hassStates: { 'calendar.family': { attributes: { friendly_name: 'Family Friendly Name' } } }
+  }), 'Family Friendly Name');
+  assert.equal(getCalendarName('calendar.family', {
+    calendarNames: { 'calendar.family': 'Household' },
+    hassStates: { 'calendar.family': { attributes: { friendly_name: 'Family Friendly Name' } } }
+  }), 'Household');
+  assert.equal(getCalendarName('calendar.school'), 'school');
+  assert.equal(getCalendarName('virtual:family_group', { virtualCalendars }), 'Family Group');
+
+  assert.equal(getCalendarColor('calendar.family', 0, {
+    colors: { 'calendar.family': '#112233' },
+    getDefaultColor: () => '#AABBCC',
+    normalizeSingleColor
+  }), '#112233');
+  assert.equal(getCalendarColor('calendar.work', 1, {
+    colors: {},
+    getDefaultColor: () => '#4ECDC4',
+    normalizeSingleColor
+  }), '#4ECDC4');
+
+  const badgeItems = getVirtualBadgeItems({
+    entities: ['calendar.family', 'calendar.work', 'calendar.school'],
+    virtualCalendars,
+    hideBadgeCalendars: ['calendar.school'],
+    hiddenCalendars: new Set(['calendar.family', 'calendar.work']),
+    getCalendarColor: (_entityId, index) => ['#111111', '#222222', '#333333'][index],
+    getCalendarName: (entityId) => entityId,
+    getCalendarBadgeIcon: () => null
+  });
+  assert.deepEqual(badgeItems, [{
+    id: 'family_group',
+    entityId: 'virtual:family_group',
+    name: 'Family Group',
+    icon: 'mdi:account-group',
+    color: '#445566',
+    entities: ['calendar.family', 'calendar.work'],
+    isHidden: true,
+    type: 'virtual'
+  }]);
+
+  assert.deepEqual(getWritableCalendars(['calendar.family', 'calendar.work', 'calendar.school'], {
+    'calendar.family': { canCreate: true, isReadonly: false },
+    'calendar.work': { canCreate: true, isReadonly: true },
+    'calendar.school': { canCreate: false, isReadonly: false }
+  }), ['calendar.family']);
+  assert.equal(getCalendarBadgePersonEntityId('calendar.family', { 'calendar.family': 'person.ian' }), 'person.ian');
+  assert.equal(getCalendarBadgePersonEntityId('virtual:family_group', { family_group: 'person.family' }), 'person.family');
+});
+
+test('calendar entity helpers resolve virtual badges for combined events', async () => {
+  const {
+    getVirtualBadgeForEvent,
+    normalizeVirtualCalendars
+  } = await import('./src/calendars/calendar-entities.js');
+  const virtualCalendars = normalizeVirtualCalendars([
+    { id: 'family_group', name: 'Family Group', entities: ['calendar.family', 'calendar.school'] },
+    { id: 'work_group', name: 'Work Group', entities: ['calendar.work'] }
+  ], { normalizeSingleColor: (value) => value || null });
+
+  assert.equal(getVirtualBadgeForEvent(virtualCalendars, {
+    isCombinedCalendarEvent: true,
+    sourceEntityIds: ['calendar.school', 'calendar.family']
+  })?.id, 'family_group');
+  assert.equal(getVirtualBadgeForEvent(virtualCalendars, {
+    isCombinedCalendarEvent: true,
+    sourceEntityIds: ['calendar.unknown']
+  }), null);
 });
 
 test('preference_storage_key customizes persisted preference storage key', () => {
@@ -1151,6 +1660,74 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
 });
 
+
+test('weather utility maps Home Assistant conditions to mdi icons with fallback', async () => {
+  const { mapWeatherConditionToIcon } = await import('./src/weather/weather-utils.js');
+
+  assert.equal(mapWeatherConditionToIcon('sunny'), 'mdi:weather-sunny');
+  assert.equal(mapWeatherConditionToIcon('clear_night'), 'mdi:weather-night');
+  assert.equal(mapWeatherConditionToIcon('lightning-rainy'), 'mdi:weather-lightning-rainy');
+  assert.equal(mapWeatherConditionToIcon('unknown'), '');
+  assert.equal(mapWeatherConditionToIcon('unavailable'), '');
+  assert.equal(mapWeatherConditionToIcon('not-a-real-condition'), '');
+  assert.equal(mapWeatherConditionToIcon(null), '');
+});
+
+test('weather utility normalizes header weather data and preserves temperature unit display', async () => {
+  const { normalizeHeaderWeatherData } = await import('./src/weather/weather-utils.js');
+
+  assert.deepEqual(normalizeHeaderWeatherData({
+    state: 'sunny',
+    attributes: { temperature: 21.4 }
+  }), { conditionIcon: 'mdi:weather-sunny', temperature: '21°' });
+  assert.deepEqual(normalizeHeaderWeatherData({
+    state: 'cloudy',
+    attributes: { condition: 'rainy', current_temperature: 18.6 }
+  }), { conditionIcon: 'mdi:weather-rainy', temperature: '19°' });
+  assert.equal(normalizeHeaderWeatherData({ state: 'unavailable', attributes: { temperature: 20 } }), null);
+  assert.equal(normalizeHeaderWeatherData({ state: 'sunny', attributes: {} }), null);
+  assert.equal(normalizeHeaderWeatherData(null), null);
+});
+
+test('weather utility normalizes forecast items and handles missing or empty data', async () => {
+  const { normalizeForecastForDate } = await import('./src/weather/weather-utils.js');
+  const getDateKey = (date) => date.toISOString().slice(0, 10);
+
+  assert.deepEqual(normalizeForecastForDate([
+    { datetime: '2026-05-13T12:00:00Z', condition: 'sunny', temperature: 22, templow: 11 },
+    { date: '2026-05-14', condition: 'partlycloudy', temphigh: 24.2, temperature_low: 12.4 }
+  ], new Date('2026-05-14T00:00:00Z'), getDateKey), {
+    conditionIcon: 'mdi:weather-partly-cloudy',
+    highTemp: '24°',
+    lowTemp: '12°'
+  });
+  assert.equal(normalizeForecastForDate([], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate(null, new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate([{ date: '2026-05-14', condition: 'unknown', temperature: 20 }], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+  assert.equal(normalizeForecastForDate([{ date: '2026-05-14', condition: 'sunny' }], new Date('2026-05-14T00:00:00Z'), getDateKey), null);
+});
+
+test('weather service builds Home Assistant forecast websocket payloads', async () => {
+  const {
+    buildWeatherForecastRequestMessage,
+    buildWeatherForecastSubscriptionMessage,
+    isWeatherEntityId
+  } = await import('./src/weather/weather-service.js');
+
+  assert.deepEqual(buildWeatherForecastSubscriptionMessage('weather.home'), {
+    type: 'weather/subscribe_forecast',
+    entity_id: 'weather.home',
+    forecast_type: 'daily'
+  });
+  assert.deepEqual(buildWeatherForecastRequestMessage('weather.home'), {
+    type: 'weather/get_forecasts',
+    entity_ids: ['weather.home'],
+    forecast_type: 'daily'
+  });
+  assert.equal(isWeatherEntityId('weather.home'), true);
+  assert.equal(isWeatherEntityId('sensor.home'), false);
+  assert.equal(isWeatherEntityId(''), false);
+});
 test('agenda view renders daily weather forecast', () => {
   const card = makeCard({
     entities: ['calendar.family'],
@@ -1983,6 +2560,90 @@ test('hidden events do not contribute to month overflow counts', () => {
 });
 
 
+
+test('day badge helper module delegates preserve normalization and resolution behavior', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const block = card.normalizeDayBadgeBlock({
+    text: '  School  ',
+    icon: ' mdi:school ',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: 'red',
+    size: 24,
+    font_size: ' 0.85rem '
+  });
+
+  assert.deepEqual(block, {
+    text: 'School',
+    icon: 'mdi:school',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: '#FF0000',
+    size: '24px',
+    font_size: '0.85rem'
+  });
+  assert.equal(card.isFullValueTemplate('{{event.description_json.foo}}'), true);
+  assert.equal(card.isFullValueTemplate('Label {{ event.description_json.foo }}'), false);
+});
+
+test('day badge safe path resolution blocks prototype segments and missing/non-scalar values', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const context = {
+    event: {
+      description_json: {
+        label: 'School',
+        count: 3,
+        active: true,
+        nested: { label: 'Nested' },
+        items: ['a']
+      }
+    }
+  };
+
+  assert.equal(card.resolveSafePath('event.description_json.label', context), 'School');
+  assert.equal(card.resolveSafePath('event.description_json.count', context), '3');
+  assert.equal(card.resolveSafePath('event.description_json.active', context), 'true');
+  assert.equal(card.resolveSafePath('event.description_json.missing', context), undefined);
+  assert.equal(card.resolveSafePath('event.description_json.nested', context), undefined);
+  assert.equal(card.resolveSafePath('event.description_json.items', context), undefined);
+  assert.equal(card.resolveSafePath('event.__proto__.polluted', context), undefined);
+  assert.equal(card.resolveSafePath('event.prototype.polluted', context), undefined);
+  assert.equal(card.resolveSafePath('event.constructor.polluted', context), undefined);
+});
+
+test('day badge display value and description JSON helpers preserve primitive template semantics', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { description: '{"badge_text":"School","count":2,"enabled":false}' };
+  const context = card.buildDayBadgeResolutionContext(new Date('2026-05-01T00:00:00Z'), event);
+
+  assert.deepEqual(card.parseEventDescriptionJson(event), { badge_text: 'School', count: 2, enabled: false });
+  assert.equal(card.parseEventDescriptionJson({ description: '{bad json}' }), undefined);
+  assert.equal(card.parseEventDescriptionJson({ description: '["array"]' }), undefined);
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.badge_text }}', context), 'School');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.count }}', context), '2');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'false');
+  assert.equal(card.resolveDayBadgeDisplayValue('{{ event.description_json.missing }}', context), undefined);
+  assert.equal(card.resolveDayBadgeDisplayValue('School: {{ event.description_json.badge_text }}', context), 'School: {{ event.description_json.badge_text }}');
+});
+
+test('day badge render resolution removes empty fields and validates resolved colors', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { description: '{"text":"School","icon":"mdi:school","empty":"","bad_color":"not-a-color","good_color":"#123456"}' };
+  const resolved = card.resolveDayBadgeForRender({
+    text: '{{ event.description_json.text }}',
+    icon: '{{ event.description_json.empty }}',
+    background_color: '{{ event.description_json.good_color }}',
+    color: '{{ event.description_json.bad_color }}',
+    size: '20px',
+    font_size: '12px'
+  }, new Date('2026-05-01T00:00:00Z'), event);
+
+  assert.equal(resolved.text, 'School');
+  assert.equal(resolved.icon, undefined);
+  assert.equal(resolved.background_color, '#123456');
+  assert.equal(resolved.color, undefined);
+  assert.equal(resolved.size, '20px');
+  assert.equal(resolved.font_size, '12px');
+});
+
 test('day_badges renders text badge when event title matches', () => {
   const card = makeCard({ entities: ['calendar.a'], day_badges: [{ conditions: { title_contains: 'ballet' }, text: 'PL', background_color: '#ff4b2b', color: '#000000' }] });
   const events = [{ entityId: 'calendar.a', summary: 'Ballet Practice', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }];
@@ -2314,6 +2975,270 @@ test('getCompactContainerStyle preserves viewport fallback without constrained p
   } finally {
     window.innerHeight = originalInnerHeight;
     window.visualViewport = originalVisualViewport;
+  }
+});
+
+
+test('scheduleHostAndParentResizeHandling defers host resize render while event modal is open', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_height: true });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  let parentSize = { width: 320, height: 480 };
+  const modalClasses = new Set(['show']);
+  const modal = { classList: { contains: (name) => modalClasses.has(name) } };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    card.render = () => { renderCount += 1; };
+    card._viewMode = 'month';
+    card._monthCompactMeasurementDirty = false;
+    card._root = { querySelector: (selector) => selector === '#event-modal' ? modal : null };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: parentSize.width, height: parentSize.height }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 410 };
+    parentSize = { width: 360, height: 500 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.deepEqual(card._lastObservedHostSize, {
+      hostWidth: 340,
+      hostHeight: 410,
+      parentWidth: 360,
+      parentHeight: 500
+    });
+    assert.equal(card._monthCompactMeasurementDirty, true);
+    assert.equal(card._pendingHostResizeRender, true);
+
+    hostSize = { width: 380, height: 430 };
+    card.scheduleHostAndParentResizeHandling();
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingHostResizeRender, true);
+
+    modalClasses.delete('show');
+    card.updateEventModalOpenState(modal);
+    assert.equal(renderCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+
+    card.updateEventModalOpenState(modal);
+    assert.equal(renderCount, 1);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling updates header state without rendering for ordinary size changes', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    let wrapUpdateCount = 0;
+    let badgeUpdateCount = 0;
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => { wrapUpdateCount += 1; };
+    card.updateCalendarBadgesScrollState = () => { badgeUpdateCount += 1; };
+    card.isEventManagementDialogOpen = () => false;
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(wrapUpdateCount, 1);
+    assert.equal(badgeUpdateCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling renders for compact-height size changes', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_height: true });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    card.render = () => { renderCount += 1; };
+    card.isEventManagementDialogOpen = () => false;
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+
+test('scheduleHostAndParentResizeHandling refreshes stacked week-compact header height without rendering', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const styleValues = new Map([['--week-compact-header-height', '120px']]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    }
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 84, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card._viewMode = 'week-compact';
+    card._weekCompactHeaderHeight = 120;
+    card._root = {
+      querySelector: (selector) => selector === '.week-compact-container' ? container : null,
+      querySelectorAll: (selector) => selector === '.week-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._weekCompactHeaderHeight, 84);
+    assert.equal(styleValues.get('--week-compact-header-height'), '84px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling refreshes stacked week-standard header height without rendering', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-standard', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const styleValues = new Map([
+    ['--week-standard-day-header-height', '120px'],
+    ['--week-standard-time-header-spacer-height', '85px']
+  ]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    },
+    getBoundingClientRect: () => ({ top: 24 })
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 90, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card._viewMode = 'week-standard';
+    card._weekStandardHeaderHeight = 120;
+    card._weekStandardExtraHeaderHeight = 60;
+    card._weekStandardContainerTopInViewport = 24;
+    card._root = {
+      querySelector: (selector) => selector === '.week-standard-container' ? container : null,
+      querySelectorAll: (selector) => selector === '.week-standard-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._weekStandardHeaderHeight, 90);
+    assert.equal(card._weekStandardExtraHeaderHeight, 30);
+    assert.equal(styleValues.get('--week-standard-day-header-height'), '90px');
+    assert.equal(styleValues.get('--week-standard-time-header-spacer-height'), '60px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+
+test('scheduleHostAndParentResizeHandling defers stacked week header refresh while modal is open', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const modalClasses = new Set(['show']);
+  const modal = { classList: { contains: (name) => modalClasses.has(name) } };
+  const styleValues = new Map([['--week-compact-header-height', '120px']]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    }
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 84, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card._viewMode = 'week-compact';
+    card._weekCompactHeaderHeight = 120;
+    card._root = {
+      querySelector(selector) {
+        if (selector === '#event-modal') return modal;
+        if (selector === '.week-compact-container') return container;
+        return null;
+      },
+      querySelectorAll: (selector) => selector === '.week-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingWidthDependentLayoutRefresh, true);
+    assert.equal(card._weekCompactHeaderHeight, 120);
+    assert.equal(styleValues.get('--week-compact-header-height'), '120px');
+
+    modalClasses.delete('show');
+    card.updateEventModalOpenState(modal);
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingWidthDependentLayoutRefresh, false);
+    assert.equal(card._weekCompactHeaderHeight, 84);
+    assert.equal(styleValues.get('--week-compact-header-height'), '84px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
   }
 });
 
@@ -2686,11 +3611,11 @@ test('updateCompactHeaderWrapState keeps header single-row after delayed updates
   const controls = {
     scrollWidth: 400,
     children: [{ offsetParent: {}, offsetTop: 20 }, { offsetParent: {}, offsetTop: 20 }],
-    classList: { remove() {}, toggle() {} }
+    classList: { remove() {}, toggle() {}, contains() { return false; } }
   };
   Object.defineProperty(header, 'clientWidth', { configurable: true, value: 1000 });
 
-  const badges = { children: [], classList: { remove() {}, toggle() {} } };
+  const badges = { children: [], classList: { remove() {}, toggle() {}, contains() { return false; } } };
   card._root = {
     querySelector(sel) {
       if (sel === '.header-compact') return header;
@@ -2730,6 +3655,170 @@ test('updateCompactHeaderWrapState keeps header single-row after delayed updates
     window.getComputedStyle = originalGetComputedStyle;
     card.measureNaturalGroupWidth = originalMeasure;
   }
+});
+
+
+test('measureAndApplyHeaderWrapState does not mutate classes when measured state is unchanged', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = (initial = []) => ({
+    _set: new Set(initial),
+    toggles: [],
+    removes: [],
+    contains(name) { return this._set.has(name); },
+    toggle(name, force) { this.toggles.push([name, force]); if (force) this._set.add(name); else this._set.delete(name); },
+    remove(name) { this.removes.push(name); this._set.delete(name); }
+  });
+  const left = { classList: makeClassList(), children: [] };
+  const controls = { classList: makeClassList(['is-wrapped']), children: [] };
+  const badges = { classList: makeClassList(['is-wrapped']), children: [{ offsetParent: {}, offsetTop: 0 }, { offsetParent: {}, offsetTop: 3 }] };
+  const header = {
+    classList: makeClassList(['is-wrapped']),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return left;
+      if (selector === '.compact-header-controls') return controls;
+      return null;
+    }
+  };
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return controls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+  card.shouldMarkHeaderWrappedFromWidth = () => true;
+  card.shouldMarkGroupWrappedFromWidth = () => true;
+
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+
+  assert.deepEqual(header.classList.removes, []);
+  assert.deepEqual(controls.classList.removes, []);
+  assert.deepEqual(badges.classList.removes, []);
+  assert.deepEqual(header.classList.toggles, []);
+  assert.deepEqual(controls.classList.toggles, []);
+  assert.deepEqual(badges.classList.toggles, []);
+});
+
+
+test('measureAndApplyHeaderWrapState uses unwrapped probe to remove stale compact wrapping when width grows', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = (initial = []) => ({
+    _set: new Set(initial),
+    contains(name) { return this._set.has(name); },
+    add(name) { this._set.add(name); },
+    remove(name) { this._set.delete(name); },
+    toggle(name, force) { if (force) this._set.add(name); else this._set.delete(name); }
+  });
+  const makeGroup = (naturalWidth, wrappedWidth, classes = []) => ({
+    naturalWidth,
+    wrappedWidth,
+    classList: makeClassList(classes),
+    children: []
+  });
+  const liveLeft = makeGroup(300, 300);
+  const liveControls = makeGroup(300, 500, ['is-wrapped']);
+  const cloneLeft = makeGroup(300, 300);
+  const cloneControls = makeGroup(300, 300, ['is-wrapped']);
+  const badges = { classList: makeClassList(['is-wrapped']), children: [] };
+  let appendedClone = null;
+  const clone = {
+    style: {},
+    classList: makeClassList(['is-wrapped']),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return cloneLeft;
+      if (selector === '.compact-header-controls') return cloneControls;
+      return null;
+    },
+    remove() { appendedClone = null; }
+  };
+  const header = {
+    clientWidth: 700,
+    style: {},
+    classList: makeClassList(['is-wrapped']),
+    parentNode: { appendChild(node) { appendedClone = node; } },
+    getBoundingClientRect: () => ({ width: 700 }),
+    cloneNode: () => clone,
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return liveLeft;
+      if (selector === '.compact-header-controls') return liveControls;
+      return null;
+    }
+  };
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return liveControls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+
+  const originalMeasure = card.measureNaturalGroupWidth;
+  const originalGetComputedStyle = window.getComputedStyle;
+  try {
+    card.measureNaturalGroupWidth = (group) => group.naturalWidth;
+    window.getComputedStyle = () => ({ columnGap: '16px', gap: '16px', paddingLeft: '0px', paddingRight: '0px' });
+
+    card.measureAndApplyHeaderWrapState();
+
+    assert.equal(header.classList.contains('is-wrapped'), false);
+    assert.equal(liveControls.classList.contains('is-wrapped'), false);
+    assert.equal(appendedClone, null);
+    assert.equal(clone.classList.contains('is-wrapped'), false);
+    assert.equal(cloneControls.classList.contains('is-wrapped'), false);
+  } finally {
+    card.measureNaturalGroupWidth = originalMeasure;
+    window.getComputedStyle = originalGetComputedStyle;
+  }
+});
+
+test('measureAndApplyHeaderWrapState reaches stable compact wrapped and unwrapped states', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = () => ({
+    _set: new Set(),
+    toggleCount: 0,
+    contains(name) { return this._set.has(name); },
+    toggle(name, force) { this.toggleCount += 1; if (force) this._set.add(name); else this._set.delete(name); }
+  });
+  const left = {};
+  const controls = { classList: makeClassList(), children: [] };
+  const badges = { classList: makeClassList(), children: [] };
+  const header = {
+    classList: makeClassList(),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return left;
+      if (selector === '.compact-header-controls') return controls;
+      return null;
+    }
+  };
+  let shouldWrap = true;
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return controls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+  card.shouldMarkHeaderWrappedFromWidth = () => shouldWrap;
+  card.shouldMarkGroupWrappedFromWidth = () => shouldWrap;
+
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+  assert.equal(header.classList.contains('is-wrapped'), true);
+  assert.equal(controls.classList.contains('is-wrapped'), true);
+  assert.equal(header.classList.toggleCount, 1);
+  assert.equal(controls.classList.toggleCount, 1);
+
+  shouldWrap = false;
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+  assert.equal(header.classList.contains('is-wrapped'), false);
+  assert.equal(controls.classList.contains('is-wrapped'), false);
+  assert.equal(header.classList.toggleCount, 2);
+  assert.equal(controls.classList.toggleCount, 2);
 });
 
 test('repeated updateCompactHeaderWrapState calls cancel previous pending RAFs', () => {
@@ -3402,4 +4491,830 @@ test('advanced style conflict behavior is per property with priority and earlier
   const dayStyle = card.getDayStyleConfig(new Date('2026-05-01T00:00:00Z'), [event], false);
   assert.equal(dayStyle.background, '#555555');
   assert.equal(dayStyle.opacity, 0.8);
+});
+
+test('date utility helpers preserve local date and ISO week behavior', async () => {
+  const {
+    formatLocalDate,
+    getDateRangeChunks,
+    getIsoWeekNumber,
+    parseLocalDate,
+    parsePossiblyLocalDateTime
+  } = await import('./src/utils/date-utils.js');
+
+  assert.equal(formatLocalDate(new Date(2026, 5, 3)), '2026-06-03');
+  assert.equal(formatLocalDate(new Date('invalid')), '');
+  assert.deepEqual(
+    [parseLocalDate('2026-06-03').getFullYear(), parseLocalDate('2026-06-03').getMonth(), parseLocalDate('2026-06-03').getDate()],
+    [2026, 5, 3]
+  );
+  assert.deepEqual(
+    [parsePossiblyLocalDateTime('2026-06-03T04:05:06').getFullYear(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getMonth(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getDate(), parsePossiblyLocalDateTime('2026-06-03T04:05:06').getHours()],
+    [2026, 5, 3, 4]
+  );
+  assert.equal(getIsoWeekNumber(new Date(2021, 0, 4)), 1);
+  assert.equal(getIsoWeekNumber(new Date(2020, 11, 31)), 53);
+
+  const chunks = getDateRangeChunks(new Date(2026, 0, 1, 12), new Date(2026, 0, 5, 9), 2);
+  assert.equal(chunks.length, 3);
+  assert.equal(formatLocalDate(chunks[0].startDate), '2026-01-01');
+  assert.equal(formatLocalDate(chunks[0].endDate), '2026-01-02');
+  assert.equal(formatLocalDate(chunks[2].startDate), '2026-01-05');
+});
+
+test('string utility helpers preserve normalization and attribute escaping', async () => {
+  const { escapeHtmlAttribute, normalizeEventTextValue } = await import('./src/utils/string-utils.js');
+
+  assert.equal(normalizeEventTextValue('  Team\n\tSync  '), 'Team Sync');
+  assert.equal(normalizeEventTextValue('ＡＢＣ'), 'ABC');
+  assert.equal(escapeHtmlAttribute('Team "sync" & <review> \'plan\''), 'Team &quot;sync&quot; &amp; &lt;review&gt; &#39;plan&#39;');
+});
+
+test('normalization utility helpers preserve dashboard, enum, map, and boolean behavior', async () => {
+  const {
+    normalizeBooleanStyleValue,
+    normalizeDashboardPath,
+    normalizeEntityStringMap,
+    normalizeEnumValue
+  } = await import('./src/utils/normalization-utils.js');
+
+  assert.equal(normalizeDashboardPath(' lovelace/home '), '/lovelace/home');
+  assert.equal(normalizeDashboardPath('/lovelace/home'), '/lovelace/home');
+  assert.equal(normalizeDashboardPath('   '), null);
+  assert.equal(normalizeDashboardPath(null), null);
+
+  assert.equal(normalizeEnumValue(' Week ', { aliases: { week: 'week-compact' }, allowed: ['month', 'week-compact'], fallback: 'month' }), 'week-compact');
+  assert.equal(normalizeEnumValue('bad', { allowed: ['month'], fallback: 'month' }), 'month');
+
+  assert.deepEqual(normalizeEntityStringMap({ ' calendar.work ': ' Work ', '': 'Empty', 'calendar.blank': '   ', 'calendar.number': 5 }), {
+    'calendar.work': 'Work'
+  });
+  assert.deepEqual(normalizeEntityStringMap(['calendar.work']), {});
+
+  assert.equal(normalizeBooleanStyleValue(true), true);
+  assert.equal(normalizeBooleanStyleValue(' false '), false);
+  assert.equal(normalizeBooleanStyleValue('maybe'), null);
+});
+
+test('event normalizer module preserves identity, all-day detection, and start dates', async () => {
+  const {
+    getEventDateTimeInfo,
+    getEventIdentityKey,
+    getEventStartDate,
+    normalizeCalendarEvent
+  } = await import('./src/events/event-normalizer.js');
+
+  const rawEvent = {
+    uid: 'abc',
+    start: { date: '2026-06-23' },
+    end: { date: '2026-06-24' },
+    summary: 'Holiday'
+  };
+  const parseLocalDateForTest = (value) => new Date(`${value}T00:00:00`);
+
+  assert.equal(
+    getEventIdentityKey('calendar.work', rawEvent),
+    'calendar.work|abc||2026-06-23|2026-06-24|Holiday'
+  );
+  assert.deepEqual(normalizeCalendarEvent(rawEvent, { entityId: 'calendar.work', color: '#123456' }), {
+    ...rawEvent,
+    entityId: 'calendar.work',
+    color: '#123456'
+  });
+  assert.equal(getEventStartDate(rawEvent, { parseLocalDate: parseLocalDateForTest }).getFullYear(), 2026);
+
+  const allDayInfo = getEventDateTimeInfo(rawEvent, { parseCalendarDate: parseLocalDateForTest });
+  assert.equal(allDayInfo.isAllDay, true);
+  assert.equal(allDayInfo.eventStart.getDate(), 23);
+
+  const timedInfo = getEventDateTimeInfo({ start: { dateTime: '2026-06-23T10:00:00Z' }, end: { dateTime: '2026-06-23T11:00:00Z' } });
+  assert.equal(timedInfo.isAllDay, false);
+});
+
+test('rule modules preserve event, day, badge, and priority matching behavior', async () => {
+  const {
+    matchesAdvancedRule,
+    matchTextCondition,
+    eventMatchesNormalizedRule,
+    dayMatchesNormalizedRule
+  } = await import('./src/rules/condition-matcher.js');
+  const { normalizeAdvancedRuleMatch } = await import('./src/rules/style-rules.js');
+
+  const event = {
+    entityId: 'calendar.work',
+    summary: 'Team Sync',
+    location: 'Conference Room',
+    description: 'Quarterly planning',
+    start: { dateTime: '2026-06-23T10:00:00Z' },
+    end: { dateTime: '2026-06-23T11:00:00Z' }
+  };
+  const helpers = {
+    getEventCalendarMatchTokens: () => ['calendar.work', 'Work'],
+    getEventDateTimeInfo: () => ({ isAllDay: false }),
+    isPastEvent: () => false,
+    normalizeEventTextValue: (value) => String(value ?? '').trim().replace(/\s+/g, ' ')
+  };
+
+  assert.equal(matchTextCondition(event.summary, 'contains:team', helpers), true);
+  assert.equal(eventMatchesNormalizedRule(event, { calendar: 'work', title: { substring: 'Sync' }, all_day: false }, helpers), true);
+  assert.equal(eventMatchesNormalizedRule(event, { title: 'Team', not: { location: 'Kitchen' } }, helpers), true);
+
+  const normalizedEventStyleMatch = normalizeAdvancedRuleMatch({ title_contains: 'team', calendar_entity: 'calendar.work' }, { defaultScope: 'event' });
+  assert.equal(matchesAdvancedRule(normalizedEventStyleMatch, { event }, helpers).matches, true);
+
+  const normalizeDayOfWeekRule = (value) => Array.isArray(value) ? value : [value];
+  const normalizedDayStyleMatch = normalizeAdvancedRuleMatch(
+    { day: { weekday: true, day_of_week: 2, has_event: { title_contains: 'team' } } },
+    { defaultScope: 'day', normalizeDayOfWeekRule }
+  );
+  const dayResult = matchesAdvancedRule(normalizedDayStyleMatch, {
+    date: new Date('2026-06-23T00:00:00'),
+    dayEvents: [event]
+  }, helpers);
+  assert.equal(dayResult.matches, true);
+  assert.equal(dayResult.matchedEvent, event);
+
+  assert.equal(dayMatchesNormalizedRule({ no_event: { title: 'Dentist' } }, {
+    date: new Date('2026-06-23T00:00:00'),
+    dayEvents: [event]
+  }, helpers).matches, true);
+});
+
+test('day badge module preserves normalization, safe resolution, and render preparation behavior', async () => {
+  const {
+    isFullValueTemplate,
+    normalizeDayBadgeBlock,
+    normalizeDayBadgeDisplayColor,
+    normalizeResolvedDayBadgeDisplayColor,
+    parseEventDescriptionJson,
+    buildDayBadgeResolutionContext,
+    resolveSafePath,
+    resolveDayBadgeDisplayValue,
+    resolveDayBadgeForRender,
+    normalizeDayBadges
+  } = await import('./src/badges/day-badges.js');
+
+  const normalizeSingleColor = (value) => ({ red: '#FF0000', blue: '#0000FF' }[String(value || '').trim().toLowerCase()] || String(value || '').trim() || null);
+  const normalizeEventTextValueForTest = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
+  const normalizeStyleSizeValueForTest = (value) => {
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    return Number.isFinite(numeric) && numeric > 0 ? `${numeric}px` : trimmed;
+  };
+
+  assert.deepEqual(normalizeDayBadgeBlock({
+    text: '  Bus  ',
+    icon: ' mdi:bus ',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: 'red',
+    size: 18,
+    font_size: '11px'
+  }, {
+    normalizeEventTextValue: normalizeEventTextValueForTest,
+    normalizeDayBadgeDisplayColor: (value) => normalizeDayBadgeDisplayColor(value, { normalizeSingleColor }),
+    normalizeStyleSizeValue: normalizeStyleSizeValueForTest
+  }), {
+    text: 'Bus',
+    icon: 'mdi:bus',
+    background_color: '{{ event.description_json.badge_color }}',
+    color: '#FF0000',
+    size: '18px',
+    font_size: '11px'
+  });
+  assert.equal(isFullValueTemplate('{{event.description_json.badge_color}}'), true);
+  assert.equal(isFullValueTemplate('Bus {{ event.description_json.badge_color }}'), false);
+  assert.equal(normalizeResolvedDayBadgeDisplayColor('blue', { normalizeSingleColor }), '#0000FF');
+  assert.equal(normalizeResolvedDayBadgeDisplayColor('not-a-color', { normalizeSingleColor }), undefined);
+
+  const event = { entityId: 'calendar.helper', summary: 'Helper', description: '{"label":"Bus","count":4,"enabled":true,"color":"#112233","empty":"","nested":{"x":1}}' };
+  const context = buildDayBadgeResolutionContext(new Date('2026-05-01T00:00:00Z'), event, { formatLocalDate: () => '2026-05-01' });
+  assert.deepEqual(parseEventDescriptionJson(event), { label: 'Bus', count: 4, enabled: true, color: '#112233', empty: '', nested: { x: 1 } });
+  assert.equal(parseEventDescriptionJson({ description: '{bad json}' }), undefined);
+  assert.equal(resolveSafePath('event.description_json.label', context), 'Bus');
+  assert.equal(resolveSafePath('event.description_json.count', context), '4');
+  assert.equal(resolveSafePath('event.__proto__.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.prototype.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.constructor.polluted', context), undefined);
+  assert.equal(resolveSafePath('event.description_json.missing', context), undefined);
+  assert.equal(resolveSafePath('event.description_json.nested', context), undefined);
+  assert.equal(resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'true');
+  assert.equal(resolveDayBadgeDisplayValue('Literal {{ event.description_json.label }}', context), 'Literal {{ event.description_json.label }}');
+
+  assert.deepEqual(resolveDayBadgeForRender({
+    text: '{{ event.description_json.label }}',
+    icon: '{{ event.description_json.empty }}',
+    background_color: '{{ event.description_json.color }}',
+    color: '{{ event.description_json.nested }}',
+    size: '18px'
+  }, new Date('2026-05-01T00:00:00Z'), event, {
+    formatLocalDate: () => '2026-05-01',
+    normalizeResolvedDayBadgeDisplayColor: (value) => normalizeResolvedDayBadgeDisplayColor(value, { normalizeSingleColor })
+  }), {
+    text: 'Bus',
+    background_color: '#112233',
+    size: '18px'
+  });
+
+  const normalizedRules = normalizeDayBadges([
+    { conditions: { title_contains: 'helper' }, text: 'H' },
+    { match: { event: { title: 'Helper' } }, icon: 'mdi:calendar' }
+  ], {
+    normalizeAdvancedRuleMatch: (rawMatch) => ({ event: rawMatch.event || rawMatch }),
+    normalizeDayBadgeBlock: (rule) => normalizeDayBadgeBlock(rule, {
+      normalizeEventTextValue: normalizeEventTextValueForTest,
+      normalizeDayBadgeDisplayColor: (value) => normalizeDayBadgeDisplayColor(value, { normalizeSingleColor }),
+      normalizeStyleSizeValue: normalizeStyleSizeValueForTest
+    })
+  });
+  assert.equal(normalizedRules[0].conditions.title_contains, 'helper');
+  assert.equal(normalizedRules[1].match.event.title, 'Helper');
+});
+
+
+test('event display helpers preserve title time location and style data decisions', async () => {
+  const {
+    getDisplayLocation,
+    getEventBubbleFontColor,
+    getEventFontSizeDisplayValue,
+    getModalCalendarBadgesForEvent,
+    getScheduleVisualInfo,
+    getVisibleCalendarBadgesForEvent,
+    shouldShowCombinedCornerBubbles,
+    shouldShowEventLocation,
+    shouldShowEventTime
+  } = await import('./src/events/event-display.js');
+
+  assert.equal(getEventFontSizeDisplayValue(13, 11), '13px');
+  assert.equal(getEventFontSizeDisplayValue(' 0.75rem ', 9), '0.75rem');
+  assert.equal(getEventFontSizeDisplayValue('', 9), '9px');
+
+  const hiddenCalendars = new Set(['calendar.hidden']);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.hidden' }, { hideTimesForCalendars: ['calendar.hidden'] }), false);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.visible' }, { hideTimesForCalendars: ['calendar.hidden'] }), true);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.visible' }, { styleOverrides: { hide_time: true } }), false);
+  assert.equal(shouldShowEventTime({ entityId: 'calendar.hidden' }, { styleOverrides: { show_time: true }, hideTimesForCalendars: ['calendar.hidden'] }), true);
+  assert.equal(shouldShowEventTime({ isCombinedCalendarEvent: true, sourceEntityIds: ['calendar.hidden'] }, { hiddenCalendars }), false);
+
+  const event = { entityId: 'calendar.a', location: 'Room 101, Main Building' };
+  assert.equal(shouldShowEventLocation(event, { showEventLocation: true }), true);
+  assert.equal(shouldShowEventLocation(event, { styleOverrides: { show_event_location: false }, showEventLocation: true }), false);
+  assert.equal(shouldShowEventLocation({ entityId: 'calendar.a', location: '' }, { showEventLocation: true }), false);
+  assert.equal(getDisplayLocation('Room 101, Main Building', { useShortLocation: true }), 'Room');
+  assert.equal(getDisplayLocation('123 Main Street, Springfield', { useShortLocation: true }), '123 Main Street');
+  assert.equal(getDisplayLocation('Studio', { useShortLocation: true }), 'Studio');
+
+  assert.equal(getEventBubbleFontColor({ entityId: 'calendar.a' }, {
+    eventFontColors: { 'calendar.a': '#123456' },
+    normalizeSingleColor: (color) => color,
+    getEventBackgroundColor: () => '#ffffff',
+    getContrastColor: () => '#000000'
+  }), '#123456');
+  assert.equal(getEventBubbleFontColor({ entityId: 'calendar.a' }, {
+    styleOverrides: { event_font_color: '#abcdef' },
+    normalizeSingleColor: (color) => color,
+    getEventBackgroundColor: () => '#ffffff',
+    getContrastColor: () => '#000000'
+  }), '#abcdef');
+
+  const combinedEvent = {
+    isCombinedCalendarEvent: true,
+    color: '#999999',
+    sourceCalendars: [
+      { entityId: 'calendar.hidden', color: '#111111' },
+      { entityId: 'calendar.visible', color: '#222222' }
+    ]
+  };
+  assert.deepEqual(getVisibleCalendarBadgesForEvent(combinedEvent, { hiddenCalendars }), [{ entityId: 'calendar.visible', color: '#222222' }]);
+  assert.deepEqual(getModalCalendarBadgesForEvent(combinedEvent, { hiddenCalendars }), [{ entityId: 'calendar.visible', color: '#222222' }]);
+  assert.equal(shouldShowCombinedCornerBubbles(combinedEvent, { combineCalendars: true, styleOverrides: { hasDuplicateBackgroundColors: true } }), true);
+  assert.equal(shouldShowCombinedCornerBubbles(combinedEvent, { combineCalendars: true, isSingleVirtualCalendar: true, styleOverrides: { hasDuplicateBackgroundColors: true } }), false);
+
+  const scheduleInfo = getScheduleVisualInfo({ summary: '', start: { dateTime: '2026-05-01T22:00:00Z' }, end: { dateTime: '2026-05-03T01:00:00Z' } }, {
+    getEventDateTimeInfo: () => ({ eventStart: new Date('2026-05-01T22:00:00Z'), eventEnd: new Date('2026-05-03T01:00:00Z'), isAllDay: false }),
+    shouldRenderTimedEventAsAllDayInSchedule: () => true,
+    shouldShowEventTime: () => true,
+    formatEventTime: () => '10:00 PM',
+    translate: (key, params) => key === 'untitledEvent' ? 'Untitled event' : `${params.title}, ${params.time}`
+  });
+  assert.equal(scheduleInfo.displayTitle, 'Untitled event, 10:00 PM');
+});
+
+test('event display helper detects combined events inside one visible virtual calendar', async () => {
+  const { isCombinedEventWithinSingleVirtualCalendar } = await import('./src/events/event-display.js');
+  const event = {
+    isCombinedCalendarEvent: true,
+    sourceEvents: [
+      { entityId: 'calendar.family' },
+      { entityId: 'calendar.school' }
+    ]
+  };
+  const getVirtualBadgeForEntity = (entityId) => ['calendar.family', 'calendar.school'].includes(entityId)
+    ? { id: 'family_group' }
+    : null;
+
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar(event, { getVirtualBadgeForEntity }), true);
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar(event, {
+    hiddenCalendars: new Set(['calendar.school']),
+    getVirtualBadgeForEntity
+  }), false);
+  assert.equal(isCombinedEventWithinSingleVirtualCalendar({
+    ...event,
+    sourceEvents: [{ entityId: 'calendar.family' }, { entityId: 'calendar.work' }]
+  }, {
+    getVirtualBadgeForEntity: (entityId) => entityId === 'calendar.family' ? { id: 'family_group' } : { id: 'work_group' }
+  }), false);
+});
+
+test('editor schema normalizes default view aliases for editor controls', async () => {
+  const { normalizeDefaultViewForEditor } = await import('./src/editor/editor-schema.js');
+
+  assert.equal(normalizeDefaultViewForEditor('week'), 'week-compact');
+  assert.equal(normalizeDefaultViewForEditor('schedule'), 'week-standard');
+  assert.equal(normalizeDefaultViewForEditor('agenda'), 'agenda');
+  assert.equal(normalizeDefaultViewForEditor(''), 'month');
+});
+
+test('event form helper preserves validation message keys and normalized data', async () => {
+  const { normalizeEventFormData } = await import('./src/events/event-form.js');
+
+  assert.deepEqual(normalizeEventFormData({ title: '', isAllDay: true }), { valid: false, errorKey: 'eventTitleRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: true, startDate: '', endDate: '2026-05-01' }), { valid: false, errorKey: 'startEndDatesRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: false, startDateTime: '', endDateTime: '2026-05-01T11:00' }), { valid: false, errorKey: 'startEndTimesRequired' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: true, startDate: '2026-05-02', endDate: '2026-05-01' }), { valid: false, errorKey: 'endDateBeforeStart' });
+  assert.deepEqual(normalizeEventFormData({ title: 'Event', isAllDay: false, startDateTime: '2026-05-01T11:00', endDateTime: '2026-05-01T10:00' }), { valid: false, errorKey: 'endTimeBeforeStart' });
+
+  const allDay = normalizeEventFormData({
+    title: 'All day',
+    location: '',
+    description: 'Notes',
+    isAllDay: true,
+    startDate: '2026-05-01',
+    endDate: '2026-05-01'
+  });
+  assert.equal(allDay.valid, true);
+  assert.deepEqual(allDay.eventData, {
+    summary: 'All day',
+    location: undefined,
+    description: 'Notes',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  });
+
+  const timed = normalizeEventFormData({
+    title: 'Timed',
+    location: 'Room',
+    description: '',
+    isAllDay: false,
+    startDateTime: '2026-05-01T10:00',
+    endDateTime: '2026-05-01T11:00'
+  });
+  assert.equal(timed.valid, true);
+  assert.equal(timed.eventData.summary, 'Timed');
+  assert.equal(timed.eventData.location, 'Room');
+  assert.equal(timed.eventData.description, undefined);
+  assert.equal(timed.eventData.start.dateTime, new Date('2026-05-01T10:00').toISOString());
+  assert.equal(timed.eventData.end.dateTime, new Date('2026-05-01T11:00').toISOString());
+});
+
+test('event service helpers preserve create update and delete payload shapes', async () => {
+  const {
+    buildCreateEventWebSocketPayload,
+    buildDeleteEventPayload,
+    buildDeleteEventWebSocketPayload,
+    buildEventServiceData,
+    buildUpdateEventServiceData,
+    buildUpdateEventWebSocketPayload,
+    getRecurringUpdateControls
+  } = await import('./src/events/event-service.js');
+
+  const allDayEventData = {
+    summary: 'All day',
+    location: 'Home',
+    description: 'Desc',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  assert.deepEqual(buildEventServiceData('calendar.home', allDayEventData), {
+    entity_id: 'calendar.home',
+    summary: 'All day',
+    location: 'Home',
+    description: 'Desc',
+    start_date: '2026-05-01',
+    end_date: '2026-05-02'
+  });
+
+  const timedEventData = {
+    summary: 'Timed',
+    start: { dateTime: '2026-05-01T10:00:00.000Z' },
+    end: { dateTime: '2026-05-01T11:00:00.000Z' },
+    rrule: 'FREQ=WEEKLY;BYDAY=FR'
+  };
+  assert.deepEqual(buildEventServiceData('calendar.work', timedEventData), {
+    entity_id: 'calendar.work',
+    summary: 'Timed',
+    start_date_time: '2026-05-01T10:00:00.000Z',
+    end_date_time: '2026-05-01T11:00:00.000Z',
+    rrule: 'FREQ=WEEKLY;BYDAY=FR'
+  });
+
+  assert.deepEqual(buildCreateEventWebSocketPayload('calendar.work', timedEventData), {
+    type: 'calendar/event/create',
+    entity_id: 'calendar.work',
+    event: {
+      summary: 'Timed',
+      location: undefined,
+      description: undefined,
+      rrule: 'FREQ=WEEKLY;BYDAY=FR',
+      dtstart: '2026-05-01T10:00:00.000Z',
+      dtend: '2026-05-01T11:00:00.000Z'
+    }
+  });
+
+  const originalEvent = { entityId: 'calendar.work', uid: 'uid-1', recurrence_id: 'rid-1', rrule: 'FREQ=WEEKLY' };
+  const controls = getRecurringUpdateControls(originalEvent, timedEventData, 'future');
+  assert.deepEqual(controls, { isRecurringUpdate: true, recurrenceId: 'rid-1', recurrenceRange: 'THISANDFUTURE' });
+  assert.deepEqual(buildUpdateEventServiceData(originalEvent, timedEventData, controls.recurrenceId, controls.recurrenceRange), {
+    entity_id: 'calendar.work',
+    summary: 'Timed',
+    start_date_time: '2026-05-01T10:00:00.000Z',
+    end_date_time: '2026-05-01T11:00:00.000Z',
+    rrule: 'FREQ=WEEKLY;BYDAY=FR',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildUpdateEventWebSocketPayload(originalEvent, timedEventData, controls.recurrenceId, controls.recurrenceRange), {
+    type: 'calendar/event/update',
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    event: {
+      summary: 'Timed',
+      dtstart: '2026-05-01T10:00:00.000Z',
+      dtend: '2026-05-01T11:00:00.000Z',
+      rrule: 'FREQ=WEEKLY;BYDAY=FR'
+    },
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildDeleteEventPayload('calendar.work', 'uid-1', 'rid-1', 'THISANDFUTURE'), {
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+  assert.deepEqual(buildDeleteEventWebSocketPayload('calendar.work', 'uid-1', 'rid-1', 'THISANDFUTURE'), {
+    type: 'calendar/event/delete',
+    entity_id: 'calendar.work',
+    uid: 'uid-1',
+    recurrence_id: 'rid-1',
+    recurrence_range: 'THISANDFUTURE'
+  });
+});
+
+test('event fetcher stable stringify sorts object keys recursively', async () => {
+  const { toStableString } = await import('./src/events/event-fetcher.js');
+
+  assert.equal(
+    toStableString({ b: 2, a: { d: 4, c: 3 }, e: [{ g: 7, f: 6 }] }),
+    '{"a":{"c":3,"d":4},"b":2,"e":[{"f":6,"g":7}]}'
+  );
+});
+
+test('event fetcher calendar data signature ignores entity color and is order independent', async () => {
+  const { getCalendarDataSignature } = await import('./src/events/event-fetcher.js');
+  const first = getCalendarDataSignature([
+    { entityId: 'calendar.work', color: '#fff', summary: 'B', start: { date: '2026-01-02' } },
+    { entityId: 'calendar.work', color: '#000', summary: 'A', start: { date: '2026-01-01' } }
+  ]);
+  const second = getCalendarDataSignature([
+    { entityId: 'calendar.work', color: 'red', summary: 'A', start: { date: '2026-01-01' } },
+    { entityId: 'calendar.work', color: 'blue', summary: 'B', start: { date: '2026-01-02' } }
+  ]);
+
+  assert.equal(first, second);
+});
+
+test('event fetcher mergeEvents replaces duplicate keys and sorts by start date', async () => {
+  const { mergeEvents } = await import('./src/events/event-fetcher.js');
+  const merged = mergeEvents(
+    [
+      { entityId: 'calendar.work', uid: '1', summary: 'Old', start: '2026-01-03' },
+      { entityId: 'calendar.work', uid: '2', summary: 'Middle', start: '2026-01-02' }
+    ],
+    [
+      { entityId: 'calendar.work', uid: '1', summary: 'New', start: '2026-01-01' }
+    ],
+    {
+      getEventIdentityKey: (entityId, event) => `${entityId}:${event.uid}`,
+      getEventStartDate: event => new Date(event.start)
+    }
+  );
+
+  assert.deepEqual(merged.map(event => event.summary), ['New', 'Middle']);
+});
+
+test('event fetcher loaded range coverage and stale refresh decisions match boundaries', async () => {
+  const { isDateRangeCoveredByLoadedEvents, shouldRefreshEvents } = await import('./src/events/event-fetcher.js');
+  const loaded = {
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-01-31T23:59:59Z')
+  };
+
+  assert.equal(isDateRangeCoveredByLoadedEvents(null, loaded.startDate, loaded.endDate), false);
+  assert.equal(isDateRangeCoveredByLoadedEvents(loaded, loaded.startDate, loaded.endDate), true);
+  assert.equal(isDateRangeCoveredByLoadedEvents(loaded, new Date('2025-12-31T23:59:59Z'), loaded.endDate), false);
+  assert.equal(shouldRefreshEvents({ lastFetch: null, now: 100000 }), true);
+  assert.equal(shouldRefreshEvents({ lastFetch: 40000, now: 100000 }), false);
+  assert.equal(shouldRefreshEvents({ lastFetch: 39999, now: 100000 }), true);
+});
+
+test('event fetcher sends WebSocket calendar event payload unchanged', async () => {
+  const { fetchEventsViaWebSocket } = await import('./src/events/event-fetcher.js');
+  let payload;
+  const hass = {
+    callWS(message) {
+      payload = message;
+      return Promise.resolve([{ summary: 'WS event' }]);
+    }
+  };
+
+  const result = await fetchEventsViaWebSocket({
+    hass,
+    entityId: 'calendar.work',
+    chunkStartStr: '2026-01-01T00:00:00.000Z',
+    chunkEndStr: '2026-01-31T23:59:59.999Z'
+  });
+
+  assert.deepEqual(payload, {
+    type: 'calendar/events',
+    entity_id: 'calendar.work',
+    start_date_time: '2026-01-01T00:00:00.000Z',
+    end_date_time: '2026-01-31T23:59:59.999Z'
+  });
+  assert.deepEqual(result, [{ summary: 'WS event' }]);
+});
+
+test('event fetcher falls back to REST URL and returns empty array after failed fetches', async () => {
+  const { fetchEventsForChunk } = await import('./src/events/event-fetcher.js');
+  const chunk = {
+    startDate: new Date('2026-01-01T12:34:56Z'),
+    endDate: new Date('2026-01-31T12:34:56Z')
+  };
+  let restUrl;
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    const restEvents = await fetchEventsForChunk({
+      hass: {
+        callWS: () => Promise.reject(new Error('no ws')),
+        callApi(method, url) {
+          restUrl = url;
+          assert.equal(method, 'GET');
+          return Promise.resolve([{ summary: 'REST event' }]);
+        }
+      },
+      entityId: 'calendar.work',
+      chunk,
+      formatLocalDate: date => date.toISOString().slice(0, 10)
+    });
+
+    assert.deepEqual(restEvents, [{ summary: 'REST event' }]);
+    assert.equal(restUrl, 'calendars/calendar.work?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z');
+
+    const failedEvents = await fetchEventsForChunk({
+      hass: {
+        callWS: () => Promise.reject(new Error('no ws')),
+        callApi: () => Promise.reject(new Error('no rest'))
+      },
+      entityId: 'calendar.work',
+      chunk,
+      formatLocalDate: date => date.toISOString().slice(0, 10)
+    });
+
+    assert.deepEqual(failedEvents, []);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test('event fetcher normalizes with calendar colors and de-duplicates chunk overlaps', async () => {
+  const { fetchEventsForCalendar } = await import('./src/events/event-fetcher.js');
+  const chunks = [
+    { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-02T00:00:00Z') },
+    { startDate: new Date('2026-01-02T00:00:00Z'), endDate: new Date('2026-01-03T00:00:00Z') }
+  ];
+  const hass = {
+    callWS: ({ start_date_time }) => Promise.resolve(
+      start_date_time === '2026-01-01T00:00:00.000Z'
+        ? [{ uid: '1', summary: 'First' }, { uid: '2', summary: 'Second' }]
+        : [{ uid: '1', summary: 'First duplicate' }]
+    )
+  };
+  const normalizedContexts = [];
+
+  const events = await fetchEventsForCalendar({
+    hass,
+    entityId: 'calendar.work',
+    colorIndex: 3,
+    chunks,
+    formatLocalDate: date => date.toISOString().slice(0, 10),
+    getCalendarColor: (entityId, index) => `${entityId}:${index}:color`,
+    getEventIdentityKey: (entityId, event) => `${entityId}:${event.uid}`,
+    normalizeCalendarEvent: (event, context) => {
+      normalizedContexts.push(context);
+      return { ...event, ...context };
+    }
+  });
+
+  assert.deepEqual(events.map(event => event.summary), ['First', 'Second']);
+  assert.deepEqual(normalizedContexts, [
+    { entityId: 'calendar.work', color: 'calendar.work:3:color' },
+    { entityId: 'calendar.work', color: 'calendar.work:3:color' }
+  ]);
+});
+
+test('weather controller ignores missing hass, missing/non-weather entities, and caches forecast by entity', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let entityId = 'sensor.outdoor';
+  let requestCount = 0;
+  let subscribeCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => null,
+    getWeatherEntityId: () => entityId,
+    requestForecast: async () => { requestCount += 1; },
+    subscribeForecast: async () => { subscribeCount += 1; return () => {}; }
+  });
+
+  await controller.ensureSubscription();
+  await controller.refreshForecastData();
+  assert.equal(subscribeCount, 0);
+  assert.equal(requestCount, 0);
+
+  entityId = null;
+  await controller.ensureSubscription();
+  await controller.refreshForecastData();
+  assert.equal(controller.getForecastForEntity('weather.home'), undefined);
+});
+
+test('weather controller subscribes with weather payload and avoids duplicate in-flight subscriptions', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let resolveSubscription;
+  let callback;
+  const messages = [];
+  let updated = null;
+  const unsubscribe = () => { unsubscribe.called = true; };
+  const controller = createWeatherForecastController({
+    getHass: () => ({ connection: {} }),
+    getWeatherEntityId: () => 'weather.home',
+    subscribeForecast: (nextCallback, message) => {
+      callback = nextCallback;
+      messages.push(message);
+      return new Promise((resolve) => { resolveSubscription = () => resolve(unsubscribe); });
+    },
+    onForecastUpdated: (entityId, forecast, details) => { updated = { entityId, forecast, details }; }
+  });
+
+  const first = controller.ensureSubscription();
+  const second = controller.ensureSubscription();
+  assert.equal(messages.length, 1);
+  assert.deepEqual(messages[0], {
+    type: 'weather/subscribe_forecast',
+    entity_id: 'weather.home',
+    forecast_type: 'daily'
+  });
+
+  callback({ forecast: [{ datetime: '2026-06-25', condition: 'sunny' }] });
+  assert.deepEqual(controller.getForecastForEntity('weather.home'), [{ datetime: '2026-06-25', condition: 'sunny' }]);
+  assert.deepEqual(updated, {
+    entityId: 'weather.home',
+    forecast: [{ datetime: '2026-06-25', condition: 'sunny' }],
+    details: { source: 'subscription' }
+  });
+
+  resolveSubscription();
+  await first;
+  await controller.ensureSubscription();
+  assert.equal(messages.length, 1);
+});
+
+test('weather controller refreshes with forecast payload, prevents duplicates, and caches successes', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let resolveRequest;
+  const messages = [];
+  const updates = [];
+  const controller = createWeatherForecastController({
+    getHass: () => ({}),
+    getWeatherEntityId: () => 'weather.home',
+    requestForecast: (message) => {
+      messages.push(message);
+      return new Promise((resolve) => { resolveRequest = () => resolve({ weather: {}, 'weather.home': { forecast: [{ date: '2026-06-25' }] } }); });
+    },
+    onForecastUpdated: (entityId, forecast, details) => updates.push({ entityId, forecast, details })
+  });
+
+  const first = controller.refreshForecastData();
+  const second = controller.refreshForecastData();
+  assert.equal(messages.length, 1);
+  assert.deepEqual(messages[0], {
+    type: 'weather/get_forecasts',
+    entity_ids: ['weather.home'],
+    forecast_type: 'daily'
+  });
+  resolveRequest();
+  await first;
+  await second;
+
+  assert.deepEqual(controller.getForecastForEntity('weather.home'), [{ date: '2026-06-25' }]);
+  assert.deepEqual(updates, [{
+    entityId: 'weather.home',
+    forecast: [{ date: '2026-06-25' }],
+    details: { source: 'refresh' }
+  }]);
+  await controller.refreshForecastData();
+  assert.equal(messages.length, 1);
+});
+
+test('weather controller records retry timing after failed refresh and suppresses until retry time', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let now = 1000;
+  let requestCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => ({}),
+    getWeatherEntityId: () => 'weather.home',
+    now: () => now,
+    retryDelayMs: 300000,
+    requestForecast: async () => {
+      requestCount += 1;
+      if (requestCount === 1) throw new Error('no forecasts');
+      return { 'weather.home': { forecast: [{ date: '2026-06-26' }] } };
+    }
+  });
+
+  await controller.refreshForecastData();
+  assert.equal(controller.refreshRetryAtByEntity.get('weather.home'), 301000);
+  await controller.refreshForecastData();
+  assert.equal(requestCount, 1);
+  now = 301001;
+  await controller.refreshForecastData();
+  assert.equal(requestCount, 2);
+  assert.equal(controller.refreshRetryAtByEntity.has('weather.home'), false);
+});
+
+test('weather controller config changes tear down subscription and clear forecasts and retries', async () => {
+  const { createWeatherForecastController } = await import('./src/weather/weather-controller.js');
+  let entityId = 'weather.home';
+  let unsubscribeCount = 0;
+  const controller = createWeatherForecastController({
+    getHass: () => ({ connection: {} }),
+    getWeatherEntityId: () => entityId,
+    subscribeForecast: async () => () => { unsubscribeCount += 1; }
+  });
+
+  await controller.ensureSubscription();
+  controller.forecastByEntity.set('weather.home', [{ date: '2026-06-25' }]);
+  controller.refreshRetryAtByEntity.set('weather.home', 1234);
+  entityId = 'weather.garden';
+  controller.handleConfigChanged('weather.home', 'weather.garden');
+
+  assert.equal(unsubscribeCount, 1);
+  assert.equal(controller.subscriptionEntityId, null);
+  assert.equal(controller.getForecastForEntity('weather.home'), undefined);
+  assert.equal(controller.refreshRetryAtByEntity.size, 0);
+});
+
+test('detectStaleSkylightResource detects old HACS skylight resource path', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/skylight-calendar-card/skylight-calendar-card.js' }],
+    querySelectorAll: () => []
+  });
+
+  assert.equal(result.detected, true);
+  assert.equal(result.staleUrl, '/hacsfiles/skylight-calendar-card/skylight-calendar-card.js');
+});
+
+test('detectStaleSkylightResource does not warn for current Daylight HACS resource path', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/daylight-calendar-card/skylight-calendar-card.js' }],
+    querySelectorAll: () => []
+  });
+
+  assert.equal(result.detected, false);
+  assert.equal(result.staleUrl, null);
+});
+
+test('detectStaleSkylightResource handles missing and empty document resources safely', () => {
+  assert.equal(Card.detectStaleSkylightResource(null).detected, false);
+  assert.equal(Card.detectStaleSkylightResource({}).detected, false);
+  assert.equal(Card.detectStaleSkylightResource({ scripts: [], querySelectorAll: () => [] }).detected, false);
+});
+
+test('detectStaleSkylightResource ignores unrelated scripts and links', () => {
+  const result = Card.detectStaleSkylightResource({
+    scripts: [{ src: '/hacsfiles/other-card/other-card.js' }],
+    querySelectorAll: () => [{ href: '/local/daylight-calendar-card.js' }]
+  });
+
+  assert.equal(result.detected, false);
+  assert.equal(result.staleUrl, null);
 });
