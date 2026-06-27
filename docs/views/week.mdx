@@ -52,6 +52,17 @@ Week Compact is the right choice when you want:
   By default Week Compact snaps to full calendar weeks. Set `rolling_days_week_compact` to a positive integer to switch to a rolling window of that many days starting from today, rather than aligning to week boundaries. When set, `week_days` and `first_day_of_week` are ignored in this view.
 </ParamField>
 
+<ParamField path="day_badge_layout_week" default="inline" type="string">
+  Used by **Week** and **Schedule** day headers only. It does not change Month, Agenda, or day badge matching.
+
+  - `inline` — the default. The day number and matching day badges share one row.
+  - `stacked` — matching day badges appear below the day number. This gives icon-and-text badges more room on tablet dashboards.
+
+  ```yaml
+  day_badge_layout_week: stacked
+  ```
+</ParamField>
+
 <ParamField path="shorten_event_times" default="false" type="boolean">
   Used by **Month**, **Week**, **Schedule**, and **Agenda**.
 

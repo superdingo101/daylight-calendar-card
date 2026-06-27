@@ -1,11 +1,574 @@
-// ============================================================================
-// TRANSLATIONS
-// ============================================================================
-// To add a new language:
-// 1. Add a new entry to the TRANSLATIONS object below
-// 2. Set the locale (e.g., 'es-ES' for Spanish)
-// 3. Copy the strings from 'en' and translate each value
-// ============================================================================
+// This file is generated from src/ by npm run build. Do not edit directly.
+const COMMON_NAMED_COLORS = {
+  black: '#000000',
+  white: '#FFFFFF',
+  red: '#FF0000',
+  lime: '#00FF00',
+  green: '#008000',
+  'lime/green': '#00FF00',
+  limegreen: '#00FF00',
+  blue: '#0000FF',
+  yellow: '#FFFF00',
+  cyan: '#00FFFF',
+  aqua: '#00FFFF',
+  'cyan/aqua': '#00FFFF',
+  magenta: '#FF00FF',
+  fuchsia: '#FF00FF',
+  'magenta/fuchsia': '#FF00FF',
+  silver: '#C0C0C0',
+  gray: '#808080',
+  grey: '#808080',
+  maroon: '#800000',
+  olive: '#808000',
+  darkgreen: '#008000',
+  'dark green': '#008000',
+  'green dark': '#008000',
+  greendark: '#008000',
+  purple: '#800080',
+  teal: '#008080',
+  navy: '#000080',
+  orange: '#FFA500',
+  pink: '#FFC0CB'
+};
+
+const DEFAULT_LANGUAGE = 'en';
+
+const DEFAULT_VIEW = 'month';
+
+const DEFAULT_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+const DEFAULT_THEME_MODE = 'auto';
+const DEFAULT_EVENT_TITLE_PREFIX = 'none';
+const DEFAULT_PAST_EVENT_MODE = 'none';
+const DEFAULT_DAY_BADGE_LAYOUT_WEEK = 'inline';
+const DEFAULT_BACKGROUND_IMAGE_SIZE = 'cover';
+const DEFAULT_BACKGROUND_IMAGE_POSITION = 'center';
+const DEFAULT_BACKGROUND_IMAGE_REPEAT = 'no-repeat';
+const DEFAULT_COMBINE_STYLE = 'bars';
+const DEFAULT_COMBINE_BACKGROUND = 'primary';
+const DEFAULT_EVENT_COLOR_MODE = 'classic';
+const DEFAULT_EVENT_NEUTRAL_BACKGROUND = '#F8F3E9';
+const DEFAULT_EVENT_TINT_OPACITY = 80;
+const DEFAULT_EVENT_COLOR_BAR_WIDTH = 18;
+const DEFAULT_EVENT_MODAL_SIZE = 'medium';
+
+const THEME_MODE_OPTIONS = ['auto', 'light', 'dark'];
+const EVENT_TITLE_PREFIX_OPTIONS = ['friendly_name', 'badge_icon', 'none'];
+const PAST_EVENT_MODE_OPTIONS = ['none', 'hide', 'muted'];
+const DAY_BADGE_LAYOUT_WEEK_OPTIONS = ['inline', 'stacked'];
+const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
+const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
+const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
+const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+
+const EVENT_TITLE_PREFIX_ALIASES = {
+  icon: 'badge_icon',
+  badge: 'badge_icon',
+  badgeicon: 'badge_icon',
+  friendly: 'friendly_name',
+  friendlyname: 'friendly_name'
+};
+
+const HIDDEN_CALENDAR_VISIBILITY_VALUES = [false, 'hide', 'hidden', 'off'];
+const VISIBLE_CALENDAR_VISIBILITY_VALUES = [true, 'show', 'shown', 'visible', 'on'];
+
+
+const DEFAULT_CONFIG_VALUES = {
+  firstDayOfWeek: 0,
+  calendar_names: {},
+  calendar_badge_icons: {},
+  week_days: DEFAULT_WEEK_DAYS,
+  rolling_days_week_compact: null,
+  rolling_days_schedule: null,
+  rolling_days_agenda: null,
+  rolling_weeks: null,
+  show_week_numbers_month: false,
+  show_all_events_month: false,
+  show_all_details_month: false,
+  hide_the_past: false,
+  hide_empty_days: false,
+  agenda_compact_events: false,
+  display_full_weekday_names: false,
+  shorten_event_times: false,
+  disable_swipe_controls: false,
+  lock_schedule_hours: false,
+  compact_height: false,
+  compact_width: false,
+  height_scale: 1.0,
+  compact_header: false,
+  hide_year: false,
+  hide_calendars: false,
+  hide_header: false,
+  hide_calendar_names: false,
+  hide_controls: false,
+  hide_navigation_buttons: false,
+  hide_add_event_button: false,
+  hide_view_selector: false,
+  hide_dark_mode_toggle: false,
+  show_dashboard_nav_button: false,
+  hide_event_calendar_bubble: false,
+  show_event_location: false,
+  use_short_location: false,
+  event_font_size: 11,
+  event_time_font_size: 9,
+  event_location_font_size: 9,
+  event_calendar_friendly_name: false,
+  hide_times_for_calendars: [],
+  show_current_time_bar: false,
+  header_color: 'var(--primary-color)',
+  background_opacity_transparent_threshold: 100,
+  background_image_url: null,
+  combine_calendars: false,
+  enable_event_management: true,
+  readonly_calendars: [],
+  hide_badge_calendars: [],
+  virtual_calendars: [],
+  language: null,
+  locale: null,
+  preference_storage_key: null
+};
+
+const DEFAULT_STUB_CONFIG = {
+  title: 'Family Calendar',
+  entities: ['calendar.personal'],
+  default_view: 'month',
+  first_day_of_week: 0,
+  week_days: [0, 1, 2, 3, 4, 5, 6],
+  week_start_hour: 0,
+  week_end_hour: 23,
+  lock_schedule_hours: false,
+  hide_the_past: false,
+  past_event_mode: 'none',
+  disable_swipe_controls: false,
+  show_all_events_month: false,
+  show_all_details_month: false,
+  hide_empty_days: false,
+  agenda_compact_events: false,
+  shorten_event_times: false,
+  time_zone: '',
+  display_full_weekday_names: false,
+  compact_width: false,
+  show_current_time_bar: false,
+  show_event_location: false,
+  use_short_location: false,
+  event_location_font_size: 9,
+  background_opacity: 0,
+  header_background_opacity: 0,
+  event_calendar_friendly_name: false,
+  event_title_prefix: 'none',
+  combine_style: 'bars',
+  combine_background: 'primary',
+  event_color_mode: 'classic',
+  event_neutral_background: '#F8F3E9',
+  event_tint_opacity: 80,
+  event_color_bar_width: 18,
+  day_badges: [],
+  day_badge_layout_week: 'inline',
+  hide_calendars: false,
+  hide_header: false,
+  hide_year: false,
+  hide_controls: false,
+  hide_navigation_buttons: false,
+  hide_add_event_button: false,
+  hide_view_selector: false,
+  hide_dark_mode_toggle: false,
+  show_dashboard_nav_button: false,
+  header_dashboard_path: null,
+  header_weather_sensor: '',
+  calendar_person_entities: {},
+  default_hidden_calendars: [],
+  color_scheme: 'auto',
+  enable_event_management: true,
+  event_modal_size: 'medium'
+};
+
+const createDefaultStubConfig = () => ({
+  ...DEFAULT_STUB_CONFIG,
+  entities: [...DEFAULT_STUB_CONFIG.entities],
+  week_days: [...DEFAULT_STUB_CONFIG.week_days],
+  day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
+  calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
+  default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars]
+});
+
+function createConfigNormalizationSchema({
+  hasCustomTitle,
+  normalizeDashboardPath,
+  normalizeCombineStyle,
+  normalizeCombineBackground,
+  normalizeEventColorMode,
+  normalizeSingleColor,
+  normalizeBackgroundOpacity,
+  normalizeEventModalSize,
+  normalizeVirtualCalendars,
+  normalizeDefaultDarkMode,
+  getDefaultTitle
+}) {
+  return [
+      { key: 'title', defaultValue: ({ rawConfig, language }) => hasCustomTitle ? rawConfig.title : getDefaultTitle(language) },
+      { key: 'entities', defaultValue: ({ rawConfig }) => rawConfig.entities },
+      { key: 'firstDayOfWeek', defaultValue: ({ rawConfig }) => rawConfig.first_day_of_week || DEFAULT_CONFIG_VALUES.firstDayOfWeek },
+      { key: 'colors', defaultValue: ({ derived }) => derived.normalizedCalendarColors },
+      { key: 'calendar_names', defaultValue: ({ rawConfig }) => rawConfig.calendar_names || { ...DEFAULT_CONFIG_VALUES.calendar_names } },
+      { key: 'calendar_badge_icons', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_icons || { ...DEFAULT_CONFIG_VALUES.calendar_badge_icons } },
+      { key: 'calendar_person_entities', defaultValue: ({ derived }) => derived.normalizedCalendarPersonEntities, normalize: ({ derived }) => derived.normalizedCalendarPersonEntities },
+      { key: 'max_events', defaultValue: ({ rawConfig }) => rawConfig.max_events },
+      { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW, normalize: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW },
+      { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [...DEFAULT_CONFIG_VALUES.week_days] },
+      { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? DEFAULT_CONFIG_VALUES.rolling_days_week_compact },
+      { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? DEFAULT_CONFIG_VALUES.rolling_days_schedule },
+      { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
+      { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
+      { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
+      { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
+      { key: 'hide_the_past', defaultValue: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past, normalize: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past },
+      { key: 'past_event_mode', defaultValue: ({ derived }) => derived.normalizedPastEventMode, normalize: ({ derived }) => derived.normalizedPastEventMode },
+      { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || DEFAULT_CONFIG_VALUES.hide_empty_days },
+      { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? DEFAULT_CONFIG_VALUES.agenda_compact_events, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? DEFAULT_CONFIG_VALUES.agenda_compact_events },
+      { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? DEFAULT_CONFIG_VALUES.display_full_weekday_names },
+      { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? DEFAULT_CONFIG_VALUES.shorten_event_times },
+      { key: 'time_zone', defaultValue: ({ derived }) => derived.normalizedTimeZone, normalize: ({ derived }) => derived.normalizedTimeZone },
+      { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? DEFAULT_CONFIG_VALUES.disable_swipe_controls },
+      { key: 'week_start_hour', defaultValue: ({ derived }) => derived.normalizedWeekStartHour },
+      { key: 'week_end_hour', defaultValue: ({ derived }) => derived.normalizedWeekEndHour },
+      { key: 'lock_schedule_hours', defaultValue: ({ rawConfig }) => rawConfig.lock_schedule_hours ?? DEFAULT_CONFIG_VALUES.lock_schedule_hours },
+      { key: 'compact_height', defaultValue: ({ rawConfig }) => rawConfig.compact_height || DEFAULT_CONFIG_VALUES.compact_height },
+      { key: 'compact_width', defaultValue: ({ rawConfig }) => rawConfig.compact_width || DEFAULT_CONFIG_VALUES.compact_width },
+      { key: 'height_scale', defaultValue: ({ rawConfig }) => rawConfig.height_scale || DEFAULT_CONFIG_VALUES.height_scale },
+      { key: 'compact_header', defaultValue: ({ rawConfig }) => rawConfig.compact_header || DEFAULT_CONFIG_VALUES.compact_header },
+      { key: 'hide_year', defaultValue: ({ rawConfig }) => rawConfig.hide_year || DEFAULT_CONFIG_VALUES.hide_year },
+      { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
+      { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
+      { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
+      { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
+      { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
+      { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || DEFAULT_CONFIG_VALUES.hide_view_selector },
+      { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || DEFAULT_CONFIG_VALUES.hide_dark_mode_toggle },
+      { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || DEFAULT_CONFIG_VALUES.show_dashboard_nav_button },
+      { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
+      { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
+      { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
+      { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
+      { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || DEFAULT_CONFIG_VALUES.use_short_location },
+      { key: 'event_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_font_size ?? DEFAULT_CONFIG_VALUES.event_font_size },
+      { key: 'event_time_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_time_font_size ?? DEFAULT_CONFIG_VALUES.event_time_font_size },
+      { key: 'event_location_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_location_font_size ?? DEFAULT_CONFIG_VALUES.event_location_font_size },
+      { key: 'event_calendar_friendly_name', defaultValue: ({ rawConfig }) => rawConfig.event_calendar_friendly_name || DEFAULT_CONFIG_VALUES.event_calendar_friendly_name },
+      { key: 'event_title_prefix', defaultValue: ({ derived }) => derived.normalizedEventTitlePrefix, normalize: ({ derived }) => derived.normalizedEventTitlePrefix },
+      { key: 'event_font_colors', defaultValue: ({ derived }) => derived.normalizedEventFontColors },
+      { key: 'event_styles', defaultValue: ({ derived }) => derived.normalizedEventStyles, normalize: ({ derived }) => derived.normalizedEventStyles },
+      { key: 'day_styles', defaultValue: ({ derived }) => derived.normalizedDayStyles, normalize: ({ derived }) => derived.normalizedDayStyles },
+      { key: 'day_badges', defaultValue: ({ derived }) => derived.normalizedDayBadges, normalize: ({ derived }) => derived.normalizedDayBadges },
+      { key: 'day_badge_layout_week', defaultValue: ({ derived }) => derived.normalizedDayBadgeLayoutWeek, normalize: ({ derived }) => derived.normalizedDayBadgeLayoutWeek },
+      { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [...DEFAULT_CONFIG_VALUES.hide_times_for_calendars] },
+      { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || DEFAULT_CONFIG_VALUES.show_current_time_bar },
+      { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : DEFAULT_CONFIG_VALUES.header_color },
+      { key: 'header_text_color', defaultValue: ({ derived }) => derived.normalizedHeaderTextColor },
+      { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
+      { key: 'header_background_opacity', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity },
+      { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
+      { key: 'background_opacity', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity, normalize: ({ derived }) => derived.normalizedBackgroundOpacity },
+      { key: 'background_image_url', defaultValue: ({ rawConfig }) => rawConfig.background_image_url || DEFAULT_CONFIG_VALUES.background_image_url },
+      { key: 'background_image_size', defaultValue: ({ rawConfig }) => rawConfig.background_image_size || DEFAULT_BACKGROUND_IMAGE_SIZE },
+      { key: 'background_image_position', defaultValue: ({ rawConfig }) => rawConfig.background_image_position || DEFAULT_BACKGROUND_IMAGE_POSITION },
+      { key: 'background_image_repeat', defaultValue: ({ rawConfig }) => rawConfig.background_image_repeat || DEFAULT_BACKGROUND_IMAGE_REPEAT },
+      { key: 'combine_calendars', defaultValue: ({ rawConfig }) => rawConfig.combine_calendars ?? DEFAULT_CONFIG_VALUES.combine_calendars },
+      { key: 'combine_style', defaultValue: ({ rawConfig }) => normalizeCombineStyle(rawConfig.combine_style ?? DEFAULT_COMBINE_STYLE) },
+      { key: 'combine_background', defaultValue: ({ rawConfig }) => normalizeCombineBackground(rawConfig.combine_background ?? DEFAULT_COMBINE_BACKGROUND) },
+      { key: 'combine_calendars_width', defaultValue: ({ derived }) => derived.normalizedCombineWidth, normalize: ({ derived }) => derived.normalizedCombineWidth },
+      { key: 'event_color_bar_width', defaultValue: ({ derived }) => derived.normalizedEventBarWidth, normalize: ({ derived }) => derived.normalizedEventBarWidth },
+      { key: 'event_color_mode', defaultValue: ({ rawConfig }) => normalizeEventColorMode(rawConfig.event_color_mode ?? DEFAULT_EVENT_COLOR_MODE), normalize: ({ rawConfig }) => normalizeEventColorMode(rawConfig.event_color_mode ?? DEFAULT_EVENT_COLOR_MODE) },
+      { key: 'event_neutral_background', defaultValue: ({ rawConfig }) => normalizeSingleColor(rawConfig.event_neutral_background) || DEFAULT_EVENT_NEUTRAL_BACKGROUND, normalize: ({ rawConfig }) => normalizeSingleColor(rawConfig.event_neutral_background) || DEFAULT_EVENT_NEUTRAL_BACKGROUND },
+      { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY), normalize: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY) },
+      { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
+      { key: 'event_modal_size', defaultValue: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size) },
+      { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
+      { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
+      { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
+      { key: 'virtual_calendars', defaultValue: ({ rawConfig }) => normalizeVirtualCalendars(rawConfig.virtual_calendars || [...DEFAULT_CONFIG_VALUES.virtual_calendars]) },
+      { key: 'language', defaultValue: ({ rawConfig }) => rawConfig.language || DEFAULT_CONFIG_VALUES.language },
+      { key: 'locale', defaultValue: ({ rawConfig }) => rawConfig.locale || DEFAULT_CONFIG_VALUES.locale },
+      { key: 'color_scheme', defaultValue: ({ rawConfig }) => normalizeDefaultDarkMode(rawConfig.color_scheme), normalize: ({ rawConfig }) => normalizeDefaultDarkMode(rawConfig.color_scheme) },
+      { key: 'preference_storage_key', defaultValue: ({ rawConfig }) => rawConfig.preference_storage_key || DEFAULT_CONFIG_VALUES.preference_storage_key }
+    ];
+}
+
+const EDITOR_DEFAULT_VALUES = Object.freeze({
+  week_start_hour: 0,
+  week_end_hour: 23,
+  lock_schedule_hours: false,
+  hide_the_past: false,
+  past_event_mode: 'none',
+  height_scale: 1,
+  event_font_size: 11,
+  event_time_font_size: 9,
+  event_location_font_size: 9,
+  combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
+  event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
+  event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
+  first_day_of_week: 0,
+  header_background_opacity: 0,
+  background_opacity: 0
+});
+
+const EDITOR_WEEKDAY_OPTIONS = Object.freeze(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+
+function getEditorDefaultValue(key) {
+  return Object.prototype.hasOwnProperty.call(EDITOR_DEFAULT_VALUES, key) ? EDITOR_DEFAULT_VALUES[key] : 0;
+}
+
+function normalizeDefaultViewForEditor(value) {
+  if (value === 'week') return 'week-compact';
+  if (value === 'schedule') return 'week-standard';
+  return value || DEFAULT_VIEW;
+}
+
+function getEventCalendarBubbleMode(config = {}) {
+  if (config.event_calendar_friendly_name) {
+    return 'friendly_name';
+  }
+
+  if (config.hide_event_calendar_bubble) {
+    return 'none';
+  }
+
+  return 'icon';
+}
+
+function renderEditorSection({ title, content, disclosureKey, open = false }) {
+  const openAttr = open ? 'open' : '';
+  return `
+      <details class="config-section" data-disclosure-key="${disclosureKey}" ${openAttr}>
+        <summary>${title}</summary>
+        <div class="section-content">${content}</div>
+      </details>
+    `;
+}
+
+function renderEditorSubSection({ title, content, disclosureKey, open = false }) {
+  const openAttr = open ? 'open' : '';
+  return `
+      <details class="config-subsection" data-disclosure-key="${disclosureKey}" ${openAttr}>
+        <summary>${title}</summary>
+        <div class="subsection-content">${content}</div>
+      </details>
+    `;
+}
+
+function renderEditorColorInputControl({ id, field, mapKey = null, value, toColorInputValue }) {
+  const colorValue = toColorInputValue(value);
+  const triggerAttributes = mapKey
+    ? `data-color-trigger="true" data-color-field="${field}" data-color-map-key="${mapKey}"`
+    : `data-color-trigger="true" data-color-field="${field}"`;
+
+  return `
+      <div class="color-picker-wrap">
+        <button id="${id}" class="selected-color-swatch" data-color-field="${field}" ${mapKey ? `data-color-map-key="${mapKey}"` : ''} ${triggerAttributes} style="--selected-color: ${colorValue};" title="Choose color" type="button"></button>
+      </div>
+    `;
+}
+
+function renderEditorWeekdayCheckboxes({ selectedWeekdays }) {
+  const days = EDITOR_WEEKDAY_OPTIONS;
+
+  return `
+      <div class="weekday-grid" role="group" aria-label="Week days">
+        ${days.map((day) => `<span class="weekday-label">${day}</span>`).join('')}
+        ${days.map((_, index) => `
+          <label class="weekday-checkbox-wrap" aria-label="${days[index]}">
+            <input type="checkbox" data-weekday="${index}" ${selectedWeekdays.has(index) ? 'checked' : ''}>
+          </label>
+        `).join('')}
+      </div>
+    `;
+}
+
+function normalizeWeatherTemperature(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return null;
+  return `${Math.round(numericValue)}°`;
+}
+
+function mapWeatherConditionToIcon(conditionValue) {
+  const condition = String(conditionValue || '').trim().toLowerCase().replace(/_/g, '-');
+  if (!condition || condition === 'unknown' || condition === 'unavailable') return '';
+
+  const iconMap = {
+    sunny: 'mdi:weather-sunny',
+    clear: 'mdi:weather-sunny',
+    'clear-night': 'mdi:weather-night',
+    partlycloudy: 'mdi:weather-partly-cloudy',
+    cloudy: 'mdi:weather-cloudy',
+    overcast: 'mdi:weather-cloudy',
+    rainy: 'mdi:weather-rainy',
+    pouring: 'mdi:weather-pouring',
+    snow: 'mdi:weather-snowy',
+    snowy: 'mdi:weather-snowy',
+    'snowy-rainy': 'mdi:weather-snowy-rainy',
+    hail: 'mdi:weather-hail',
+    lightning: 'mdi:weather-lightning',
+    'lightning-rainy': 'mdi:weather-lightning-rainy',
+    windy: 'mdi:weather-windy',
+    'windy-variant': 'mdi:weather-windy-variant',
+    fog: 'mdi:weather-fog',
+    exceptional: 'mdi:alert-circle-outline'
+  };
+
+  return iconMap[condition] || '';
+}
+
+function normalizeHeaderWeatherData(weatherEntity) {
+  if (!weatherEntity) return null;
+
+  const attrs = weatherEntity.attributes || {};
+  const condition = attrs.condition || weatherEntity.state;
+  const conditionIcon = mapWeatherConditionToIcon(condition);
+  const temperature = normalizeWeatherTemperature(
+    attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? weatherEntity.state
+  );
+
+  if (!conditionIcon || !temperature) return null;
+  return { conditionIcon, temperature };
+}
+
+function normalizeForecastForDate(forecasts, date, getDateKey) {
+  if (!Array.isArray(forecasts) || forecasts.length === 0) return null;
+
+  const targetDateKey = getDateKey(date);
+  const match = forecasts.find((item) => {
+    const forecastDateValue = item?.datetime || item?.date;
+    if (!forecastDateValue) return false;
+    const forecastDate = new Date(forecastDateValue);
+    if (Number.isNaN(forecastDate.getTime())) return false;
+    return getDateKey(forecastDate) === targetDateKey;
+  });
+
+  if (!match) return null;
+
+  const highTemp = normalizeWeatherTemperature(match.temperature ?? match.temphigh ?? match.high);
+  const lowTemp = normalizeWeatherTemperature(match.templow ?? match.low ?? match.temperature_low);
+  const conditionIcon = mapWeatherConditionToIcon(match.condition);
+
+  if (!conditionIcon || !highTemp) return null;
+  return { conditionIcon, highTemp, lowTemp };
+}
+
+function getWeatherEntityForecast(weatherEntity, wsForecast) {
+  return Array.isArray(wsForecast) && wsForecast.length > 0
+    ? wsForecast
+    : weatherEntity?.attributes?.forecast;
+}
+
+function getHeaderWeatherEntityRenderSignature(entityState) {
+  if (!entityState) return '';
+  const attrs = entityState.attributes || {};
+  return JSON.stringify({
+    state: entityState.state,
+    temperature: attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? null,
+    condition: attrs.condition ?? null,
+    friendly_name: attrs.friendly_name ?? null,
+    entity_picture: attrs.entity_picture ?? null,
+    forecast: Array.isArray(attrs.forecast)
+      ? attrs.forecast.map((forecastItem) => ({
+        datetime: forecastItem?.datetime ?? forecastItem?.date ?? null,
+        condition: forecastItem?.condition ?? null,
+        high: forecastItem?.temperature ?? forecastItem?.temphigh ?? forecastItem?.high ?? null,
+        low: forecastItem?.templow ?? forecastItem?.low ?? forecastItem?.temperature_low ?? null
+      }))
+      : null
+  });
+}
+
+function getEntityState(hass, entityId) {
+  if (!hass || !entityId) return null;
+  return hass.states?.[entityId] || null;
+}
+
+function getEntityFriendlyName(hass, entityId, fallback = entityId) {
+  const friendlyName = getEntityState(hass, entityId)?.attributes?.friendly_name;
+  return friendlyName || fallback;
+}
+
+function getEntityIcon(hass, entityId, fallback = null) {
+  const icon = getEntityState(hass, entityId)?.attributes?.icon;
+  return typeof icon === 'string' && icon.trim() ? icon.trim() : fallback;
+}
+
+function getEntityPicture(hass, entityId, fallback = null) {
+  const picture = getEntityState(hass, entityId)?.attributes?.entity_picture;
+  return typeof picture === 'string' && picture.trim() ? picture.trim() : fallback;
+}
+
+function resolveEntityPictureUrl(hass, picture, fallback = null) {
+  if (typeof picture !== 'string' || !picture.trim()) return fallback;
+  const trimmedPicture = picture.trim();
+  if (trimmedPicture.startsWith('/') && typeof hass?.hassUrl === 'function') {
+    return hass.hassUrl(trimmedPicture);
+  }
+  return trimmedPicture;
+}
+
+function getEntityPictureUrl(hass, entityId, fallback = null) {
+  return resolveEntityPictureUrl(hass, getEntityPicture(hass, entityId), fallback);
+}
+
+function getSensorDisplayValue(hass, entityId, fallback = '') {
+  const state = getEntityState(hass, entityId)?.state;
+  if (state === undefined || state === null || state === 'unknown' || state === 'unavailable') return fallback;
+  const displayState = String(state).trim();
+  return displayState || fallback;
+}
+
+function getFormattedHeaderSensorTime(hass, entityId, parseTimeValue, formatTime, fallback = '') {
+  const sensorState = getSensorDisplayValue(hass, entityId, null);
+  if (!sensorState || typeof parseTimeValue !== 'function' || typeof formatTime !== 'function') return fallback;
+  const parsed = parseTimeValue(sensorState);
+  return parsed ? formatTime(parsed) : fallback;
+}
+
+function getHeaderWeatherDisplayData(hass, entityId) {
+  return normalizeHeaderWeatherData(getEntityState(hass, entityId));
+}
+
+function getHeaderEntityRenderSignatureFromState(entityState) {
+  return getHeaderWeatherEntityRenderSignature(entityState);
+}
+
+function getHeaderEntityRenderSignature(hass, entityId) {
+  return getHeaderEntityRenderSignatureFromState(getEntityState(hass, entityId));
+}
+
+function getPersonStateLabel(personState) {
+  if (!personState || !personState.state || ['unknown', 'unavailable'].includes(personState.state)) {
+    return '';
+  }
+
+  if (personState.state === 'home') return 'Home';
+  if (personState.state === 'not_home') return 'Away';
+
+  return String(personState.state)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getPersonEntityPictureUrl(hass, personState) {
+  return resolveEntityPictureUrl(hass, personState?.attributes?.entity_picture, null);
+}
+
+function getEntityRenderSignature(hass, entityIds = []) {
+  return JSON.stringify(entityIds.map((entityId) => {
+    const entityState = getEntityState(hass, entityId);
+    return {
+      entityId,
+      state: entityState?.state ?? null,
+      picture: entityState?.attributes?.entity_picture ?? null,
+      friendlyName: entityState?.attributes?.friendly_name ?? null
+    };
+  }));
+}
 
 const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.6.0';
 
@@ -15,1777 +578,158 @@ function getDaylightCalendarCardVersion() {
     : DAYLIGHT_CALENDAR_CARD_VERSION;
 }
 
-console.info(`Daylight Calendar Card ${getDaylightCalendarCardVersion()} loaded from skylight-calendar-card.js`);
+function normalizeDashboardPath(pathValue) {
+  if (typeof pathValue !== 'string') return null;
+  const trimmedPath = pathValue.trim();
+  if (!trimmedPath) return null;
+  return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
+}
 
-const TRANSLATIONS = {
-  en: {
-    locale: 'en-US',
-    strings: {
-      defaultTitle: 'Family Calendar',
-      addEvent: 'Add Event',
-      today: 'Today',
-      month: 'Month',
-      week: 'Week',
-      schedule: 'Schedule',
-      agenda: 'Agenda',
-      resetAgenda: 'Jump to Today',
-      openDashboard: 'Open dashboard',
-      calendars: 'Calendars',
-      calendar: 'Calendar',
-      eventTitle: 'Event Title',
-      eventTitlePlaceholder: 'Team Meeting',
-      allDayEvent: 'All-day event',
-      recurring: 'Recurring',
-      eventOptions: 'Event Options',
-      recurringEventOptions: 'Recurring options',
-      recurrenceFrequency: 'Repeat',
-      recurrenceEvery: 'Every',
-      recurrenceIntervalSuffix: 'interval(s)',
-      recurrenceEndsOn: 'Ends on',
-      recurrenceCount: 'Occurrences (COUNT)',
-      recurrenceWeekdays: 'Weekdays',
-      recurrenceNoEndDate: 'No end date (optional)',
-      recurrenceDaily: 'Daily',
-      recurrenceWeekly: 'Weekly',
-      recurrenceMonthly: 'Monthly',
-      recurrenceYearly: 'Yearly',
-      recurrenceNever: 'Never',
-      recurrenceOn: 'On',
-      recurrenceAfter: 'After',
-      recurrenceOccurrences: 'occurrences',
-      recurrenceSelectWeekday: 'Select at least one weekday for weekly recurring events',
-      start: 'Start',
-      end: 'End',
-      startDate: 'Start Date',
-      endDate: 'End Date',
-      location: 'Location',
-      locationPlaceholder: 'Conference Room A',
-      description: 'Description',
-      descriptionPlaceholder: 'Event details...',
-      cancel: 'Cancel',
-      createEvent: 'Create Event',
-      creating: 'Creating...',
-      forwardEvent: 'Forward Event',
-      forwardEventTitle: 'Forward Event',
-      forwardEventPrompt: 'Select one or more new calendars to forward this event to.',
-      forwardEventAlreadyExists: 'Already has this event',
-      forwardEventNoNewCalendars: 'Select at least one new calendar to forward this event to.',
-      continue: 'Continue',
-      editEvent: 'Edit Event',
-      saveChanges: 'Save Changes',
-      saving: 'Saving...',
-      delete: 'Delete',
-      deleting: 'Deleting...',
-      deleteEventTitle: 'Delete Event',
-      deleteRecurringEventTitle: 'Delete Recurring Event',
-      deleteEventConfirm: 'Are you sure you want to delete "{title}"? This action cannot be undone.',
-      deleteRecurringPrompt: '"{title}" is a recurring event. How would you like to delete it?',
-      editRecurringEventTitle: 'Edit Recurring Event',
-      editRecurringPrompt: '"{title}" is a recurring event. How would you like to edit it?',
-      editThisOccurrence: 'Edit just this occurrence',
-      editThisOccurrenceAndFuture: 'Edit this occurrence and all future occurrences',
-      editEntireSeries: 'Edit the entire recurring series',
-      deleteThisEventOnly: 'This event only',
-      deleteThisOccurrence: 'Delete just this occurrence',
-      deleteThisAndFutureEvents: 'This and future events',
-      deleteThisOccurrenceAndFuture: 'Delete this occurrence and all future occurrences',
-      deleteAllEvents: 'All events',
-      deleteEntireSeries: 'Delete the entire recurring series',
-      noEvents: 'No events',
-      allDay: 'All Day',
-      at: 'at',
-      duration: 'Duration',
-      attendees: 'Attendees',
-      recurrence: 'Recurrence',
-      recurringEvent: 'Recurring Event',
-      unknownAttendee: 'Unknown',
-      googleCalendarLimitationTitle: 'ℹ️ Google Calendar Limitation:',
-      googleCalendarLimitationBody: 'Editing events is not currently supported for Google Calendar through Home Assistant. You can delete events from here, but to edit please use the Google Calendar app or website.',
-      cannotModifyTitle: 'ℹ️ Cannot Modify:',
-      cannotModifyBody: 'This event is missing required information (UID) for editing or deletion. You may need to recreate it.',
-      untitledEvent: 'Untitled Event',
-      noWritableCalendars: 'No writable calendars available',
-      eventTitleRequired: 'Event title is required',
-      startEndDatesRequired: 'Start and end dates are required',
-      endDateBeforeStart: 'End date cannot be before start date',
-      startEndTimesRequired: 'Start and end times are required',
-      endTimeBeforeStart: 'End time must be after start time',
-      failedCreateEvent: 'Failed to create event. Please try again.',
-      failedUpdateEvent: 'Failed to update event. Please try again.',
-      failedDeleteEvent: 'Failed to delete event. Please try again.',
-      homeAssistantUnavailable: 'Home Assistant not available',
-      googleCalendarEditError: 'Google Calendar does not support editing events through Home Assistant. Please use the Google Calendar app or website.',
-      missingUidError: 'This event is missing required information (UID) and cannot be edited.',
-      calendarNoModifyError: 'This calendar does not support event modifications. Try creating a new event instead.',
-      createEventServiceError: 'Failed to create event',
-      deleteEventServiceError: 'Failed to delete event',
-      updateEventServiceError: 'Failed to update event. The calendar may not support modifications.',
-      durationHour: '{count} hour',
-      durationHours: '{count} hours',
-      durationMinute: '{count} minute',
-      durationMinutes: '{count} minutes',
-      moreEvents: '+{count} more',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'CW'
-    }
-  },
+function normalizeEnumValue(value, { aliases = {}, allowed = [], fallback }) {
+  const normalizedValue = String(value ?? '').trim().toLowerCase();
+  const mappedValue = aliases[normalizedValue] ?? normalizedValue;
+  return allowed.includes(mappedValue) ? mappedValue : fallback;
+}
 
-  fr: {
-    locale: 'fr-FR',
-    strings: {
-      defaultTitle: 'Calendrier familial',
-      addEvent: 'Ajouter un événement',
-      today: "Aujourd'hui",
-      month: 'Mois',
-      week: 'Semaine',
-      schedule: 'Planning',
-      agenda: 'Agenda',
-      resetAgenda: "Retour à aujourd'hui",
-      openDashboard: 'Ouvrir le tableau de bord',
-      calendars: 'Calendriers',
-      calendar: 'Calendrier',
-      eventTitle: "Titre de l'événement",
-      eventTitlePlaceholder: "Réunion d'équipe",
-      allDayEvent: 'Événement sur toute la journée',
-      recurring: 'Récurrent',
-      eventOptions: "Options de l'événement",
-      recurringEventOptions: 'Options de récurrence',
-      recurrenceFrequency: 'Répéter',
-      recurrenceEvery: 'Chaque',
-      recurrenceIntervalSuffix: 'intervalle(s)',
-      recurrenceEndsOn: 'Se termine le',
-      recurrenceCount: 'Occurrences (COUNT)',
-      recurrenceWeekdays: 'Jours de la semaine',
-      recurrenceNoEndDate: 'Pas de date de fin (optionnel)',
-      recurrenceDaily: 'Quotidien',
-      recurrenceWeekly: 'Hebdomadaire',
-      recurrenceMonthly: 'Mensuel',
-      recurrenceYearly: 'Annuel',
-      recurrenceNever: 'Jamais',
-      recurrenceOn: 'Le',
-      recurrenceAfter: 'Après',
-      recurrenceOccurrences: 'occurrences',
-      recurrenceSelectWeekday: 'Sélectionnez au moins un jour pour les événements hebdomadaires',
-      start: 'Début',
-      end: 'Fin',
-      startDate: 'Date de début',
-      endDate: 'Date de fin',
-      location: 'Lieu',
-      locationPlaceholder: 'Salle de conférence A',
-      description: 'Description',
-      descriptionPlaceholder: "Détails de l'événement...",
-      cancel: 'Annuler',
-      createEvent: 'Créer un événement',
-      creating: 'Création...',
-      forwardEvent: "Transférer l'événement",
-      forwardEventTitle: "Transférer l'événement",
-      forwardEventPrompt: 'Sélectionnez un ou plusieurs nouveaux calendriers vers lesquels transférer cet événement.',
-      forwardEventAlreadyExists: 'Contient déjà cet événement',
-      forwardEventNoNewCalendars: 'Sélectionnez au moins un nouveau calendrier vers lequel transférer cet événement.',
-      continue: 'Continuer',
-      editEvent: "Modifier l'événement",
-      saveChanges: 'Enregistrer les modifications',
-      saving: 'Enregistrement...',
-      delete: 'Supprimer',
-      deleting: 'Suppression...',
-      deleteEventTitle: "Supprimer l'événement",
-      deleteRecurringEventTitle: "Supprimer l'événement récurrent",
-      deleteEventConfirm: 'Voulez-vous vraiment supprimer "{title}" ? Cette action est irréversible.',
-      deleteRecurringPrompt: '"{title}" est un événement récurrent. Comment souhaitez-vous le supprimer ?',
-      editRecurringEventTitle: 'Modifier un événement récurrent',
-      editRecurringPrompt: '"{title}" est un événement récurrent. Comment souhaitez-vous le modifier ?',
-      editThisOccurrence: 'Modifier uniquement cette occurrence',
-      editThisOccurrenceAndFuture: 'Modifier cette occurrence et toutes les occurrences futures',
-      editEntireSeries: 'Modifier toute la série récurrente',
-      deleteThisEventOnly: 'Cet événement uniquement',
-      deleteThisOccurrence: 'Supprimer uniquement cette occurrence',
-      deleteThisAndFutureEvents: 'Cet événement et les suivants',
-      deleteThisOccurrenceAndFuture: 'Supprimer cette occurrence et toutes les occurrences futures',
-      deleteAllEvents: 'Tous les événements',
-      deleteEntireSeries: 'Supprimer toute la série récurrente',
-      noEvents: 'Aucun événement',
-      allDay: 'Toute la journée',
-      at: 'à',
-      duration: 'Durée',
-      attendees: 'Participants',
-      recurrence: 'Récurrence',
-      recurringEvent: 'Événement récurrent',
-      unknownAttendee: 'Inconnu',
-      googleCalendarLimitationTitle: 'ℹ️ Limitation Google Agenda :',
-      googleCalendarLimitationBody: "La modification des événements n'est pas prise en charge pour Google Agenda via Home Assistant. Vous pouvez supprimer des événements ici, mais pour les modifier veuillez utiliser l'application ou le site Google Agenda.",
-      cannotModifyTitle: 'ℹ️ Impossible de modifier :',
-      cannotModifyBody: 'Cet événement ne contient pas les informations requises (UID) pour être modifié ou supprimé. Vous devrez peut-être le recréer.',
-      untitledEvent: 'Événement sans titre',
-      noWritableCalendars: 'Aucun calendrier modifiable disponible',
-      eventTitleRequired: "Le titre de l'événement est requis",
-      startEndDatesRequired: 'Les dates de début et de fin sont requises',
-      endDateBeforeStart: 'La date de fin ne peut pas être antérieure à la date de début',
-      startEndTimesRequired: 'Les heures de début et de fin sont requises',
-      endTimeBeforeStart: "L'heure de fin doit être après l'heure de début",
-      failedCreateEvent: "Impossible de créer l'événement. Veuillez réessayer.",
-      failedUpdateEvent: "Impossible de modifier l'événement. Veuillez réessayer.",
-      failedDeleteEvent: "Impossible de supprimer l'événement. Veuillez réessayer.",
-      homeAssistantUnavailable: "Home Assistant n'est pas disponible",
-      googleCalendarEditError: "Google Agenda ne permet pas la modification des événements via Home Assistant. Veuillez utiliser l'application ou le site Google Agenda.",
-      missingUidError: 'Cet événement ne contient pas les informations requises (UID) et ne peut pas être modifié.',
-      calendarNoModifyError: "Ce calendrier ne prend pas en charge les modifications d'événements. Essayez plutôt de créer un nouvel événement.",
-      createEventServiceError: "Impossible de créer l'événement",
-      deleteEventServiceError: "Impossible de supprimer l'événement",
-      updateEventServiceError: "Impossible de modifier l'événement. Le calendrier ne prend peut-être pas en charge les modifications.",
-      durationHour: '{count} heure',
-      durationHours: '{count} heures',
-      durationMinute: '{count} minute',
-      durationMinutes: '{count} minutes',
-      moreEvents: '+{count} de plus',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem'
-    }
-  },
-
-  de: {
-    locale: 'de-DE',
-    strings: {
-      defaultTitle: 'Familienkalender',
-      addEvent: 'Termin hinzufügen',
-      today: 'Heute',
-      month: 'Monat',
-      week: 'Woche',
-      schedule: 'Zeitplan',
-      agenda: 'Agenda',
-      resetAgenda: 'Zu heute springen',
-      openDashboard: 'Dashboard öffnen',
-      calendars: 'Kalender',
-      calendar: 'Kalender',
-      eventTitle: 'Terminname',
-      eventTitlePlaceholder: 'Team-Meeting',
-      allDayEvent: 'Ganztägiges Ereignis',
-      recurring: 'Wiederkehrend',
-      eventOptions: 'Terminoptionen',
-      recurringEventOptions: 'Wiederholungsoptionen',
-      recurrenceFrequency: 'Wiederholen',
-      recurrenceEvery: 'Alle',
-      recurrenceIntervalSuffix: 'Intervall(e)',
-      recurrenceEndsOn: 'Endet am',
-      recurrenceCount: 'Anzahl (COUNT)',
-      recurrenceWeekdays: 'Wochentage',
-      recurrenceNoEndDate: 'Kein Enddatum (optional)',
-      recurrenceDaily: 'Täglich',
-      recurrenceWeekly: 'Wöchentlich',
-      recurrenceMonthly: 'Monatlich',
-      recurrenceYearly: 'Jährlich',
-      recurrenceNever: 'Nie',
-      recurrenceOn: 'Am',
-      recurrenceAfter: 'Nach',
-      recurrenceOccurrences: 'Vorkommen',
-      recurrenceSelectWeekday: 'Wählen Sie mindestens einen Wochentag für wöchentliche Termine aus',
-      start: 'Beginn',
-      end: 'Ende',
-      startDate: 'Startdatum',
-      endDate: 'Enddatum',
-      location: 'Ort',
-      locationPlaceholder: 'Konferenzraum A',
-      description: 'Beschreibung',
-      descriptionPlaceholder: 'Ereignisdetails...',
-      cancel: 'Abbrechen',
-      createEvent: 'Termin erstellen',
-      creating: 'Wird erstellt...',
-      forwardEvent: 'Termin weiterleiten',
-      forwardEventTitle: 'Termin weiterleiten',
-      forwardEventPrompt: 'Wählen Sie einen oder mehrere neue Kalender aus, an die dieser Termin weitergeleitet werden soll.',
-      forwardEventAlreadyExists: 'Enthält diesen Termin bereits',
-      forwardEventNoNewCalendars: 'Wählen Sie mindestens einen neuen Kalender aus, an den dieser Termin weitergeleitet werden soll.',
-      continue: 'Weiter',
-      editEvent: 'Termin bearbeiten',
-      saveChanges: 'Änderungen speichern',
-      saving: 'Wird gespeichert...',
-      delete: 'Löschen',
-      deleting: 'Wird gelöscht...',
-      deleteEventTitle: 'Termin löschen',
-      deleteRecurringEventTitle: 'Wiederkehrenden Termin löschen',
-      deleteEventConfirm: 'Möchten Sie "{title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
-      deleteRecurringPrompt: '"{title}" ist ein wiederkehrender Termin. Wie möchten Sie ihn löschen?',
-      editRecurringEventTitle: 'Wiederkehrenden Termin bearbeiten',
-      editRecurringPrompt: '"{title}" ist ein wiederkehrender Termin. Wie möchten Sie ihn bearbeiten?',
-      editThisOccurrence: 'Nur dieses Vorkommen bearbeiten',
-      editThisOccurrenceAndFuture: 'Dieses und alle zukünftigen Vorkommen bearbeiten',
-      editEntireSeries: 'Die gesamte Serie bearbeiten',
-      deleteThisEventOnly: 'Nur dieses Ereignis',
-      deleteThisOccurrence: 'Nur dieses Vorkommen löschen',
-      deleteThisAndFutureEvents: 'Dieses und zukünftige Ereignisse',
-      deleteThisOccurrenceAndFuture: 'Dieses Vorkommen und alle zukünftigen Vorkommen löschen',
-      deleteAllEvents: 'Alle Ereignisse',
-      deleteEntireSeries: 'Die gesamte Serie löschen',
-      noEvents: 'Keine Ereignisse',
-      allDay: 'Ganztägig',
-      at: 'um',
-      duration: 'Dauer',
-      attendees: 'Teilnehmende',
-      recurrence: 'Wiederholung',
-      recurringEvent: 'Wiederkehrender Termin',
-      unknownAttendee: 'Unbekannt',
-      googleCalendarLimitationTitle: 'ℹ️ Google-Kalender-Einschränkung:',
-      googleCalendarLimitationBody: 'Das Bearbeiten von Terminen wird für Google Kalender in Home Assistant derzeit nicht unterstützt. Sie können Termine hier löschen, zum Bearbeiten nutzen Sie bitte die Google Kalender App oder Website.',
-      cannotModifyTitle: 'ℹ️ Kann nicht bearbeitet werden:',
-      cannotModifyBody: 'Diesem Ereignis fehlen erforderliche Informationen (UID) zum Bearbeiten oder Löschen. Möglicherweise müssen Sie es neu erstellen.',
-      untitledEvent: 'Unbenannter Termin',
-      noWritableCalendars: 'Keine beschreibbaren Kalender verfügbar',
-      eventTitleRequired: 'Ein Terminname ist erforderlich',
-      startEndDatesRequired: 'Start- und Enddatum sind erforderlich',
-      endDateBeforeStart: 'Das Enddatum darf nicht vor dem Startdatum liegen',
-      startEndTimesRequired: 'Start- und Endzeit sind erforderlich',
-      endTimeBeforeStart: 'Die Endzeit muss nach der Startzeit liegen',
-      failedCreateEvent: 'Termin konnte nicht erstellt werden. Bitte erneut versuchen.',
-      failedUpdateEvent: 'Termin konnte nicht aktualisiert werden. Bitte erneut versuchen.',
-      failedDeleteEvent: 'Termin konnte nicht gelöscht werden. Bitte erneut versuchen.',
-      homeAssistantUnavailable: 'Home Assistant nicht verfügbar',
-      googleCalendarEditError: 'Google Kalender unterstützt das Bearbeiten von Terminen über Home Assistant nicht. Bitte verwenden Sie die Google Kalender App oder Website.',
-      missingUidError: 'Dieses Ereignis enthält keine erforderlichen Informationen (UID) und kann nicht bearbeitet werden.',
-      calendarNoModifyError: 'Dieser Kalender unterstützt keine Terminänderungen. Bitte erstellen Sie stattdessen einen neuen Termin.',
-      createEventServiceError: 'Termin konnte nicht erstellt werden',
-      deleteEventServiceError: 'Termin konnte nicht gelöscht werden',
-      updateEventServiceError: 'Termin konnte nicht aktualisiert werden. Der Kalender unterstützt möglicherweise keine Änderungen.',
-      durationHour: '{count} Stunde',
-      durationHours: '{count} Stunden',
-      durationMinute: '{count} Minute',
-      durationMinutes: '{count} Minuten',
-      moreEvents: '+{count} mehr',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
-    }
-  },
-
-  nl: {
-    locale: 'nl-NL',
-    strings: {
-      defaultTitle: 'Familie agenda',
-      addEvent: 'Nieuwe afspraak',
-      today: 'Vandaag',
-      month: 'Maand',
-      week: 'Week',
-      schedule: 'Schema',
-      agenda: 'Agenda',
-      resetAgenda: 'Ga naar vandaag',
-      openDashboard: 'Dashboard openen',
-      calendars: "Agenda's",
-      calendar: 'agenda',
-      eventTitle: 'Afspraak onderwerp',
-      eventTitlePlaceholder: 'Groepsafspraak',
-      allDayEvent: 'Hele dag',
-      recurring: 'Terugkerend',
-      eventOptions: 'Afspraakopties',
-      recurringEventOptions: 'terugkerend mogelijkheden',
-      recurrenceFrequency: 'Herhaal',
-      recurrenceEvery: 'Elke',
-      recurrenceIntervalSuffix: 'herhalen elke',
-      recurrenceEndsOn: 'Stop op',
-      recurrenceCount: 'Gebeurtenissen (COUNT)',
-      recurrenceWeekdays: 'Werkdagen',
-      recurrenceNoEndDate: 'Geen einddatum (optioneel)',
-      recurrenceDaily: 'Dagelijks',
-      recurrenceWeekly: 'Wekelijks',
-      recurrenceMonthly: 'Maandelijks',
-      recurrenceYearly: 'Jaarlijks',
-      recurrenceNever: 'Nooit',
-      recurrenceOn: 'Op',
-      recurrenceAfter: 'Na',
-      recurrenceOccurrences: 'gebeurtenissen',
-      recurrenceSelectWeekday: 'Selecteer ten minste één dag voor wekelijks terugkerende afspraken',
-      start: 'Start',
-      end: 'Einde',
-      startDate: 'Begindatum',
-      endDate: 'Einddatum',
-      location: 'Locatie',
-      locationPlaceholder: 'Vergaderruimte A',
-      description: 'Omschrijving',
-      descriptionPlaceholder: 'Afspraak details...',
-      cancel: 'Annuleren',
-      createEvent: 'Afspraak toevoegen',
-      creating: 'Aanmaken...',
-      forwardEvent: 'Afspraak doorsturen',
-      forwardEventTitle: 'Afspraak doorsturen',
-      forwardEventPrompt: 'Selecteer een of meer nieuwe agenda’s waarnaar deze afspraak moet worden doorgestuurd.',
-      forwardEventAlreadyExists: 'Bevat deze afspraak al',
-      forwardEventNoNewCalendars: 'Selecteer minstens één nieuwe agenda om deze afspraak naar door te sturen.',
-      continue: 'Doorgaan',
-      editEvent: 'Afspraak bewerken',
-      saveChanges: 'Wijzigingen opslaan',
-      saving: 'Opslaan...',
-      delete: 'Verwijder',
-      deleting: 'Verwijderen...',
-      deleteEventTitle: 'Afspraak verwijderen',
-      deleteRecurringEventTitle: 'Herhaalafspraak verwijderen',
-      deleteEventConfirm: 'Ben je er zeker van dat je "{title}" wil verwijderen? Deze actie is onomkeerbaar.',
-      deleteRecurringPrompt: '"{title}" is een herhalende afspraak. Hoe wil je hem verwijderen?',
-      editRecurringEventTitle: 'Herhalende afspraak bewerken',
-      editRecurringPrompt: '"{title}" is een herhalende afspraak. Hoe wil je hem bewerken?',
-      editThisOccurrence: 'Alleen deze afspraak wijzigen',
-      editThisOccurrenceAndFuture: 'Deze afspraak en alle toekomstige afspraken bewerken',
-      editEntireSeries: 'Bewerk de volledige afspraken reeks',
-      deleteThisEventOnly: 'Alleen deze afspraak',
-      deleteThisOccurrence: 'Verwijder alleen dit moment',
-      deleteThisAndFutureEvents: 'Deze en alle toekomstige afspraken',
-      deleteThisOccurrenceAndFuture: 'Verwijder deze en alle toekomstige afspraken',
-      deleteAllEvents: 'Alle afspraken',
-      deleteEntireSeries: 'Verwijder de volledige reeks',
-      noEvents: 'Geen afspraken',
-      allDay: 'Hele dag',
-      at: 'op',
-      duration: 'Duur',
-      attendees: 'Deelnemers',
-      recurrence: 'Terugkerend',
-      recurringEvent: 'Terugkerende afpraak',
-      unknownAttendee: 'Onbekend',
-      googleCalendarLimitationTitle: 'ℹ️ Google Calendar beperking:',
-      googleCalendarLimitationBody: 'Het bewerken van Google Calendar afspraken wordt momenteel niet ondersteund in Home Assistant. Je kunt afspraken verwijderen, maar voor het bewerken kun je de Google Calendar app of website gebruiken.',
-      cannotModifyTitle: 'ℹ️ Kan het volgende niet aanpassen:',
-      cannotModifyBody: 'Deze afspraak mist de vereiste informatie (UID) om te kunnen bewerken of verwijderen. Mogelijk moet je hem opnieuw aanmaken.',
-      untitledEvent: 'Afspraak zonder onderwerp',
-      noWritableCalendars: "Geen bewerkbare agenda's beschikbaar",
-      eventTitleRequired: 'Afspraak onderwerp is verplicht',
-      startEndDatesRequired: 'Begin- en einddatum zijn verplicht',
-      endDateBeforeStart: 'Einddatum mag niet voor begindatum zijn',
-      startEndTimesRequired: 'Begin- en eindtijd is verplicht',
-      endTimeBeforeStart: 'Eindtijd mag niet voor begintijd zijn',
-      failedCreateEvent: 'Niet gelukt om afspraak aan te maken. Probeer opnieuw.',
-      failedUpdateEvent: 'Niet gelukt om afspraak bij te werken. Probeer opnieuw.',
-      failedDeleteEvent: 'Niet gelukt om afspraak te verwijderen. Probeer opnieuw.',
-      homeAssistantUnavailable: 'Home Assistant niet beschikbaar',
-      googleCalendarEditError: 'Het wordt niet ondersteund om Google Calendar afspraken te bewerken binnen Home Assistant. Maak gebruik van de Google Calendar app of website.',
-      missingUidError: 'Deze afspraak mist de vereiste informatie (UID) en kan daarom niet bewerkt worden.',
-      calendarNoModifyError: 'Het bewerken van afspraken wordt niet ondersteund in deze agenda. Maak een nieuwe afspraak aan.',
-      createEventServiceError: 'Niet gelukt om afspraak aan te maken',
-      deleteEventServiceError: 'Niet gelukt om afspraak te verwijderen',
-      updateEventServiceError: 'Niet gelukt om afspraak bij te werken. Mogelijk wordt dit niet ondersteund.',
-      durationHour: '{count} uur',
-      durationHours: '{count} uren',
-      durationMinute: '{count} minuut',
-      durationMinutes: '{count} minuten',
-      moreEvents: '+{count} meer',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
-    }
-  },
-  es: {
-    locale: 'es-ES',
-    strings: {
-      defaultTitle: 'Calendario Familiar',
-      addEvent: 'Añadir evento',
-      today: 'Hoy',
-      month: 'Mes',
-      week: 'Semana',
-      schedule: 'Horario',
-      agenda: 'Agenda',
-      resetAgenda: 'Ir a hoy',
-      openDashboard: 'Abrir panel',
-      calendars: 'Calendarios',
-      calendar: 'Calendario',
-      eventTitle: 'Título del evento',
-      eventTitlePlaceholder: 'Reunión de equipo',
-      allDayEvent: 'Evento de todo el día',
-      recurring: 'Recurrente',
-      eventOptions: 'Opciones del evento',
-      recurringEventOptions: 'Opciones de recurrencia',
-      recurrenceFrequency: 'Repetir',
-      recurrenceEvery: 'Cada',
-      recurrenceIntervalSuffix: 'intervalo(s)',
-      recurrenceEndsOn: 'Termina el',
-      recurrenceCount: 'Ocurrencias (CANTIDAD)',
-      recurrenceWeekdays: 'Días de la semana',
-      recurrenceNoEndDate: 'Sin fecha de finalización (opcional)',
-      recurrenceDaily: 'Diariamente',
-      recurrenceWeekly: 'Semanalmente',
-      recurrenceMonthly: 'Mensualmente',
-      recurrenceYearly: 'Anualmente',
-      recurrenceNever: 'Nunca',
-      recurrenceOn: 'El',
-      recurrenceAfter: 'Después de',
-      recurrenceOccurrences: 'ocurrencias',
-      recurrenceSelectWeekday: 'Selecciona al menos un día de la semana para los eventos recurrentes semanales',
-      start: 'Inicio',
-      end: 'Fin',
-      startDate: 'Fecha de inicio',
-      endDate: 'Fecha de fin',
-      location: 'Ubicación',
-      locationPlaceholder: 'Sala de conferencias A',
-      description: 'Descripción',
-      descriptionPlaceholder: 'Detalles del evento...',
-      cancel: 'Cancelar',
-      createEvent: 'Crear evento',
-      creating: 'Creando...',
-      forwardEvent: 'Reenviar evento',
-      forwardEventTitle: 'Reenviar evento',
-      forwardEventPrompt: 'Selecciona uno o más calendarios nuevos a los que reenviar este evento.',
-      forwardEventAlreadyExists: 'Ya contiene este evento',
-      forwardEventNoNewCalendars: 'Selecciona al menos un calendario nuevo al que reenviar este evento.',
-      continue: 'Continuar',
-      editEvent: 'Editar evento',
-      saveChanges: 'Guardar cambios',
-      saving: 'Guardando...',
-      delete: 'Eliminar',
-      deleting: 'Eliminando...',
-      deleteEventTitle: 'Eliminar evento',
-      deleteRecurringEventTitle: 'Eliminar evento recurrente',
-      deleteEventConfirm: '¿Estás seguro de que quieres eliminar "{title}"? Esta acción no se puede deshacer.',
-      deleteRecurringPrompt: '"{title}" es un evento recurrente. ¿Cómo te gustaría eliminarlo?',
-      editRecurringEventTitle: 'Editar evento recurrente',
-      editRecurringPrompt: '"{title}" es un evento recurrente. ¿Cómo te gustaría editarlo?',
-      editThisOccurrence: 'Editar solo esta ocurrencia',
-      editThisOccurrenceAndFuture: 'Editar esta ocurrencia y todas las futuras',
-      editEntireSeries: 'Editar toda la serie recurrente',
-      deleteThisEventOnly: 'Solo este evento',
-      deleteThisOccurrence: 'Eliminar solo esta ocurrencia',
-      deleteThisAndFutureEvents: 'Este y los eventos futuros',
-      deleteThisOccurrenceAndFuture: 'Eliminar esta ocurrencia y todas las futuras',
-      deleteAllEvents: 'Todos los eventos',
-      deleteEntireSeries: 'Eliminar toda la serie recurrente',
-      noEvents: 'No hay eventos',
-      allDay: 'Todo el día',
-      at: 'a las',
-      duration: 'Duración',
-      attendees: 'Asistentes',
-      recurrence: 'Recurrencia',
-      recurringEvent: 'Evento recurrente',
-      unknownAttendee: 'Desconocido',
-      googleCalendarLimitationTitle: 'ℹ️ Limitación de Google Calendar:',
-      googleCalendarLimitationBody: 'Actualmente no se admite la edición de eventos para Google Calendar a través de Home Assistant. Puedes eliminar eventos desde aquí, pero para editarlos, utiliza la aplicación o el sitio web de Google Calendar.',
-      cannotModifyTitle: 'ℹ️ No se puede modificar:',
-      cannotModifyBody: 'A este evento le falta información obligatoria (UID) para su edición o eliminación. Es posible que tengas que volver a crearlo.',
-      untitledEvent: 'Evento sin título',
-      noWritableCalendars: 'No hay calendarios editables disponibles',
-      eventTitleRequired: 'El título del evento es obligatorio',
-      startEndDatesRequired: 'Las fechas de inicio y fin son obligatorias',
-      endDateBeforeStart: 'La fecha de fin no puede ser anterior a la fecha de inicio',
-      startEndTimesRequired: 'Las horas de inicio y fin son obligatorias',
-      endTimeBeforeStart: 'La hora de fin debe ser posterior a la hora de inicio',
-      failedCreateEvent: 'Error al crear el evento. Por favor, inténtalo de nuevo.',
-      failedUpdateEvent: 'Error al actualizar el evento. Por favor, inténtalo de nuevo.',
-      failedDeleteEvent: 'Error al eliminar el evento. Por favor, inténtalo de nuevo.',
-      homeAssistantUnavailable: 'Home Assistant no está disponible',
-      googleCalendarEditError: 'Google Calendar no admite la edición de eventos a través de Home Assistant. Por favor, utiliza la aplicación o el sitio web de Google Calendar.',
-      missingUidError: 'A este evento le falta información obligatoria (UID) y no se puede editar.',
-      calendarNoModifyError: 'Este calendario no admite modificaciones de eventos. Intenta crear un nuevo evento en su lugar.',
-      createEventServiceError: 'Error al crear el evento',
-      deleteEventServiceError: 'Error al eliminar el evento',
-      updateEventServiceError: 'Error al actualizar el evento. Es posible que el calendario no admita modificaciones.',
-      durationHour: '{count} hora',
-      durationHours: '{count} horas',
-      durationMinute: '{count} minuto',
-      durationMinutes: '{count} minutos',
-      moreEvents: '+{count} más',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem.'
-    }
-  },
-
-  ca: {
-    locale: 'ca-ES',
-    strings: {
-      defaultTitle: 'Calendari Familiar',
-      addEvent: 'Afegir esdeveniment',
-      today: 'Avui',
-      month: 'Mes',
-      week: 'Setmana',
-      schedule: 'Horari',
-      agenda: 'Agenda',
-      resetAgenda: "Anar a avui",
-      openDashboard: 'Obrir tauler',
-      calendars: 'Calendaris',
-      calendar: 'Calendari',
-      eventTitle: "Títol de l'esdeveniment",
-      eventTitlePlaceholder: "Reunió d'equip",
-      allDayEvent: 'Esdeveniment de tot el dia',
-      recurring: 'Recurrent',
-      eventOptions: "Opcions de l'esdeveniment",
-      recurringEventOptions: 'Opcions de recurrència',
-      recurrenceFrequency: 'Repetir',
-      recurrenceEvery: 'Cada',
-      recurrenceIntervalSuffix: 'interval(s)',
-      recurrenceEndsOn: 'Acaba el',
-      recurrenceCount: 'Ocurrències (QUANTITAT)',
-      recurrenceWeekdays: 'Dies de la setmana',
-      recurrenceNoEndDate: "Sense data de finalització (opcional)",
-      recurrenceDaily: 'Diàriament',
-      recurrenceWeekly: 'Setmanalment',
-      recurrenceMonthly: 'Mensualment',
-      recurrenceYearly: 'Anualment',
-      recurrenceNever: 'Mai',
-      recurrenceOn: 'El',
-      recurrenceAfter: 'Després de',
-      recurrenceOccurrences: 'ocurrències',
-      recurrenceSelectWeekday: "Selecciona almenys un dia de la setmana per als esdeveniments recurrents setmanals",
-      start: 'Inici',
-      end: 'Fi',
-      startDate: "Data d'inici",
-      endDate: 'Data de fi',
-      location: 'Ubicació',
-      locationPlaceholder: 'Sala de conferències A',
-      description: 'Descripció',
-      descriptionPlaceholder: "Detalls de l'esdeveniment...",
-      cancel: 'Cancel·lar',
-      createEvent: 'Crear esdeveniment',
-      creating: 'Creant...',
-      forwardEvent: "Reenviar esdeveniment",
-      forwardEventTitle: "Reenviar esdeveniment",
-      forwardEventPrompt: 'Selecciona un o més calendaris nous als quals reenviar aquest esdeveniment.',
-      forwardEventAlreadyExists: 'Ja conté aquest esdeveniment',
-      forwardEventNoNewCalendars: 'Selecciona almenys un calendari nou al qual reenviar aquest esdeveniment.',
-      continue: 'Continuar',
-      editEvent: "Editar esdeveniment",
-      saveChanges: 'Desar canvis',
-      saving: 'Desant...',
-      delete: 'Eliminar',
-      deleting: 'Eliminant...',
-      deleteEventTitle: "Eliminar esdeveniment",
-      deleteRecurringEventTitle: 'Eliminar esdeveniment recurrent',
-      deleteEventConfirm: 'Estàs segur que vols eliminar "{title}"? Aquesta acció no es pot desfer.',
-      deleteRecurringPrompt: '"{title}" és un esdeveniment recurrent. Com vols eliminar-lo?',
-      editRecurringEventTitle: 'Editar esdeveniment recurrent',
-      editRecurringPrompt: '"{title}" és un esdeveniment recurrent. Com vols editar-lo?',
-      editThisOccurrence: 'Editar només aquesta ocurrència',
-      editThisOccurrenceAndFuture: 'Editar aquesta ocurrència i totes les futures',
-      editEntireSeries: 'Editar tota la sèrie recurrent',
-      deleteThisEventOnly: 'Només aquest esdeveniment',
-      deleteThisOccurrence: 'Eliminar només aquesta ocurrència',
-      deleteThisAndFutureEvents: 'Aquest i els esdeveniments futurs',
-      deleteThisOccurrenceAndFuture: 'Eliminar aquesta ocurrència i totes les futures',
-      deleteAllEvents: 'Tots els esdeveniments',
-      deleteEntireSeries: 'Eliminar tota la sèrie recurrent',
-      noEvents: 'No hi ha esdeveniments',
-      allDay: 'Tot el dia',
-      at: 'a les',
-      duration: 'Durada',
-      attendees: 'Assistents',
-      recurrence: 'Recurrència',
-      recurringEvent: 'Esdeveniment recurrent',
-      unknownAttendee: 'Desconegut',
-      googleCalendarLimitationTitle: 'ℹ️ Limitació de Google Calendar:',
-      googleCalendarLimitationBody: "Actualment no es permet l'edició d'esdeveniments de Google Calendar a través de Home Assistant. Pots eliminar esdeveniments des d'aquí, però per editar-los, utilitza l'aplicació o el lloc web de Google Calendar.",
-      cannotModifyTitle: 'ℹ️ No es pot modificar:',
-      cannotModifyBody: "A aquest esdeveniment li falta informació obligatòria (UID) per a la seva edició o eliminació. Potser cal que el tornis a crear.",
-      untitledEvent: 'Esdeveniment sense títol',
-      noWritableCalendars: 'No hi ha calendaris editables disponibles',
-      eventTitleRequired: "El títol de l'esdeveniment és obligatori",
-      startEndDatesRequired: "Les dates d'inici i fi són obligatòries",
-      endDateBeforeStart: "La data de fi no pot ser anterior a la data d'inici",
-      startEndTimesRequired: "Les hores d'inici i fi són obligatòries",
-      endTimeBeforeStart: "L'hora de fi ha de ser posterior a l'hora d'inici",
-      failedCreateEvent: "Error en crear l'esdeveniment. Si us plau, torna-ho a provar.",
-      failedUpdateEvent: "Error en actualitzar l'esdeveniment. Si us plau, torna-ho a provar.",
-      failedDeleteEvent: "Error en eliminar l'esdeveniment. Si us plau, torna-ho a provar.",
-      homeAssistantUnavailable: 'Home Assistant no està disponible',
-      googleCalendarEditError: "Google Calendar no permet l'edició d'esdeveniments a través de Home Assistant. Si us plau, utilitza l'aplicació o el lloc web de Google Calendar.",
-      missingUidError: "A aquest esdeveniment li falta informació obligatòria (UID) i no es pot editar.",
-      calendarNoModifyError: "Aquest calendari no admet modificacions d'esdeveniments. Prova de crear un nou esdeveniment.",
-      createEventServiceError: "Error en crear l'esdeveniment",
-      deleteEventServiceError: "Error en eliminar l'esdeveniment",
-      updateEventServiceError: "Error en actualitzar l'esdeveniment. És possible que el calendari no admeti modificacions.",
-      durationHour: '{count} hora',
-      durationHours: '{count} hores',
-      durationMinute: '{count} minut',
-      durationMinutes: '{count} minuts',
-      moreEvents: '+{count} més',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Set.'
-    }
-  },
-
-  da: {
-    locale: 'da-DK',
-    strings: {
-      defaultTitle: 'Familiekalender',
-      addEvent: 'Tilføj begivenhed',
-      today: 'I dag',
-      month: 'Måned',
-      week: 'Uge',
-      schedule: 'Skema',
-      agenda: 'Agenda',
-      resetAgenda: 'Gå til i dag',
-      openDashboard: 'Åbn dashboard',
-      calendars: 'Kalendere',
-      calendar: 'Kalender',
-      eventTitle: 'Begivenhedstitel',
-      eventTitlePlaceholder: 'Teammøde',
-      allDayEvent: 'Heldagsbegivenhed',
-      recurring: 'Gentagende',
-      eventOptions: 'Begivenhedsindstillinger',
-      recurringEventOptions: 'Gentagelsesindstillinger',
-      recurrenceFrequency: 'Gentag',
-      recurrenceEvery: 'Hver',
-      recurrenceIntervalSuffix: 'interval(er)',
-      recurrenceEndsOn: 'Slutter den',
-      recurrenceCount: 'Antal forekomster',
-      recurrenceWeekdays: 'Ugedage',
-      recurrenceNoEndDate: 'Ingen slutdato (valgfrit)',
-      recurrenceDaily: 'Dagligt',
-      recurrenceWeekly: 'Ugentligt',
-      recurrenceMonthly: 'Månedligt',
-      recurrenceYearly: 'Årligt',
-      recurrenceNever: 'Aldrig',
-      recurrenceOn: 'Den',
-      recurrenceAfter: 'Efter',
-      recurrenceOccurrences: 'forekomster',
-      recurrenceSelectWeekday: 'Vælg mindst én ugedag for ugentligt gentagende begivenheder',
-      start: 'Start',
-      end: 'Slut',
-      startDate: 'Startdato',
-      endDate: 'Slutdato',
-      location: 'Sted',
-      locationPlaceholder: 'Konferencerum A',
-      description: 'Beskrivelse',
-      descriptionPlaceholder: 'Begivenhedsdetaljer...',
-      cancel: 'Annuller',
-      createEvent: 'Opret begivenhed',
-      creating: 'Opretter...',
-      forwardEvent: 'Kopiér begivenhed',
-      forwardEventTitle: 'Kopiér begivenhed',
-      forwardEventPrompt: 'Vælg en eller flere kalendere, som begivenheden skal kopieres til.',
-      forwardEventAlreadyExists: 'Denne begivenhed findes allerede',
-      forwardEventNoNewCalendars: 'Vælg mindst én ny kalender, som begivenheden skal kopieres til.',
-      continue: 'Fortsæt',
-      editEvent: 'Rediger begivenhed',
-      saveChanges: 'Gem ændringer',
-      saving: 'Gemmer...',
-      delete: 'Slet',
-      deleting: 'Sletter...',
-      deleteEventTitle: 'Slet begivenhed',
-      deleteRecurringEventTitle: 'Slet gentagende begivenhed',
-      deleteEventConfirm: 'Er du sikker på, at du vil slette "{title}"? Denne handling kan ikke fortrydes.',
-      deleteRecurringPrompt: '"{title}" er en gentagende begivenhed. Hvordan vil du slette den?',
-      editRecurringEventTitle: 'Rediger gentagende begivenhed',
-      editRecurringPrompt: '"{title}" er en gentagende begivenhed. Hvordan vil du redigere den?',
-      editThisOccurrence: 'Rediger kun denne forekomst',
-      editThisOccurrenceAndFuture: 'Rediger denne forekomst og alle fremtidige forekomster',
-      editEntireSeries: 'Rediger hele serien',
-      deleteThisEventOnly: 'Kun denne begivenhed',
-      deleteThisOccurrence: 'Slet kun denne forekomst',
-      deleteThisAndFutureEvents: 'Denne og fremtidige begivenheder',
-      deleteThisOccurrenceAndFuture: 'Slet denne forekomst og alle fremtidige forekomster',
-      deleteAllEvents: 'Alle forekomster',
-      deleteEntireSeries: 'Slet hele serien',
-      noEvents: 'Ingen begivenheder',
-      allDay: 'Hele dagen',
-      at: 'kl.',
-      duration: 'Varighed',
-      attendees: 'Deltagere',
-      recurrence: 'Gentagelse',
-      recurringEvent: 'Gentagende begivenhed',
-      unknownAttendee: 'Ukendt',
-      googleCalendarLimitationTitle: 'ℹ️ Begrænsning i Google Kalender:',
-      googleCalendarLimitationBody: 'Redigering af begivenheder understøttes i øjeblikket ikke for Google Kalender via Home Assistant. Du kan slette begivenheder herfra, men brug Google Kalender-appen eller webstedet for at redigere dem.',
-      cannotModifyTitle: 'ℹ️ Kan ikke ændres:',
-      cannotModifyBody: 'Denne begivenhed mangler nødvendige oplysninger (UID) til redigering eller sletning. Du skal muligvis oprette den igen.',
-      untitledEvent: 'Begivenhed uden titel',
-      noWritableCalendars: 'Ingen redigerbare kalendere tilgængelige',
-      eventTitleRequired: 'Begivenhedstitel er påkrævet',
-      startEndDatesRequired: 'Start- og slutdatoer er påkrævede',
-      endDateBeforeStart: 'Slutdato kan ikke være før startdato',
-      startEndTimesRequired: 'Start- og sluttidspunkter er påkrævede',
-      endTimeBeforeStart: 'Sluttidspunkt skal være efter starttidspunkt',
-      failedCreateEvent: 'Kunne ikke oprette begivenhed. Prøv igen.',
-      failedUpdateEvent: 'Kunne ikke opdatere begivenhed. Prøv igen.',
-      failedDeleteEvent: 'Kunne ikke slette begivenhed. Prøv igen.',
-      homeAssistantUnavailable: 'Home Assistant er ikke tilgængelig',
-      googleCalendarEditError: 'Google Kalender understøtter ikke redigering af begivenheder via Home Assistant. Brug Google Kalender-appen eller webstedet.',
-      missingUidError: 'Denne begivenhed mangler nødvendige oplysninger (UID) og kan ikke redigeres.',
-      calendarNoModifyError: 'Denne kalender understøtter ikke ændringer af begivenheder. Prøv at oprette en ny begivenhed i stedet.',
-      createEventServiceError: 'Kunne ikke oprette begivenhed',
-      deleteEventServiceError: 'Kunne ikke slette begivenhed',
-      updateEventServiceError: 'Kunne ikke opdatere begivenhed. Kalenderen understøtter muligvis ikke ændringer.',
-      durationHour: '{count} time',
-      durationHours: '{count} timer',
-      durationMinute: '{count} minut',
-      durationMinutes: '{count} minutter',
-      moreEvents: '+{count} flere',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Uge'
-    }
-  },
-
-  sv: {
-    locale: 'sv-SE',
-    strings: {
-      defaultTitle: 'Familjekalender',
-      addEvent: 'Ny händelse',
-      today: 'Idag',
-      month: 'Månad',
-      week: 'Vecka',
-      schedule: 'Schema',
-      agenda: 'Agenda',
-      resetAgenda: 'Gå till idag',
-      openDashboard: 'Öppna översikt',
-      calendars: 'Kalendrar',
-      calendar: 'Kalender',
-      eventTitle: 'Händelsetitel',
-      eventTitlePlaceholder: 'Teams-möte',
-      allDayEvent: 'Hela dagen',
-      recurring: 'Återkommande',
-      eventOptions: 'Alternativ',
-      recurringEventOptions: 'Återkommande alternativ',
-      recurrenceFrequency: 'Upprepa',
-      recurrenceEvery: 'Varje',
-      recurrenceIntervalSuffix: 'intervall(er)',
-      recurrenceEndsOn: 'Slutar',
-      recurrenceCount: 'Upprepningar (COUNT)',
-      recurrenceWeekdays: 'Veckodagar',
-      recurrenceNoEndDate: 'Inget slutdatum (valfritt)',
-      recurrenceDaily: 'Dagligen',
-      recurrenceWeekly: 'Veckovis',
-      recurrenceMonthly: 'Månadsvis',
-      recurrenceYearly: 'Årligen',
-      recurrenceNever: 'Aldrig',
-      recurrenceOn: 'På',
-      recurrenceAfter: 'Efter',
-      recurrenceOccurrences: 'Upprepningar',
-      recurrenceSelectWeekday: 'Välj minst en veckodag för återkommande händelser.',
-      start: 'Start',
-      end: 'Slut',
-      startDate: 'Startdatum',
-      endDate: 'Slutdatum',
-      location: 'Plats',
-      locationPlaceholder: 'Konferensrum A',
-      description: 'Beskrivning',
-      descriptionPlaceholder: 'Händelsebeskrivning...',
-      cancel: 'Avbryt',
-      createEvent: 'Skapa händelse',
-      creating: 'Skapar...',
-      editEvent: 'Redigera händelse',
-      saveChanges: 'Spara ändringar',
-      saving: 'Sparar...',
-      delete: 'Ta bort',
-      deleting: 'Tar bort...',
-      deleteEventTitle: 'Ta bort händelse',
-      deleteRecurringEventTitle: 'Ta bort återkommande händelser',
-      deleteEventConfirm: 'Är du säker på att du vill radera "{title}"? Detta går inte att ångra.',
-      deleteRecurringPrompt: '"{title}" är en återkommande händelse. Hur vill du ta bort den?',
-      editRecurringEventTitle: 'Redigera återkommande händelse',
-      editRecurringPrompt: '"{title}" är en återkommande händelse. Hur vill du redigera den?',
-      editThisOccurrence: 'Redigera enbart den här händelsen i serien',
-      editThisOccurrenceAndFuture: 'Redigera den här och alla återkommande händelser i serien',
-      editEntireSeries: 'Redigera alla händelser i serien',
-      deleteThisEventOnly: 'Den här händelsen enbart',
-      deleteThisOccurrence: 'Ta bort enbart den här händelsen',
-      deleteThisAndFutureEvents: 'Den här och framtida händelser',
-      deleteThisOccurrenceAndFuture: 'Ta bort den här och alla framtida händelser i den här serien.',
-      deleteAllEvents: 'Alla händelser',
-      deleteEntireSeries: 'Ta bort alla händelser i serien.',
-      noEvents: 'Inga händelser',
-      allDay: 'Hela dagen',
-      at: 'vid',
-      duration: 'Varaktighet',
-      attendees: 'Deltagare',
-      recurrence: 'Upprepningar',
-      recurringEvent: 'Återkommande händelse',
-      unknownAttendee: 'Okänt',
-      googleCalendarLimitationTitle: 'ℹ️ Begränsning i Google Kalender',
-      googleCalendarLimitationBody: 'Redigering av händelser stöds inte för Google Kalender via Home Assistant. Du kan ta bort händelser, men för att redigera dem måste du använda Google Kalender-appen eller webbplatsen.',
-      cannotModifyTitle: 'ℹ️ Kan inte ändra:',
-      cannotModifyBody: 'Den här händelsen saknar nödvändig information (UID) för redigering eller borttagning. Du kan behöva skapa den på nytt.',
-      untitledEvent: 'Ingen rubrik',
-      noWritableCalendars: 'Inga tillgängliga kalendrar',
-      eventTitleRequired: 'Händelserubrik saknas',
-      startEndDatesRequired: 'Fyll i start- och slutdatum',
-      endDateBeforeStart: 'Slutdatum måste vara efter startdatum',
-      startEndTimesRequired: 'Fyll i start- och sluttider',
-      endTimeBeforeStart: 'Sluttid måste vara efter starttid',
-      failedCreateEvent: 'Misslyckades att skapa händelse. Försök igen.',
-      failedUpdateEvent: 'Misslyckades att uppdatera händelse. Försök igen.',
-      failedDeleteEvent: 'Misslyckades att radera händelse. Försök igen.',
-      homeAssistantUnavailable: 'Home Assistant är inte tillgängligt',
-      googleCalendarEditError: 'Redigering av händelser stöds inte för Google Kalender via Home Assistant. Använd Google Kalender-appen eller webbplatsen i stället.',
-      missingUidError: 'Den här händelsen saknar nödvändig information (UID) och kan inte redigeras',
-      calendarNoModifyError: 'Den här kalendern stöder inte ändringar av händelser. Försök skapa en ny händelse.',
-      createEventServiceError: 'Skapa händelse misslyckades',
-      deleteEventServiceError: 'Ta bort händelse misslyckades',
-      updateEventServiceError: 'Uppdatera händelse misslyckades. Kalendern kanske inte har stöd för ändringar.',
-      durationHour: '{count} timme',
-      durationHours: '{count} timmar',
-      durationMinute: '{count} minut',
-      durationMinutes: '{count} minuter',
-      moreEvents: '+{count} fler',
-      eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'v.'
-    }
+function normalizeEntityStringMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
   }
+
+  return Object.entries(value).reduce((acc, [key, mappedValue]) => {
+    const normalizedKey = typeof key === 'string' ? key.trim() : '';
+    const normalizedValue = typeof mappedValue === 'string' ? mappedValue.trim() : '';
+    if (normalizedKey && normalizedValue) {
+      acc[normalizedKey] = normalizedValue;
+    }
+    return acc;
+  }, {});
+}
+
+function normalizeBooleanStyleValue(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+    if (normalizedValue === 'true') return true;
+    if (normalizedValue === 'false') return false;
+  }
+  return null;
+}
+
+const STALE_RESOURCE_WARNING_STORAGE_KEY = 'daylight-calendar-card:stale-resource-warning-dismissed';
+const STALE_RESOURCE_TROUBLESHOOTING_URL = 'https://docs.daylightcalendar.com/troubleshooting#updated-to-the-latest-version-but-still-seeing-old-behavior';
+
+const STALE_RESOURCE_SEGMENT = '/skylight-calendar-card/';
+const CURRENT_HACS_RESOURCE_PATH = '/hacsfiles/daylight-calendar-card/skylight-calendar-card.js';
+
+const normalizeResourceUrl = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.trim();
 };
 
-// ============================================================================
-// TRANSLATION HELPER FUNCTIONS
-// ============================================================================
-
-const DEFAULT_LANGUAGE = 'en';
-
-const normalizeLanguage = (language) => {
-  if (!language) return DEFAULT_LANGUAGE;
-  return language.toLowerCase().split('-')[0];
+const isStaleResourceUrl = (url) => {
+  const normalized = normalizeResourceUrl(url).toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes(STALE_RESOURCE_SEGMENT) && !normalized.includes(CURRENT_HACS_RESOURCE_PATH);
 };
 
-const resolveLanguage = (language) => {
-  const normalized = normalizeLanguage(language);
-  return TRANSLATIONS[normalized] ? normalized : DEFAULT_LANGUAGE;
-};
+const collectResourceUrls = (documentLike) => {
+  const urls = [];
+  if (!documentLike) return urls;
 
-const interpolate = (template, params = {}) =>
-  template.replace(/\{(\w+)\}/g, (_, key) => (params[key] !== undefined ? params[key] : ''));
-
-const translate = (language, key, params = {}) => {
-  const resolved = resolveLanguage(language);
-  const fallbackStrings = TRANSLATIONS[DEFAULT_LANGUAGE]?.strings || {};
-  const strings = TRANSLATIONS[resolved]?.strings || fallbackStrings;
-  const fallback = fallbackStrings[key] || key;
-  return interpolate(strings[key] || fallback, params);
-};
-
-// ============================================================================
-// MAIN CALENDAR CARD CLASS
-// ============================================================================
-
-class SkylightCalendarCard extends HTMLElement {
-  static COMMON_NAMED_COLORS = {
-    black: '#000000',
-    white: '#FFFFFF',
-    red: '#FF0000',
-    lime: '#00FF00',
-    green: '#008000',
-    'lime/green': '#00FF00',
-    limegreen: '#00FF00',
-    blue: '#0000FF',
-    yellow: '#FFFF00',
-    cyan: '#00FFFF',
-    aqua: '#00FFFF',
-    'cyan/aqua': '#00FFFF',
-    magenta: '#FF00FF',
-    fuchsia: '#FF00FF',
-    'magenta/fuchsia': '#FF00FF',
-    silver: '#C0C0C0',
-    gray: '#808080',
-    grey: '#808080',
-    maroon: '#800000',
-    olive: '#808000',
-    darkgreen: '#008000',
-    'dark green': '#008000',
-    'green dark': '#008000',
-    greendark: '#008000',
-    purple: '#800080',
-    teal: '#008080',
-    navy: '#000080',
-    orange: '#FFA500',
-    pink: '#FFC0CB'
+  const addUrl = (value) => {
+    const normalized = normalizeResourceUrl(value);
+    if (normalized) urls.push(normalized);
   };
 
+  try {
+    for (const script of Array.from(documentLike.scripts || [])) {
+      addUrl(script?.src);
+    }
+  } catch (_error) {
+    // Ignore unavailable document APIs.
+  }
+
+  try {
+    for (const link of Array.from(documentLike.querySelectorAll?.('link[href]') || [])) {
+      addUrl(link?.href);
+    }
+  } catch (_error) {
+    // Ignore unavailable document APIs.
+  }
+
+  return urls;
+};
+
+const detectStaleSkylightResource = (documentLike = globalThis.document) => {
+  const urls = collectResourceUrls(documentLike);
+  const staleUrl = urls.find(isStaleResourceUrl) || null;
+  return {
+    detected: !!staleUrl,
+    staleUrl,
+    urls
+  };
+};
+
+function normalizeDefaultDarkMode(value) {
+  if (value === true) return 'dark';
+  if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
+
+  return normalizeEnumValue(value, {
+    allowed: THEME_MODE_OPTIONS,
+    fallback: DEFAULT_THEME_MODE
+  });
+}
+
+function normalizePastEventMode$1(value) {
+  return normalizeEnumValue(value, {
+    allowed: PAST_EVENT_MODE_OPTIONS,
+    fallback: DEFAULT_PAST_EVENT_MODE
+  });
+}
+
+function normalizeDayBadgeLayoutWeek$1(value) {
+  return normalizeEnumValue(value, {
+    allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
+    fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
+  });
+}
+
+function normalizeEventModalSize$1(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+}
+
+function getDefaultColor(index) {
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+  return colors[index % colors.length];
+}
+
+class SkylightCalendarCardEditor extends HTMLElement {
   constructor() {
     super();
-    this._root = this;
-    this._config = {};
-    this._events = [];
-    this._currentDate = new Date();
-    this._viewMode = 'month'; // 'month', 'week-compact', 'week-standard', or 'agenda'
-    this._weekStart = new Date();
-    this._fetching = false;
-    this._lastFetch = null;
-    this._loadedEventRange = null;
-    this._calendarDataSignatures = {}; // Track per-calendar data for change detection
-    this._lastUnchangedDataRender = null; // Throttle unchanged-data UI refreshes
-    this._hiddenCalendars = new Set(); // Track which calendars are hidden
-    this._calendarCapabilities = {}; // Track calendar capabilities
-    this._activeLanguage = DEFAULT_LANGUAGE;
-    this._hasCustomTitle = false;
-    this._isDarkMode = false;
-    this._themeMode = 'auto';
-    this._systemThemeMediaQuery = null;
-    this._handleSystemThemeChange = (event) => {
-      if (this._themeMode !== 'auto') {
-        return;
-      }
-
-      this._isDarkMode = !!event.matches;
-      this.render();
+    this._config = createDefaultStubConfig();
+    this._hass = null;
+    this._rendered = false;
+    this._lastCalendarEntitiesKey = '';
+    this._colorPickerState = {
+      open: false,
+      field: null,
+      mapKey: null,
+      h: 0,
+      s: 1,
+      v: 1,
+      color: '#3f51b5'
     };
-    this._weekStandardFixedOffsetHeight = null;
-    this._weekStandardContainerTopInViewport = null;
-    this._monthContainerTopInViewport = null;
-    this._agendaContainerTopInViewport = null;
-    this._agendaStartDate = null;
-    this._agendaEndDate = null;
-    this._agendaVisibleStartDate = null;
-    this._agendaVisibleEndDate = null;
-    this._agendaDaysPerScrollLoad = 7;
-    this._agendaScrollLoadLock = false;
-    this._agendaSuppressScrollHandling = false;
-    this._agendaPendingScrollTop = null;
-    this._swipeStartX = null;
-    this._swipeStartY = null;
-    this._swipeTracking = false;
-    this._swipeStartedOnInteractive = false;
-    this._activeModalBackHandler = null;
-    this._combinedEditTargets = null;
-    this._combinedDeleteTargets = null;
-    this._pendingHeaderSensorRender = false;
-    this._weatherForecastByEntity = new Map();
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
-    this._weatherForecastSubscriptionGeneration = 0;
-    this._weatherForecastRefreshInFlight = false;
-    this._weatherForecastRefreshRetryAtByEntity = new Map();
-    this._modalVisibilityObserver = null;
-    this._monthMeasureRaf = null;
-    this._monthMeasureRenderRaf = null;
-    this._wrapMeasureRaf1 = null;
-    this._wrapMeasureRaf2 = null;
-    this._monthGridResizeObserver = null;
-    this._headerResizeObserver = null;
-    this._hostResizeObserver = null;
-    this._hostResizeRaf = null;
-    this._observedResizeParent = null;
-    this._lastObservedHostSize = null;
-    this._monthCompactMeasurementDirty = true;
-    this._lastCompactMonthViewportHeight = null;
-    this._handleViewportResize = () => {
-      if (this.isEventManagementDialogOpen()) {
-        return;
-      }
-
-      if (this._config.compact_height && (this._viewMode === 'week-standard' || this._viewMode === 'agenda')) {
-        this.render();
-        return;
-      }
-
-      if (this._viewMode === 'month' && this._config.compact_height && !this.shouldShowAllEventsInMonth()) {
-        this._monthCompactMeasurementDirty = true;
-        this.scheduleMonthCompactTopMeasurement();
-        return;
-      }
-
-      this.updateCompactHeaderWrapState();
-      this.updateCalendarBadgesScrollState();
-    };
+    this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
+    this._combineBackgroundHexDraft = '';
+    this._openDisclosureKeys = new Set();
+    this._dashboardOptions = [];
   }
 
-  getRootElementById(id) {
-    return this._root?.querySelector(`#${id}`) || null;
-  }
-
-  shouldShowAllEventsInMonth() {
-    return !!(this._config?.show_all_events_month || this._config?.show_all_details_month);
-  }
-
-  shouldRenderMonthEventsAsWeekCompact() {
-    return this._viewMode === 'month' && !!this._config?.show_all_details_month;
-  }
-
-  getDashboardScopeKey() {
-    const pathnameSegments = (window.location?.pathname || '').split('/').filter(Boolean);
-    if (pathnameSegments.length > 0) {
-      return pathnameSegments[0];
-    }
-
-    const hashPath = (window.location?.hash || '').replace(/^#/, '');
-    const hashSegments = hashPath.split('/').filter(Boolean);
-    if (hashSegments.length > 0) {
-      return hashSegments[0];
-    }
-
-    return 'default';
-  }
-
-  getPreferenceStorageKey() {
-    const dashboardScope = this.getDashboardScopeKey();
-    const baseKey = this._config.preference_storage_key || (this._config.entities || []).join('|');
-
-    if (!baseKey) {
-      return null;
-    }
-
-    return `skylight-calendar-card:${dashboardScope}:${baseKey}`;
-  }
-
-  normalizeDashboardPath(pathValue) {
-    if (typeof pathValue !== 'string') return null;
-    const trimmedPath = pathValue.trim();
-    if (!trimmedPath) return null;
-    return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
-  }
-
-  getConfiguredDashboardPath() {
-    return this.normalizeDashboardPath(this._config?.header_dashboard_path);
-  }
-
-  shouldShowDashboardNavButton() {
-    return !!(this._config?.show_dashboard_nav_button && this.getConfiguredDashboardPath());
-  }
-
-  normalizeEnumValue(value, { aliases = {}, allowed = [], fallback }) {
-    const normalizedValue = String(value ?? '').trim().toLowerCase();
-    const mappedValue = aliases[normalizedValue] ?? normalizedValue;
-    return allowed.includes(mappedValue) ? mappedValue : fallback;
-  }
-
-  normalizeDefaultDarkMode(value) {
-    if (value === true) return 'dark';
-    if (value === false || value === undefined || value === null || value === '') return 'auto';
-
-    return this.normalizeEnumValue(value, {
-      allowed: ['auto', 'light', 'dark'],
-      fallback: 'auto'
-    });
-  }
-
-  normalizeEventTitlePrefixMode(value) {
-    return this.normalizeEnumValue(value, {
-      aliases: {
-        icon: 'badge_icon',
-        badge: 'badge_icon',
-        badgeicon: 'badge_icon',
-        friendly: 'friendly_name',
-        friendlyname: 'friendly_name'
-      },
-      allowed: ['friendly_name', 'badge_icon', 'none'],
-      fallback: 'none'
-    });
-  }
-
-  normalizePastEventMode(value) {
-    return this.normalizeEnumValue(value, {
-      allowed: ['none', 'hide', 'muted'],
-      fallback: 'none'
-    });
-  }
-
-  normalizeEntityStringMap(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return Object.entries(value).reduce((acc, [key, mappedValue]) => {
-      const normalizedKey = typeof key === 'string' ? key.trim() : '';
-      const normalizedValue = typeof mappedValue === 'string' ? mappedValue.trim() : '';
-      if (normalizedKey && normalizedValue) {
-        acc[normalizedKey] = normalizedValue;
-      }
-      return acc;
-    }, {});
-  }
-
-  normalizeBooleanStyleValue(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-      const normalizedValue = value.trim().toLowerCase();
-      if (normalizedValue === 'true') return true;
-      if (normalizedValue === 'false') return false;
-    }
-    return null;
-  }
-
-  applyThemeMode(mode = this._themeMode) {
-    this._themeMode = this.normalizeDefaultDarkMode(mode);
-
-    if (this._themeMode === 'dark') {
-      this._isDarkMode = true;
-      return;
-    }
-
-    if (this._themeMode === 'light') {
-      this._isDarkMode = false;
-      return;
-    }
-
-    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    this._isDarkMode = !!mediaQuery?.matches;
-  }
-
-  attachSystemThemeListener() {
-    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!mediaQuery || this._systemThemeMediaQuery === mediaQuery) {
-      return;
-    }
-
-    this.detachSystemThemeListener();
-    this._systemThemeMediaQuery = mediaQuery;
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', this._handleSystemThemeChange);
-    } else if (typeof mediaQuery.addListener === 'function') {
-      mediaQuery.addListener(this._handleSystemThemeChange);
-    }
-  }
-
-  detachSystemThemeListener() {
-    if (!this._systemThemeMediaQuery) {
-      return;
-    }
-
-    if (typeof this._systemThemeMediaQuery.removeEventListener === 'function') {
-      this._systemThemeMediaQuery.removeEventListener('change', this._handleSystemThemeChange);
-    } else if (typeof this._systemThemeMediaQuery.removeListener === 'function') {
-      this._systemThemeMediaQuery.removeListener(this._handleSystemThemeChange);
-    }
-
-    this._systemThemeMediaQuery = null;
-  }
-
-  getDefaultHiddenCalendarSet() {
-    const knownEntities = new Set(this._config.entities || []);
-    return new Set((this._config.default_hidden_calendars || []).filter((entityId) => knownEntities.has(entityId)));
-  }
-
-  normalizeDefaultHiddenCalendars(config = {}) {
-    const knownEntities = new Set(Array.isArray(config.entities) ? config.entities : []);
-    const hiddenCalendars = new Set();
-
-    if (Array.isArray(config.default_hidden_calendars)) {
-      config.default_hidden_calendars.forEach((entityId) => {
-        if (knownEntities.has(entityId)) hiddenCalendars.add(entityId);
-      });
-    }
-
-    const visibilityMap = config.default_calendar_visibility || config.calendar_visibility || {};
-    if (visibilityMap && typeof visibilityMap === 'object' && !Array.isArray(visibilityMap)) {
-      Object.entries(visibilityMap).forEach(([entityId, value]) => {
-        if (!knownEntities.has(entityId)) return;
-        const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
-        if (normalizedValue === false || normalizedValue === 'hide' || normalizedValue === 'hidden' || normalizedValue === 'off') {
-          hiddenCalendars.add(entityId);
-        } else if (normalizedValue === true || normalizedValue === 'show' || normalizedValue === 'shown' || normalizedValue === 'visible' || normalizedValue === 'on') {
-          hiddenCalendars.delete(entityId);
-        }
-      });
-    }
-
-    return Array.from(hiddenCalendars);
-  }
-
-  loadPersistedPreferences() {
-    const storageKey = this.getPreferenceStorageKey();
-    if (!storageKey) return false;
-
-    try {
-      const raw = window.localStorage?.getItem(storageKey);
-      if (!raw) return false;
-
-      const parsed = JSON.parse(raw);
-
-      if (Array.isArray(parsed.hiddenCalendars)) {
-        const knownEntities = new Set(this._config.entities || []);
-        this._hiddenCalendars = new Set(parsed.hiddenCalendars.filter((entityId) => knownEntities.has(entityId)));
-        return true;
-      }
-    } catch (error) {
-      console.warn('Failed to load persisted calendar preferences:', error);
-    }
-
-    return false;
-  }
-
-  persistPreferences() {
-    const storageKey = this.getPreferenceStorageKey();
-    if (!storageKey) return;
-
-    try {
-      const payload = {
-        hiddenCalendars: Array.from(this._hiddenCalendars)
-      };
-      window.localStorage?.setItem(storageKey, JSON.stringify(payload));
-    } catch (error) {
-      console.warn('Failed to persist calendar preferences:', error);
-    }
-  }
-
-  updateCompactHeaderWrapState() {
-    if (!this._root) return;
-    if (typeof window.requestAnimationFrame !== 'function') {
-      this.measureAndApplyHeaderWrapState();
-      return;
-    }
-    if (this._wrapMeasureRaf1 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf1);
-    if (this._wrapMeasureRaf2 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf2);
-    this._wrapMeasureRaf1 = window.requestAnimationFrame(() => {
-      this._wrapMeasureRaf1 = null;
-      this._wrapMeasureRaf2 = window.requestAnimationFrame(() => {
-        this._wrapMeasureRaf2 = null;
-        this.measureAndApplyHeaderWrapState();
-      });
-    });
-  }
-
-  shouldMarkWrappedFromChildren(children) {
-    const visibleChildren = children.filter((child) => child.offsetParent !== null);
-    if (visibleChildren.length <= 1) return false;
-    const firstTop = visibleChildren[0].offsetTop;
-    return visibleChildren.some((child) => Math.abs(child.offsetTop - firstTop) > 1);
-  }
-
-
-
-  getElementContentWidth(element) {
-    if (!element) return 0;
-
-    const computed = window.getComputedStyle(element);
-    const paddingLeft = parseFloat(computed.paddingLeft) || 0;
-    const paddingRight = parseFloat(computed.paddingRight) || 0;
-
-    return Math.max(0, element.clientWidth - paddingLeft - paddingRight);
-  }
-
-  getOuterWidth(element) {
-    if (!element) return 0;
-
-    const rect = element.getBoundingClientRect();
-    const computed = window.getComputedStyle(element);
-    const marginLeft = parseFloat(computed.marginLeft) || 0;
-    const marginRight = parseFloat(computed.marginRight) || 0;
-
-    return rect.width + marginLeft + marginRight;
-  }
-
-  measureNaturalGroupWidth(group) {
-    if (!group) return 0;
-
-    const computed = window.getComputedStyle(group);
-    const children = Array.from(group.children || [])
-      .filter((child) => child.offsetParent !== null);
-
-    if (!children.length) {
-      return Math.ceil(group.scrollWidth || 0);
-    }
-
-    const childWidths = children.reduce((sum, child) => {
-      return sum + this.getOuterWidth(child);
-    }, 0);
-
-    const internalGap = parseFloat(computed.columnGap)
-      || parseFloat(computed.gap)
-      || 0;
-
-    return Math.ceil(childWidths + internalGap * Math.max(children.length - 1, 0));
-  }
-
-  shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup) {
-    if (!header || !leftGroup || !controlsGroup) return false;
-
-    const computedStyle = window.getComputedStyle(header);
-    const gap = parseFloat(computedStyle.columnGap)
-      || parseFloat(computedStyle.gap)
-      || 0;
-    const requiredWidth = this.measureNaturalGroupWidth(leftGroup)
-      + this.measureNaturalGroupWidth(controlsGroup)
-      + gap;
-    const availableWidth = this.getElementContentWidth(header);
-    const tolerance = 2;
-
-    return requiredWidth > (availableWidth + tolerance);
-  }
-
-
-  shouldMarkGroupWrappedFromWidth(group) {
-    if (!group) return false;
-
-    const requiredWidth = this.measureNaturalGroupWidth(group);
-    const availableWidth = this.getElementContentWidth(group);
-    const tolerance = 2;
-
-    return requiredWidth > (availableWidth + tolerance);
-  }
-
-  measureAndApplyHeaderWrapState() {
-    if (!this._root) return;
-
-    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
-    const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
-    const header = this._root.querySelector(headerSelector);
-    const controls = this._root.querySelector(controlsSelector);
-    const compactControls = this._root.querySelector('.compact-header-controls');
-    const standardControls = this._root.querySelector('.header-controls');
-    const badges = this._root.querySelector('.calendar-badges-inline');
-
-    header?.classList.remove('is-wrapped');
-    standardControls?.classList.remove('is-wrapped');
-    compactControls?.classList.remove('is-wrapped');
-    badges?.classList.remove('is-wrapped');
-
-    if (header) {
-      const leftGroup = this._config.compact_header
-        ? header.querySelector('.compact-header-left')
-        : header.querySelector('.header-left');
-      const controlsGroup = this._config.compact_header
-        ? header.querySelector('.compact-header-controls')
-        : header.querySelector('.header-controls');
-      header.classList.toggle('is-wrapped', this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup));
-    }
-
-    if (controls) {
-      controls.classList.toggle('is-wrapped', this.shouldMarkGroupWrappedFromWidth(controls));
-    }
-
-    if (this._config.compact_header && badges) {
-      badges.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(Array.from(badges.children)));
-    }
-  }
-
-
-  updateCalendarBadgesScrollState() {
-    if (!this._root || this._config.compact_header) return;
-
-    const badgesContainer = this._root.querySelector('.calendar-badges-container');
-    const badges = this._root.querySelector('.calendar-badges');
-    if (!badgesContainer || !badges) return;
-
-    const maxScrollLeft = badges.scrollWidth - badges.clientWidth;
-    const hasOverflow = maxScrollLeft > 1;
-    const showLeftIndicator = hasOverflow && badges.scrollLeft > 1;
-    const showRightIndicator = hasOverflow && badges.scrollLeft < (maxScrollLeft - 1);
-
-    badgesContainer.classList.toggle('has-overflow', hasOverflow);
-    badgesContainer.classList.toggle('show-left-indicator', showLeftIndicator);
-    badgesContainer.classList.toggle('show-right-indicator', showRightIndicator);
-  }
-
-  isEventManagementDialogOpen() {
-    const modal = this.getRootElementById('event-modal');
-    return !!modal && modal.classList.contains('show');
-  }
-
-  getConfigNormalizationSchema() {
-    return [
-      { key: 'title', defaultValue: ({ rawConfig, language }) => this._hasCustomTitle ? rawConfig.title : translate(language, 'defaultTitle') },
-      { key: 'entities', defaultValue: ({ rawConfig }) => rawConfig.entities },
-      { key: 'firstDayOfWeek', defaultValue: ({ rawConfig }) => rawConfig.first_day_of_week || 0 },
-      { key: 'colors', defaultValue: ({ derived }) => derived.normalizedCalendarColors },
-      { key: 'calendar_names', defaultValue: ({ rawConfig }) => rawConfig.calendar_names || {} },
-      { key: 'calendar_badge_icons', defaultValue: ({ rawConfig }) => rawConfig.calendar_badge_icons || {} },
-      { key: 'calendar_person_entities', defaultValue: ({ derived }) => derived.normalizedCalendarPersonEntities, normalize: ({ derived }) => derived.normalizedCalendarPersonEntities },
-      { key: 'max_events', defaultValue: ({ rawConfig }) => rawConfig.max_events },
-      { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || 'month', normalize: ({ derived }) => derived.normalizedDefaultView || 'month' },
-      { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [0, 1, 2, 3, 4, 5, 6] },
-      { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? null },
-      { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? null },
-      { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? null, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? null },
-      { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || null },
-      { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || false },
-      { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || false },
-      { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || false },
-      { key: 'hide_the_past', defaultValue: ({ rawConfig }) => rawConfig.hide_the_past || false, normalize: ({ rawConfig }) => rawConfig.hide_the_past || false },
-      { key: 'past_event_mode', defaultValue: ({ derived }) => derived.normalizedPastEventMode, normalize: ({ derived }) => derived.normalizedPastEventMode },
-      { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || false },
-      { key: 'agenda_compact_events', defaultValue: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false, normalize: ({ rawConfig }) => rawConfig.agenda_compact_events ?? false },
-      { key: 'display_full_weekday_names', defaultValue: ({ rawConfig }) => rawConfig.display_full_weekday_names ?? false },
-      { key: 'shorten_event_times', defaultValue: ({ rawConfig }) => rawConfig.shorten_event_times ?? false },
-      { key: 'disable_swipe_controls', defaultValue: ({ rawConfig }) => rawConfig.disable_swipe_controls ?? false },
-      { key: 'week_start_hour', defaultValue: ({ derived }) => derived.normalizedWeekStartHour },
-      { key: 'week_end_hour', defaultValue: ({ derived }) => derived.normalizedWeekEndHour },
-      { key: 'lock_schedule_hours', defaultValue: ({ rawConfig }) => rawConfig.lock_schedule_hours ?? false },
-      { key: 'compact_height', defaultValue: ({ rawConfig }) => rawConfig.compact_height || false },
-      { key: 'compact_width', defaultValue: ({ rawConfig }) => rawConfig.compact_width || false },
-      { key: 'height_scale', defaultValue: ({ rawConfig }) => rawConfig.height_scale || 1.0 },
-      { key: 'compact_header', defaultValue: ({ rawConfig }) => rawConfig.compact_header || false },
-      { key: 'hide_year', defaultValue: ({ rawConfig }) => rawConfig.hide_year || false },
-      { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || false },
-      { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || false },
-      { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || false },
-      { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || false },
-      { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || false },
-      { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || false },
-      { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || false },
-      { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || false },
-      { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || false },
-      { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => this.normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => this.normalizeDashboardPath(rawConfig.header_dashboard_path) },
-      { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
-      { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
-      { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || false },
-      { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || false },
-      { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || false },
-      { key: 'event_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_font_size ?? 11 },
-      { key: 'event_time_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_time_font_size ?? 9 },
-      { key: 'event_location_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_location_font_size ?? 9 },
-      { key: 'event_calendar_friendly_name', defaultValue: ({ rawConfig }) => rawConfig.event_calendar_friendly_name || false },
-      { key: 'event_title_prefix', defaultValue: ({ derived }) => derived.normalizedEventTitlePrefix, normalize: ({ derived }) => derived.normalizedEventTitlePrefix },
-      { key: 'event_font_colors', defaultValue: ({ derived }) => derived.normalizedEventFontColors },
-      { key: 'event_styles', defaultValue: ({ derived }) => derived.normalizedEventStyles, normalize: ({ derived }) => derived.normalizedEventStyles },
-      { key: 'day_styles', defaultValue: ({ derived }) => derived.normalizedDayStyles, normalize: ({ derived }) => derived.normalizedDayStyles },
-      { key: 'day_badges', defaultValue: ({ derived }) => derived.normalizedDayBadges, normalize: ({ derived }) => derived.normalizedDayBadges },
-      { key: 'hide_times_for_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_times_for_calendars || [] },
-      { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || false },
-      { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : 'var(--primary-color)' },
-      { key: 'header_text_color', defaultValue: ({ derived }) => derived.normalizedHeaderTextColor },
-      { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= 100, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= 100 },
-      { key: 'header_background_opacity', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity },
-      { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= 100, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= 100 },
-      { key: 'background_opacity', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity, normalize: ({ derived }) => derived.normalizedBackgroundOpacity },
-      { key: 'background_image_url', defaultValue: ({ rawConfig }) => rawConfig.background_image_url || null },
-      { key: 'background_image_size', defaultValue: ({ rawConfig }) => rawConfig.background_image_size || 'cover' },
-      { key: 'background_image_position', defaultValue: ({ rawConfig }) => rawConfig.background_image_position || 'center' },
-      { key: 'background_image_repeat', defaultValue: ({ rawConfig }) => rawConfig.background_image_repeat || 'no-repeat' },
-      { key: 'combine_calendars', defaultValue: ({ rawConfig }) => rawConfig.combine_calendars ?? false },
-      { key: 'combine_style', defaultValue: ({ rawConfig }) => this.normalizeCombineStyle(rawConfig.combine_style ?? 'bars') },
-      { key: 'combine_background', defaultValue: ({ rawConfig }) => this.normalizeCombineBackground(rawConfig.combine_background ?? 'primary') },
-      { key: 'combine_calendars_width', defaultValue: ({ derived }) => derived.normalizedCombineWidth, normalize: ({ derived }) => derived.normalizedCombineWidth },
-      { key: 'event_color_bar_width', defaultValue: ({ derived }) => derived.normalizedEventBarWidth, normalize: ({ derived }) => derived.normalizedEventBarWidth },
-      { key: 'event_color_mode', defaultValue: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? 'classic'), normalize: ({ rawConfig }) => this.normalizeEventColorMode(rawConfig.event_color_mode ?? 'classic') },
-      { key: 'event_neutral_background', defaultValue: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9', normalize: ({ rawConfig }) => this.normalizeSingleColor(rawConfig.event_neutral_background) || '#F8F3E9' },
-      { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80), normalize: ({ rawConfig }) => this.normalizeBackgroundOpacity(rawConfig.event_tint_opacity, 80) },
-      { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management !== false },
-      { key: 'event_modal_size', defaultValue: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => this.normalizeEventModalSize(rawConfig.event_modal_size) },
-      { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [] },
-      { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [] },
-      { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
-      { key: 'virtual_calendars', defaultValue: ({ rawConfig }) => this.normalizeVirtualCalendars(rawConfig.virtual_calendars || []) },
-      { key: 'language', defaultValue: ({ rawConfig }) => rawConfig.language || null },
-      { key: 'locale', defaultValue: ({ rawConfig }) => rawConfig.locale || null },
-      { key: 'color_scheme', defaultValue: ({ rawConfig }) => this.normalizeDefaultDarkMode(rawConfig.color_scheme), normalize: ({ rawConfig }) => this.normalizeDefaultDarkMode(rawConfig.color_scheme) },
-      { key: 'preference_storage_key', defaultValue: ({ rawConfig }) => rawConfig.preference_storage_key || null }
-    ];
-  }
-
-  getConfigNormalizationContext(rawConfig, language) {
-    const normalizedDefaultView = rawConfig.default_view === 'week'
-      ? 'week-compact'
-      : rawConfig.default_view === 'schedule'
-        ? 'week-standard'
-        : rawConfig.default_view;
-    const hasConfiguredHeaderBackgroundOpacity = rawConfig.header_background_opacity !== undefined && rawConfig.header_background_opacity !== null && rawConfig.header_background_opacity !== '';
-    const normalizedHeaderBackgroundOpacity = hasConfiguredHeaderBackgroundOpacity
-      ? this.normalizeBackgroundOpacity(rawConfig.header_background_opacity, 0)
-      : (rawConfig.header_background_transparent ? 100 : 0);
-    const hasConfiguredBackgroundOpacity = rawConfig.background_opacity !== undefined && rawConfig.background_opacity !== null && rawConfig.background_opacity !== '';
-    const normalizedBackgroundOpacity = hasConfiguredBackgroundOpacity
-      ? this.normalizeBackgroundOpacity(rawConfig.background_opacity, 0)
-      : (rawConfig.background_transparent ? 100 : 0);
-    const configuredWeekStartHour = Number(rawConfig.week_start_hour);
-    const normalizedWeekStartHour = Number.isFinite(configuredWeekStartHour)
-      ? Math.min(23, Math.max(0, configuredWeekStartHour))
-      : 0;
-    const configuredWeekEndHour = Number(rawConfig.week_end_hour);
-    const normalizedWeekEndHour = Number.isFinite(configuredWeekEndHour)
-      ? Math.min(23, Math.max(0, configuredWeekEndHour))
-      : 23;
-    const rawCombineWidth = Number(rawConfig.combine_calendars_width);
-    const rawEventBarWidth = Number(rawConfig.event_color_bar_width);
-    const hasCombineWidth = Number.isFinite(rawCombineWidth) && rawCombineWidth > 0;
-    const hasEventBarWidth = Number.isFinite(rawEventBarWidth) && rawEventBarWidth > 0;
-    const normalizedCombineWidth = hasCombineWidth
-      ? rawCombineWidth
-      : (hasEventBarWidth ? rawEventBarWidth : 18);
-
-    return {
-      normalizedDefaultView,
-      normalizedCalendarColors: this.normalizeColorMap(rawConfig.colors || {}),
-      normalizedEventFontColors: this.normalizeColorMap(rawConfig.event_font_colors || {}),
-      normalizedEventStyles: this.normalizeEventStyles(rawConfig.event_styles || []),
-      normalizedDayStyles: this.normalizeDayStyles(
-        this.buildDayStyleRules(rawConfig),
-        resolveLanguage(rawConfig.locale || rawConfig.language || this._hass?.locale?.language || this._hass?.language)
-      ),
-      normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
-      normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
-      normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
-      normalizedHeaderBackgroundOpacity,
-      normalizedBackgroundOpacity,
-      normalizedWeekStartHour,
-      normalizedWeekEndHour,
-      normalizedEventTitlePrefix: this.normalizeEventTitlePrefixMode(rawConfig.event_title_prefix),
-      normalizedPastEventMode: rawConfig.past_event_mode !== undefined && rawConfig.past_event_mode !== null && rawConfig.past_event_mode !== ''
-        ? this.normalizePastEventMode(rawConfig.past_event_mode)
-        : (rawConfig.hide_the_past ? 'hide' : 'none'),
-      normalizedCombineWidth,
-      normalizedEventBarWidth: hasEventBarWidth ? rawEventBarWidth : normalizedCombineWidth,
-      normalizedCalendarPersonEntities: this.normalizeEntityStringMap(rawConfig.calendar_person_entities || {}),
-      normalizedDefaultHiddenCalendars: this.normalizeDefaultHiddenCalendars(rawConfig),
-      normalizedHeaderTimeSensor: typeof rawConfig.header_time_sensor === 'string' && rawConfig.header_time_sensor.trim()
-        ? rawConfig.header_time_sensor.trim()
-        : null,
-      normalizedHeaderWeatherSensor: typeof rawConfig.header_weather_sensor === 'string' && rawConfig.header_weather_sensor.trim()
-        ? rawConfig.header_weather_sensor.trim()
-        : null,
-      language
-    };
-  }
-
-  normalizeConfig(rawConfig, language = resolveLanguage(rawConfig.language || this._hass?.language || this._hass?.locale?.language)) {
-    const derived = this.getConfigNormalizationContext(rawConfig, language);
-    const schemaContext = { rawConfig, language, derived };
-    const schema = this.getConfigNormalizationSchema();
-    const defaults = schema.reduce((acc, field) => {
-      acc[field.key] = field.defaultValue(schemaContext);
-      return acc;
-    }, {});
-    const normalizedOverrides = schema.reduce((acc, field) => {
-      if (field.normalize) {
-        acc[field.key] = field.normalize(schemaContext);
-      }
-      return acc;
-    }, {});
-
-    const normalizedConfig = {
-      ...defaults,
-      ...rawConfig,
-      ...normalizedOverrides
-    };
-    if (!Object.prototype.hasOwnProperty.call(rawConfig, 'use_24hr_schedule')) {
-      delete normalizedConfig.use_24hr_schedule; // Preserve locale-based hour cycle defaults when unset
-    }
-    return normalizedConfig;
-  }
-
-  setConfig(config) {
-    const previousHeaderWeatherSensor = this._config?.header_weather_sensor || null;
-    if (!config.entities || !Array.isArray(config.entities)) {
-      throw new Error('You need to define calendar entities');
-    }
-    const language = resolveLanguage(config.language || this._hass?.language || this._hass?.locale?.language);
-    this._hasCustomTitle = config.title !== undefined && config.title !== null;
-    this._config = this.normalizeConfig(config, language);
-    this._viewMode = this._config.default_view;
-    this.applyThemeMode(this._config.color_scheme);
-    this._hiddenCalendars = this.getDefaultHiddenCalendarSet();
-    this.loadPersistedPreferences();
-    this._loadedEventRange = null;
-    this._calendarDataSignatures = {};
-    this._lastUnchangedDataRender = null;
-    if (previousHeaderWeatherSensor !== this._config.header_weather_sensor) {
-      this.teardownWeatherForecastSubscription();
-      this._weatherForecastByEntity.clear();
-      this._weatherForecastRefreshRetryAtByEntity.clear();
-    }
-    this.ensureWeatherForecastSubscription();
-    this.setWeekStart();
-    this.resetAgendaWindowToToday();
-    this.render();
-    this._activeLanguage = language;
-  }
-
-  set hass(hass) {
-    const oldHass = this._hass;
-    this._hass = hass;
-    let shouldRender = false;
-
-    // Check calendar capabilities when hass is set
-    if (!oldHass || this._hass !== oldHass) {
-      this.checkAllCalendarCapabilities();
-    }
-
-    if (this._themeMode === 'auto') {
-      const hassDarkMode = this._hass?.themes?.darkMode;
-      if (typeof hassDarkMode === 'boolean' && this._isDarkMode !== hassDarkMode) {
-        this._isDarkMode = hassDarkMode;
-        shouldRender = true;
-      }
-    }
-
-    const resolvedLanguage = this.getLanguage();
-    if (resolvedLanguage !== this._activeLanguage) {
-      this._activeLanguage = resolvedLanguage;
-      if (!this._hasCustomTitle) {
-        this._config.title = translate(this._activeLanguage, 'defaultTitle');
-      }
-      shouldRender = true;
-    }
-
-    const configuredHeaderTimeSensor = this._config?.header_time_sensor;
-    const configuredHeaderWeatherSensor = this._config?.header_weather_sensor;
-    const previousHeaderTimeSensorState = configuredHeaderTimeSensor
-      ? this.getHeaderEntityRenderSignature(oldHass?.states?.[configuredHeaderTimeSensor])
-      : null;
-    const nextHeaderTimeSensorState = configuredHeaderTimeSensor
-      ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderTimeSensor])
-      : null;
-    const previousHeaderWeatherSensorState = configuredHeaderWeatherSensor
-      ? this.getHeaderEntityRenderSignature(oldHass?.states?.[configuredHeaderWeatherSensor])
-      : null;
-    const nextHeaderWeatherSensorState = configuredHeaderWeatherSensor
-      ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderWeatherSensor])
-      : null;
-    const headerSensorChanged = previousHeaderTimeSensorState !== nextHeaderTimeSensorState ||
-      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState;
-    const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
-      this.getCalendarBadgePersonRenderSignature(hass);
-
-    if (headerSensorChanged || badgePersonStateChanged) {
-      if (this.isEventManagementDialogOpen()) {
-        this._pendingHeaderSensorRender = true;
-      } else {
-        shouldRender = true;
-        this._pendingHeaderSensorRender = false;
-      }
-    }
-
-    this.ensureWeatherForecastSubscription();
-    this.refreshWeatherForecastData();
-
-    if (shouldRender) {
-      this.renderPreservingAgendaScroll();
-    }
-
-    // Refresh only when stale or when current view needs dates outside loaded range.
-    if (!oldHass) {
-      this.ensureEventsForCurrentRange({ force: true });
-    } else {
-      this.ensureEventsForCurrentRange();
-    }
-  }
-
-  async checkAllCalendarCapabilities() {
-    if (!this._hass) return;
-
-    for (const entityId of this._config.entities) {
-      const entity = this._hass.states[entityId];
-      if (entity) {
-        const features = entity.attributes?.supported_features || 0;
-
-        // Check if this is a Google Calendar (which doesn't support UPDATE/DELETE services)
-        const isGoogleCalendar = entityId.includes('google') ||
-                                 entity.attributes?.integration === 'google';
-
-        this._calendarCapabilities[entityId] = {
-          canCreate: true, // Most calendars support creation
-          canUpdate: (features & 2) !== 0, // UPDATE_EVENT = 2
-          canDelete: (features & 4) !== 0, // DELETE_EVENT = 4
-          isReadonly: this._config.readonly_calendars.includes(entityId),
-          isGoogleCalendar: isGoogleCalendar // Track Google Calendar separately
-        };
-      }
-    }
-  }
-
-
-  normalizeColorMap(colorMap) {
-    if (!colorMap || typeof colorMap !== 'object') return {};
-
-    return Object.entries(colorMap).reduce((acc, [entityId, color]) => {
-      const normalized = this.normalizeSingleColor(color);
-      if (normalized !== undefined && normalized !== null && normalized !== '') {
-        acc[entityId] = normalized;
-      }
-      return acc;
-    }, {});
-  }
-
-  normalizeSingleColor(colorValue) {
-    if (colorValue === undefined || colorValue === null) {
-      return colorValue;
-    }
-
-    const trimmed = String(colorValue).trim();
-    if (!trimmed) return trimmed;
-
-    const normalizedName = trimmed
-      .toLowerCase()
-      .replace(/[()]/g, '')
-      .replace(/\s*\/\s*/g, '/')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const mappedColor = SkylightCalendarCard.COMMON_NAMED_COLORS[normalizedName];
-    if (mappedColor) {
-      return mappedColor;
-    }
-
-    return trimmed;
-  }
-
-  colorToHex(color) {
-    if (!color) return null;
-
-    const normalizedColor = this.normalizeSingleColor(color);
-    if (typeof normalizedColor !== 'string') return null;
+  normalizeHexColor(colorValue) {
+    const normalizedColor = String(colorValue || '').trim();
+    if (!normalizedColor) return null;
 
     const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
     if (hex3Match) {
@@ -1801,2421 +745,2060 @@ class SkylightCalendarCard extends HTMLElement {
     return null;
   }
 
-  colorToRgb(color) {
-    const normalizedColor = this.normalizeSingleColor(color);
-    if (typeof normalizedColor === 'string') {
-      const rgbMatch = normalizedColor
-        .match(/^rgba?\((.+)\)$/i);
-      if (rgbMatch) {
-        const normalizedChannels = rgbMatch[1]
-          .replace(/\s*\/\s*.*/, '')
-          .replace(/,/g, ' ')
-          .trim()
-          .split(/\s+/)
-          .slice(0, 3)
-          .map((channel) => Number(channel));
-
-        if (normalizedChannels.length === 3 && normalizedChannels.every((value) => Number.isFinite(value))) {
-          const [r, g, b] = normalizedChannels.map((value) => Math.max(0, Math.min(255, Math.round(value))));
-          return { r, g, b };
-        }
-      }
-    }
-
-    const hex = this.colorToHex(normalizedColor);
-    if (hex) {
-      return {
-        r: parseInt(hex.slice(1, 3), 16),
-        g: parseInt(hex.slice(3, 5), 16),
-        b: parseInt(hex.slice(5, 7), 16)
-      };
-    }
-
-    return this.resolveComputedCssColorToRgb(normalizedColor);
-  }
-
-
-  resolveComputedCssColorToRgb(color) {
-    if (typeof color !== 'string' || typeof window === 'undefined' || typeof document === 'undefined') {
-      return null;
-    }
-
-    const probe = document.createElement('span');
-    probe.style.color = color;
-    probe.style.position = 'absolute';
-    probe.style.pointerEvents = 'none';
-    probe.style.opacity = '0';
-
-    const parent = this.isConnected ? this : document.body;
-    if (!parent) return null;
-
-    parent.appendChild(probe);
-    const computed = window.getComputedStyle(probe).color;
-    probe.remove();
-
-    const match = computed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-    if (!match) return null;
-
-    return {
-      r: Number(match[1]),
-      g: Number(match[2]),
-      b: Number(match[3])
-    };
-  }
-
-  colorWithAlpha(color, alpha = 1) {
-    const rgb = this.colorToRgb(color);
-    if (!rgb) return color;
-
-    const clamped = Math.max(0, Math.min(1, alpha));
-    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
-  }
-
-  blendRgb(top, bottom, topAlpha = 1) {
-    if (!top && !bottom) return null;
-    if (!top) return bottom;
-    if (!bottom) return top;
-    const clampedAlpha = Math.max(0, Math.min(1, topAlpha));
-    return {
-      r: Math.round((top.r * clampedAlpha) + (bottom.r * (1 - clampedAlpha))),
-      g: Math.round((top.g * clampedAlpha) + (bottom.g * (1 - clampedAlpha))),
-      b: Math.round((top.b * clampedAlpha) + (bottom.b * (1 - clampedAlpha)))
-    };
-  }
-
-
-  normalizeCombineStyle(styleValue) {
-    return this.normalizeEnumValue(styleValue, {
-      allowed: ['stripes', 'bars', 'dots'],
-      fallback: 'bars'
-    });
-  }
-
-  normalizeEventColorMode(modeValue) {
-    return this.normalizeEnumValue(modeValue, {
-      allowed: ['classic', 'left-neutral', 'left-tint'],
-      fallback: 'classic'
-    });
-  }
-
-  normalizeCombineBackground(backgroundValue) {
-    const normalized = String(backgroundValue || '').trim();
-    if (!normalized) return 'primary';
-
-    const lower = normalized.toLowerCase();
-    if (lower === 'neutral' || lower === 'primary') {
-      return lower;
-    }
-
-    const hex = this.colorToHex(normalized);
-    return hex || 'primary';
-  }
-
-  getEmptyAdvancedMatch() {
-    return { event: {}, day: {}, any: [], all: [], not: null };
-  }
-
-  normalizeEventMatchConditions(rawMatch) {
-    if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
-
-    const normalized = {};
-    const logicalKeys = new Set(['all', 'and', 'any', 'not']);
-    const eventAliases = {
-      title_contains: 'title',
-      summary_contains: 'summary',
-      location_contains: 'location',
-      description_contains: 'description'
-    };
-    const calendarAliases = new Set(['calendar_entity', 'entity_id', 'entity']);
-
-    Object.entries(rawMatch).forEach(([key, value]) => {
-      const normalizedKey = String(key || '').trim().toLowerCase();
-      if (!normalizedKey) return;
-
-      if (logicalKeys.has(normalizedKey)) {
-        if (normalizedKey === 'all' || normalizedKey === 'and') {
-          const conditions = Array.isArray(value) ? value : [value];
-          const normalizedConditions = conditions
-            .map((condition) => this.normalizeEventMatchConditions(condition))
-            .filter(Boolean);
-          if (normalizedConditions.length) {
-            if (!Array.isArray(normalized.all)) normalized.all = [];
-            normalized.all.push(...normalizedConditions);
-          }
-          return;
-        }
-
-        if (normalizedKey === 'any') {
-          const conditions = Array.isArray(value) ? value : [value];
-          const normalizedConditions = conditions
-            .map((condition) => this.normalizeEventMatchConditions(condition))
-            .filter(Boolean);
-          if (normalizedConditions.length) normalized.any = normalizedConditions;
-          return;
-        }
-
-        if (normalizedKey === 'not') {
-          if (Array.isArray(value)) {
-            const normalizedConditions = value
-              .map((condition) => this.normalizeEventMatchConditions(condition))
-              .filter(Boolean);
-            if (normalizedConditions.length) normalized.not = normalizedConditions;
-          } else {
-            const normalizedCondition = this.normalizeEventMatchConditions(value);
-            if (normalizedCondition) normalized.not = normalizedCondition;
-          }
-          return;
-        }
-      }
-
-      if (eventAliases[normalizedKey]) {
-        const canonicalKey = eventAliases[normalizedKey];
-        if (normalized[canonicalKey] === undefined) normalized[canonicalKey] = `contains:${value}`;
-        return;
-      }
-
-      if (calendarAliases.has(normalizedKey)) {
-        if (normalized.calendar === undefined) normalized.calendar = value;
-        return;
-      }
-
-      if (normalizedKey === 'all_day_event') {
-        if (normalized.all_day === undefined) normalized.all_day = value;
-        return;
-      }
-
-      if (['title', 'summary', 'location', 'description', 'calendar', 'all_day', 'past'].includes(normalizedKey)) {
-        normalized[normalizedKey] = value;
-      }
-    });
-
-    return Object.keys(normalized).length ? normalized : null;
-  }
-
-  normalizeDayMatchConditions(rawMatch, localeOverride = null) {
-    if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
-
-    const normalized = {};
-    const logicalKeys = new Set(['all', 'and', 'any', 'not']);
-
-    Object.entries(rawMatch).forEach(([key, value]) => {
-      const normalizedKey = String(key || '').trim().toLowerCase();
-      if (!normalizedKey) return;
-
-      if (logicalKeys.has(normalizedKey)) {
-        if (normalizedKey === 'all' || normalizedKey === 'and') {
-          const conditions = Array.isArray(value) ? value : [value];
-          const normalizedConditions = conditions
-            .map((condition) => this.normalizeDayMatchConditions(condition, localeOverride))
-            .filter(Boolean);
-          if (normalizedConditions.length) {
-            if (!Array.isArray(normalized.all)) normalized.all = [];
-            normalized.all.push(...normalizedConditions);
-          }
-          return;
-        }
-
-        if (normalizedKey === 'any') {
-          const conditions = Array.isArray(value) ? value : [value];
-          const normalizedConditions = conditions
-            .map((condition) => this.normalizeDayMatchConditions(condition, localeOverride))
-            .filter(Boolean);
-          if (normalizedConditions.length) normalized.any = normalizedConditions;
-          return;
-        }
-
-        if (normalizedKey === 'not') {
-          if (Array.isArray(value)) {
-            const normalizedConditions = value
-              .map((condition) => this.normalizeDayMatchConditions(condition, localeOverride))
-              .filter(Boolean);
-            if (normalizedConditions.length) normalized.not = normalizedConditions;
-          } else {
-            const normalizedCondition = this.normalizeDayMatchConditions(value, localeOverride);
-            if (normalizedCondition) normalized.not = normalizedCondition;
-          }
-          return;
-        }
-      }
-
-      if (['today', 'past', 'future', 'weekend', 'weekday'].includes(normalizedKey)) {
-        normalized[normalizedKey] = value;
-        return;
-      }
-
-      if (normalizedKey === 'day_of_week') {
-        const dayOfWeek = this.normalizeDayOfWeekRule(value, localeOverride);
-        if (dayOfWeek.length) normalized.day_of_week = dayOfWeek;
-        return;
-      }
-
-      if (normalizedKey === 'has_event' || normalizedKey === 'no_event') {
-        if (value === true || value === false) {
-          normalized[normalizedKey] = value;
-        } else {
-          const eventMatch = this.normalizeEventMatchConditions(value);
-          if (eventMatch) normalized[normalizedKey] = eventMatch;
-        }
-      }
-    });
-
-    return Object.keys(normalized).length ? normalized : null;
-  }
-
-  normalizeAdvancedRuleMatch(rawMatch, defaultScope = 'event', localeOverride = null) {
-    if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
-
-    const match = this.getEmptyAdvancedMatch();
-    const logicalKeys = new Set(['all', 'and', 'any', 'not']);
-    const explicitKeys = new Set(['event', 'day', ...logicalKeys]);
-    let hasMatch = false;
-
-    if (rawMatch.event && typeof rawMatch.event === 'object' && !Array.isArray(rawMatch.event)) {
-      const eventMatch = this.normalizeEventMatchConditions(rawMatch.event);
-      if (eventMatch) {
-        match.event = eventMatch;
-        hasMatch = true;
-      }
-    }
-
-    if (rawMatch.day && typeof rawMatch.day === 'object' && !Array.isArray(rawMatch.day)) {
-      const dayMatch = this.normalizeDayMatchConditions(rawMatch.day, localeOverride);
-      if (dayMatch) {
-        match.day = dayMatch;
-        hasMatch = true;
-      }
-    }
-
-    const implicitRaw = Object.fromEntries(Object.entries(rawMatch).filter(([key]) => !explicitKeys.has(String(key || '').trim().toLowerCase())));
-    if (Object.keys(implicitRaw).length) {
-      if (defaultScope === 'day') {
-        const dayMatch = this.normalizeDayMatchConditions(implicitRaw, localeOverride);
-        if (dayMatch) {
-          match.day = { ...match.day, ...dayMatch };
-          hasMatch = true;
-        }
-      } else {
-        const eventMatch = this.normalizeEventMatchConditions(implicitRaw);
-        if (eventMatch) {
-          match.event = { ...match.event, ...eventMatch };
-          hasMatch = true;
-        }
-      }
-    }
-
-    ['all', 'and'].forEach((key) => {
-      if (rawMatch[key] === undefined) return;
-      const conditions = Array.isArray(rawMatch[key]) ? rawMatch[key] : [rawMatch[key]];
-      const normalizedConditions = conditions
-        .map((condition) => this.normalizeAdvancedRuleMatch(condition, defaultScope, localeOverride))
-        .filter(Boolean);
-      if (normalizedConditions.length) {
-        match.all.push(...normalizedConditions);
-        hasMatch = true;
-      }
-    });
-
-    if (rawMatch.any !== undefined) {
-      const conditions = Array.isArray(rawMatch.any) ? rawMatch.any : [rawMatch.any];
-      const normalizedConditions = conditions
-        .map((condition) => this.normalizeAdvancedRuleMatch(condition, defaultScope, localeOverride))
-        .filter(Boolean);
-      if (normalizedConditions.length) {
-        match.any = normalizedConditions;
-        hasMatch = true;
-      }
-    }
-
-    if (rawMatch.not !== undefined) {
-      if (Array.isArray(rawMatch.not)) {
-        const normalizedConditions = rawMatch.not
-          .map((condition) => this.normalizeAdvancedRuleMatch(condition, defaultScope, localeOverride))
-          .filter(Boolean);
-        if (normalizedConditions.length) {
-          match.not = normalizedConditions;
-          hasMatch = true;
-        }
-      } else {
-        const normalizedCondition = this.normalizeAdvancedRuleMatch(rawMatch.not, defaultScope, localeOverride);
-        if (normalizedCondition) {
-          match.not = normalizedCondition;
-          hasMatch = true;
-        }
-      }
-    }
-
-    return hasMatch ? match : null;
-  }
-
-  normalizeEventStyles(rawRules) {
-    if (!Array.isArray(rawRules)) return [];
-
-    return rawRules
-      .map((rule, index) => {
-        if (!rule || typeof rule !== 'object') return null;
-
-        const rawMatch = rule.match && typeof rule.match === 'object' ? rule.match : (rule.when && typeof rule.when === 'object' ? rule.when : null);
-        const match = this.normalizeAdvancedRuleMatch(rawMatch, 'event');
-        let style = null;
-        if (typeof rule.style === 'string' && rule.style.trim().toLowerCase() === 'hide') {
-          style = { hide: true };
-        } else if (rule.style && typeof rule.style === 'object') {
-          style = rule.style;
-        }
-        if (!match || !style) return null;
-
-        const numericPriority = Number(rule.priority);
-        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
-        const normalizedStyle = this.normalizeEventStyleBlock(style);
-        if (!Object.keys(normalizedStyle).length) return null;
-
-        return {
-          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `event-style-${index + 1}`,
-          type: 'event_style',
-          priority,
-          index,
-          match,
-          output: { style: normalizedStyle },
-          style: normalizedStyle
-        };
-      })
-      .filter(Boolean);
-  }
-
-  normalizeLegacyDayStyleMatch(rule, localeOverride = null) {
-    const rawCondition = String(rule.condition || '').trim().toLowerCase();
-    if (!rawCondition) return null;
-
-    const isNegatedCondition = rawCondition.startsWith('!');
-    const condition = isNegatedCondition ? rawCondition.slice(1) : rawCondition;
-    if (!condition) return null;
-
-    if (!['today', 'past', 'future', 'weekend', 'weekday', 'day_of_week', 'has_event'].includes(condition)) return null;
-    if (isNegatedCondition && condition !== 'has_event') return null;
-
-    const dayMatch = {};
-    if (condition === 'has_event') {
-      const eventMatch = {};
-      if (rule.calendar !== undefined && rule.calendar !== null && String(rule.calendar).trim()) {
-        eventMatch.calendar = rule.calendar;
-      }
-      if (rule.title_match !== undefined && rule.title_match !== null && rule.title_match !== '') {
-        eventMatch.title = rule.title_match;
-      }
-      if (!Object.keys(eventMatch).length) return null;
-      dayMatch[isNegatedCondition ? 'no_event' : 'has_event'] = eventMatch;
-    } else if (condition === 'day_of_week') {
-      const dayOfWeek = this.normalizeDayOfWeekRule(rule.day_of_week ?? rule.day ?? rule.days, localeOverride);
-      if (!dayOfWeek.length) return null;
-      dayMatch.day_of_week = dayOfWeek;
-    } else {
-      dayMatch[condition] = true;
-    }
-
-    return this.normalizeAdvancedRuleMatch({ day: dayMatch }, 'day', localeOverride);
-  }
-
-  normalizeDayStyles(rawRules, localeOverride = null) {
-    if (!Array.isArray(rawRules)) return [];
-
-    return rawRules
-      .map((rule, index) => {
-        if (!rule || typeof rule !== 'object') return null;
-
-        const rawExplicitMatch = rule.match && typeof rule.match === 'object' ? rule.match : (rule.when && typeof rule.when === 'object' ? rule.when : null);
-        const match = rawExplicitMatch
-          ? this.normalizeAdvancedRuleMatch(rawExplicitMatch, 'day', localeOverride)
-          : this.normalizeLegacyDayStyleMatch(rule, localeOverride);
-        if (!match) return null;
-
-        const numericPriority = Number(rule.priority);
-        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
-
-        const style = this.normalizeDayStyleBlock(rule.style && typeof rule.style === 'object' ? rule.style : rule);
-        if (
-          style.background === undefined &&
-          style.opacity === undefined &&
-          style.background_opacity === undefined &&
-          style.border_color === undefined &&
-          style.border_width === undefined
-        ) return null;
-
-        const normalized = {
-          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `day-style-${index + 1}`,
-          type: 'day_style',
-          priority,
-          index,
-          match,
-          output: { style },
-          style
-        };
-
-        // Backward-compatible mirrors used by older internal tests and helper paths.
-        if (style.background !== undefined) normalized.background = style.background;
-        if (style.opacity !== undefined) normalized.opacity = style.opacity;
-        if (style.background_opacity !== undefined) normalized.background_opacity = style.background_opacity;
-        if (style.border_color !== undefined) normalized.border_color = style.border_color;
-        if (style.border_width !== undefined) normalized.border_width = style.border_width;
-        const day = match.day || {};
-        if (day.today !== undefined) normalized.condition = 'today';
-        else if (day.past !== undefined) normalized.condition = 'past';
-        else if (day.future !== undefined) normalized.condition = 'future';
-        else if (day.weekend !== undefined) normalized.condition = 'weekend';
-        else if (day.weekday !== undefined) normalized.condition = 'weekday';
-        else if (day.day_of_week !== undefined) {
-          normalized.condition = 'day_of_week';
-          normalized.day_of_week = day.day_of_week;
-        } else if (day.has_event !== undefined) normalized.condition = 'has_event';
-        else if (day.no_event !== undefined) {
-          normalized.condition = 'has_event';
-          normalized.negate = true;
-        }
-
-        return normalized;
-      })
-      .filter(Boolean);
-  }
-
-  buildDayStyleRules(rawConfig = {}) {
-    const rules = Array.isArray(rawConfig.day_styles) ? [...rawConfig.day_styles] : [];
-    const todayStyle = this.buildTodayDayStyleRule(rawConfig);
-    if (todayStyle) rules.push(todayStyle);
-    return rules;
-  }
-
-  buildTodayDayStyleRule(rawConfig = {}) {
-    const hasTodayBackgroundColor = rawConfig.today_background_color !== undefined && rawConfig.today_background_color !== null && rawConfig.today_background_color !== '';
-    const hasTodayStyle = rawConfig.today_style && typeof rawConfig.today_style === 'object' && !Array.isArray(rawConfig.today_style);
-    if (!hasTodayBackgroundColor && !hasTodayStyle) return null;
-
-    const style = {
-      ...(hasTodayBackgroundColor ? { background_color: rawConfig.today_background_color } : {}),
-      ...(hasTodayStyle ? rawConfig.today_style : {})
-    };
-
-    return {
-      condition: 'today',
-      priority: 0,
-      style
-    };
-  }
-
-  normalizeDayStyleBlock(style = {}) {
-    const normalized = {};
-    const backgroundValue = style.background !== undefined ? style.background : (style.background_color !== undefined ? style.background_color : style.color);
-    const normalizedBackground = String(backgroundValue || '').trim().toLowerCase() === 'auto'
-      ? 'auto'
-      : this.normalizeSingleColor(backgroundValue);
-    if (normalizedBackground) normalized.background = normalizedBackground;
-
-    const numericOpacity = Number(style.opacity);
-    if (Number.isFinite(numericOpacity)) {
-      normalized.opacity = Math.max(0, Math.min(1, numericOpacity));
-    }
-
-    const numericBackgroundOpacity = Number(style.background_opacity);
-    if (Number.isFinite(numericBackgroundOpacity)) {
-      normalized.background_opacity = Math.max(0, Math.min(1, numericBackgroundOpacity));
-    }
-
-    const normalizedBorderColor = this.normalizeSingleColor(style.border_color);
-    if (normalizedBorderColor) normalized.border_color = normalizedBorderColor;
-
-    const normalizedBorderWidth = this.normalizeStyleBorderWidth(style.border_width);
-    if (normalizedBorderWidth) normalized.border_width = normalizedBorderWidth;
-
-    return normalized;
-  }
-
-
-
-  normalizeDayBadgeBlock(rule = {}) {
-    const normalized = {};
-    const text = this.normalizeEventTextValue(rule.text);
-    const icon = this.normalizeEventTextValue(rule.icon);
-    const normalizedText = text || '';
-    const normalizedIcon = icon || '';
-    if (normalizedText) normalized.text = normalizedText;
-    if (normalizedIcon) normalized.icon = normalizedIcon;
-
-    const backgroundColor = this.normalizeDayBadgeDisplayColor(rule.background_color);
-    if (backgroundColor) normalized.background_color = backgroundColor;
-    const color = this.normalizeDayBadgeDisplayColor(rule.color);
-    if (color) normalized.color = color;
-
-    const size = this.normalizeStyleSizeValue(rule.size);
-    if (size) normalized.size = size;
-
-    const fontSize = this.normalizeStyleSizeValue(rule.font_size);
-    if (fontSize) normalized.font_size = fontSize;
-    return normalized;
-  }
-
-  isFullValueTemplate(value) {
-    return typeof value === 'string' && /^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/.test(value);
-  }
-
-  normalizeDayBadgeDisplayColor(value) {
-    if (this.isFullValueTemplate(value)) return String(value).trim();
-    return this.normalizeSingleColor(value);
-  }
-
-  normalizeResolvedDayBadgeDisplayColor(value) {
-    const normalized = this.normalizeSingleColor(value);
-    if (typeof normalized !== 'string') return undefined;
-    const trimmed = normalized.trim();
-    if (!trimmed) return undefined;
-
-    if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
-    if (/^rgba?\(\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
-    if (/^hsla?\(\s*[+-]?(?:\d+|\d*\.\d+)(?:deg|grad|rad|turn)?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
-
-    return undefined;
-  }
-
-  parseEventDescriptionJson(event) {
-    const raw = String(event?.description || '').trim();
-    if (!raw.startsWith('{') || !raw.endsWith('}')) return undefined;
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
-      return parsed;
-    } catch {
-      return undefined;
-    }
-  }
-
-  buildDayBadgeResolutionContext(date, matchedEvent) {
-    const event = matchedEvent && typeof matchedEvent === 'object' ? matchedEvent : {};
-    const calendar = event.entityId || event.entity_id || event.calendar;
-    const title = event.summary || event.title;
-    return {
-      date: date instanceof Date && !Number.isNaN(date.getTime()) ? this.formatLocalDate(date) : date,
-      calendar,
-      title,
-      event: {
-        ...event,
-        calendar,
-        entity_id: event.entity_id || event.entityId,
-        title,
-        summary: event.summary || event.title,
-        description_json: this.parseEventDescriptionJson(event)
-      }
-    };
-  }
-
-  resolveSafePath(path, context) {
-    if (typeof path !== 'string' || !path) return undefined;
-    const blockedSegments = new Set(['__proto__', 'prototype', 'constructor']);
-    const segments = path.split('.');
-    if (!segments.length) return undefined;
-
-    let current = context;
-    for (const segment of segments) {
-      if (!/^[A-Za-z0-9_-]+$/.test(segment) || blockedSegments.has(segment)) return undefined;
-      if (current === null || current === undefined || (typeof current !== 'object' && typeof current !== 'function')) return undefined;
-      if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined;
-      current = current[segment];
-    }
-
-    if (current === null || current === undefined) return undefined;
-    if (['string', 'number', 'boolean'].includes(typeof current)) return String(current);
-    return undefined;
-  }
-
-  resolveDayBadgeDisplayValue(value, context) {
-    if (typeof value !== 'string') return value;
-    const match = value.match(/^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/);
-    if (!match) return value;
-    return this.resolveSafePath(match[1], context);
-  }
-
-  resolveDayBadgeForRender(rule, date, matchedEvent) {
-    const context = this.buildDayBadgeResolutionContext(date, matchedEvent);
-    const resolved = { ...rule };
-    ['icon', 'text', 'background_color', 'color'].forEach((field) => {
-      const value = this.resolveDayBadgeDisplayValue(rule[field], context);
-      if (value === undefined || value === null || String(value).trim() === '') {
-        delete resolved[field];
-        return;
-      }
-
-      if (field === 'background_color' || field === 'color') {
-        const normalizedColor = this.normalizeResolvedDayBadgeDisplayColor(value);
-        if (normalizedColor) {
-          resolved[field] = normalizedColor;
-        } else {
-          delete resolved[field];
-        }
-        return;
-      }
-
-      resolved[field] = String(value).trim();
-    });
-    return resolved;
-  }
-
-  normalizeDayBadgeConditions(rawConditions) {
-    return this.normalizeEventMatchConditions(rawConditions);
-  }
-
-  normalizeDayBadges(rawRules) {
-    if (!Array.isArray(rawRules)) return [];
-
-    return rawRules
-      .map((rule, index) => {
-        if (!rule || typeof rule !== 'object') return null;
-        const rawMatch = rule.match && typeof rule.match === 'object'
-          ? rule.match
-          : (rule.conditions && typeof rule.conditions === 'object' ? { event: rule.conditions } : null);
-        const match = this.normalizeAdvancedRuleMatch(rawMatch, 'event');
-        if (!match) return null;
-
-        const output = this.normalizeDayBadgeBlock(rule);
-        if (!output.text && !output.icon) return null;
-
-        const numericPriority = Number(rule.priority);
-        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
-        const normalized = {
-          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `day-badge-${index + 1}`,
-          type: 'day_badge',
-          priority,
-          index,
-          match,
-          output,
-          conditions: match.event
-        };
-        Object.assign(normalized, output);
-        return normalized;
-      })
-      .filter(Boolean);
-  }
-
-
-  normalizeCssLength(value, { allowZero = false } = {}) {
-    if (value === undefined || value === null || value === '') return null;
-
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      if (allowZero) return `${Math.max(0, value)}px`;
-      return value > 0 ? `${value}px` : null;
-    }
-
-    const trimmed = String(value).trim();
-    if (!trimmed) return null;
-
-    if (/^\d*\.?\d+(px|rem|em|%)$/i.test(trimmed)) {
-      return trimmed;
-    }
-
-    const parsed = Number(trimmed);
-    if (Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0)) {
-      return `${parsed}px`;
-    }
-
-    return null;
-  }
-
-  normalizeStyleSizeValue(value) {
-    return this.normalizeCssLength(value, { allowZero: false });
-  }
-
-  normalizeStyleBorderWidth(value) {
-    return this.normalizeCssLength(value, { allowZero: true });
-  }
-
-  normalizeDayOfWeekRule(value, localeOverride = null) {
-    const dayMap = new Map([
-      ['sun', 0], ['sunday', 0], ['0', 0],
-      ['mon', 1], ['monday', 1], ['1', 1],
-      ['tue', 2], ['tues', 2], ['tuesday', 2], ['2', 2],
-      ['wed', 3], ['weds', 3], ['wednesday', 3], ['3', 3],
-      ['thu', 4], ['thur', 4], ['thurs', 4], ['thursday', 4], ['4', 4],
-      ['fri', 5], ['friday', 5], ['5', 5],
-      ['sat', 6], ['saturday', 6], ['6', 6]
-    ]);
-    this.getLocalizedWeekdayMap(localeOverride).forEach((dayIndexes, token) => {
-      if (!dayMap.has(token)) {
-        dayMap.set(token, dayIndexes.length === 1 ? dayIndexes[0] : dayIndexes);
-      }
-    });
-
-    const values = Array.isArray(value) ? value : [value];
-    const normalizedDays = [];
-
-    values.forEach((entry) => {
-      if (entry === undefined || entry === null || entry === '') return;
-
-      if (typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 6) {
-        normalizedDays.push(entry);
-        return;
-      }
-
-      const normalizedEntry = String(entry).trim().toLowerCase();
-      if (!normalizedEntry) return;
-      if (dayMap.has(normalizedEntry)) {
-        const mappedValue = dayMap.get(normalizedEntry);
-        if (Array.isArray(mappedValue)) {
-          normalizedDays.push(...mappedValue);
-        } else {
-          normalizedDays.push(mappedValue);
-        }
-      }
-    });
-
-    return Array.from(new Set(normalizedDays));
-  }
-
-  getLocalizedWeekdayMap(localeOverride = null) {
-    const locale = resolveLanguage(localeOverride || this.getLocale());
-    const cacheKey = locale || 'default';
-    if (!this._localizedWeekdayMapCache) this._localizedWeekdayMapCache = new Map();
-    if (this._localizedWeekdayMapCache.has(cacheKey)) return this._localizedWeekdayMapCache.get(cacheKey);
-
-    const map = new Map();
-    const formats = ['long', 'short', 'narrow'];
-    const anchorSunday = new Date(Date.UTC(2024, 0, 7)); // Sunday
-
-    formats.forEach((weekdayFormat) => {
-      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
-        const date = new Date(anchorSunday);
-        date.setUTCDate(anchorSunday.getUTCDate() + dayIndex);
-        const localizedName = new Intl.DateTimeFormat(locale, { weekday: weekdayFormat, timeZone: 'UTC' }).format(date);
-        const normalizedName = String(localizedName || '').trim().toLowerCase();
-        if (!normalizedName) continue;
-        if (!map.has(normalizedName)) {
-          map.set(normalizedName, [dayIndex]);
-          continue;
-        }
-        const existingDayIndexes = map.get(normalizedName);
-        if (!existingDayIndexes.includes(dayIndex)) existingDayIndexes.push(dayIndex);
-      }
-    });
-
-    this._localizedWeekdayMapCache.set(cacheKey, map);
-    return map;
-  }
-
-  normalizeEventStyleBlock(style = {}) {
-    const normalized = {};
-    const setIfDefined = (key, value) => {
-      if (value !== undefined && value !== null && value !== '') {
-        normalized[key] = value;
-      }
-    };
-
-    const normalizedBackground = this.normalizeSingleColor(style.background_color ?? style.color);
-    if (normalizedBackground) normalized.background_color = normalizedBackground;
-
-    const normalizedFontColor = this.normalizeSingleColor(style.event_font_color ?? style.font_color);
-    if (normalizedFontColor) normalized.event_font_color = normalizedFontColor;
-
-    const normalizedOpacity = this.normalizeEventStyleOpacity(style.opacity);
-    if (normalizedOpacity !== null) normalized.opacity = normalizedOpacity;
-
-    const normalizedFilter = this.normalizeEventStyleFilter(style.filter);
-    if (normalizedFilter !== null) normalized.filter = normalizedFilter;
-
-    setIfDefined('event_font_size', style.event_font_size);
-    setIfDefined('event_time_font_size', style.event_time_font_size);
-    setIfDefined('event_location_font_size', style.event_location_font_size);
-
-    const icon = this.normalizeEventIconName(style.icon);
-    if (icon) normalized.icon = icon;
-    const iconColor = this.normalizeEventIconColor(style.icon_color);
-    if (iconColor) normalized.icon_color = iconColor;
-    const iconSize = this.normalizeStyleSizeValue(style.icon_size);
-    if (iconSize) normalized.icon_size = iconSize;
-    const iconPosition = this.normalizeEventIconPosition(style.icon_position);
-    if (iconPosition) normalized.icon_position = iconPosition;
-
-    const showEventLocation = this.normalizeBooleanStyleValue(style.show_event_location);
-    if (showEventLocation !== null) normalized.show_event_location = showEventLocation;
-    const useShortLocation = this.normalizeBooleanStyleValue(style.use_short_location);
-    if (useShortLocation !== null) normalized.use_short_location = useShortLocation;
-    const hideTime = this.normalizeBooleanStyleValue(style.hide_time);
-    if (hideTime !== null) normalized.hide_time = hideTime;
-    const showTime = this.normalizeBooleanStyleValue(style.show_time);
-    if (showTime !== null) normalized.show_time = showTime;
-    const hideCalendarBubble = this.normalizeBooleanStyleValue(style.hide_event_calendar_bubble);
-    if (hideCalendarBubble !== null) normalized.hide_event_calendar_bubble = hideCalendarBubble;
-    const hideEvent = this.normalizeBooleanStyleValue(style.hide);
-    if (hideEvent !== null) normalized.hide = hideEvent;
-    if (style.event_title_prefix !== undefined) normalized.event_title_prefix = this.normalizeEventTitlePrefixMode(style.event_title_prefix);
-
-    return normalized;
-  }
-
-  normalizeEventIconName(iconValue) {
-    const normalized = this.normalizeEventTextValue(iconValue);
-    if (!normalized) return null;
-    if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) return null;
-    return normalized;
-  }
-
-  normalizeEventIconColor(colorValue) {
-    if (colorValue === undefined || colorValue === null) return null;
-    const normalized = this.normalizeSingleColor(colorValue);
-    const trimmed = String(normalized || '').trim();
-    if (!trimmed) return null;
-    if (/[;{}<>\"']/.test(trimmed)) return null;
-    return trimmed;
-  }
-
-  normalizeEventIconPosition(positionValue) {
-    const normalized = String(positionValue || '').trim().toLowerCase();
-    if (!normalized) return null;
-    if (normalized === 'before_title' || normalized === 'corner') return normalized;
-    return null;
-  }
-
-  normalizeEventStyleOpacity(opacityValue) {
-    if (opacityValue === undefined || opacityValue === null || opacityValue === '') return null;
+  normalizeBackgroundOpacity(opacityValue, fallback = 0) {
     const numericOpacity = Number(opacityValue);
-    if (!Number.isFinite(numericOpacity)) return null;
-    return Math.max(0, Math.min(1, numericOpacity));
-  }
-
-  normalizeEventStyleFilter(filterValue) {
-    if (filterValue === undefined || filterValue === null) return null;
-    const normalized = String(filterValue).trim();
-    if (!normalized) return null;
-    if (/[;{}<>\"']/.test(normalized)) return null;
-    return normalized;
-  }
-
-  eventMatchesRule(event, match) {
-    const normalizedMatch = this.normalizeEventMatchConditions(match);
-    return this.eventMatchesNormalizedRule(event, normalizedMatch);
-  }
-
-  eventMatchesNormalizedRule(event, match) {
-    if (!event || !match || typeof match !== 'object') return false;
-
-    const logicalKeys = new Set(['any', 'all', 'and', 'not']);
-    const fieldKeys = Object.keys(match).filter((key) => !logicalKeys.has(key));
-    const fieldsPass = fieldKeys.every((field) => this.eventFieldMatches(event, field, match[field]));
-
-    if (!fieldsPass) return false;
-
-    const allConditions = Array.isArray(match.all) ? match.all : [];
-    if (!allConditions.every((condition) => this.eventMatchesNormalizedRule(event, condition))) return false;
-
-    const andConditions = Array.isArray(match.and) ? match.and : [];
-    if (!andConditions.every((condition) => this.eventMatchesNormalizedRule(event, condition))) return false;
-
-    if (Object.prototype.hasOwnProperty.call(match, 'any')) {
-      const anyConditions = Array.isArray(match.any) ? match.any : [];
-      if (anyConditions.length && !anyConditions.some((condition) => this.eventMatchesNormalizedRule(event, condition))) return false;
+    if (!Number.isFinite(numericOpacity)) {
+      return fallback;
     }
 
-    if (Object.prototype.hasOwnProperty.call(match, 'not')) {
-      const notCondition = match.not;
-      if (Array.isArray(notCondition)) {
-        if (notCondition.some((condition) => this.eventMatchesNormalizedRule(event, condition))) return false;
-      } else if (notCondition && this.eventMatchesNormalizedRule(event, notCondition)) {
-        return false;
-      }
-    }
-
-    return true;
+    return Math.min(100, Math.max(0, numericOpacity));
   }
 
-
-  getEventCalendarMatchTokens(event) {
-    const tokens = [];
-    const entityIds = new Set();
-
-    if (event?.entityId) entityIds.add(event.entityId);
-    if (Array.isArray(event?.sourceEntityIds)) {
-      event.sourceEntityIds.forEach((entityId) => entityId && entityIds.add(entityId));
-    } else if (Array.isArray(event?.sourceCalendars)) {
-      event.sourceCalendars.forEach((calendar) => calendar?.entityId && entityIds.add(calendar.entityId));
-    }
-
-    entityIds.forEach((entityId) => {
-      tokens.push(entityId);
-      tokens.push(this.getCalendarName(entityId));
-      const virtualCalendar = this.getVirtualBadgeForEntity(entityId);
-      if (virtualCalendar) {
-        tokens.push(`virtual:${virtualCalendar.id}`);
-        tokens.push(virtualCalendar.id);
-        tokens.push(virtualCalendar.name);
-      }
-    });
-
-    return Array.from(new Set(tokens.filter(Boolean)));
-  }
-
-  eventFieldMatches(event, field, condition) {
-    const fieldName = String(field || '').trim().toLowerCase();
-    if (!fieldName) return false;
-
-    if (fieldName === 'all_day') {
-      const { isAllDay } = this.getEventDateTimeInfo(event);
-      return this.matchPrimitiveCondition(isAllDay, condition);
-    }
-
-    if (fieldName === 'past') {
-      return this.matchPrimitiveCondition(this.isPastEvent(event), condition);
-    }
-
-    if (fieldName === 'calendar') {
-      return this.getEventCalendarMatchTokens(event).some((token) => this.matchTextCondition(token, condition));
-    }
-
-    const valueByField = {
-      title: event.summary,
-      summary: event.summary,
-      location: event.location,
-      description: event.description
-    };
-    return this.matchTextCondition(valueByField[fieldName], condition);
-  }
-
-  matchPrimitiveCondition(value, condition) {
-    if (typeof condition === 'boolean') {
-      return value === condition;
-    }
-
-    if (typeof condition === 'string') {
-      const normalized = condition.trim().toLowerCase();
-      if (normalized === 'true') return value === true;
-      if (normalized === 'false') return value === false;
-    }
-
-    return value === condition;
-  }
-
-  parseRegexCondition(value) {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-
-    const prefixed = trimmed.match(/^regex:(.+)$/i);
-    if (prefixed) {
-      try {
-        return new RegExp(prefixed[1].trim(), 'i');
-      } catch (error) {
-        return null;
-      }
-    }
-
-    const slashDelimited = trimmed.match(/^\/(.+)\/([dgimsuvy]*)$/);
-    if (!slashDelimited) return null;
-
-    try {
-      return new RegExp(slashDelimited[1], slashDelimited[2] || 'i');
-    } catch (error) {
-      return null;
-    }
-  }
-
-  matchTextCondition(value, condition) {
-    const rawNormalizedValue = this.normalizeEventTextValue(value);
-    if (!rawNormalizedValue) return false;
-    const normalizedValue = rawNormalizedValue.toLowerCase();
-
-    if (typeof condition === 'string') {
-      const regex = this.parseRegexCondition(condition);
-      if (regex) return regex.test(rawNormalizedValue);
-
-      const normalizedCondition = condition.trim();
-      if (!normalizedCondition) return false;
-
-      const exactMatch = normalizedCondition.match(/^exact:(.+)$/i);
-      if (exactMatch) {
-        return normalizedValue === exactMatch[1].trim().toLowerCase();
-      }
-
-      const containsMatch = normalizedCondition.match(/^(?:contains|substring):(.+)$/i);
-      if (containsMatch) {
-        return normalizedValue.includes(containsMatch[1].trim().toLowerCase());
-      }
-
-      return normalizedValue.includes(normalizedCondition.toLowerCase());
-    }
-
-    if (condition && typeof condition === 'object' && !Array.isArray(condition)) {
-      if (typeof condition.exact === 'string') {
-        return normalizedValue === condition.exact.trim().toLowerCase();
-      }
-      if (typeof condition.substring === 'string') {
-        return normalizedValue.includes(condition.substring.trim().toLowerCase());
-      }
-      if (typeof condition.contains === 'string') {
-        return normalizedValue.includes(condition.contains.trim().toLowerCase());
-      }
-      if (typeof condition.regex === 'string') {
-        const regex = this.parseRegexCondition(`regex:${condition.regex}`);
-        return !!regex && regex.test(rawNormalizedValue);
-      }
-    }
-
-    return false;
-  }
-
-  findMatchingEventForCondition(condition, dayEvents = []) {
-    if (!Array.isArray(dayEvents) || !dayEvents.length) return null;
-    if (condition === true) return dayEvents[0] || null;
-    if (condition === false) return null;
-    return dayEvents.find((event) => this.eventMatchesNormalizedRule(event, condition)) || null;
-  }
-
-  dateMatchesDayCondition(date, conditionName, conditionValue, context = {}) {
-    if (conditionValue === false) return false;
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    if (conditionName === 'today') return this.matchPrimitiveCondition(!!context.isToday, conditionValue);
-    if (conditionName === 'past') return this.matchPrimitiveCondition(dayStart.getTime() < todayStart.getTime(), conditionValue);
-    if (conditionName === 'future') return this.matchPrimitiveCondition(dayStart.getTime() > todayStart.getTime(), conditionValue);
-    if (conditionName === 'weekend') return this.matchPrimitiveCondition(dayStart.getDay() === 0 || dayStart.getDay() === 6, conditionValue);
-    if (conditionName === 'weekday') return this.matchPrimitiveCondition(dayStart.getDay() !== 0 && dayStart.getDay() !== 6, conditionValue);
-    if (conditionName === 'day_of_week') return Array.isArray(conditionValue) && conditionValue.includes(dayStart.getDay());
-    return false;
-  }
-
-  dayMatchesNormalizedRule(dayMatch, context = {}) {
-    if (!dayMatch || typeof dayMatch !== 'object') return { matches: true, matchedEvent: null };
-
-    let matchedEvent = null;
-    const logicalKeys = new Set(['any', 'all', 'and', 'not']);
-    const fieldKeys = Object.keys(dayMatch).filter((key) => !logicalKeys.has(key));
-
-    for (const field of fieldKeys) {
-      const condition = dayMatch[field];
-      if (field === 'has_event') {
-        const event = this.findMatchingEventForCondition(condition, context.dayEvents || []);
-        if (!event) return { matches: false, matchedEvent: null };
-        if (!matchedEvent) matchedEvent = event;
-        continue;
-      }
-      if (field === 'no_event') {
-        const event = this.findMatchingEventForCondition(condition, context.dayEvents || []);
-        if (event) return { matches: false, matchedEvent: null };
-        continue;
-      }
-      if (!this.dateMatchesDayCondition(context.date, field, condition, context)) {
-        return { matches: false, matchedEvent: null };
-      }
-    }
-
-    const allConditions = Array.isArray(dayMatch.all) ? dayMatch.all : [];
-    for (const condition of allConditions) {
-      const result = this.dayMatchesNormalizedRule(condition, context);
-      if (!result.matches) return { matches: false, matchedEvent: null };
-      if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
-    }
-
-    const andConditions = Array.isArray(dayMatch.and) ? dayMatch.and : [];
-    for (const condition of andConditions) {
-      const result = this.dayMatchesNormalizedRule(condition, context);
-      if (!result.matches) return { matches: false, matchedEvent: null };
-      if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(dayMatch, 'any')) {
-      const anyConditions = Array.isArray(dayMatch.any) ? dayMatch.any : [];
-      if (!anyConditions.length) return { matches: true, matchedEvent };
-      let anyMatched = false;
-      for (const condition of anyConditions) {
-        const result = this.dayMatchesNormalizedRule(condition, context);
-        if (result.matches) {
-          anyMatched = true;
-          if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
-          break;
-        }
-      }
-      if (!anyMatched) return { matches: false, matchedEvent: null };
-    }
-
-    if (Object.prototype.hasOwnProperty.call(dayMatch, 'not')) {
-      const notCondition = dayMatch.not;
-      if (Array.isArray(notCondition)) {
-        for (const condition of notCondition) {
-          if (this.dayMatchesNormalizedRule(condition, context).matches) return { matches: false, matchedEvent: null };
-        }
-      } else if (notCondition && this.dayMatchesNormalizedRule(notCondition, context).matches) {
-        return { matches: false, matchedEvent: null };
-      }
-    }
-
-    return { matches: true, matchedEvent };
-  }
-
-  matchesAdvancedRule(ruleOrMatch, context = {}) {
-    const match = ruleOrMatch?.match || ruleOrMatch;
-    if (!match || typeof match !== 'object') return { matches: false, matchedEvent: null };
-
-    let matchedEvent = null;
-    const eventMatch = match.event && Object.keys(match.event).length ? match.event : null;
-    if (eventMatch) {
-      if (context.event) {
-        if (!this.eventMatchesNormalizedRule(context.event, eventMatch)) return { matches: false, matchedEvent: null };
-        matchedEvent = context.event;
-      } else {
-        const event = this.findMatchingEventForCondition(eventMatch, context.dayEvents || []);
-        if (!event) return { matches: false, matchedEvent: null };
-        matchedEvent = event;
-      }
-    }
-
-    const dayMatch = match.day && Object.keys(match.day).length ? match.day : null;
-    if (dayMatch) {
-      const dayResult = this.dayMatchesNormalizedRule(dayMatch, context);
-      if (!dayResult.matches) return { matches: false, matchedEvent: null };
-      if (!matchedEvent && dayResult.matchedEvent) matchedEvent = dayResult.matchedEvent;
-    }
-
-    const allConditions = Array.isArray(match.all) ? match.all : [];
-    for (const condition of allConditions) {
-      const result = this.matchesAdvancedRule(condition, context);
-      if (!result.matches) return { matches: false, matchedEvent: null };
-      if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
-    }
-
-    const anyConditions = Array.isArray(match.any) ? match.any : [];
-    if (anyConditions.length) {
-      let anyMatched = false;
-      for (const condition of anyConditions) {
-        const result = this.matchesAdvancedRule(condition, context);
-        if (result.matches) {
-          anyMatched = true;
-          if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
-          break;
-        }
-      }
-      if (!anyMatched) return { matches: false, matchedEvent: null };
-    }
-
-    if (Object.prototype.hasOwnProperty.call(match, 'not')) {
-      const notCondition = match.not;
-      if (Array.isArray(notCondition)) {
-        for (const condition of notCondition) {
-          if (this.matchesAdvancedRule(condition, context).matches) return { matches: false, matchedEvent: null };
-        }
-      } else if (notCondition && this.matchesAdvancedRule(notCondition, context).matches) {
-        return { matches: false, matchedEvent: null };
-      }
-    }
-
-    return { matches: true, matchedEvent };
-  }
-
-  findMatchingDayStyleEvent(rule, dayEvents) {
-    return this.matchesAdvancedRule(rule, { dayEvents }).matchedEvent;
-  }
-
-  getDayStyleConfig(date, dayEvents, isToday) {
-    const rules = Array.isArray(this._config?.day_styles) ? this._config.day_styles : [];
-    if (!rules.length) return null;
-
-    const candidates = {};
-
-    const applyCandidate = (key, value, rule) => {
-      if (value === undefined || value === null) return;
-      const candidatePriority = Number.isFinite(rule.priority) ? rule.priority : 0;
-      const existing = candidates[key];
-      if (!existing || candidatePriority > existing.priority || (candidatePriority === existing.priority && rule.index < existing.ruleIndex)) {
-        candidates[key] = { value, priority: candidatePriority, ruleIndex: rule.index };
-      }
-    };
-
-    rules.forEach((rule) => {
-      const result = this.matchesAdvancedRule(rule, { date, dayEvents, isToday });
-      if (!result.matches) return;
-
-      const dayStyle = rule.output?.style || rule.style || {};
-      if (dayStyle.background) {
-        if (dayStyle.background === 'auto' && result.matchedEvent?.color) {
-          applyCandidate('background', result.matchedEvent.color, rule);
-        } else if (dayStyle.background !== 'auto') {
-          applyCandidate('background', dayStyle.background, rule);
-        }
-      }
-
-      applyCandidate('opacity', dayStyle.opacity, rule);
-      applyCandidate('background_opacity', dayStyle.background_opacity, rule);
-      applyCandidate('border_color', dayStyle.border_color, rule);
-      applyCandidate('border_width', dayStyle.border_width, rule);
-    });
-
-    const background = candidates.background?.value ?? null;
-    const opacity = candidates.opacity?.value ?? null;
-    const backgroundOpacity = candidates.background_opacity?.value ?? null;
-    const borderColor = candidates.border_color?.value ?? null;
-    const borderWidth = candidates.border_width?.value ?? null;
-
-    if (!background && opacity === null && backgroundOpacity === null && !borderColor && !borderWidth) return null;
-    return {
-      background,
-      opacity,
-      background_opacity: backgroundOpacity,
-      border_color: borderColor,
-      border_width: borderWidth
-    };
-  }
-
-  getDayStyleAttributes(date, dayEvents, isToday) {
-    const dayStyle = this.getDayStyleConfig(date, dayEvents, isToday);
-    if (!dayStyle) return { className: '', style: '' };
-
-    const styles = [];
-    if (dayStyle.background) {
-      const backgroundColor = dayStyle.background_opacity !== null
-        ? this.colorWithAlpha(dayStyle.background, dayStyle.background_opacity)
-        : dayStyle.background;
-      styles.push(`--day-conditional-background: ${dayStyle.background}`);
-      styles.push(`background: ${backgroundColor} !important`);
-    }
-    if (dayStyle.opacity !== null) {
-      styles.push(`--day-conditional-opacity: ${dayStyle.opacity}`);
-      styles.push(`opacity: ${dayStyle.opacity}`);
-    }
-
-    if (dayStyle.border_color || dayStyle.border_width) {
-      const borderWidth = dayStyle.border_width || '2px';
-      const borderColor = dayStyle.border_color || 'var(--divider-color, #d1d5db)';
-      styles.push(`--day-style-border-width: ${borderWidth}`);
-      styles.push(`--day-style-border-color: ${borderColor}`);
-    }
-    const classNames = ['day-style-rule'];
-    if (dayStyle.background) classNames.push('day-style-has-background');
-    if (dayStyle.border_color || dayStyle.border_width) classNames.push('day-style-has-border');
-
-    return {
-      className: classNames.join(' '),
-      style: styles.join('; ')
-    };
-  }
-
-
-  normalizeVirtualCalendars(virtualCalendars) {
-    if (!Array.isArray(virtualCalendars)) return [];
-
-    return virtualCalendars
-      .map((entry, index) => {
-        if (!entry || typeof entry !== 'object') return null;
-        const id = typeof entry.id === 'string' && entry.id.trim()
-          ? entry.id.trim()
-          : `virtual_${index + 1}`;
-        const entities = Array.isArray(entry.entities)
-          ? Array.from(new Set(entry.entities
-            .map((entityId) => typeof entityId === 'string' ? entityId.trim() : '')
-            .filter(Boolean)))
-          : [];
-        if (entities.length === 0) return null;
-        return {
-          id,
-          name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : id,
-          icon: typeof entry.icon === 'string' && entry.icon.trim() ? entry.icon.trim() : null,
-          color: this.normalizeSingleColor(entry.color),
-          entities
-        };
-      })
-      .filter(Boolean);
-  }
-
-  getVirtualBadgeById(virtualId) {
-    return (this._config.virtual_calendars || []).find((virtualCalendar) => virtualCalendar.id === virtualId) || null;
-  }
-
-  getVirtualBadgeForEntity(entityId) {
-    return (this._config.virtual_calendars || []).find((virtualCalendar) => virtualCalendar.entities.includes(entityId)) || null;
-  }
-
-  getVirtualBadgeForEvent(event) {
-    if (!event) return null;
-
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds) && event.sourceEntityIds.length > 0) {
-      const virtualCalendars = event.sourceEntityIds
-        .map((entityId) => this.getVirtualBadgeForEntity(entityId))
-        .filter(Boolean);
-      if (virtualCalendars.length > 0) {
-        return virtualCalendars[0];
-      }
-      return null;
-    }
-
-    return this.getVirtualBadgeForEntity(event.entityId);
-  }
-
-  getVirtualBadgeItems() {
-    const hiddenBadgeCalendars = new Set(this._config.hide_badge_calendars || []);
-    const items = [];
-    const insertedVirtualIds = new Set();
-
-    this._config.entities.forEach((entityId, originalIndex) => {
-      const virtualCalendar = this.getVirtualBadgeForEntity(entityId);
-      if (virtualCalendar && !insertedVirtualIds.has(virtualCalendar.id)) {
-        const configuredEntities = virtualCalendar.entities.filter((configuredEntityId) => this._config.entities.includes(configuredEntityId));
-        const hasVisibleEntity = configuredEntities.some((configuredEntityId) => !hiddenBadgeCalendars.has(configuredEntityId));
-        if (hasVisibleEntity) {
-          const color = virtualCalendar.color || this.getCalendarColor(entityId, originalIndex);
-          const isHidden = configuredEntities.every((configuredEntityId) => this._hiddenCalendars.has(configuredEntityId));
-          items.push({
-            id: virtualCalendar.id,
-            entityId: `virtual:${virtualCalendar.id}`,
-            name: virtualCalendar.name,
-            icon: virtualCalendar.icon,
-            color,
-            entities: configuredEntities,
-            isHidden,
-            type: 'virtual'
-          });
-        }
-        insertedVirtualIds.add(virtualCalendar.id);
-        return;
-      }
-
-      if (virtualCalendar || hiddenBadgeCalendars.has(entityId)) return;
-      const color = this.getCalendarColor(entityId, originalIndex);
-      items.push({
-        id: entityId,
-        entityId,
-        name: this.getCalendarName(entityId),
-        icon: this.getCalendarBadgeIcon(entityId),
-        color,
-        entities: [entityId],
-        isHidden: this._hiddenCalendars.has(entityId),
-        type: 'entity'
-      });
-    });
-
-    return items;
-  }
-
-  getWritableCalendars() {
-    return this._config.entities.filter(entityId => {
-      const caps = this._calendarCapabilities[entityId];
-      return caps && caps.canCreate && !caps.isReadonly;
-    });
-  }
-
-  getEventIdentityKey(entityId, event) {
-    return `${entityId}|${event.uid || ''}|${event.recurring_event_id || ''}|${event.start?.dateTime || event.start?.date || event.start || ''}|${event.end?.dateTime || event.end?.date || event.end || ''}|${event.summary || ''}`;
-  }
-
-  async fetchEventsInRange(startDate, endDate) {
-    const eventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
-    return Object.values(eventsByCalendar).flat();
-  }
-
-  async fetchEventsByCalendarInRange(startDate, endDate) {
-    const chunks = this.getDateRangeChunks(startDate, endDate, 30);
-    const eventsByCalendar = await Promise.all(
-      this._config.entities.map((entityId, index) =>
-        this.fetchEventsForCalendar(entityId, index, chunks)
-      )
-    );
-
-    return this._config.entities.reduce((acc, entityId, index) => {
-      acc[entityId] = eventsByCalendar[index] || [];
-      return acc;
-    }, {});
-  }
-
-  getCalendarColor(entityId, index = 0) {
-    return this.normalizeSingleColor(
-      this._config?.colors?.[entityId] ||
-      this.getDefaultColor(index)
-    );
-  }
-
-  async fetchEventsForCalendar(entityId, colorIndex, chunks) {
-    const seen = new Set();
-    const color = this.getCalendarColor(entityId, colorIndex);
-
-    const chunkEventLists = await Promise.all(
-      chunks.map(chunk => this.fetchEventsForChunk(entityId, chunk))
-    );
-
-    const mergedEvents = [];
-    chunkEventLists.forEach(events => {
-      if (!events || !Array.isArray(events)) return;
-
-      events.forEach(event => {
-        const key = this.getEventIdentityKey(entityId, event);
-        if (seen.has(key)) return;
-        seen.add(key);
-
-        mergedEvents.push({
-          ...event,
-          entityId,
-          color
-        });
-      });
-    });
-
-    return mergedEvents;
-  }
-
-  async fetchEventsForChunk(entityId, chunk) {
-    const chunkStartStr = chunk.startDate.toISOString();
-    const chunkEndStr = chunk.endDate.toISOString();
-
-    try {
-      // Use WebSocket API to get calendar events.
-      // Home Assistant command name varies by version.
-      return await this.fetchEventsViaWebSocket(entityId, chunkStartStr, chunkEndStr);
-    } catch (error) {
-      // WebSocket API might not be available in older HA versions or for some integrations
-      // Try REST API fallback without logging (this is expected)
-      try {
-        const startDateOnly = this.formatLocalDate(chunk.startDate);
-        const endDateOnly = this.formatLocalDate(chunk.endDate);
-        return await this._hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
-      } catch (error2) {
-        // Both methods failed - this is a real error
-        console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
-        return [];
-      }
-    }
-  }
-
-  async fetchEventsViaWebSocket(entityId, chunkStartStr, chunkEndStr) {
-    return this._hass.callWS({
-      type: 'calendar/events',
-      entity_id: entityId,
-      start_date_time: chunkStartStr,
-      end_date_time: chunkEndStr
-    });
-  }
-
-  mergeEvents(existingEvents, incomingEvents) {
-    const mergedByKey = new Map();
-
-    existingEvents.forEach(event => {
-      mergedByKey.set(this.getEventIdentityKey(event.entityId, event), event);
-    });
-
-    incomingEvents.forEach(event => {
-      mergedByKey.set(this.getEventIdentityKey(event.entityId, event), event);
-    });
-
-    const merged = Array.from(mergedByKey.values());
-    merged.sort((a, b) => this.getEventStartDate(a) - this.getEventStartDate(b));
-    return merged;
-  }
-
-  toStableString(value) {
-    if (Array.isArray(value)) {
-      return `[${value.map(item => this.toStableString(item)).join(',')}]`;
-    }
-
-    if (value && typeof value === 'object') {
-      const entries = Object.keys(value)
-        .sort()
-        .map(key => `${JSON.stringify(key)}:${this.toStableString(value[key])}`);
-      return `{${entries.join(',')}}`;
-    }
-
-    return JSON.stringify(value);
-  }
-
-  getCalendarDataSignature(events = []) {
-    return events
-      .map(event => {
-        const { entityId, color, ...eventData } = event;
-        return this.toStableString(eventData);
-      })
-      .sort()
-      .join('|');
-  }
-
-  async updateEvents({ preserveScroll = false } = {}) {
-    if (!this._hass || this._fetching) return;
-
-    const { startDate, endDate } = this.getEventFetchRange();
-    this._fetching = true;
-    this._lastFetch = Date.now();
-
-    try {
-      const newEventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
-      const changedCalendars = this._config.entities.filter(entityId => {
-        const hasOldSignature = Object.prototype.hasOwnProperty.call(this._calendarDataSignatures, entityId);
-        if (!hasOldSignature) {
-          return true;
-        }
-
-        const oldSignature = this._calendarDataSignatures[entityId];
-        const newSignature = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
-        return oldSignature !== newSignature;
-      });
-
-      if (changedCalendars.length === 0) {
-        this._loadedEventRange = { startDate, endDate };
-
-        const now = Date.now();
-        const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
-          (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
-
-        if (shouldRenderForUnchangedData) {
-          this._lastUnchangedDataRender = now;
-          if (preserveScroll) {
-            this.renderPreservingAgendaScroll();
-          } else {
-            this.render();
-          }
-        }
-
-        return;
-      }
-
-      this._config.entities.forEach(entityId => {
-        this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
-      });
-
-      const mergedEvents = Object.values(newEventsByCalendar)
-        .flat()
-        .sort((a, b) => this.getEventStartDate(a) - this.getEventStartDate(b));
-
-      this._events = mergedEvents;
-      this._loadedEventRange = { startDate, endDate };
-      this._lastUnchangedDataRender = Date.now();
-      if (preserveScroll) {
-        this.renderPreservingAgendaScroll();
-      } else {
-        this.render();
-      }
-    } finally {
-      this._fetching = false;
-    }
-  }
-
-  async extendEventsForRange(startDate, endDate, { render = true } = {}) {
-    if (!this._hass || this._fetching) return;
-
-    this._fetching = true;
-    this._lastFetch = Date.now();
-
-    try {
-      const additionalEvents = await this.fetchEventsInRange(startDate, endDate);
-      this._events = this.mergeEvents(this._events, additionalEvents);
-      if (render) {
-        this.render();
-      }
-    } finally {
-      this._fetching = false;
-    }
-  }
-
-  isDateRangeCoveredByLoadedEvents(targetStartDate, targetEndDate) {
-    if (!this._loadedEventRange) return false;
-
-    return targetStartDate >= this._loadedEventRange.startDate &&
-           targetEndDate <= this._loadedEventRange.endDate;
-  }
-
-  async ensureEventsForCurrentRange({ force = false, renderIfCovered = false } = {}) {
-    const shouldRefreshForAge = !this._lastFetch || (Date.now() - this._lastFetch > 60000);
-    const { startDate: visibleStartDate, endDate: visibleEndDate } = this.getVisibleDateRange();
-
-    // Background stale refreshes run through this path via hass updates.
-    // Keep dialogs stable by postponing only those refreshes while modal is open.
-    if (this.isEventManagementDialogOpen() && (force || shouldRefreshForAge)) {
+  syncCombineBackgroundEditorState(backgroundValue) {
+    const rawValue = String(backgroundValue || '').trim();
+    const normalizedLower = rawValue.toLowerCase();
+    if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(normalizedLower)) {
+      this._combineBackgroundMode = normalizedLower;
+      this._combineBackgroundHexDraft = '';
       return;
     }
 
-    if (force || shouldRefreshForAge || !this._loadedEventRange) {
-      const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
-      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh });
+    const normalizedHex = this.normalizeHexColor(rawValue);
+    if (normalizedHex) {
+      this._combineBackgroundMode = 'hex';
+      this._combineBackgroundHexDraft = normalizedHex;
       return;
     }
 
-    // Gate fetches on the actually visible range. If the user can already see
-    // all required dates from loaded data, avoid any network call.
-    if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
-      if (renderIfCovered) {
-        this.render();
-      }
-      return;
-    }
+    this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
+    this._combineBackgroundHexDraft = '';
+  }
 
-    // Once visible range falls outside loaded coverage, fetch around current view
-    // (with buffer) and only request missing leading/trailing segments.
-    const { startDate, endDate } = this.getEventFetchRange();
-    const missingRanges = [];
+  setConfig(config) {
+    const previousEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    const normalizedDefaultView = config.default_view === 'week'
+      ? 'week-compact'
+      : config.default_view === 'schedule'
+        ? 'week-standard'
+        : config.default_view;
+    const normalizedPastEventMode = config.past_event_mode !== undefined && config.past_event_mode !== null && config.past_event_mode !== ''
+      ? normalizePastEventMode$1(config.past_event_mode)
+      : (config.hide_the_past ? 'hide' : createDefaultStubConfig().past_event_mode);
 
-    if (startDate < this._loadedEventRange.startDate) {
-      const missingStartEnd = new Date(this._loadedEventRange.startDate);
-      missingStartEnd.setDate(missingStartEnd.getDate() - 1);
-      missingStartEnd.setHours(23, 59, 59, 999);
-      missingRanges.push({ startDate, endDate: missingStartEnd });
-    }
-
-    if (endDate > this._loadedEventRange.endDate) {
-      const missingEndStart = new Date(this._loadedEventRange.endDate);
-      missingEndStart.setDate(missingEndStart.getDate() + 1);
-      missingEndStart.setHours(0, 0, 0, 0);
-      missingRanges.push({ startDate: missingEndStart, endDate });
-    }
-
-    for (const range of missingRanges) {
-      await this.extendEventsForRange(range.startDate, range.endDate, { render: false });
-    }
-
-    this._loadedEventRange = {
-      startDate: new Date(Math.min(this._loadedEventRange.startDate.getTime(), startDate.getTime())),
-      endDate: new Date(Math.max(this._loadedEventRange.endDate.getTime(), endDate.getTime()))
+    this._config = {
+      ...createDefaultStubConfig(),
+      ...config,
+      default_view: normalizedDefaultView || (createDefaultStubConfig().default_view || DEFAULT_VIEW),
+      past_event_mode: normalizedPastEventMode,
+      color_scheme: normalizeDefaultDarkMode(config.color_scheme),
+      header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
+      event_modal_size: normalizeEventModalSize$1(config.event_modal_size),
+      day_badge_layout_week: normalizeDayBadgeLayoutWeek$1(config.day_badge_layout_week)
     };
+    this.syncCombineBackgroundEditorState(this._config.combine_background);
 
-    this.render();
-  }
-
-  getEventFetchRange() {
-    const { startDate: visibleStart, endDate: visibleEnd } = this.getVisibleDateRange();
-
-    // Keep a small look-behind and look-ahead buffer.
-    const startDate = new Date(visibleStart);
-    startDate.setDate(startDate.getDate() - 7);
-
-    const endDate = new Date(visibleEnd);
-    endDate.setDate(endDate.getDate() + 30);
-
-    return { startDate, endDate };
-  }
-
-  getVisibleDateRange() {
-    if (this._viewMode === 'agenda') {
-      this.ensureAgendaWindowInitialized();
-      const startDate = new Date(this._agendaStartDate);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(this._agendaEndDate);
-      endDate.setHours(23, 59, 59, 999);
-      return { startDate, endDate };
-    }
-
-    // Month rolling-weeks mode: from start of anchor week through configured weeks.
-    if (this._viewMode === 'month' && this._config.rolling_weeks !== null) {
-      const anchorDate = new Date(this._currentDate);
-      anchorDate.setHours(0, 0, 0, 0);
-      const currentDay = anchorDate.getDay();
-      const diff = (currentDay - this._config.firstDayOfWeek + 7) % 7;
-
-      const startDate = new Date(anchorDate);
-      startDate.setDate(anchorDate.getDate() - diff);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + ((this._config.rolling_weeks + 1) * 7) - 1);
-      endDate.setHours(23, 59, 59, 999);
-      return { startDate, endDate };
-    }
-
-    // Standard month mode: full rendered grid (including adjacent month cells).
-    if (this._viewMode === 'month') {
-      const year = this._currentDate.getFullYear();
-      const month = this._currentDate.getMonth();
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startOffset = (firstDay - this._config.firstDayOfWeek + 7) % 7;
-      const totalCells = startOffset + daysInMonth;
-      const trailingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-
-      const startDate = new Date(year, month, 1 - startOffset);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(year, month, daysInMonth + trailingCells);
-      endDate.setHours(23, 59, 59, 999);
-
-      return { startDate, endDate };
-    }
-
-    // Week views: from first shown day to last shown day.
-    const weekDays = this.getWeekDays();
-    const startDate = new Date(weekDays[0]);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(weekDays[weekDays.length - 1]);
-    endDate.setHours(23, 59, 59, 999);
-    return { startDate, endDate };
-  }
-
-  getDateRangeChunks(startDate, endDate, chunkDays = 30) {
-    const chunks = [];
-    let cursor = new Date(startDate);
-    cursor.setHours(0, 0, 0, 0);
-
-    while (cursor <= endDate) {
-      const chunkStart = new Date(cursor);
-      const chunkEnd = new Date(cursor);
-      chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
-      if (chunkEnd > endDate) {
-        chunkEnd.setTime(endDate.getTime());
-      }
-      chunkEnd.setHours(23, 59, 59, 999);
-
-      chunks.push({ startDate: chunkStart, endDate: chunkEnd });
-
-      cursor = new Date(chunkEnd);
-      cursor.setDate(cursor.getDate() + 1);
-      cursor.setHours(0, 0, 0, 0);
-    }
-
-    return chunks;
-  }
-
-  getEventStartDate(event) {
-    if (event.start?.dateTime) return new Date(event.start.dateTime);
-    if (event.start?.date) return this.parseLocalDate(event.start.date);
-    return new Date(event.start);
-  }
-
-  parseLocalDate(dateStr) {
-    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
-    const [year, month, day] = dateStr.split('-').map(Number);
-    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
-    return new Date(year, month - 1, day);
-  }
-
-  parsePossiblyLocalDateTime(value) {
-    if (!value || typeof value !== 'string') return new Date(value);
-
-    const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
-    if (hasTimezone) return new Date(value);
-
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
-    if (!match) return new Date(value);
-
-    const [, year, month, day, hour, minute, second = '0'] = match;
-    return new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second)
-    );
-  }
-
-  formatLocalDate(date) {
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  getDefaultColor(index) {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
-    return colors[index % colors.length];
-  }
-
-  connectedCallback() {
-    window.addEventListener('resize', this._handleViewportResize);
-    window.visualViewport?.addEventListener('resize', this._handleViewportResize);
-    this.attachSystemThemeListener();
-    this.observeHostAndParentResize();
-    this.render();
-  }
-
-  disconnectedCallback() {
-    window.removeEventListener('resize', this._handleViewportResize);
-    window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
-    this.cancelMonthCompactMeasurement();
-    if (this._monthGridResizeObserver) {
-      this._monthGridResizeObserver.disconnect();
-      this._monthGridResizeObserver = null;
-    }
-    if (this._headerResizeObserver) {
-      this._headerResizeObserver.disconnect();
-      this._headerResizeObserver = null;
-    }
-    if (this._hostResizeObserver) {
-      this._hostResizeObserver.disconnect();
-      this._hostResizeObserver = null;
-    }
-    this._observedResizeParent = null;
-    this._lastObservedHostSize = null;
-    if (this._hostResizeRaf !== null) {
-      window.cancelAnimationFrame(this._hostResizeRaf);
-      this._hostResizeRaf = null;
-    }
-    this.detachSystemThemeListener();
-    this.teardownWeatherForecastSubscription();
-    this.updateEventModalOpenState(null);
-    if (this._modalVisibilityObserver) {
-      this._modalVisibilityObserver.disconnect();
-      this._modalVisibilityObserver = null;
-    }
-    if (this._wrapMeasureRaf1 !== null) {
-      window.cancelAnimationFrame(this._wrapMeasureRaf1);
-      this._wrapMeasureRaf1 = null;
-    }
-    if (this._wrapMeasureRaf2 !== null) {
-      window.cancelAnimationFrame(this._wrapMeasureRaf2);
-      this._wrapMeasureRaf2 = null;
-    }
-  }
-
-  getCompactMaxHeight(containerTopInViewport = null) {
-    if (!this._config.compact_height) return null;
-
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const containerTop = Math.max(
-      containerTopInViewport ?? this.getBoundingClientRect().top,
-      0
-    );
-    const bottomSpacing = 0;
-    const minimumHeight = 180;
-
-    return Math.max(minimumHeight, Math.floor(viewportHeight - containerTop - bottomSpacing));
-  }
-
-  getElementSizeForAllocation(element) {
-    if (!element || typeof element.getBoundingClientRect !== 'function') return { width: 0, height: 0 };
-    const rect = element.getBoundingClientRect();
-    return {
-      width: Number.isFinite(rect.width) ? rect.width : 0,
-      height: Number.isFinite(rect.height) ? rect.height : 0
-    };
-  }
-
-  hasFixedHeightParentAllocation() {
-    const parent = this.parentElement;
-    if (!parent || typeof parent.getBoundingClientRect !== 'function') return false;
-
-    const parentSize = this.getElementSizeForAllocation(parent);
-    if (parentSize.height <= 0) return false;
-
-    const parentStyle = typeof window.getComputedStyle === 'function' ? window.getComputedStyle(parent) : null;
-    const parentMaxHeight = parentStyle?.maxHeight || '';
-    const parentDisplay = parentStyle?.display || '';
-    const parentOverflowY = parentStyle?.overflowY || parentStyle?.overflow || '';
-    const inlineStyle = parent.getAttribute?.('style') || '';
-    const hasExplicitCssHeight = Boolean(
-      parent.style?.height ||
-      parent.style?.minHeight ||
-      parent.style?.maxHeight ||
-      /(?:^|;)\s*(?:height|min-height|max-height)\s*:/i.test(inlineStyle) ||
-      (parentMaxHeight && parentMaxHeight !== 'none' && parentMaxHeight !== '0px')
-    );
-    const looksLikeGridAllocation = /grid/i.test(parentDisplay) || parent.hasAttribute?.('grid_options') || parent.classList?.contains('grid-cell');
-    const clipsOrScrollsOverflow = /(auto|hidden|scroll|clip)/.test(parentOverflowY);
-    const hostSize = this.getElementSizeForAllocation(this);
-    const parentHasExtraAllocatedHeight = hostSize.height > 0 && parentSize.height - hostSize.height > 1;
-
-    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow || parentHasExtraAllocatedHeight;
-  }
-
-  getGridAwareCompactContainerStyle() {
-    return 'height: 100%; min-height: 0; overflow-y: auto;';
-  }
-
-  getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
-    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
-
-    if (this.hasFixedHeightParentAllocation()) {
-      return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;
-    }
-
-    const resolvedMaxHeight = compactMaxHeight || this.getCompactMaxHeight(this._monthContainerTopInViewport);
-    return resolvedMaxHeight
-      ? `height: ${resolvedMaxHeight}px; overflow-y: auto; ${rowTemplate}`
-      : '';
-  }
-
-  getCompactContainerStyle(maxHeight = null) {
-    if (!this._config.compact_height) return '';
-
-    if (this.hasFixedHeightParentAllocation()) {
-      return this.getGridAwareCompactContainerStyle();
-    }
-
-    const resolvedMaxHeight = maxHeight || this.getCompactMaxHeight();
-    if (!resolvedMaxHeight) return '';
-
-    return `height: ${resolvedMaxHeight}px; max-height: ${resolvedMaxHeight}px; overflow-y: auto;`;
-  }
-
-  preserveAgendaScrollForNextRender() {
-    if (this._viewMode !== 'agenda' || Number.isFinite(this._agendaPendingScrollTop)) return;
-    const agendaContainer = this.getRootElementById('agenda-container');
-    if (!agendaContainer) return;
-    this._agendaPendingScrollTop = agendaContainer.scrollTop;
-  }
-
-  renderPreservingAgendaScroll() {
-    this.preserveAgendaScrollForNextRender();
-    this.render();
-  }
-
-  setAgendaScrollTopWithoutTriggeringLoad(container, scrollTop) {
-    if (!container) return;
-
-    this._agendaSuppressScrollHandling = true;
-    container.scrollTop = scrollTop;
-
-    window.requestAnimationFrame(() => {
-      this._agendaSuppressScrollHandling = false;
-    });
-  }
-
-  updateWeekStandardFixedOffsetHeightFromDom() {
-    if (this._viewMode !== 'week-standard' || !this._config.compact_height || !this._root) return;
-    if (this.isEventManagementDialogOpen()) return;
-
-    const container = this._root.querySelector('.week-standard-container');
-    const headerSpacer = this._root.querySelector('.time-column-header-spacer');
-    const extraSpacer = this._root.querySelector('.time-column-extra-spacer');
-    const allDaySpacer = this._root.querySelector('.time-column-allday-spacer');
-    if (!container || !headerSpacer || !extraSpacer) return;
-
-    const computed = window.getComputedStyle(container);
-    const containerPadding = (parseFloat(computed.paddingTop) || 0) + (parseFloat(computed.paddingBottom) || 0);
-    const measuredOffset = Math.ceil(
-      containerPadding +
-      headerSpacer.getBoundingClientRect().height +
-      extraSpacer.getBoundingClientRect().height +
-      (allDaySpacer ? allDaySpacer.getBoundingClientRect().height : 0)
-    );
-    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
-
-    if (!Number.isFinite(measuredOffset) || !Number.isFinite(measuredContainerTop)) return;
-
-    const offsetChanged = this._weekStandardFixedOffsetHeight === null || Math.abs(this._weekStandardFixedOffsetHeight - measuredOffset) > 1;
-    const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
-
-    if (offsetChanged || containerTopChanged) {
-      this._weekStandardFixedOffsetHeight = measuredOffset;
-      this._weekStandardContainerTopInViewport = measuredContainerTop;
+    if (!this._rendered) {
       this.render();
-    }
-  }
-
-
-
-  cancelMonthCompactMeasurement() {
-    if (this._monthMeasureRaf !== null) {
-      window.cancelAnimationFrame(this._monthMeasureRaf);
-      this._monthMeasureRaf = null;
-    }
-
-    if (this._monthMeasureRenderRaf !== null) {
-      window.cancelAnimationFrame(this._monthMeasureRenderRaf);
-      this._monthMeasureRenderRaf = null;
-    }
-  }
-
-  scheduleMonthCompactTopMeasurement(force = false) {
-    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth()) return;
-    if (this.isEventManagementDialogOpen()) return;
-    if (!force && !this._monthCompactMeasurementDirty && this._monthContainerTopInViewport !== null) return;
-    if (this._monthMeasureRaf !== null) return;
-
-    this._monthMeasureRaf = window.requestAnimationFrame(() => {
-      this._monthMeasureRaf = null;
-      this.updateMonthContainerTopInViewportFromDom();
-      this._monthCompactMeasurementDirty = false;
-    });
-  }
-
-
-  observeHostAndParentResize() {
-    if (typeof window.ResizeObserver !== 'function') return;
-
-    const parent = this.parentElement || null;
-    if (this._hostResizeObserver && this._observedResizeParent === parent) return;
-
-    if (this._hostResizeObserver) {
-      this._hostResizeObserver.disconnect();
-      this._hostResizeObserver = null;
-    }
-
-    this._observedResizeParent = parent;
-    this._lastObservedHostSize = this.measureHostAndParentSize();
-    this._hostResizeObserver = new window.ResizeObserver(() => {
-      this.scheduleHostAndParentResizeHandling();
-    });
-    this._hostResizeObserver.observe(this);
-    if (parent) {
-      this._hostResizeObserver.observe(parent);
-    }
-  }
-
-  measureHostAndParentSize() {
-    const hostSize = this.getElementSizeForAllocation(this);
-    const parentSize = this.getElementSizeForAllocation(this.parentElement);
-    return {
-      hostWidth: Math.round(hostSize.width),
-      hostHeight: Math.round(hostSize.height),
-      parentWidth: Math.round(parentSize.width),
-      parentHeight: Math.round(parentSize.height)
-    };
-  }
-
-  hasObservedHostSizeChanged(nextSize) {
-    const previousSize = this._lastObservedHostSize;
-    if (!previousSize) return true;
-    return Object.keys(nextSize).some((key) => Math.abs(nextSize[key] - previousSize[key]) > 1);
-  }
-
-  scheduleHostAndParentResizeHandling() {
-    if (this._hostResizeRaf !== null) return;
-
-    this._hostResizeRaf = window.requestAnimationFrame(() => {
-      this._hostResizeRaf = null;
-      const nextSize = this.measureHostAndParentSize();
-      if (!this.hasObservedHostSizeChanged(nextSize)) return;
-
-      this._lastObservedHostSize = nextSize;
-      if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
-        this._monthCompactMeasurementDirty = true;
-      }
-      this.render();
-    });
-  }
-
-  observeHeaderResize() {
-    if (!this._root || typeof window.ResizeObserver !== 'function') return;
-
-    if (this._headerResizeObserver) {
-      this._headerResizeObserver.disconnect();
-      this._headerResizeObserver = null;
-    }
-
-    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
-    const header = this._root.querySelector(headerSelector);
-    if (!header) return;
-
-    this._headerResizeObserver = new window.ResizeObserver(() => {
-      this.updateCompactHeaderWrapState();
-    });
-    this._headerResizeObserver.observe(header);
-  }
-
-  observeMonthGridResize() {
-    if (!this._root || typeof window.ResizeObserver !== 'function') return;
-
-    if (this._monthGridResizeObserver) {
-      this._monthGridResizeObserver.disconnect();
-      this._monthGridResizeObserver = null;
-    }
-
-    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth()) return;
-
-    const container = this._root.querySelector('.calendar-container');
-    if (!container) return;
-
-    this._monthGridResizeObserver = new window.ResizeObserver(() => {
-      this._monthCompactMeasurementDirty = true;
-      this.scheduleMonthCompactTopMeasurement();
-    });
-    this._monthGridResizeObserver.observe(container);
-  }
-
-  updateMonthContainerTopInViewportFromDom() {
-    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth() || !this._root) return;
-    if (this.isEventManagementDialogOpen()) return;
-
-    const container = this._root.querySelector('.calendar-grid');
-    if (!container) return;
-
-    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    if (!Number.isFinite(measuredContainerTop)) return;
-    if (!Number.isFinite(viewportHeight)) return;
-
-    const containerTopChanged = this._monthContainerTopInViewport === null || Math.abs(this._monthContainerTopInViewport - measuredContainerTop) > 1;
-    const viewportHeightChanged = this._lastCompactMonthViewportHeight === null || Math.abs(this._lastCompactMonthViewportHeight - viewportHeight) > 1;
-
-    if (containerTopChanged) {
-      this._monthContainerTopInViewport = measuredContainerTop;
-    }
-    if (viewportHeightChanged) {
-      this._lastCompactMonthViewportHeight = viewportHeight;
-    }
-
-    if (containerTopChanged || viewportHeightChanged) {
-      if (this._monthMeasureRenderRaf === null) {
-        this._monthMeasureRenderRaf = window.requestAnimationFrame(() => {
-          this._monthMeasureRenderRaf = null;
-          this.render();
-        });
-      }
-    }
-  }
-
-  updateAgendaContainerTopInViewportFromDom() {
-    if (this._viewMode !== 'agenda' || !this._config.compact_height || !this._root) return;
-    if (this.isEventManagementDialogOpen()) return;
-
-    const container = this._root.querySelector('.agenda-container');
-    if (!container) return;
-
-    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
-    if (!Number.isFinite(measuredContainerTop)) return;
-
-    const containerTopChanged = this._agendaContainerTopInViewport === null || Math.abs(this._agendaContainerTopInViewport - measuredContainerTop) > 1;
-    if (containerTopChanged) {
-      this._agendaContainerTopInViewport = measuredContainerTop;
-      this.render();
-    }
-  }
-
-
-  getLanguage() {
-    return resolveLanguage(this._config.language || this._hass?.language || this._hass?.locale?.language);
-  }
-
-  getLocale() {
-    if (this._config.locale) return this._config.locale;
-
-    const configuredLanguage = this._config.language ? resolveLanguage(this._config.language) : null;
-    if (configuredLanguage) return TRANSLATIONS[configuredLanguage]?.locale || this._config.language;
-
-    const hassLocale = this._hass?.locale?.language;
-    if (hassLocale) return hassLocale;
-
-    const hassLanguage = this._hass?.language;
-    if (hassLanguage) {
-      const resolvedHassLanguage = resolveLanguage(hassLanguage);
-      return TRANSLATIONS[resolvedHassLanguage]?.locale || hassLanguage;
-    }
-
-    return globalThis.navigator?.languages?.[0]
-      || globalThis.navigator?.language
-      || TRANSLATIONS[DEFAULT_LANGUAGE]?.locale
-      || 'en-US';
-  }
-
-  t(key, params = {}) {
-    return translate(this.getLanguage(), key, params);
-  }
-
-  getWeekdayNameFormat() {
-    return this._config?.display_full_weekday_names ? 'long' : 'short';
-  }
-
-  getWeekdayNames(format = this.getWeekdayNameFormat()) {
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), { weekday: format });
-    const baseDate = new Date(2021, 5, 6);
-    const names = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(baseDate);
-      date.setDate(baseDate.getDate() + i);
-      names.push(formatter.format(date));
-    }
-    return names;
-  }
-
-  setWeekStart() {
-    const date = new Date(this._currentDate);
-    const day = date.getDay();
-    const diff = (day - this._config.firstDayOfWeek + 7) % 7;
-    date.setDate(date.getDate() - diff);
-    date.setHours(0, 0, 0, 0);
-    this._weekStart = date;
-  }
-
-  resetAgendaWindowToToday() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    this._currentDate = new Date(today);
-    this._agendaStartDate = new Date(today);
-
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + this.getAgendaPeriodDaySpan());
-    endDate.setHours(23, 59, 59, 999);
-    this._agendaEndDate = endDate;
-    this._agendaVisibleStartDate = new Date(today);
-    const visibleEndDate = new Date(endDate);
-    visibleEndDate.setHours(23, 59, 59, 999);
-    this._agendaVisibleEndDate = visibleEndDate;
-  }
-
-  ensureAgendaWindowInitialized() {
-    if (this._agendaStartDate && this._agendaEndDate) return;
-    this.resetAgendaWindowToToday();
-  }
-
-  getAgendaDays() {
-    this.ensureAgendaWindowInitialized();
-    const days = [];
-    const cursor = new Date(this._agendaStartDate);
-    cursor.setHours(0, 0, 0, 0);
-    const end = new Date(this._agendaEndDate);
-    end.setHours(0, 0, 0, 0);
-
-    while (cursor <= end) {
-      days.push(new Date(cursor));
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return days;
-  }
-
-  getAgendaVisibleDateRangeFromDom() {
-    if (!this._root || this._viewMode !== 'agenda') return null;
-
-    const container = this.getRootElementById('agenda-container');
-    if (!container) return null;
-
-    const containerRect = container.getBoundingClientRect();
-    const dayRows = Array.from(container.querySelectorAll('.agenda-day-row'));
-    if (dayRows.length === 0) return null;
-
-    const visibleDates = dayRows
-      .map((row) => {
-        const rect = row.getBoundingClientRect();
-        const isVisible = rect.bottom > containerRect.top && rect.top < containerRect.bottom;
-        if (!isVisible) return null;
-        const rawDate = row.getAttribute('data-date');
-        if (!rawDate) return null;
-        return new Date(rawDate);
-      })
-      .filter((date) => date instanceof Date && !Number.isNaN(date.getTime()));
-
-    if (visibleDates.length === 0) return null;
-
-    const startDate = new Date(visibleDates[0]);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(visibleDates[visibleDates.length - 1]);
-    endDate.setHours(23, 59, 59, 999);
-
-    return { startDate, endDate };
-  }
-
-  updateAgendaVisibleDateRangeFromDom() {
-    const visibleRange = this.getAgendaVisibleDateRangeFromDom();
-    if (!visibleRange) {
-      this._agendaVisibleStartDate = null;
-      this._agendaVisibleEndDate = null;
-      this.updateAgendaPeriodLabelInDom();
       return;
     }
 
-    this._agendaVisibleStartDate = visibleRange.startDate;
-    this._agendaVisibleEndDate = visibleRange.endDate;
-    this.updateAgendaPeriodLabelInDom();
-  }
+    const nextEntities = Array.isArray(this._config.entities) ? this._config.entities : [];
+    const entitiesChanged = previousEntities.join('|') !== nextEntities.join('|');
 
-  isAgendaRangeWithinCurrentWindow(range) {
-    if (!range?.startDate || !range?.endDate || !this._agendaStartDate || !this._agendaEndDate) {
-      return false;
+    if (entitiesChanged) {
+      this.render();
+      return;
     }
 
-    const rangeStart = new Date(range.startDate);
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(range.endDate);
-    rangeEnd.setHours(23, 59, 59, 999);
-    const windowStart = new Date(this._agendaStartDate);
-    windowStart.setHours(0, 0, 0, 0);
-    const windowEnd = new Date(this._agendaEndDate);
-    windowEnd.setHours(23, 59, 59, 999);
-
-    return rangeStart >= windowStart && rangeEnd <= windowEnd;
+    this.updateFieldValues();
   }
 
-  updateAgendaPeriodLabelInDom() {
-    if (!this._root || this._viewMode !== 'agenda') return;
-    const label = this.getPeriodLabel();
-    this._root.querySelectorAll('.month-year').forEach((labelEl) => {
-      labelEl.textContent = label;
+  set hass(hass) {
+    this._hass = hass;
+    this._dashboardOptions = this.getDashboardOptionsForEditor();
+
+    if (!this._rendered) {
+      this.render();
+      return;
+    }
+
+    this.refreshCalendarEntities();
+  }
+
+  get value() {
+    return this._config || createDefaultStubConfig();
+  }
+
+  getCalendarEntities() {
+    return Object.keys(this._hass?.states || {})
+      .filter((entityId) => entityId.startsWith('calendar.'))
+      .sort();
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  normalizeDefaultViewForEditor(value) {
+    return normalizeDefaultViewForEditor(value);
+  }
+
+  getEventCalendarBubbleMode() {
+    return getEventCalendarBubbleMode(this._config);
+  }
+
+  getMapFieldValue(key) {
+    const value = this._config[key];
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  getListFieldValue(key) {
+    const value = this._config[key];
+    return Array.isArray(value) ? value : [];
+  }
+
+  getListInputValue(key) {
+    return this.getListFieldValue(key).join(', ');
+  }
+
+  getEditorDefaultValue(key) {
+    return getEditorDefaultValue(key);
+  }
+
+  getConfiguredEntitiesForEditor() {
+    const entities = Array.isArray(this._config.entities) ? this._config.entities : [];
+    return entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'));
+  }
+
+  getEntityFriendlyName(entityId) {
+    return getEntityFriendlyName(this._hass, entityId);
+  }
+
+  getConfiguredEntityIndex(entityId) {
+    return this.getConfiguredEntitiesForEditor().indexOf(entityId);
+  }
+
+  getEditorCalendarColor(entityId) {
+    const entityIndex = this.getConfiguredEntityIndex(entityId);
+    return this.normalizeHexColor(this.getMapFieldValue('colors')[entityId]) ||
+      getDefaultColor(Math.max(entityIndex, 0));
+  }
+
+  getContrastingEditorColor(backgroundColor) {
+    const hex = this.normalizeHexColor(backgroundColor);
+    if (!hex) return '#FFFFFF';
+
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6 ? '#000000' : '#FFFFFF';
+  }
+
+  getEditorEventFontColor(entityId) {
+    return this.normalizeHexColor(this.getMapFieldValue('event_font_colors')[entityId]) ||
+      this.getContrastingEditorColor(this.getEditorCalendarColor(entityId));
+  }
+
+  getVirtualCalendarsForEditor() {
+    return Array.isArray(this._config.virtual_calendars) ? this._config.virtual_calendars : [];
+  }
+
+  getRenderableVirtualCalendarsForEditor() {
+    return this.getVirtualCalendarsForEditor()
+      .map((virtualCalendar, index) => ({ virtualCalendar, index }))
+      .filter(({ virtualCalendar }) => virtualCalendar && typeof virtualCalendar === 'object' && !Array.isArray(virtualCalendar));
+  }
+
+  getNextVirtualCalendarId() {
+    const existingIds = new Set(this.getVirtualCalendarsForEditor()
+      .filter((virtualCalendar) => virtualCalendar && typeof virtualCalendar === 'object')
+      .map((virtualCalendar) => String(virtualCalendar.id || '').trim())
+      .filter(Boolean));
+    let index = 1;
+    let candidate = `virtual_${index}`;
+    while (existingIds.has(candidate)) {
+      index += 1;
+      candidate = `virtual_${index}`;
+    }
+    return candidate;
+  }
+
+  sanitizeVirtualCalendarForEditor(virtualCalendar) {
+    const nextVirtualCalendar = {
+      ...(virtualCalendar && typeof virtualCalendar === 'object' ? virtualCalendar : {})
+    };
+
+    nextVirtualCalendar.id = String(nextVirtualCalendar.id || '').trim();
+    nextVirtualCalendar.name = String(nextVirtualCalendar.name || '').trim();
+
+    const icon = String(nextVirtualCalendar.icon || '').trim();
+    if (icon) nextVirtualCalendar.icon = icon;
+    else nextVirtualCalendar.icon = null;
+
+    const color = String(nextVirtualCalendar.color || '').trim();
+    if (color) nextVirtualCalendar.color = color;
+    else nextVirtualCalendar.color = null;
+
+    nextVirtualCalendar.entities = Array.isArray(nextVirtualCalendar.entities)
+      ? nextVirtualCalendar.entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'))
+      : [];
+
+    return nextVirtualCalendar;
+  }
+
+  getVirtualCalendarIdValidation(index) {
+    const virtualCalendars = this.getVirtualCalendarsForEditor();
+    const virtualCalendar = virtualCalendars[index];
+    if (!virtualCalendar || typeof virtualCalendar !== 'object') return '';
+
+    const id = String(virtualCalendar.id || '').trim();
+    if (!id) return 'ID is required for runtime matching.';
+
+    const duplicateIndex = virtualCalendars.findIndex((otherVirtualCalendar, otherIndex) => (
+      otherIndex !== index &&
+      otherVirtualCalendar &&
+      typeof otherVirtualCalendar === 'object' &&
+      String(otherVirtualCalendar.id || '').trim() === id
+    ));
+
+    return duplicateIndex === -1 ? '' : 'ID duplicates another virtual calendar.';
+  }
+
+  getEditorVirtualCalendarColor(index) {
+    const virtualCalendar = this.getVirtualCalendarsForEditor()[index];
+    return this.toColorInputValue(virtualCalendar?.color);
+  }
+
+  getEditorMapColorValue(field, entityId) {
+    if (field === 'colors') {
+      return this.getEditorCalendarColor(entityId);
+    }
+
+    if (field === 'event_font_colors') {
+      return this.getEditorEventFontColor(entityId);
+    }
+
+    return this.toColorInputValue(this.getMapFieldValue(field)[entityId]);
+  }
+
+  getDashboardOptionsForEditor() {
+    const panels = this._hass?.panels || {};
+    const dashboards = Object.values(panels)
+      .filter((panel) => panel?.component_name === 'lovelace' && typeof panel.url_path === 'string' && panel.url_path.trim())
+      .map((panel) => {
+        const path = panel.url_path.startsWith('/') ? panel.url_path : `/${panel.url_path}`;
+        const title = panel.title || panel.config?.title || panel.url_path;
+        return { path, title };
+      });
+
+    const uniqueByPath = new Map();
+    dashboards.forEach((dashboard) => {
+      uniqueByPath.set(dashboard.path, dashboard);
     });
+
+    const configuredPath = normalizeDashboardPath(this._config.header_dashboard_path);
+    if (configuredPath && !uniqueByPath.has(configuredPath)) {
+      uniqueByPath.set(configuredPath, { path: configuredPath, title: configuredPath });
+    }
+
+    return Array.from(uniqueByPath.values())
+      .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
   }
 
-  getAgendaViewportDayCapacity() {
-    if (!this._root || this._viewMode !== 'agenda') {
-      return this._agendaDaysPerScrollLoad;
+  toColorInputValue(value, fallback = '#3f51b5') {
+    const normalized = String(value || '').trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+      return normalized;
     }
-
-    const container = this.getRootElementById('agenda-container');
-    if (!container) {
-      return this._agendaDaysPerScrollLoad;
-    }
-
-    const rows = Array.from(container.querySelectorAll('.agenda-day-row'));
-    if (rows.length === 0) {
-      return this._agendaDaysPerScrollLoad;
-    }
-
-    const maxHeight = container.clientHeight;
-    if (!Number.isFinite(maxHeight) || maxHeight <= 0) {
-      return this._agendaDaysPerScrollLoad;
-    }
-
-    let consumedHeight = 0;
-    let dayCount = 0;
-
-    for (const row of rows) {
-      const rowHeight = row.getBoundingClientRect().height;
-      if (!Number.isFinite(rowHeight) || rowHeight <= 0) continue;
-
-      if ((consumedHeight + rowHeight) > maxHeight && dayCount > 0) {
-        break;
-      }
-
-      consumedHeight += rowHeight;
-      dayCount += 1;
-
-      if (consumedHeight >= maxHeight) {
-        break;
-      }
-    }
-
-    return Math.max(1, dayCount || this._agendaDaysPerScrollLoad);
+    return fallback;
   }
 
-  getAgendaRollingDays() {
-    if (this._config?.rolling_days_agenda !== null && this._config?.rolling_days_agenda !== undefined) {
-      return this._config.rolling_days_agenda;
+  hexToHsv(hex) {
+    const normalizedHex = this.toColorInputValue(hex).replace('#', '');
+    const r = parseInt(normalizedHex.slice(0, 2), 16) / 255;
+    const g = parseInt(normalizedHex.slice(2, 4), 16) / 255;
+    const b = parseInt(normalizedHex.slice(4, 6), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+
+    let h = 0;
+    if (delta !== 0) {
+      if (max === r) h = ((g - b) / delta) % 6;
+      else if (max === g) h = (b - r) / delta + 2;
+      else h = (r - g) / delta + 4;
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
     }
 
-    return null;
+    const s = max === 0 ? 0 : delta / max;
+    const v = max;
+    return { h, s, v };
   }
 
-  getAgendaPeriodDaySpan() {
-    const rollingDays = this.getAgendaRollingDays();
-    return rollingDays !== null ? rollingDays : 14;
+  hsvToHex(h, s, v) {
+    const hue = ((h % 360) + 360) % 360;
+    const sat = Math.max(0, Math.min(1, s));
+    const val = Math.max(0, Math.min(1, v));
+
+    const c = val * sat;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const m = val - c;
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    if (hue < 60) [r, g, b] = [c, x, 0];
+    else if (hue < 120) [r, g, b] = [x, c, 0];
+    else if (hue < 180) [r, g, b] = [0, c, x];
+    else if (hue < 240) [r, g, b] = [0, x, c];
+    else if (hue < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+
+    const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 
-  getRollingDaysForView(viewMode = this._viewMode) {
-    if (viewMode === 'week-compact' && this._config.rolling_days_week_compact !== null) {
-      return this._config.rolling_days_week_compact;
+  getColorValue(field, mapKey = null) {
+    if (field === 'virtual_calendar_color') {
+      return this.getEditorVirtualCalendarColor(Number(mapKey));
     }
-
-    if (viewMode === 'week-standard' && this._config.rolling_days_schedule !== null) {
-      return this._config.rolling_days_schedule;
+    if (mapKey) {
+      return this.getEditorMapColorValue(field, mapKey);
     }
-
-    return null;
+    return this.toColorInputValue(this._config[field]);
   }
 
-  getWeekDays(viewMode = this._viewMode) {
-    const rollingDays = this.getRollingDaysForView(viewMode);
-
-    // If rolling days are set, show current date + N days
-    if (rollingDays !== null) {
-      const days = [];
-      const startDate = new Date(this._currentDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i <= rollingDays; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        days.push(date);
-      }
-      return days;
-    }
-
-    // Otherwise use the week-based approach
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(this._weekStart);
-      date.setDate(this._weekStart.getDate() + i);
-      if (this._config.week_days.includes(date.getDay())) {
-        days.push(date);
-      }
-    }
-    return days;
+  emitConfigChanged(nextConfig) {
+    this._config = nextConfig;
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: nextConfig },
+        bubbles: true,
+        composed: true
+      })
+    );
   }
 
-  getStyles() {
+  openColorPicker(field, mapKey = null) {
+    const initialColor = this.getColorValue(field, mapKey);
+    const hsv = this.hexToHsv(initialColor);
+    this._colorPickerState = {
+      open: true,
+      field,
+      mapKey,
+      h: hsv.h,
+      s: hsv.s,
+      v: hsv.v,
+      color: initialColor
+    };
+
+    const dialog = this.querySelector('.color-picker-dialog');
+    if (dialog) {
+      dialog.classList.add('show');
+      this.syncColorPickerUi();
+    }
+  }
+
+  closeColorPicker() {
+    this._colorPickerState.open = false;
+    const dialog = this.querySelector('.color-picker-dialog');
+    if (dialog) dialog.classList.remove('show');
+  }
+
+  syncColorPickerUi() {
+    const dialog = this.querySelector('.color-picker-dialog');
+    if (!dialog) return;
+
+    const { h, s, v, color } = this._colorPickerState;
+    const marker = dialog.querySelector('.color-picker-wheel-marker');
+    const brightnessInput = dialog.querySelector('#color-picker-brightness');
+    const hexInput = dialog.querySelector('#color-picker-hex');
+    const preview = dialog.querySelector('.color-picker-preview');
+    const valueText = dialog.querySelector('.color-picker-value');
+
+    if (marker) {
+      const radius = 120;
+      const angle = ((h - 90) * Math.PI) / 180;
+      const markerRadius = s * radius;
+      const x = Math.cos(angle) * markerRadius;
+      const y = Math.sin(angle) * markerRadius;
+      marker.style.left = `calc(50% + ${x}px)`;
+      marker.style.top = `calc(50% + ${y}px)`;
+    }
+
+    if (brightnessInput) brightnessInput.value = String(Math.round(v * 100));
+    if (hexInput && document.activeElement !== hexInput) hexInput.value = color;
+    if (preview) preview.style.background = color;
+    if (valueText) valueText.textContent = color;
+  }
+
+  updateColorPickerFromWheelEvent(event) {
+    const wheel = event.currentTarget;
+    const rect = wheel.getBoundingClientRect();
+    const x = event.clientX - rect.left - rect.width / 2;
+    const y = event.clientY - rect.top - rect.height / 2;
+    const radius = rect.width / 2;
+    const distance = Math.min(Math.sqrt(x * x + y * y), radius);
+    const saturation = distance / radius;
+    const hue = (Math.atan2(y, x) * 180) / Math.PI + 90;
+
+    this._colorPickerState.h = hue < 0 ? hue + 360 : hue;
+    this._colorPickerState.s = saturation;
+    this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
+    this.syncColorPickerUi();
+  }
+
+  applyColorPickerColor(hexColor) {
+    const { field, mapKey } = this._colorPickerState;
+    if (!field) return;
+
+    if (field === 'virtual_calendar_color') {
+      this.updateVirtualCalendar(Number(mapKey), { color: hexColor }, { render: true });
+      this.closeColorPicker();
+      return;
+    }
+
+    const nextConfig = { ...this.value };
+    if (mapKey) {
+      nextConfig[field] = {
+        ...this.getMapFieldValue(field),
+        [mapKey]: hexColor
+      };
+    } else {
+      nextConfig[field] = hexColor;
+    }
+
+    this.emitConfigChanged(nextConfig);
+    this.updateFieldValues();
+    this.closeColorPicker();
+  }
+
+  normalizeHexColorInput(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+    return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : null;
+  }
+
+  renderColorPickerDialog() {
     return `
+      <div class="color-picker-dialog">
+        <div class="color-picker-overlay" data-close-color-picker="true"></div>
+        <div class="color-picker-modal" role="dialog" aria-label="Select color">
+          <div class="color-picker-title">Select color</div>
+          <div class="color-picker-wheel" id="color-picker-wheel">
+            <div class="color-picker-wheel-marker"></div>
+          </div>
+          <div class="color-picker-controls">
+            <label for="color-picker-brightness">Color brightness</label>
+            <input id="color-picker-brightness" type="range" min="5" max="100" step="1">
+          </div>
+          <div class="color-picker-controls">
+            <label for="color-picker-hex">Hex color</label>
+            <input id="color-picker-hex" type="text" placeholder="#3f51b5">
+          </div>
+          <div class="color-picker-presets">
+            ${['#ffffff', '#ff0000', '#ffff00', '#00ff00', '#000000', '#00ffff', '#0000ff', '#ff00ff']
+              .map((color) => `<button type="button" class="color-preset" data-color-preset="${color}" style="background:${color}"></button>`)
+              .join('')}
+          </div>
+          <div class="color-picker-selected-row">
+            <span>Chosen color</span>
+            <span class="color-picker-preview"></span>
+            <span class="color-picker-value"></span>
+          </div>
+          <div class="color-picker-actions">
+            <button type="button" data-close-color-picker="true">Cancel</button>
+            <button type="button" class="primary" id="apply-color-picker">Set</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderColorInputControl({ id, field, mapKey = null, value }) {
+    return renderEditorColorInputControl({
+      id,
+      field,
+      mapKey,
+      value,
+      toColorInputValue: (colorValue) => this.toColorInputValue(colorValue)
+    });
+  }
+
+  renderMapRowInputs(mapKey, { label, inputType = 'text', placeholder = '' } = {}) {
+    const mapValue = this.getMapFieldValue(mapKey);
+    const entities = this.getConfiguredEntitiesForEditor();
+
+    if (!entities.length) {
+      return `<p class="helper">Select at least one calendar to configure ${label || mapKey}.</p>`;
+    }
+
+    return entities
+      .map((entityId) => {
+        const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
+        const value = inputType === 'color' ? this.getEditorMapColorValue(mapKey, entityId) : (mapValue[entityId] || '');
+        if (inputType === 'color') {
+          return `
+            <div class="map-row">
+              <label class="map-label" for="${mapKey}-${entityId}">${displayName}</label>
+              ${this.renderColorInputControl({ id: `${mapKey}-${entityId}`, field: mapKey, mapKey: entityId, value })}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="map-row">
+            <label class="map-label" for="${mapKey}-${entityId}">${displayName}</label>
+            <input id="${mapKey}-${entityId}" type="text" data-map-field="${mapKey}" data-map-key="${entityId}" value="${this.escapeHtml(value)}" placeholder="${placeholder}">
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  renderCalendarListCheckboxes(field, { label }) {
+    const entities = this.getConfiguredEntitiesForEditor();
+    const selectedValues = new Set(this.getListFieldValue(field));
+
+    if (!entities.length) {
+      return `<p class="helper">Select at least one calendar to configure ${label || field}.</p>`;
+    }
+
+    return entities
+      .map((entityId) => {
+        const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
+        const checked = selectedValues.has(entityId) ? 'checked' : '';
+        return `
+          <label class="list-checkbox-row">
+            <span>${displayName}</span>
+            <input type="checkbox" data-list-field="${field}" value="${entityId}" ${checked}>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
+  buildDisclosureKey(scope, title) {
+    return `${scope}:${title}`;
+  }
+
+  captureOpenDisclosures() {
+    const openKeys = new Set();
+    this.querySelectorAll('details[data-disclosure-key][open]').forEach((detail) => {
+      const key = detail.dataset.disclosureKey;
+      if (key) openKeys.add(key);
+    });
+    this._openDisclosureKeys = openKeys;
+  }
+
+  renderSection(title, content) {
+    const disclosureKey = this.buildDisclosureKey('section', title);
+    return renderEditorSection({
+      title,
+      content,
+      disclosureKey,
+      open: this._openDisclosureKeys.has(disclosureKey)
+    });
+  }
+
+  renderSubSection(title, content) {
+    const disclosureKey = this.buildDisclosureKey('subsection', title);
+    return renderEditorSubSection({
+      title,
+      content,
+      disclosureKey,
+      open: this._openDisclosureKeys.has(disclosureKey)
+    });
+  }
+
+  renderVirtualCalendarsEditor() {
+    const renderableVirtualCalendars = this.getRenderableVirtualCalendarsForEditor();
+
+    return `
+      <div class="virtual-calendars-editor">
+        <p class="helper">Create display-only calendar badges that group one or more configured real calendars.</p>
+        ${renderableVirtualCalendars.length ? renderableVirtualCalendars
+          .map(({ virtualCalendar, index }, renderIndex) => this.renderVirtualCalendarRow(virtualCalendar, index, renderIndex, renderableVirtualCalendars.length))
+          .join('') : '<p class="helper">No virtual calendars configured yet.</p>'}
+        <button type="button" class="secondary-action" data-virtual-calendar-action="add">Add virtual calendar</button>
+      </div>
+    `;
+  }
+
+  renderVirtualCalendarRow(virtualCalendar, index, renderIndex = index, renderCount = this.getRenderableVirtualCalendarsForEditor().length) {
+    const configuredEntities = this.getConfiguredEntitiesForEditor();
+    const configuredEntitySet = new Set(configuredEntities);
+    const selectedEntityValues = Array.isArray(virtualCalendar.entities)
+      ? virtualCalendar.entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'))
+      : [];
+    const selectedEntities = new Set(selectedEntityValues);
+    const legacyEntities = selectedEntityValues.filter((entityId) => !configuredEntitySet.has(entityId));
+    const virtualCalendarName = String(virtualCalendar.name || '').trim();
+    const virtualCalendarId = String(virtualCalendar.id || '').trim();
+    const virtualCalendarIcon = String(virtualCalendar.icon || '').trim();
+    const virtualCalendarColor = String(virtualCalendar.color || '').trim();
+    const idValidation = this.getVirtualCalendarIdValidation(index);
+    const idValidationMarkup = idValidation
+      ? `<p class="validation-message" id="virtual-calendar-id-error-${index}">${this.escapeHtml(idValidation)}</p>`
+      : '';
+    const colorStatusMarkup = virtualCalendarColor
+      ? `<span class="virtual-calendar-color-status">Override: ${this.escapeHtml(virtualCalendarColor)}</span>`
+      : '<span class="virtual-calendar-color-status no-override">No color override set</span>';
+    const checkboxRows = configuredEntities.map((entityId) => {
+      const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
+      const checked = selectedEntities.has(entityId) ? 'checked' : '';
+      return `
+        <label class="list-checkbox-row virtual-calendar-entity-row">
+          <span>${displayName}</span>
+          <input type="checkbox" data-virtual-calendar-entity="true" data-virtual-calendar-index="${index}" value="${this.escapeHtml(entityId)}" ${checked}>
+        </label>
+      `;
+    });
+
+    legacyEntities.forEach((entityId) => {
+      checkboxRows.push(`
+        <label class="list-checkbox-row virtual-calendar-entity-row legacy-entity-row">
+          <span>${this.escapeHtml(entityId)} <em>(not in configured calendars)</em></span>
+          <input type="checkbox" data-virtual-calendar-entity="true" data-virtual-calendar-index="${index}" value="${this.escapeHtml(entityId)}" checked disabled>
+        </label>
+      `);
+    });
+
+    const checkboxMarkup = checkboxRows.length
+      ? checkboxRows.join('')
+      : '<p class="helper">Select at least one real calendar above to include calendars here.</p>';
+
+    return `
+      <div class="virtual-calendar-card" data-virtual-calendar-card="${index}">
+        <div class="virtual-calendar-card-header">
+          <strong>${this.escapeHtml(virtualCalendarName || virtualCalendarId || `Virtual calendar ${renderIndex + 1}`)}</strong>
+          <div class="virtual-calendar-actions">
+            <button type="button" title="Move up" data-virtual-calendar-action="move-up" data-virtual-calendar-index="${index}" ${renderIndex === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" title="Move down" data-virtual-calendar-action="move-down" data-virtual-calendar-index="${index}" ${renderIndex === renderCount - 1 ? 'disabled' : ''}>↓</button>
+            <button type="button" title="Remove" data-virtual-calendar-action="remove" data-virtual-calendar-index="${index}">Remove</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="virtual-calendar-name-${index}">Name</label>
+            <input id="virtual-calendar-name-${index}" type="text" data-virtual-calendar-field="name" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarName)}" placeholder="Virtual Calendar">
+          </div>
+          <div class="field">
+            <label for="virtual-calendar-id-${index}">ID</label>
+            <input id="virtual-calendar-id-${index}" type="text" data-virtual-calendar-field="id" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarId)}" placeholder="virtual_1" ${idValidation ? 'aria-invalid="true"' : ''} ${idValidation ? `aria-describedby="virtual-calendar-id-error-${index}"` : ''}>
+            ${idValidationMarkup}
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="virtual-calendar-icon-${index}">Icon</label>
+            <input id="virtual-calendar-icon-${index}" type="text" data-virtual-calendar-field="icon" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarIcon)}" placeholder="mdi:calendar">
+          </div>
+          <div class="field virtual-calendar-color-field">
+            <label for="virtual-calendar-color-${index}">Color override (optional)</label>
+            <div class="virtual-calendar-color-row">
+              ${this.renderColorInputControl({ id: `virtual-calendar-color-picker-${index}`, field: 'virtual_calendar_color', mapKey: String(index), value: virtualCalendarColor })}
+              <input id="virtual-calendar-color-${index}" type="text" data-virtual-calendar-field="color" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarColor)}" placeholder="#3f51b5">
+              ${colorStatusMarkup}
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Included calendar entities</label>
+          <div class="list-checkbox-grid virtual-calendar-entities">
+            ${checkboxMarkup}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  updateVirtualCalendar(index, patch, { render = false } = {}) {
+    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
+    if (index < 0 || index >= virtualCalendars.length) return;
+    const currentVirtualCalendar = virtualCalendars[index];
+    if (!currentVirtualCalendar || typeof currentVirtualCalendar !== 'object' || Array.isArray(currentVirtualCalendar)) return;
+
+    virtualCalendars[index] = this.sanitizeVirtualCalendarForEditor({
+      ...currentVirtualCalendar,
+      ...patch
+    });
+
+    this.emitConfigChanged({
+      ...this.value,
+      virtual_calendars: virtualCalendars
+    });
+
+    if (render) this.render();
+    else this.updateFieldValues();
+  }
+
+  addVirtualCalendar() {
+    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
+    virtualCalendars.push({
+      id: this.getNextVirtualCalendarId(),
+      name: 'Virtual Calendar',
+      icon: null,
+      color: null,
+      entities: []
+    });
+
+    this.emitConfigChanged({
+      ...this.value,
+      virtual_calendars: virtualCalendars
+    });
+    this.render();
+  }
+
+  removeVirtualCalendar(index) {
+    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
+    if (index < 0 || index >= virtualCalendars.length) return;
+    virtualCalendars.splice(index, 1);
+
+    this.emitConfigChanged({
+      ...this.value,
+      virtual_calendars: virtualCalendars
+    });
+    this.render();
+  }
+
+  moveVirtualCalendar(index, direction) {
+    const renderableVirtualCalendars = this.getRenderableVirtualCalendarsForEditor();
+    const renderIndex = renderableVirtualCalendars.findIndex((entry) => entry.index === index);
+    const swapEntry = renderableVirtualCalendars[renderIndex + direction];
+    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
+    if (renderIndex === -1 || !swapEntry || index < 0 || index >= virtualCalendars.length) return;
+    [virtualCalendars[index], virtualCalendars[swapEntry.index]] = [virtualCalendars[swapEntry.index], virtualCalendars[index]];
+
+    this.emitConfigChanged({
+      ...this.value,
+      virtual_calendars: virtualCalendars
+    });
+    this.render();
+  }
+
+  handleVirtualCalendarAction(event) {
+    const action = event.currentTarget.dataset.virtualCalendarAction;
+    const index = Number(event.currentTarget.dataset.virtualCalendarIndex);
+    if (action === 'add') this.addVirtualCalendar();
+    else if (action === 'remove') this.removeVirtualCalendar(index);
+    else if (action === 'move-up') this.moveVirtualCalendar(index, -1);
+    else if (action === 'move-down') this.moveVirtualCalendar(index, 1);
+  }
+
+  handleVirtualCalendarInput(event) {
+    const index = Number(event.target.dataset.virtualCalendarIndex);
+    const field = event.target.dataset.virtualCalendarField;
+    if (!field) return;
+    const value = String(event.target.value || '').trim();
+    this.updateVirtualCalendar(index, {
+      [field]: field === 'icon' || field === 'color' ? (value || null) : value
+    }, { render: field === 'id' || field === 'name' || field === 'color' });
+  }
+
+  handleVirtualCalendarEntityChange(event) {
+    const index = Number(event.target.dataset.virtualCalendarIndex);
+    const checkedEntities = Array.from(this.querySelectorAll(`input[data-virtual-calendar-entity][data-virtual-calendar-index="${index}"]:checked`))
+      .map((input) => input.value)
+      .filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'));
+    this.updateVirtualCalendar(index, { entities: checkedEntities });
+  }
+
+  renderWeekdayCheckboxes() {
+    return renderEditorWeekdayCheckboxes({
+      selectedWeekdays: new Set(this.getListFieldValue('week_days'))
+    });
+  }
+
+  render() {
+    this.captureOpenDisclosures();
+
+    const displayLayoutSection = this.renderSection('Display & layout', `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="first_day_of_week">First day of week</label>
+          <select id="first_day_of_week" data-field="first_day_of_week" data-type="number">
+            <option value="0" ${Number(this._config.first_day_of_week) === 0 ? 'selected' : ''}>Sunday</option>
+            <option value="1" ${Number(this._config.first_day_of_week) === 1 ? 'selected' : ''}>Monday</option>
+            <option value="2" ${Number(this._config.first_day_of_week) === 2 ? 'selected' : ''}>Tuesday</option>
+            <option value="3" ${Number(this._config.first_day_of_week) === 3 ? 'selected' : ''}>Wednesday</option>
+            <option value="4" ${Number(this._config.first_day_of_week) === 4 ? 'selected' : ''}>Thursday</option>
+            <option value="5" ${Number(this._config.first_day_of_week) === 5 ? 'selected' : ''}>Friday</option>
+            <option value="6" ${Number(this._config.first_day_of_week) === 6 ? 'selected' : ''}>Saturday</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Week days</label>
+        ${this.renderWeekdayCheckboxes()}
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_start_hour">Week start hour</label>
+          <input id="week_start_hour" data-field="week_start_hour" data-type="number" type="number" min="0" max="23" value="${Number(this._config.week_start_hour ?? this.getEditorDefaultValue('week_start_hour'))}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_end_hour">Week end hour</label>
+          <input id="week_end_hour" data-field="week_end_hour" data-type="number" type="number" min="0" max="23" value="${Number(this._config.week_end_hour ?? this.getEditorDefaultValue('week_end_hour'))}">
+        </div>
+      </div>
+      <div class="boolean-list">
+        <label><input type="checkbox" data-field="lock_schedule_hours" ${this._config.lock_schedule_hours ? 'checked' : ''}> Schedule view: lock week start/end hours</label>
+        <label class="field-inline">Past-ended events
+          <select data-field="past_event_mode">
+            <option value="none" ${this._config.past_event_mode === 'none' ? 'selected' : ''}>Show normally</option>
+            <option value="hide" ${this._config.past_event_mode === 'hide' ? 'selected' : ''}>Hide</option>
+            <option value="muted" ${this._config.past_event_mode === 'muted' ? 'selected' : ''}>Mute</option>
+          </select>
+        </label>
+        <label><input type="checkbox" data-field="hide_empty_days" ${this._config.hide_empty_days ? 'checked' : ''}> Agenda view: hide empty days</label>
+        <label><input type="checkbox" data-field="agenda_compact_events" ${this._config.agenda_compact_events ? 'checked' : ''}> Agenda view: compact events</label>
+        <label><input type="checkbox" data-field="disable_swipe_controls" ${this._config.disable_swipe_controls ? 'checked' : ''}> Disable swipe period controls</label>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="rolling_days_week_compact">Rolling days (week view)</label>
+          <input id="rolling_days_week_compact" data-field="rolling_days_week_compact" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_week_compact ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="rolling_days_schedule">Rolling days (schedule view)</label>
+          <input id="rolling_days_schedule" data-field="rolling_days_schedule" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_schedule ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="rolling_days_agenda">Rolling days (agenda view)</label>
+          <input id="rolling_days_agenda" data-field="rolling_days_agenda" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_agenda ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="rolling_weeks">Rolling weeks (month view)</label>
+          <input id="rolling_weeks" data-field="rolling_weeks" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_weeks ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="boolean-list">
+        <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
+        <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
+        <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
+        <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
+        <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
+        <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
+        <label><input type="checkbox" data-field="hide_year" ${this._config.hide_year ? 'checked' : ''}> Hide year in header period label</label>
+        <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
+        <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
+        <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
+        <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
+        <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
+        <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
+        <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
+        <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
+      </div>
+      ${this._config.show_dashboard_nav_button ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="header_dashboard_path">Dashboard target</label>
+          <select id="header_dashboard_path" data-field="header_dashboard_path">
+            <option value="">Select a dashboard</option>
+            ${this._dashboardOptions.map((dashboard) => `
+              <option value="${this.escapeHtml(dashboard.path)}" ${this._config.header_dashboard_path === dashboard.path ? 'selected' : ''}>${this.escapeHtml(dashboard.title)}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
+      ` : ''}
+      ${this._config.compact_height ? '' : `
+        <div class="field">
+          <label for="height_scale">Height scale</label>
+          <input id="height_scale" data-field="height_scale" data-type="number" type="number" min="0.1" step="0.1" value="${Number(this._config.height_scale ?? this.getEditorDefaultValue('height_scale'))}">
+        </div>
+      `}
+    `);
+
+    const colorStylingSection = this.renderSection('Colors & styling', `
+      <div class="field">
+        <label for="header_color">Header color</label>
+        <div class="field-row">
+          ${this.renderColorInputControl({ id: 'header_color', field: 'header_color', value: this._config.header_color })}
+          <input data-field="header_color_text" data-type="color-text" type="text" value="${this.escapeHtml(this._config.header_color || '')}" placeholder="var(--primary-color) or match-card-background">
+        </div>
+      </div>
+      <div class="field">
+        <label for="header_text_color">Header text color</label>
+        <div class="field-row">
+          ${this.renderColorInputControl({ id: 'header_text_color', field: 'header_text_color', value: this._config.header_text_color })}
+          <input data-field="header_text_color_text" data-type="header-text-color-text" type="text" value="${this.escapeHtml(this._config.header_text_color || '')}" placeholder="Auto contrast">
+        </div>
+      </div>
+      ${this.renderSubSection('Calendar colors', `<div class="map-grid">${this.renderMapRowInputs('colors', { label: 'calendar colors', inputType: 'color' })}</div>`)}
+      ${this.renderSubSection('Event font colors', `<div class="map-grid">${this.renderMapRowInputs('event_font_colors', { label: 'event font colors', inputType: 'color' })}</div>`)}
+      ${this.renderSubSection('Calendar display names', `<div class="map-grid">${this.renderMapRowInputs('calendar_names', { label: 'calendar names', placeholder: 'Display name' })}</div>`)}
+      ${this.renderSubSection('Calendar badge icons', `<div class="map-grid">${this.renderMapRowInputs('calendar_badge_icons', { label: 'badge icons', placeholder: 'mdi:icon or URL' })}</div>`)}
+      ${this.renderSubSection('Calendar badge people', `<div class="map-grid">${this.renderMapRowInputs('calendar_person_entities', { label: 'badge people', placeholder: 'person.ian' })}</div>`)}
+      <div class="boolean-list">
+        <label><input type="checkbox" data-field="header_background_transparent" ${this.normalizeBackgroundOpacity(this._config.header_background_opacity, this._config.header_background_transparent ? 100 : 0) >= 100 ? 'checked' : ''}> Transparent header surfaces</label>
+        <label><input type="checkbox" data-field="background_transparent" ${this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0) >= 100 ? 'checked' : ''}> Transparent background surfaces</label>
+        <label><input type="checkbox" data-field="hide_dark_mode_toggle" ${this._config.hide_dark_mode_toggle ? 'checked' : ''}> Hide dark mode toggle</label>
+      </div>
+      <div class="field">
+        <label for="color_scheme">Color scheme</label>
+        <select id="color_scheme" data-field="color_scheme">
+          <option value="auto">Auto (browser/app)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    `);
+
+    const backgroundSection = this.renderSection('Background image', `
+      <div class="field field-inline">
+        <label for="header_background_opacity">Header opacity</label>
+        <input id="header_background_opacity" data-field="header_background_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this.normalizeBackgroundOpacity(this._config.header_background_opacity, this._config.header_background_transparent ? 100 : 0))}">
+      </div>
+      <div class="field field-inline">
+        <label for="background_opacity">Background opacity</label>
+        <input id="background_opacity" data-field="background_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0))}">
+      </div>
+      <div class="field field-inline">
+        <label for="background_image_url">Background image URL</label>
+        <input id="background_image_url" data-field="background_image_url" type="text" value="${this._config.background_image_url || ''}" placeholder="https://... or /media/local/...">
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="background_image_size">Image size</label>
+          <input id="background_image_size" data-field="background_image_size" type="text" value="${this._config.background_image_size || 'cover'}" placeholder="cover">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="background_image_position">Image position</label>
+          <input id="background_image_position" data-field="background_image_position" type="text" value="${this._config.background_image_position || 'center'}" placeholder="center">
+        </div>
+      </div>
+      <div class="field field-inline">
+        <label for="background_image_repeat">Image repeat</label>
+        <input id="background_image_repeat" data-field="background_image_repeat" type="text" value="${this._config.background_image_repeat || 'no-repeat'}" placeholder="no-repeat">
+      </div>
+    `);
+
+    const eventSection = this.renderSection('Events & schedule', `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_font_size">Event font size</label>
+          <input id="event_font_size" data-field="event_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_font_size ?? this.getEditorDefaultValue('event_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_time_font_size">Event time font size</label>
+          <input id="event_time_font_size" data-field="event_time_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_time_font_size ?? this.getEditorDefaultValue('event_time_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_location_font_size">Event location font size</label>
+          <input id="event_location_font_size" data-field="event_location_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_location_font_size ?? this.getEditorDefaultValue('event_location_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_calendar_bubble_mode">Event calendar bubble</label>
+          <select id="event_calendar_bubble_mode" data-field="event_calendar_bubble_mode">
+            <option value="icon" ${this.getEventCalendarBubbleMode() === 'icon' ? 'selected' : ''}>Icon</option>
+            <option value="friendly_name" ${this.getEventCalendarBubbleMode() === 'friendly_name' ? 'selected' : ''}>Friendly Name</option>
+            <option value="none" ${this.getEventCalendarBubbleMode() === 'none' ? 'selected' : ''}>None</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_title_prefix">Event title prefix</label>
+          <select id="event_title_prefix" data-field="event_title_prefix">
+            <option value="none" ${this._config.event_title_prefix === 'none' || !this._config.event_title_prefix ? 'selected' : ''}>None</option>
+            <option value="badge_icon" ${this._config.event_title_prefix === 'badge_icon' ? 'selected' : ''}>Calendar Badge Icon</option>
+            <option value="friendly_name" ${this._config.event_title_prefix === 'friendly_name' ? 'selected' : ''}>Calendar Friendly Name</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_color_mode">Event color style</label>
+          <select id="event_color_mode" data-field="event_color_mode">
+            <option value="classic" ${this._config.event_color_mode === 'classic' ? 'selected' : ''}>Classic</option>
+            <option value="left-neutral" ${this._config.event_color_mode === 'left-neutral' ? 'selected' : ''}>Bar + Neutral</option>
+            <option value="left-tint" ${this._config.event_color_mode === 'left-tint' ? 'selected' : ''}>Bar + Tint</option>
+          </select>
+        </div>
+      </div>
+      ${this._config.event_color_mode === 'left-neutral' ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_neutral_background">Neutral event background color</label>
+          ${this.renderColorInputControl({ id: 'event_neutral_background', field: 'event_neutral_background', value: this._config.event_neutral_background || DEFAULT_EVENT_NEUTRAL_BACKGROUND })}
+        </div>
+      </div>
+      ` : ''}
+      ${this._config.event_color_mode === 'left-tint' ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_tint_opacity">Tint opacity</label>
+          <input id="event_tint_opacity" data-field="event_tint_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this._config.event_tint_opacity ?? DEFAULT_EVENT_TINT_OPACITY)}">
+        </div>
+      </div>
+      ` : ''}
+      ${this._config.event_color_mode !== 'classic' ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_color_bar_width">Event color bar width (px)</label>
+          <input id="event_color_bar_width" data-field="event_color_bar_width" data-type="number" type="number" min="1" value="${Number(this._config.event_color_bar_width ?? this._config.combine_calendars_width ?? DEFAULT_EVENT_COLOR_BAR_WIDTH)}">
+        </div>
+      </div>
+      ` : ''}
+      ${this.renderSubSection('Hide times for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_times_for_calendars', { label: 'hidden times calendars' })}</div>`)}
+      <div class="boolean-list">
+        <label><input type="checkbox" data-field="show_current_time_bar" ${this._config.show_current_time_bar ? 'checked' : ''}> Show current time bar</label>
+        <label><input type="checkbox" data-field="use_24hr_schedule" ${this._config.use_24hr_schedule ? 'checked' : ''}> Use 24-hour schedule time</label>
+        <label><input type="checkbox" data-field="shorten_event_times" ${this._config.shorten_event_times ? 'checked' : ''}> Shorten event times</label>
+        <label><input type="checkbox" data-field="display_full_weekday_names" ${this._config.display_full_weekday_names ? 'checked' : ''}> Display full weekday names</label>
+        <label><input type="checkbox" data-field="show_event_location" ${this._config.show_event_location ? 'checked' : ''}> Show event location</label>
+        <label><input type="checkbox" data-field="use_short_location" ${this._config.use_short_location ? 'checked' : ''}> Shorten event location in views</label>
+        <label><input type="checkbox" data-field="combine_calendars" ${this._config.combine_calendars ? 'checked' : ''}> Combine duplicate events across calendars</label>
+      </div>
+      ${this._config.combine_calendars ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="combine_style">Combined indicator style</label>
+          <select id="combine_style" data-field="combine_style">
+            <option value="stripes" ${this._config.combine_style === 'stripes' ? 'selected' : ''}>Stripes</option>
+            <option value="bars" ${this._config.combine_style === 'bars' || !this._config.combine_style ? 'selected' : ''}>Bars</option>
+            <option value="dots" ${this._config.combine_style === 'dots' ? 'selected' : ''}>Dots</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="combine_background_mode">Combined background</label>
+          <select id="combine_background_mode" data-field="combine_background_mode">
+            <option value="neutral" ${this._combineBackgroundMode === 'neutral' ? 'selected' : ''}>Neutral</option>
+            <option value="primary" ${this._combineBackgroundMode === 'primary' ? 'selected' : ''}>Primary</option>
+            <option value="hex" ${this._combineBackgroundMode === 'hex' ? 'selected' : ''}>Hex</option>
+          </select>
+        </div>
+      </div>
+      ${this._combineBackgroundMode === 'hex' ? `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="combine_background_hex">Combined background hex value</label>
+          <input id="combine_background_hex" data-field="combine_background_hex" type="text" value="${this.escapeHtml(this._combineBackgroundHexDraft || '#FFFFFF')}" placeholder="#RRGGBB">
+        </div>
+      </div>
+      ` : ''}
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="combine_calendars_width">Combined indicator width (px)</label>
+          <input id="combine_calendars_width" data-field="combine_calendars_width" data-type="number" type="number" min="1" value="${Number(this._config.combine_calendars_width ?? this.getEditorDefaultValue('combine_calendars_width'))}">
+        </div>
+      </div>
+      ` : ''}
+    `);
+
+    const managementSection = this.renderSection('Event management', `
+      <div class="boolean-list">
+        <label><input type="checkbox" data-field="enable_event_management" ${this._config.enable_event_management !== false ? 'checked' : ''}> Enable event management</label>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_modal_size">Event modal size</label>
+          <select id="event_modal_size" data-field="event_modal_size">
+            <option value="narrow" ${this._config.event_modal_size === 'narrow' ? 'selected' : ''}>Narrow</option>
+            <option value="medium" ${this._config.event_modal_size === DEFAULT_EVENT_MODAL_SIZE || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
+            <option value="wide" ${this._config.event_modal_size === 'wide' ? 'selected' : ''}>Wide</option>
+            <option value="full" ${this._config.event_modal_size === 'full' ? 'selected' : ''}>Full</option>
+          </select>
+        </div>
+      </div>
+      ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
+      ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
+      ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}
+      ${this.renderSubSection('Virtual calendars', this.renderVirtualCalendarsEditor())}
+    `);
+
+    const localeSection = this.renderSection('Localization & preferences', `
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="language">Language code</label>
+          <input id="language" data-field="language" type="text" value="${this._config.language || ''}" placeholder="en, fr, de...">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="locale">Locale override</label>
+          <input id="locale" data-field="locale" type="text" value="${this._config.locale || ''}" placeholder="en-US">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="header_time_sensor">Header time sensor</label>
+          <input id="header_time_sensor" data-field="header_time_sensor" type="text" value="${this._config.header_time_sensor || ''}" placeholder="sensor.current_time">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="header_weather_sensor">Header weather sensor</label>
+          <input id="header_weather_sensor" data-field="header_weather_sensor" type="text" value="${this._config.header_weather_sensor || ''}" placeholder="weather.home">
+        </div>
+      </div>
+      <div class="field field-inline">
+        <label for="preference_storage_key">Preference storage key</label>
+        <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
+      </div>
+    `);
+
+    const staleResourceDetection = detectStaleSkylightResource();
+    const staleResourceDiagnostics = staleResourceDetection.detected ? `
+      <p class="helper"><strong>Old Skylight resource detected:</strong> ${this.escapeHtml(staleResourceDetection.staleUrl)}</p>
+      <p class="helper">Remove the old resource from Settings → Dashboards → Resources and keep /hacsfiles/daylight-calendar-card/skylight-calendar-card.js. HACS showing the latest version confirms the file is installed, but not that this dashboard loaded the current frontend resource.</p>
+      <p class="helper"><a href="${STALE_RESOURCE_TROUBLESHOOTING_URL}" target="_blank" rel="noreferrer">Troubleshooting guide</a></p>
+    ` : '';
+
+    const diagnosticsSection = this.renderSection('About / Diagnostics', `
+      <p class="helper">Daylight Calendar Card</p>
+      <p class="helper">Loaded version: ${this.escapeHtml(getDaylightCalendarCardVersion())}</p>
+      <p class="helper">Resource file: skylight-calendar-card.js</p>
+      <p class="helper">If this version does not match the version shown in HACS, Home Assistant may be loading a cached or stale resource.</p>
+      ${staleResourceDiagnostics}
+    `);
+
+    this.innerHTML = `
+      <style>
+        .card-config {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 8px 0;
+        }
+
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .field.field-inline {
+          display: grid;
+          grid-template-columns: minmax(180px, 260px) 1fr;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .field-row {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .field label {
+          font-weight: 500;
+          color: var(--primary-text-color);
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          font: inherit;
+          color: var(--primary-text-color);
+          background: var(--card-background-color);
+        }
+
+        .field textarea {
+          min-height: 70px;
+          resize: vertical;
+        }
+
+        .weekday-grid {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 6px;
+          align-items: center;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          padding: 8px;
+          background: var(--card-background-color);
+        }
+
+        .weekday-label {
+          text-align: center;
+          font-weight: 500;
+          color: var(--secondary-text-color);
+          font-size: 0.85rem;
+        }
+
+        .weekday-checkbox-wrap {
+          display: flex;
+          justify-content: center;
+        }
+
+        .map-grid {
+          display: grid;
+          gap: 8px;
+        }
+
+        .map-row {
+          display: grid;
+          grid-template-columns: minmax(160px, 220px) 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .list-checkbox-grid {
+          display: grid;
+          gap: 8px;
+        }
+
+        .list-checkbox-row {
+          display: grid;
+          grid-template-columns: minmax(160px, 220px) 1fr;
+          gap: 8px;
+          align-items: center;
+          font-weight: 400;
+        }
+
+        .list-checkbox-row input[type="checkbox"] {
+          justify-self: end;
+        }
+
+        .virtual-calendars-editor {
+          display: grid;
+          gap: 10px;
+        }
+
+        .virtual-calendar-card {
+          border: 1px solid var(--divider-color);
+          border-radius: 8px;
+          padding: 10px;
+          background: var(--card-background-color);
+          display: grid;
+          gap: 10px;
+        }
+
+        .virtual-calendar-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .virtual-calendar-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .virtual-calendar-actions button,
+        .secondary-action {
+          border: 1px solid var(--divider-color);
+          background: var(--card-background-color);
+          border-radius: 6px;
+          padding: 6px 10px;
+          cursor: pointer;
+          color: var(--primary-text-color);
+          font: inherit;
+        }
+
+        .virtual-calendar-actions button:disabled {
+          cursor: default;
+          opacity: 0.45;
+        }
+
+        .virtual-calendar-color-row {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .virtual-calendar-color-status {
+          grid-column: 1 / -1;
+          color: var(--secondary-text-color);
+          font-size: 0.85rem;
+        }
+
+        .virtual-calendar-color-status.no-override {
+          font-style: italic;
+        }
+
+        .virtual-calendar-entities {
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          padding: 8px;
+        }
+
+        .legacy-entity-row {
+          color: var(--secondary-text-color);
+        }
+
+        .legacy-entity-row em {
+          font-size: 0.85rem;
+        }
+
+        .validation-message {
+          color: var(--error-color, #db4437);
+          font-size: 0.85rem;
+          margin: 2px 0 0;
+        }
+
+        input[aria-invalid="true"] {
+          border-color: var(--error-color, #db4437);
+        }
+
+        .color-picker-wrap {
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .selected-color-swatch {
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          border: 1px solid var(--divider-color);
+          background: var(--selected-color);
+          cursor: pointer;
+          padding: 0;
+          display: inline-block;
+        }
+
+        .color-picker-dialog {
+          display: none;
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+        }
+
+        .color-picker-dialog.show {
+          display: block;
+        }
+
+        .color-picker-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+        }
+
+        .color-picker-modal {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: min(460px, calc(100vw - 24px));
+          background: var(--card-background-color);
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
+          display: grid;
+          gap: 12px;
+        }
+
+        .color-picker-title {
+          font-size: 1.8rem;
+          font-weight: 600;
+        }
+
+        .color-picker-wheel {
+          position: relative;
+          width: 260px;
+          height: 260px;
+          border-radius: 50%;
+          margin: 0 auto;
+          background:
+            radial-gradient(circle at center, #ffffff 0%, rgba(255, 255, 255, 0.85) 16%, rgba(255, 255, 255, 0) 58%),
+            conic-gradient(from 0deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff00ff, #ff0000);
+        }
+
+        .color-picker-wheel-marker {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+        }
+
+        .color-picker-controls {
+          display: grid;
+          gap: 6px;
+        }
+
+        .color-picker-controls input[type="text"] {
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          font: inherit;
+          color: var(--primary-text-color);
+          background: var(--card-background-color);
+        }
+
+        .color-picker-presets {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .color-preset {
+          width: 100%;
+          aspect-ratio: 1;
+          border-radius: 50%;
+          border: 2px solid rgba(0, 0, 0, 0.08);
+          cursor: pointer;
+        }
+
+        .color-picker-selected-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .color-picker-preview {
+          width: 24px;
+          height: 24px;
+          border-radius: 4px;
+          border: 1px solid var(--divider-color);
+        }
+
+        .color-picker-value {
+          font-family: monospace;
+        }
+
+        .color-picker-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        .color-picker-actions button {
+          border: 1px solid var(--divider-color);
+          background: var(--card-background-color);
+          border-radius: 6px;
+          padding: 8px 12px;
+          cursor: pointer;
+          color: var(--primary-text-color);
+        }
+
+        .color-picker-actions button.primary {
+          background: var(--primary-color);
+          color: white;
+          border-color: transparent;
+        }
+
+        .map-label {
+          font-weight: 500;
+          color: var(--primary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .config-section {
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-text-color) 4%);
+        }
+
+        .config-section summary {
+          cursor: pointer;
+          padding: 10px;
+          font-weight: 600;
+          list-style: none;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .config-section summary::before,
+        .config-subsection summary::before {
+          content: '›';
+          font-size: 1.2rem;
+          line-height: 1;
+          transform: rotate(0deg);
+          transition: transform 120ms ease;
+          color: var(--secondary-text-color);
+        }
+
+        .config-section[open] > summary::before,
+        .config-subsection[open] > summary::before {
+          transform: rotate(90deg);
+        }
+
+        .config-section summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .section-content {
+          border-top: 1px solid var(--divider-color);
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .config-subsection {
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--card-background-color);
+        }
+
+        .config-subsection summary {
+          cursor: pointer;
+          padding: 8px 10px;
+          font-weight: 600;
+          list-style: none;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .config-subsection summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .subsection-content {
+          border-top: 1px solid var(--divider-color);
+          padding: 10px;
+        }
+
+        .entity-list,
+        .boolean-list {
+          display: grid;
+          gap: 4px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          padding: 8px;
+          background: var(--card-background-color);
+        }
+
+        .entity-list {
+          max-height: 200px;
+          overflow: auto;
+        }
+
+        .entity-list label,
+        .boolean-list label {
+          font-weight: 400;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .helper {
+          margin: 0;
+          color: var(--secondary-text-color);
+          font-size: 0.85rem;
+        }
+      </style>
+      <div class="card-config">
+        <div class="field field-inline">
+          <label for="title">Title</label>
+          <input id="title" data-field="title" type="text" value="${this._config.title || ''}" placeholder="Family Calendar">
+        </div>
+
+        <div class="field">
+          <label for="default_view">Default view</label>
+          <select id="default_view" data-field="default_view">
+            <option value="month" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'month' ? 'selected' : ''}>Month</option>
+            <option value="week-compact" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-compact' ? 'selected' : ''}>Week</option>
+            <option value="week-standard" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-standard' ? 'selected' : ''}>Schedule</option>
+            <option value="agenda" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'agenda' ? 'selected' : ''}>Agenda</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Calendars</label>
+          <div class="entity-list" id="entity-list"></div>
+          <p class="helper">Select one or more calendar entities to display.</p>
+        </div>
+
+        ${displayLayoutSection}
+        ${colorStylingSection}
+        ${backgroundSection}
+        ${eventSection}
+        ${managementSection}
+        ${localeSection}
+        ${diagnosticsSection}
+      </div>
+      ${this.renderColorPickerDialog()}
+    `;
+
+    this.refreshCalendarEntities();
+
+    this.querySelectorAll('[data-field]').forEach((input) => {
+      const eventName = input.type === 'text' ? 'input' : 'change';
+      input.addEventListener(eventName, (event) => this.handleChange(event));
+    });
+
+    this.querySelectorAll('[data-map-field]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleChange(event));
+    });
+
+    this.querySelectorAll('[data-list-field]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleChange(event));
+    });
+
+    this.querySelectorAll('[data-weekday]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleChange(event));
+    });
+
+    this.querySelectorAll('[data-virtual-calendar-action]').forEach((button) => {
+      button.addEventListener('click', (event) => this.handleVirtualCalendarAction(event));
+    });
+
+    this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleVirtualCalendarInput(event));
+    });
+
+    this.querySelectorAll('[data-virtual-calendar-entity]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleVirtualCalendarEntityChange(event));
+    });
+
+    this.querySelectorAll('[data-color-trigger]').forEach((trigger) => {
+      trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
+    });
+
+    const wheel = this.querySelector('#color-picker-wheel');
+    if (wheel) {
+      let dragging = false;
+      wheel.addEventListener('pointerdown', (event) => {
+        dragging = true;
+        this.updateColorPickerFromWheelEvent(event);
+      });
+      wheel.addEventListener('pointermove', (event) => {
+        if (dragging) this.updateColorPickerFromWheelEvent(event);
+      });
+      wheel.addEventListener('pointerup', () => { dragging = false; });
+      wheel.addEventListener('pointerleave', () => { dragging = false; });
+    }
+
+    this.querySelectorAll('[data-color-preset]').forEach((preset) => {
+      preset.addEventListener('click', () => {
+        const hex = preset.dataset.colorPreset;
+        const hsv = this.hexToHsv(hex);
+        this._colorPickerState.h = hsv.h;
+        this._colorPickerState.s = hsv.s;
+        this._colorPickerState.v = hsv.v;
+        this._colorPickerState.color = this.hsvToHex(hsv.h, hsv.s, hsv.v);
+        this.syncColorPickerUi();
+      });
+    });
+
+    this.querySelectorAll('[data-close-color-picker]').forEach((button) => {
+      button.addEventListener('click', () => this.closeColorPicker());
+    });
+
+    const brightnessInput = this.querySelector('#color-picker-brightness');
+    if (brightnessInput) {
+      brightnessInput.addEventListener('input', (event) => {
+        this._colorPickerState.v = Number(event.target.value) / 100;
+        this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
+        this.syncColorPickerUi();
+      });
+    }
+
+    const hexInput = this.querySelector('#color-picker-hex');
+    if (hexInput) {
+      const syncHexColor = () => {
+        const normalizedHex = this.normalizeHexColorInput(hexInput.value);
+        if (!normalizedHex) return;
+        const hsv = this.hexToHsv(normalizedHex);
+        this._colorPickerState.h = hsv.h;
+        this._colorPickerState.s = hsv.s;
+        this._colorPickerState.v = hsv.v;
+        this._colorPickerState.color = normalizedHex;
+        this.syncColorPickerUi();
+      };
+      hexInput.addEventListener('input', syncHexColor);
+      hexInput.addEventListener('change', syncHexColor);
+    }
+
+    const applyBtn = this.querySelector('#apply-color-picker');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => {
+        this.applyColorPickerColor(this._colorPickerState.color);
+      });
+    }
+
+    this._rendered = true;
+  }
+
+  refreshCalendarEntities() {
+    const entityListContainer = this.querySelector('#entity-list');
+    if (!entityListContainer) return;
+
+    const calendarEntities = this.getCalendarEntities();
+    const nextKey = calendarEntities.join('|');
+
+    if (this._lastCalendarEntitiesKey === nextKey && entityListContainer.childElementCount > 0) {
+      const selectedEntities = new Set(this._config.entities || []);
+      entityListContainer.querySelectorAll('input[data-field="entity"]').forEach((checkbox) => {
+        checkbox.checked = selectedEntities.has(checkbox.value);
+      });
+      return;
+    }
+
+    this._lastCalendarEntitiesKey = nextKey;
+    const selectedEntities = new Set(this._config.entities || []);
+
+    if (calendarEntities.length === 0) {
+      entityListContainer.innerHTML = '<p class="helper">No calendar entities found yet.</p>';
+      return;
+    }
+
+    entityListContainer.innerHTML = calendarEntities
+      .map((entityId) => {
+        const friendlyName = this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+        const checked = selectedEntities.has(entityId) ? 'checked' : '';
+        return `<label><input type="checkbox" data-field="entity" value="${entityId}" ${checked}> ${friendlyName}</label>`;
+      })
+      .join('');
+
+    entityListContainer.querySelectorAll('input[data-field="entity"]').forEach((input) => {
+      input.addEventListener('change', (event) => this.handleChange(event));
+    });
+  }
+
+  updateFieldValues() {
+    const titleInput = this.querySelector('input[data-field="title"]');
+    if (titleInput && document.activeElement !== titleInput) {
+      titleInput.value = this._config.title || '';
+    }
+
+    const defaultView = this.querySelector('select[data-field="default_view"]');
+    if (defaultView && document.activeElement !== defaultView) {
+      defaultView.value = this.normalizeDefaultViewForEditor(this._config.default_view);
+    }
+
+    const firstDayOfWeek = this.querySelector('select[data-field="first_day_of_week"]');
+    if (firstDayOfWeek && document.activeElement !== firstDayOfWeek) {
+      firstDayOfWeek.value = String(Number(this._config.first_day_of_week ?? 0));
+    }
+
+    this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
+      if (checkbox.dataset.field === 'enable_event_management') {
+        checkbox.checked = this._config.enable_event_management !== false;
+        return;
+      }
+      checkbox.checked = !!this._config[checkbox.dataset.field];
+    });
+
+    this.querySelectorAll('input[type="checkbox"][data-list-field]').forEach((checkbox) => {
+      const listField = checkbox.dataset.listField;
+      checkbox.checked = this.getListFieldValue(listField).includes(checkbox.value);
+    });
+
+    this.querySelectorAll('input[data-type="number"], input[data-type="nullable-number"], input[data-type="list"], input[data-field="language"], input[data-field="locale"], input[data-field="header_time_sensor"], input[data-field="header_weather_sensor"], input[data-field="preference_storage_key"], input[data-field="background_image_url"], input[data-field="background_image_size"], input[data-field="background_image_position"], input[data-field="background_image_repeat"]').forEach((input) => {
+      if (document.activeElement === input) return;
+      const field = input.dataset.field;
+      const type = input.dataset.type;
+      if (type === 'list') input.value = this.getListInputValue(field);
+      else if (type === 'nullable-number') input.value = this._config[field] ?? '';
+      else if (type === 'number') input.value = Number(this._config[field] ?? this.getEditorDefaultValue(field));
+      else input.value = this._config[field] || '';
+    });
+
+    this.querySelectorAll('input[type="checkbox"][data-weekday]').forEach((checkbox) => {
+      const weekday = Number(checkbox.dataset.weekday);
+      checkbox.checked = this.getListFieldValue('week_days').includes(weekday);
+    });
+
+    this.querySelectorAll('select[data-field]').forEach((select) => {
+      if (document.activeElement === select) return;
+      const field = select.dataset.field;
+      if (field === 'default_view') return;
+      if (field === 'first_day_of_week') return;
+      if (field === 'event_calendar_bubble_mode') {
+        select.value = this.getEventCalendarBubbleMode();
+        return;
+      }
+
+      if (field === 'combine_background_mode') {
+        select.value = this._combineBackgroundMode;
+        return;
+      }
+      select.value = this._config[field] || '';
+    });
+
+    const combineBackgroundHexInput = this.querySelector('input[data-field="combine_background_hex"]');
+    if (combineBackgroundHexInput && document.activeElement !== combineBackgroundHexInput) {
+      combineBackgroundHexInput.value = this._combineBackgroundHexDraft || '#FFFFFF';
+    }
+
+    const headerColorTextInput = this.querySelector('input[data-field="header_color_text"]');
+    if (headerColorTextInput && document.activeElement !== headerColorTextInput) {
+      headerColorTextInput.value = this._config.header_color || '';
+    }
+
+    const headerTextColorTextInput = this.querySelector('input[data-field="header_text_color_text"]');
+    if (headerTextColorTextInput && document.activeElement !== headerTextColorTextInput) {
+      headerTextColorTextInput.value = this._config.header_text_color || '';
+    }
+
+    this.querySelectorAll('[data-map-field]').forEach((input) => {
+      if (document.activeElement === input) return;
+      const mapField = input.dataset.mapField;
+      const mapKey = input.dataset.mapKey;
+      const value = this.getMapFieldValue(mapField)[mapKey] || '';
+      input.value = value;
+    });
+
+    this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
+      if (document.activeElement === input) return;
+      const index = Number(input.dataset.virtualCalendarIndex);
+      const field = input.dataset.virtualCalendarField;
+      const virtualCalendar = this.getVirtualCalendarsForEditor()[index] || {};
+      input.value = virtualCalendar[field] || '';
+    });
+
+    this.querySelectorAll('[data-virtual-calendar-entity]').forEach((checkbox) => {
+      const index = Number(checkbox.dataset.virtualCalendarIndex);
+      const virtualCalendar = this.getVirtualCalendarsForEditor()[index] || {};
+      const entities = Array.isArray(virtualCalendar.entities) ? virtualCalendar.entities : [];
+      checkbox.checked = entities.includes(checkbox.value);
+    });
+
+    this.querySelectorAll('.selected-color-swatch').forEach((swatch) => {
+      const field = swatch.dataset.colorField;
+      const mapKey = swatch.dataset.colorMapKey || null;
+      const nextColor = this.getColorValue(field, mapKey);
+      swatch.style.setProperty('--selected-color', nextColor);
+    });
+
+    this.refreshCalendarEntities();
+  }
+
+  parseList(value, { asNumbers = false } = {}) {
+    const parsed = String(value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!asNumbers) return parsed;
+    return parsed
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item));
+  }
+
+  handleChange(event) {
+    const field = event.target.dataset.field;
+    const nextConfig = { ...this.value };
+
+    if (field === 'event_calendar_bubble_mode') {
+      const selectedMode = event.target.value;
+      if (selectedMode === 'friendly_name') {
+        nextConfig.event_calendar_friendly_name = true;
+        nextConfig.hide_event_calendar_bubble = false;
+      } else if (selectedMode === 'none') {
+        nextConfig.event_calendar_friendly_name = false;
+        nextConfig.hide_event_calendar_bubble = true;
+      } else {
+        nextConfig.event_calendar_friendly_name = false;
+        nextConfig.hide_event_calendar_bubble = false;
+      }
+
+      this._config = nextConfig;
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: nextConfig },
+          bubbles: true,
+          composed: true
+        })
+      );
+      return;
+    }
+
+    if (field === 'combine_background_mode') {
+      this._combineBackgroundMode = event.target.value;
+      if (this._combineBackgroundMode === 'hex') {
+        const currentHex = this.normalizeHexColor(this._config.combine_background) || this._combineBackgroundHexDraft || '#FFFFFF';
+        this._combineBackgroundHexDraft = currentHex;
+        nextConfig.combine_background = currentHex;
+      } else {
+        this._combineBackgroundHexDraft = '';
+        nextConfig.combine_background = this._combineBackgroundMode;
+      }
+
+      this._config = nextConfig;
+      this.render();
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: nextConfig },
+          bubbles: true,
+          composed: true
+        })
+      );
+      return;
+    }
+
+    if (field === 'combine_background_hex') {
+      const normalizedHex = this.normalizeHexColor(event.target.value);
+      if (normalizedHex) {
+        this._combineBackgroundHexDraft = normalizedHex;
+        nextConfig.combine_background = normalizedHex;
+      } else {
+        this._combineBackgroundHexDraft = event.target.value;
+      }
+
+      this._config = nextConfig;
+      this.render();
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: nextConfig },
+          bubbles: true,
+          composed: true
+        })
+      );
+      return;
+    }
+
+    if (field === 'entity') {
+      const selected = Array.from(this.querySelectorAll('input[data-field="entity"]:checked')).map((input) => input.value);
+      nextConfig.entities = selected;
+      this._config = nextConfig;
+      this.render();
+      this.dispatchEvent(
+        new CustomEvent('config-changed', {
+          detail: { config: nextConfig },
+          bubbles: true,
+          composed: true
+        })
+      );
+      return;
+    } else if (event.target.dataset.mapField) {
+      const mapField = event.target.dataset.mapField;
+      const mapKey = event.target.dataset.mapKey;
+      const mapValue = { ...this.getMapFieldValue(mapField) };
+      const nextValue = event.target.value;
+      if (nextValue === '') delete mapValue[mapKey];
+      else mapValue[mapKey] = nextValue;
+      nextConfig[mapField] = mapValue;
+    } else if (event.target.dataset.listField) {
+      const listField = event.target.dataset.listField;
+      const checkedValues = Array.from(this.querySelectorAll(`input[data-list-field="${listField}"]:checked`)).map((input) => input.value);
+      nextConfig[listField] = checkedValues;
+    } else if (event.target.dataset.weekday !== undefined) {
+      const selectedWeekdays = Array.from(this.querySelectorAll('input[data-weekday]:checked'))
+        .map((input) => Number(input.dataset.weekday))
+        .filter((value) => Number.isFinite(value))
+        .sort((a, b) => a - b);
+      nextConfig.week_days = selectedWeekdays;
+    } else if (event.target.type === 'checkbox') {
+      nextConfig[field] = event.target.checked;
+      if (field === 'background_transparent') {
+        nextConfig.background_opacity = event.target.checked ? 100 : 0;
+      } else if (field === 'header_background_transparent') {
+        nextConfig.header_background_opacity = event.target.checked ? 100 : 0;
+      }
+      if (field === 'compact_height' || field === 'combine_calendars' || field === 'show_dashboard_nav_button') {
+        this._config = nextConfig;
+        this.render();
+        this.dispatchEvent(
+          new CustomEvent('config-changed', {
+            detail: { config: nextConfig },
+            bubbles: true,
+            composed: true
+          })
+        );
+        return;
+      }
+    } else if (event.target.dataset.type === 'color') {
+      nextConfig[field] = event.target.value;
+    } else if (event.target.dataset.type === 'color-text') {
+      nextConfig.header_color = event.target.value;
+    } else if (event.target.dataset.type === 'header-text-color-text') {
+      nextConfig.header_text_color = event.target.value;
+    } else if (event.target.dataset.type === 'number') {
+      if (event.target.value === '') {
+        nextConfig[field] = this.getEditorDefaultValue(field);
+        if (field === 'background_opacity') {
+          nextConfig.background_transparent = false;
+        }
+        if (field === 'header_background_opacity') {
+          nextConfig.header_background_transparent = false;
+        }
+      } else {
+        const numericValue = Number(event.target.value);
+        const parsedValue = Number.isFinite(numericValue) ? numericValue : this.getEditorDefaultValue(field);
+        if (field === 'week_start_hour' || field === 'week_end_hour') {
+          nextConfig[field] = Math.min(23, Math.max(0, parsedValue));
+        } else if (field === 'header_background_opacity') {
+          nextConfig.header_background_opacity = this.normalizeBackgroundOpacity(parsedValue, 0);
+          nextConfig.header_background_transparent = nextConfig.header_background_opacity >= 100;
+        } else if (field === 'background_opacity') {
+          nextConfig.background_opacity = this.normalizeBackgroundOpacity(parsedValue, 0);
+          nextConfig.background_transparent = nextConfig.background_opacity >= 100;
+        } else if (field === 'event_tint_opacity') {
+          nextConfig.event_tint_opacity = this.normalizeBackgroundOpacity(parsedValue, DEFAULT_EVENT_TINT_OPACITY);
+        } else {
+          nextConfig[field] = parsedValue;
+        }
+      }
+    } else if (event.target.dataset.type === 'nullable-number') {
+      if (event.target.value === '') {
+        nextConfig[field] = null;
+      } else {
+        const numericValue = Number(event.target.value);
+        nextConfig[field] = Number.isFinite(numericValue) ? numericValue : null;
+      }
+    } else if (event.target.dataset.type === 'list') {
+      nextConfig[field] = this.parseList(event.target.value);
+    } else {
+      nextConfig[field] = event.target.value;
+      if (field === 'event_color_mode' || field === 'past_event_mode') {
+        this._config = nextConfig;
+        this.render();
+        this.dispatchEvent(
+          new CustomEvent('config-changed', {
+            detail: { config: nextConfig },
+            bubbles: true,
+            composed: true
+          })
+        );
+        return;
+      }
+    }
+
+    this._config = nextConfig;
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: nextConfig },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+}
+
+class LegacySkylightCalendarCardEditor extends SkylightCalendarCardEditor {}
+
+function registerDaylightCalendarCardEditor() {
+  customElements.define('daylight-calendar-card-editor', SkylightCalendarCardEditor);
+  customElements.define('skylight-calendar-card-editor', LegacySkylightCalendarCardEditor);
+}
+
+function getCardStyles() {
+  return `
       daylight-calendar-card,
       skylight-calendar-card {
         display: block;
@@ -5026,6 +3609,8 @@ class SkylightCalendarCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
+        min-height: var(--week-compact-header-height, auto);
+        box-sizing: border-box;
       }
 
       .week-day-header-main {
@@ -5041,7 +3626,24 @@ class SkylightCalendarCard extends HTMLElement {
         justify-content: center;
         gap: 10px;
         margin-top: 2px;
-		min-height: 32px;
+        min-height: 32px;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      .week-compact-container.day-badge-layout-stacked .week-day-meta-row .day-badges,
+      .week-standard-container.day-badge-layout-stacked .week-day-meta-row .day-badges {
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow: visible;
       }
 
       .week-day-forecast,
@@ -5594,7 +4196,7 @@ class SkylightCalendarCard extends HTMLElement {
       }
 
       .time-column-header-spacer {
-        height: 60px;
+        height: var(--week-standard-time-header-spacer-height, 60px);
         background: transparent;
         flex-shrink: 0;
       }
@@ -5656,6 +4258,8 @@ class SkylightCalendarCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         align-items: center;
+        min-height: var(--week-standard-day-header-height, auto);
+        box-sizing: border-box;
       }
 
       .week-standard-day-name {
@@ -6976,7 +5580,6862 @@ class SkylightCalendarCard extends HTMLElement {
           font-size: 22px;
         }
       }
+  `;
+}
+
+// ============================================================================
+// TRANSLATIONS
+// ============================================================================
+// To add a new language:
+// 1. Add a new entry to the TRANSLATIONS object below
+// 2. Set the locale (e.g., 'es-ES' for Spanish)
+// 3. Copy the strings from 'en' and translate each value
+// ============================================================================
+
+const TRANSLATIONS = {
+  en: {
+    locale: 'en-US',
+    strings: {
+      defaultTitle: 'Family Calendar',
+      addEvent: 'Add Event',
+      today: 'Today',
+      month: 'Month',
+      week: 'Week',
+      schedule: 'Schedule',
+      agenda: 'Agenda',
+      resetAgenda: 'Jump to Today',
+      openDashboard: 'Open dashboard',
+      calendars: 'Calendars',
+      calendar: 'Calendar',
+      eventTitle: 'Event Title',
+      eventTitlePlaceholder: 'Team Meeting',
+      allDayEvent: 'All-day event',
+      recurring: 'Recurring',
+      eventOptions: 'Event Options',
+      recurringEventOptions: 'Recurring options',
+      recurrenceFrequency: 'Repeat',
+      recurrenceEvery: 'Every',
+      recurrenceIntervalSuffix: 'interval(s)',
+      recurrenceEndsOn: 'Ends on',
+      recurrenceCount: 'Occurrences (COUNT)',
+      recurrenceWeekdays: 'Weekdays',
+      recurrenceNoEndDate: 'No end date (optional)',
+      recurrenceDaily: 'Daily',
+      recurrenceWeekly: 'Weekly',
+      recurrenceMonthly: 'Monthly',
+      recurrenceYearly: 'Yearly',
+      recurrenceNever: 'Never',
+      recurrenceOn: 'On',
+      recurrenceAfter: 'After',
+      recurrenceOccurrences: 'occurrences',
+      recurrenceSelectWeekday: 'Select at least one weekday for weekly recurring events',
+      start: 'Start',
+      end: 'End',
+      startDate: 'Start Date',
+      endDate: 'End Date',
+      location: 'Location',
+      locationPlaceholder: 'Conference Room A',
+      description: 'Description',
+      descriptionPlaceholder: 'Event details...',
+      cancel: 'Cancel',
+      createEvent: 'Create Event',
+      creating: 'Creating...',
+      forwardEvent: 'Forward Event',
+      forwardEventTitle: 'Forward Event',
+      forwardEventPrompt: 'Select one or more new calendars to forward this event to.',
+      forwardEventAlreadyExists: 'Already has this event',
+      forwardEventNoNewCalendars: 'Select at least one new calendar to forward this event to.',
+      continue: 'Continue',
+      editEvent: 'Edit Event',
+      saveChanges: 'Save Changes',
+      saving: 'Saving...',
+      delete: 'Delete',
+      deleting: 'Deleting...',
+      deleteEventTitle: 'Delete Event',
+      deleteRecurringEventTitle: 'Delete Recurring Event',
+      deleteEventConfirm: 'Are you sure you want to delete "{title}"? This action cannot be undone.',
+      deleteRecurringPrompt: '"{title}" is a recurring event. How would you like to delete it?',
+      editRecurringEventTitle: 'Edit Recurring Event',
+      editRecurringPrompt: '"{title}" is a recurring event. How would you like to edit it?',
+      editThisOccurrence: 'Edit just this occurrence',
+      editThisOccurrenceAndFuture: 'Edit this occurrence and all future occurrences',
+      editEntireSeries: 'Edit the entire recurring series',
+      deleteThisEventOnly: 'This event only',
+      deleteThisOccurrence: 'Delete just this occurrence',
+      deleteThisAndFutureEvents: 'This and future events',
+      deleteThisOccurrenceAndFuture: 'Delete this occurrence and all future occurrences',
+      deleteAllEvents: 'All events',
+      deleteEntireSeries: 'Delete the entire recurring series',
+      noEvents: 'No events',
+      allDay: 'All Day',
+      at: 'at',
+      duration: 'Duration',
+      attendees: 'Attendees',
+      recurrence: 'Recurrence',
+      recurringEvent: 'Recurring Event',
+      unknownAttendee: 'Unknown',
+      googleCalendarLimitationTitle: 'ℹ️ Google Calendar Limitation:',
+      googleCalendarLimitationBody: 'Editing events is not currently supported for Google Calendar through Home Assistant. You can delete events from here, but to edit please use the Google Calendar app or website.',
+      cannotModifyTitle: 'ℹ️ Cannot Modify:',
+      cannotModifyBody: 'This event is missing required information (UID) for editing or deletion. You may need to recreate it.',
+      untitledEvent: 'Untitled Event',
+      noWritableCalendars: 'No writable calendars available',
+      eventTitleRequired: 'Event title is required',
+      startEndDatesRequired: 'Start and end dates are required',
+      endDateBeforeStart: 'End date cannot be before start date',
+      startEndTimesRequired: 'Start and end times are required',
+      endTimeBeforeStart: 'End time must be after start time',
+      failedCreateEvent: 'Failed to create event. Please try again.',
+      failedUpdateEvent: 'Failed to update event. Please try again.',
+      failedDeleteEvent: 'Failed to delete event. Please try again.',
+      homeAssistantUnavailable: 'Home Assistant not available',
+      googleCalendarEditError: 'Google Calendar does not support editing events through Home Assistant. Please use the Google Calendar app or website.',
+      missingUidError: 'This event is missing required information (UID) and cannot be edited.',
+      calendarNoModifyError: 'This calendar does not support event modifications. Try creating a new event instead.',
+      createEventServiceError: 'Failed to create event',
+      deleteEventServiceError: 'Failed to delete event',
+      updateEventServiceError: 'Failed to update event. The calendar may not support modifications.',
+      durationHour: '{count} hour',
+      durationHours: '{count} hours',
+      durationMinute: '{count} minute',
+      durationMinutes: '{count} minutes',
+      moreEvents: '+{count} more',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'CW'
+    }
+  },
+
+  fr: {
+    locale: 'fr-FR',
+    strings: {
+      defaultTitle: 'Calendrier familial',
+      addEvent: 'Ajouter un événement',
+      today: "Aujourd'hui",
+      month: 'Mois',
+      week: 'Semaine',
+      schedule: 'Planning',
+      agenda: 'Agenda',
+      resetAgenda: "Retour à aujourd'hui",
+      openDashboard: 'Ouvrir le tableau de bord',
+      calendars: 'Calendriers',
+      calendar: 'Calendrier',
+      eventTitle: "Titre de l'événement",
+      eventTitlePlaceholder: "Réunion d'équipe",
+      allDayEvent: 'Événement sur toute la journée',
+      recurring: 'Récurrent',
+      eventOptions: "Options de l'événement",
+      recurringEventOptions: 'Options de récurrence',
+      recurrenceFrequency: 'Répéter',
+      recurrenceEvery: 'Chaque',
+      recurrenceIntervalSuffix: 'intervalle(s)',
+      recurrenceEndsOn: 'Se termine le',
+      recurrenceCount: 'Occurrences (COUNT)',
+      recurrenceWeekdays: 'Jours de la semaine',
+      recurrenceNoEndDate: 'Pas de date de fin (optionnel)',
+      recurrenceDaily: 'Quotidien',
+      recurrenceWeekly: 'Hebdomadaire',
+      recurrenceMonthly: 'Mensuel',
+      recurrenceYearly: 'Annuel',
+      recurrenceNever: 'Jamais',
+      recurrenceOn: 'Le',
+      recurrenceAfter: 'Après',
+      recurrenceOccurrences: 'occurrences',
+      recurrenceSelectWeekday: 'Sélectionnez au moins un jour pour les événements hebdomadaires',
+      start: 'Début',
+      end: 'Fin',
+      startDate: 'Date de début',
+      endDate: 'Date de fin',
+      location: 'Lieu',
+      locationPlaceholder: 'Salle de conférence A',
+      description: 'Description',
+      descriptionPlaceholder: "Détails de l'événement...",
+      cancel: 'Annuler',
+      createEvent: 'Créer un événement',
+      creating: 'Création...',
+      forwardEvent: "Transférer l'événement",
+      forwardEventTitle: "Transférer l'événement",
+      forwardEventPrompt: 'Sélectionnez un ou plusieurs nouveaux calendriers vers lesquels transférer cet événement.',
+      forwardEventAlreadyExists: 'Contient déjà cet événement',
+      forwardEventNoNewCalendars: 'Sélectionnez au moins un nouveau calendrier vers lequel transférer cet événement.',
+      continue: 'Continuer',
+      editEvent: "Modifier l'événement",
+      saveChanges: 'Enregistrer les modifications',
+      saving: 'Enregistrement...',
+      delete: 'Supprimer',
+      deleting: 'Suppression...',
+      deleteEventTitle: "Supprimer l'événement",
+      deleteRecurringEventTitle: "Supprimer l'événement récurrent",
+      deleteEventConfirm: 'Voulez-vous vraiment supprimer "{title}" ? Cette action est irréversible.',
+      deleteRecurringPrompt: '"{title}" est un événement récurrent. Comment souhaitez-vous le supprimer ?',
+      editRecurringEventTitle: 'Modifier un événement récurrent',
+      editRecurringPrompt: '"{title}" est un événement récurrent. Comment souhaitez-vous le modifier ?',
+      editThisOccurrence: 'Modifier uniquement cette occurrence',
+      editThisOccurrenceAndFuture: 'Modifier cette occurrence et toutes les occurrences futures',
+      editEntireSeries: 'Modifier toute la série récurrente',
+      deleteThisEventOnly: 'Cet événement uniquement',
+      deleteThisOccurrence: 'Supprimer uniquement cette occurrence',
+      deleteThisAndFutureEvents: 'Cet événement et les suivants',
+      deleteThisOccurrenceAndFuture: 'Supprimer cette occurrence et toutes les occurrences futures',
+      deleteAllEvents: 'Tous les événements',
+      deleteEntireSeries: 'Supprimer toute la série récurrente',
+      noEvents: 'Aucun événement',
+      allDay: 'Toute la journée',
+      at: 'à',
+      duration: 'Durée',
+      attendees: 'Participants',
+      recurrence: 'Récurrence',
+      recurringEvent: 'Événement récurrent',
+      unknownAttendee: 'Inconnu',
+      googleCalendarLimitationTitle: 'ℹ️ Limitation Google Agenda :',
+      googleCalendarLimitationBody: "La modification des événements n'est pas prise en charge pour Google Agenda via Home Assistant. Vous pouvez supprimer des événements ici, mais pour les modifier veuillez utiliser l'application ou le site Google Agenda.",
+      cannotModifyTitle: 'ℹ️ Impossible de modifier :',
+      cannotModifyBody: 'Cet événement ne contient pas les informations requises (UID) pour être modifié ou supprimé. Vous devrez peut-être le recréer.',
+      untitledEvent: 'Événement sans titre',
+      noWritableCalendars: 'Aucun calendrier modifiable disponible',
+      eventTitleRequired: "Le titre de l'événement est requis",
+      startEndDatesRequired: 'Les dates de début et de fin sont requises',
+      endDateBeforeStart: 'La date de fin ne peut pas être antérieure à la date de début',
+      startEndTimesRequired: 'Les heures de début et de fin sont requises',
+      endTimeBeforeStart: "L'heure de fin doit être après l'heure de début",
+      failedCreateEvent: "Impossible de créer l'événement. Veuillez réessayer.",
+      failedUpdateEvent: "Impossible de modifier l'événement. Veuillez réessayer.",
+      failedDeleteEvent: "Impossible de supprimer l'événement. Veuillez réessayer.",
+      homeAssistantUnavailable: "Home Assistant n'est pas disponible",
+      googleCalendarEditError: "Google Agenda ne permet pas la modification des événements via Home Assistant. Veuillez utiliser l'application ou le site Google Agenda.",
+      missingUidError: 'Cet événement ne contient pas les informations requises (UID) et ne peut pas être modifié.',
+      calendarNoModifyError: "Ce calendrier ne prend pas en charge les modifications d'événements. Essayez plutôt de créer un nouvel événement.",
+      createEventServiceError: "Impossible de créer l'événement",
+      deleteEventServiceError: "Impossible de supprimer l'événement",
+      updateEventServiceError: "Impossible de modifier l'événement. Le calendrier ne prend peut-être pas en charge les modifications.",
+      durationHour: '{count} heure',
+      durationHours: '{count} heures',
+      durationMinute: '{count} minute',
+      durationMinutes: '{count} minutes',
+      moreEvents: '+{count} de plus',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'Sem'
+    }
+  },
+
+  de: {
+    locale: 'de-DE',
+    strings: {
+      defaultTitle: 'Familienkalender',
+      addEvent: 'Termin hinzufügen',
+      today: 'Heute',
+      month: 'Monat',
+      week: 'Woche',
+      schedule: 'Zeitplan',
+      agenda: 'Agenda',
+      resetAgenda: 'Zu heute springen',
+      openDashboard: 'Dashboard öffnen',
+      calendars: 'Kalender',
+      calendar: 'Kalender',
+      eventTitle: 'Terminname',
+      eventTitlePlaceholder: 'Team-Meeting',
+      allDayEvent: 'Ganztägiges Ereignis',
+      recurring: 'Wiederkehrend',
+      eventOptions: 'Terminoptionen',
+      recurringEventOptions: 'Wiederholungsoptionen',
+      recurrenceFrequency: 'Wiederholen',
+      recurrenceEvery: 'Alle',
+      recurrenceIntervalSuffix: 'Intervall(e)',
+      recurrenceEndsOn: 'Endet am',
+      recurrenceCount: 'Anzahl (COUNT)',
+      recurrenceWeekdays: 'Wochentage',
+      recurrenceNoEndDate: 'Kein Enddatum (optional)',
+      recurrenceDaily: 'Täglich',
+      recurrenceWeekly: 'Wöchentlich',
+      recurrenceMonthly: 'Monatlich',
+      recurrenceYearly: 'Jährlich',
+      recurrenceNever: 'Nie',
+      recurrenceOn: 'Am',
+      recurrenceAfter: 'Nach',
+      recurrenceOccurrences: 'Vorkommen',
+      recurrenceSelectWeekday: 'Wählen Sie mindestens einen Wochentag für wöchentliche Termine aus',
+      start: 'Beginn',
+      end: 'Ende',
+      startDate: 'Startdatum',
+      endDate: 'Enddatum',
+      location: 'Ort',
+      locationPlaceholder: 'Konferenzraum A',
+      description: 'Beschreibung',
+      descriptionPlaceholder: 'Ereignisdetails...',
+      cancel: 'Abbrechen',
+      createEvent: 'Termin erstellen',
+      creating: 'Wird erstellt...',
+      forwardEvent: 'Termin weiterleiten',
+      forwardEventTitle: 'Termin weiterleiten',
+      forwardEventPrompt: 'Wählen Sie einen oder mehrere neue Kalender aus, an die dieser Termin weitergeleitet werden soll.',
+      forwardEventAlreadyExists: 'Enthält diesen Termin bereits',
+      forwardEventNoNewCalendars: 'Wählen Sie mindestens einen neuen Kalender aus, an den dieser Termin weitergeleitet werden soll.',
+      continue: 'Weiter',
+      editEvent: 'Termin bearbeiten',
+      saveChanges: 'Änderungen speichern',
+      saving: 'Wird gespeichert...',
+      delete: 'Löschen',
+      deleting: 'Wird gelöscht...',
+      deleteEventTitle: 'Termin löschen',
+      deleteRecurringEventTitle: 'Wiederkehrenden Termin löschen',
+      deleteEventConfirm: 'Möchten Sie "{title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+      deleteRecurringPrompt: '"{title}" ist ein wiederkehrender Termin. Wie möchten Sie ihn löschen?',
+      editRecurringEventTitle: 'Wiederkehrenden Termin bearbeiten',
+      editRecurringPrompt: '"{title}" ist ein wiederkehrender Termin. Wie möchten Sie ihn bearbeiten?',
+      editThisOccurrence: 'Nur dieses Vorkommen bearbeiten',
+      editThisOccurrenceAndFuture: 'Dieses und alle zukünftigen Vorkommen bearbeiten',
+      editEntireSeries: 'Die gesamte Serie bearbeiten',
+      deleteThisEventOnly: 'Nur dieses Ereignis',
+      deleteThisOccurrence: 'Nur dieses Vorkommen löschen',
+      deleteThisAndFutureEvents: 'Dieses und zukünftige Ereignisse',
+      deleteThisOccurrenceAndFuture: 'Dieses Vorkommen und alle zukünftigen Vorkommen löschen',
+      deleteAllEvents: 'Alle Ereignisse',
+      deleteEntireSeries: 'Die gesamte Serie löschen',
+      noEvents: 'Keine Ereignisse',
+      allDay: 'Ganztägig',
+      at: 'um',
+      duration: 'Dauer',
+      attendees: 'Teilnehmende',
+      recurrence: 'Wiederholung',
+      recurringEvent: 'Wiederkehrender Termin',
+      unknownAttendee: 'Unbekannt',
+      googleCalendarLimitationTitle: 'ℹ️ Google-Kalender-Einschränkung:',
+      googleCalendarLimitationBody: 'Das Bearbeiten von Terminen wird für Google Kalender in Home Assistant derzeit nicht unterstützt. Sie können Termine hier löschen, zum Bearbeiten nutzen Sie bitte die Google Kalender App oder Website.',
+      cannotModifyTitle: 'ℹ️ Kann nicht bearbeitet werden:',
+      cannotModifyBody: 'Diesem Ereignis fehlen erforderliche Informationen (UID) zum Bearbeiten oder Löschen. Möglicherweise müssen Sie es neu erstellen.',
+      untitledEvent: 'Unbenannter Termin',
+      noWritableCalendars: 'Keine beschreibbaren Kalender verfügbar',
+      eventTitleRequired: 'Ein Terminname ist erforderlich',
+      startEndDatesRequired: 'Start- und Enddatum sind erforderlich',
+      endDateBeforeStart: 'Das Enddatum darf nicht vor dem Startdatum liegen',
+      startEndTimesRequired: 'Start- und Endzeit sind erforderlich',
+      endTimeBeforeStart: 'Die Endzeit muss nach der Startzeit liegen',
+      failedCreateEvent: 'Termin konnte nicht erstellt werden. Bitte erneut versuchen.',
+      failedUpdateEvent: 'Termin konnte nicht aktualisiert werden. Bitte erneut versuchen.',
+      failedDeleteEvent: 'Termin konnte nicht gelöscht werden. Bitte erneut versuchen.',
+      homeAssistantUnavailable: 'Home Assistant nicht verfügbar',
+      googleCalendarEditError: 'Google Kalender unterstützt das Bearbeiten von Terminen über Home Assistant nicht. Bitte verwenden Sie die Google Kalender App oder Website.',
+      missingUidError: 'Dieses Ereignis enthält keine erforderlichen Informationen (UID) und kann nicht bearbeitet werden.',
+      calendarNoModifyError: 'Dieser Kalender unterstützt keine Terminänderungen. Bitte erstellen Sie stattdessen einen neuen Termin.',
+      createEventServiceError: 'Termin konnte nicht erstellt werden',
+      deleteEventServiceError: 'Termin konnte nicht gelöscht werden',
+      updateEventServiceError: 'Termin konnte nicht aktualisiert werden. Der Kalender unterstützt möglicherweise keine Änderungen.',
+      durationHour: '{count} Stunde',
+      durationHours: '{count} Stunden',
+      durationMinute: '{count} Minute',
+      durationMinutes: '{count} Minuten',
+      moreEvents: '+{count} mehr',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'KW'
+    }
+  },
+
+  nl: {
+    locale: 'nl-NL',
+    strings: {
+      defaultTitle: 'Familie agenda',
+      addEvent: 'Nieuwe afspraak',
+      today: 'Vandaag',
+      month: 'Maand',
+      week: 'Week',
+      schedule: 'Schema',
+      agenda: 'Agenda',
+      resetAgenda: 'Ga naar vandaag',
+      openDashboard: 'Dashboard openen',
+      calendars: "Agenda's",
+      calendar: 'agenda',
+      eventTitle: 'Afspraak onderwerp',
+      eventTitlePlaceholder: 'Groepsafspraak',
+      allDayEvent: 'Hele dag',
+      recurring: 'Terugkerend',
+      eventOptions: 'Afspraakopties',
+      recurringEventOptions: 'terugkerend mogelijkheden',
+      recurrenceFrequency: 'Herhaal',
+      recurrenceEvery: 'Elke',
+      recurrenceIntervalSuffix: 'herhalen elke',
+      recurrenceEndsOn: 'Stop op',
+      recurrenceCount: 'Gebeurtenissen (COUNT)',
+      recurrenceWeekdays: 'Werkdagen',
+      recurrenceNoEndDate: 'Geen einddatum (optioneel)',
+      recurrenceDaily: 'Dagelijks',
+      recurrenceWeekly: 'Wekelijks',
+      recurrenceMonthly: 'Maandelijks',
+      recurrenceYearly: 'Jaarlijks',
+      recurrenceNever: 'Nooit',
+      recurrenceOn: 'Op',
+      recurrenceAfter: 'Na',
+      recurrenceOccurrences: 'gebeurtenissen',
+      recurrenceSelectWeekday: 'Selecteer ten minste één dag voor wekelijks terugkerende afspraken',
+      start: 'Start',
+      end: 'Einde',
+      startDate: 'Begindatum',
+      endDate: 'Einddatum',
+      location: 'Locatie',
+      locationPlaceholder: 'Vergaderruimte A',
+      description: 'Omschrijving',
+      descriptionPlaceholder: 'Afspraak details...',
+      cancel: 'Annuleren',
+      createEvent: 'Afspraak toevoegen',
+      creating: 'Aanmaken...',
+      forwardEvent: 'Afspraak doorsturen',
+      forwardEventTitle: 'Afspraak doorsturen',
+      forwardEventPrompt: 'Selecteer een of meer nieuwe agenda’s waarnaar deze afspraak moet worden doorgestuurd.',
+      forwardEventAlreadyExists: 'Bevat deze afspraak al',
+      forwardEventNoNewCalendars: 'Selecteer minstens één nieuwe agenda om deze afspraak naar door te sturen.',
+      continue: 'Doorgaan',
+      editEvent: 'Afspraak bewerken',
+      saveChanges: 'Wijzigingen opslaan',
+      saving: 'Opslaan...',
+      delete: 'Verwijder',
+      deleting: 'Verwijderen...',
+      deleteEventTitle: 'Afspraak verwijderen',
+      deleteRecurringEventTitle: 'Herhaalafspraak verwijderen',
+      deleteEventConfirm: 'Ben je er zeker van dat je "{title}" wil verwijderen? Deze actie is onomkeerbaar.',
+      deleteRecurringPrompt: '"{title}" is een herhalende afspraak. Hoe wil je hem verwijderen?',
+      editRecurringEventTitle: 'Herhalende afspraak bewerken',
+      editRecurringPrompt: '"{title}" is een herhalende afspraak. Hoe wil je hem bewerken?',
+      editThisOccurrence: 'Alleen deze afspraak wijzigen',
+      editThisOccurrenceAndFuture: 'Deze afspraak en alle toekomstige afspraken bewerken',
+      editEntireSeries: 'Bewerk de volledige afspraken reeks',
+      deleteThisEventOnly: 'Alleen deze afspraak',
+      deleteThisOccurrence: 'Verwijder alleen dit moment',
+      deleteThisAndFutureEvents: 'Deze en alle toekomstige afspraken',
+      deleteThisOccurrenceAndFuture: 'Verwijder deze en alle toekomstige afspraken',
+      deleteAllEvents: 'Alle afspraken',
+      deleteEntireSeries: 'Verwijder de volledige reeks',
+      noEvents: 'Geen afspraken',
+      allDay: 'Hele dag',
+      at: 'op',
+      duration: 'Duur',
+      attendees: 'Deelnemers',
+      recurrence: 'Terugkerend',
+      recurringEvent: 'Terugkerende afpraak',
+      unknownAttendee: 'Onbekend',
+      googleCalendarLimitationTitle: 'ℹ️ Google Calendar beperking:',
+      googleCalendarLimitationBody: 'Het bewerken van Google Calendar afspraken wordt momenteel niet ondersteund in Home Assistant. Je kunt afspraken verwijderen, maar voor het bewerken kun je de Google Calendar app of website gebruiken.',
+      cannotModifyTitle: 'ℹ️ Kan het volgende niet aanpassen:',
+      cannotModifyBody: 'Deze afspraak mist de vereiste informatie (UID) om te kunnen bewerken of verwijderen. Mogelijk moet je hem opnieuw aanmaken.',
+      untitledEvent: 'Afspraak zonder onderwerp',
+      noWritableCalendars: "Geen bewerkbare agenda's beschikbaar",
+      eventTitleRequired: 'Afspraak onderwerp is verplicht',
+      startEndDatesRequired: 'Begin- en einddatum zijn verplicht',
+      endDateBeforeStart: 'Einddatum mag niet voor begindatum zijn',
+      startEndTimesRequired: 'Begin- en eindtijd is verplicht',
+      endTimeBeforeStart: 'Eindtijd mag niet voor begintijd zijn',
+      failedCreateEvent: 'Niet gelukt om afspraak aan te maken. Probeer opnieuw.',
+      failedUpdateEvent: 'Niet gelukt om afspraak bij te werken. Probeer opnieuw.',
+      failedDeleteEvent: 'Niet gelukt om afspraak te verwijderen. Probeer opnieuw.',
+      homeAssistantUnavailable: 'Home Assistant niet beschikbaar',
+      googleCalendarEditError: 'Het wordt niet ondersteund om Google Calendar afspraken te bewerken binnen Home Assistant. Maak gebruik van de Google Calendar app of website.',
+      missingUidError: 'Deze afspraak mist de vereiste informatie (UID) en kan daarom niet bewerkt worden.',
+      calendarNoModifyError: 'Het bewerken van afspraken wordt niet ondersteund in deze agenda. Maak een nieuwe afspraak aan.',
+      createEventServiceError: 'Niet gelukt om afspraak aan te maken',
+      deleteEventServiceError: 'Niet gelukt om afspraak te verwijderen',
+      updateEventServiceError: 'Niet gelukt om afspraak bij te werken. Mogelijk wordt dit niet ondersteund.',
+      durationHour: '{count} uur',
+      durationHours: '{count} uren',
+      durationMinute: '{count} minuut',
+      durationMinutes: '{count} minuten',
+      moreEvents: '+{count} meer',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'KW'
+    }
+  },
+  es: {
+    locale: 'es-ES',
+    strings: {
+      defaultTitle: 'Calendario Familiar',
+      addEvent: 'Añadir evento',
+      today: 'Hoy',
+      month: 'Mes',
+      week: 'Semana',
+      schedule: 'Horario',
+      agenda: 'Agenda',
+      resetAgenda: 'Ir a hoy',
+      openDashboard: 'Abrir panel',
+      calendars: 'Calendarios',
+      calendar: 'Calendario',
+      eventTitle: 'Título del evento',
+      eventTitlePlaceholder: 'Reunión de equipo',
+      allDayEvent: 'Evento de todo el día',
+      recurring: 'Recurrente',
+      eventOptions: 'Opciones del evento',
+      recurringEventOptions: 'Opciones de recurrencia',
+      recurrenceFrequency: 'Repetir',
+      recurrenceEvery: 'Cada',
+      recurrenceIntervalSuffix: 'intervalo(s)',
+      recurrenceEndsOn: 'Termina el',
+      recurrenceCount: 'Ocurrencias (CANTIDAD)',
+      recurrenceWeekdays: 'Días de la semana',
+      recurrenceNoEndDate: 'Sin fecha de finalización (opcional)',
+      recurrenceDaily: 'Diariamente',
+      recurrenceWeekly: 'Semanalmente',
+      recurrenceMonthly: 'Mensualmente',
+      recurrenceYearly: 'Anualmente',
+      recurrenceNever: 'Nunca',
+      recurrenceOn: 'El',
+      recurrenceAfter: 'Después de',
+      recurrenceOccurrences: 'ocurrencias',
+      recurrenceSelectWeekday: 'Selecciona al menos un día de la semana para los eventos recurrentes semanales',
+      start: 'Inicio',
+      end: 'Fin',
+      startDate: 'Fecha de inicio',
+      endDate: 'Fecha de fin',
+      location: 'Ubicación',
+      locationPlaceholder: 'Sala de conferencias A',
+      description: 'Descripción',
+      descriptionPlaceholder: 'Detalles del evento...',
+      cancel: 'Cancelar',
+      createEvent: 'Crear evento',
+      creating: 'Creando...',
+      forwardEvent: 'Reenviar evento',
+      forwardEventTitle: 'Reenviar evento',
+      forwardEventPrompt: 'Selecciona uno o más calendarios nuevos a los que reenviar este evento.',
+      forwardEventAlreadyExists: 'Ya contiene este evento',
+      forwardEventNoNewCalendars: 'Selecciona al menos un calendario nuevo al que reenviar este evento.',
+      continue: 'Continuar',
+      editEvent: 'Editar evento',
+      saveChanges: 'Guardar cambios',
+      saving: 'Guardando...',
+      delete: 'Eliminar',
+      deleting: 'Eliminando...',
+      deleteEventTitle: 'Eliminar evento',
+      deleteRecurringEventTitle: 'Eliminar evento recurrente',
+      deleteEventConfirm: '¿Estás seguro de que quieres eliminar "{title}"? Esta acción no se puede deshacer.',
+      deleteRecurringPrompt: '"{title}" es un evento recurrente. ¿Cómo te gustaría eliminarlo?',
+      editRecurringEventTitle: 'Editar evento recurrente',
+      editRecurringPrompt: '"{title}" es un evento recurrente. ¿Cómo te gustaría editarlo?',
+      editThisOccurrence: 'Editar solo esta ocurrencia',
+      editThisOccurrenceAndFuture: 'Editar esta ocurrencia y todas las futuras',
+      editEntireSeries: 'Editar toda la serie recurrente',
+      deleteThisEventOnly: 'Solo este evento',
+      deleteThisOccurrence: 'Eliminar solo esta ocurrencia',
+      deleteThisAndFutureEvents: 'Este y los eventos futuros',
+      deleteThisOccurrenceAndFuture: 'Eliminar esta ocurrencia y todas las futuras',
+      deleteAllEvents: 'Todos los eventos',
+      deleteEntireSeries: 'Eliminar toda la serie recurrente',
+      noEvents: 'No hay eventos',
+      allDay: 'Todo el día',
+      at: 'a las',
+      duration: 'Duración',
+      attendees: 'Asistentes',
+      recurrence: 'Recurrencia',
+      recurringEvent: 'Evento recurrente',
+      unknownAttendee: 'Desconocido',
+      googleCalendarLimitationTitle: 'ℹ️ Limitación de Google Calendar:',
+      googleCalendarLimitationBody: 'Actualmente no se admite la edición de eventos para Google Calendar a través de Home Assistant. Puedes eliminar eventos desde aquí, pero para editarlos, utiliza la aplicación o el sitio web de Google Calendar.',
+      cannotModifyTitle: 'ℹ️ No se puede modificar:',
+      cannotModifyBody: 'A este evento le falta información obligatoria (UID) para su edición o eliminación. Es posible que tengas que volver a crearlo.',
+      untitledEvent: 'Evento sin título',
+      noWritableCalendars: 'No hay calendarios editables disponibles',
+      eventTitleRequired: 'El título del evento es obligatorio',
+      startEndDatesRequired: 'Las fechas de inicio y fin son obligatorias',
+      endDateBeforeStart: 'La fecha de fin no puede ser anterior a la fecha de inicio',
+      startEndTimesRequired: 'Las horas de inicio y fin son obligatorias',
+      endTimeBeforeStart: 'La hora de fin debe ser posterior a la hora de inicio',
+      failedCreateEvent: 'Error al crear el evento. Por favor, inténtalo de nuevo.',
+      failedUpdateEvent: 'Error al actualizar el evento. Por favor, inténtalo de nuevo.',
+      failedDeleteEvent: 'Error al eliminar el evento. Por favor, inténtalo de nuevo.',
+      homeAssistantUnavailable: 'Home Assistant no está disponible',
+      googleCalendarEditError: 'Google Calendar no admite la edición de eventos a través de Home Assistant. Por favor, utiliza la aplicación o el sitio web de Google Calendar.',
+      missingUidError: 'A este evento le falta información obligatoria (UID) y no se puede editar.',
+      calendarNoModifyError: 'Este calendario no admite modificaciones de eventos. Intenta crear un nuevo evento en su lugar.',
+      createEventServiceError: 'Error al crear el evento',
+      deleteEventServiceError: 'Error al eliminar el evento',
+      updateEventServiceError: 'Error al actualizar el evento. Es posible que el calendario no admita modificaciones.',
+      durationHour: '{count} hora',
+      durationHours: '{count} horas',
+      durationMinute: '{count} minuto',
+      durationMinutes: '{count} minutos',
+      moreEvents: '+{count} más',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'Sem.'
+    }
+  },
+
+  ca: {
+    locale: 'ca-ES',
+    strings: {
+      defaultTitle: 'Calendari Familiar',
+      addEvent: 'Afegir esdeveniment',
+      today: 'Avui',
+      month: 'Mes',
+      week: 'Setmana',
+      schedule: 'Horari',
+      agenda: 'Agenda',
+      resetAgenda: "Anar a avui",
+      openDashboard: 'Obrir tauler',
+      calendars: 'Calendaris',
+      calendar: 'Calendari',
+      eventTitle: "Títol de l'esdeveniment",
+      eventTitlePlaceholder: "Reunió d'equip",
+      allDayEvent: 'Esdeveniment de tot el dia',
+      recurring: 'Recurrent',
+      eventOptions: "Opcions de l'esdeveniment",
+      recurringEventOptions: 'Opcions de recurrència',
+      recurrenceFrequency: 'Repetir',
+      recurrenceEvery: 'Cada',
+      recurrenceIntervalSuffix: 'interval(s)',
+      recurrenceEndsOn: 'Acaba el',
+      recurrenceCount: 'Ocurrències (QUANTITAT)',
+      recurrenceWeekdays: 'Dies de la setmana',
+      recurrenceNoEndDate: "Sense data de finalització (opcional)",
+      recurrenceDaily: 'Diàriament',
+      recurrenceWeekly: 'Setmanalment',
+      recurrenceMonthly: 'Mensualment',
+      recurrenceYearly: 'Anualment',
+      recurrenceNever: 'Mai',
+      recurrenceOn: 'El',
+      recurrenceAfter: 'Després de',
+      recurrenceOccurrences: 'ocurrències',
+      recurrenceSelectWeekday: "Selecciona almenys un dia de la setmana per als esdeveniments recurrents setmanals",
+      start: 'Inici',
+      end: 'Fi',
+      startDate: "Data d'inici",
+      endDate: 'Data de fi',
+      location: 'Ubicació',
+      locationPlaceholder: 'Sala de conferències A',
+      description: 'Descripció',
+      descriptionPlaceholder: "Detalls de l'esdeveniment...",
+      cancel: 'Cancel·lar',
+      createEvent: 'Crear esdeveniment',
+      creating: 'Creant...',
+      forwardEvent: "Reenviar esdeveniment",
+      forwardEventTitle: "Reenviar esdeveniment",
+      forwardEventPrompt: 'Selecciona un o més calendaris nous als quals reenviar aquest esdeveniment.',
+      forwardEventAlreadyExists: 'Ja conté aquest esdeveniment',
+      forwardEventNoNewCalendars: 'Selecciona almenys un calendari nou al qual reenviar aquest esdeveniment.',
+      continue: 'Continuar',
+      editEvent: "Editar esdeveniment",
+      saveChanges: 'Desar canvis',
+      saving: 'Desant...',
+      delete: 'Eliminar',
+      deleting: 'Eliminant...',
+      deleteEventTitle: "Eliminar esdeveniment",
+      deleteRecurringEventTitle: 'Eliminar esdeveniment recurrent',
+      deleteEventConfirm: 'Estàs segur que vols eliminar "{title}"? Aquesta acció no es pot desfer.',
+      deleteRecurringPrompt: '"{title}" és un esdeveniment recurrent. Com vols eliminar-lo?',
+      editRecurringEventTitle: 'Editar esdeveniment recurrent',
+      editRecurringPrompt: '"{title}" és un esdeveniment recurrent. Com vols editar-lo?',
+      editThisOccurrence: 'Editar només aquesta ocurrència',
+      editThisOccurrenceAndFuture: 'Editar aquesta ocurrència i totes les futures',
+      editEntireSeries: 'Editar tota la sèrie recurrent',
+      deleteThisEventOnly: 'Només aquest esdeveniment',
+      deleteThisOccurrence: 'Eliminar només aquesta ocurrència',
+      deleteThisAndFutureEvents: 'Aquest i els esdeveniments futurs',
+      deleteThisOccurrenceAndFuture: 'Eliminar aquesta ocurrència i totes les futures',
+      deleteAllEvents: 'Tots els esdeveniments',
+      deleteEntireSeries: 'Eliminar tota la sèrie recurrent',
+      noEvents: 'No hi ha esdeveniments',
+      allDay: 'Tot el dia',
+      at: 'a les',
+      duration: 'Durada',
+      attendees: 'Assistents',
+      recurrence: 'Recurrència',
+      recurringEvent: 'Esdeveniment recurrent',
+      unknownAttendee: 'Desconegut',
+      googleCalendarLimitationTitle: 'ℹ️ Limitació de Google Calendar:',
+      googleCalendarLimitationBody: "Actualment no es permet l'edició d'esdeveniments de Google Calendar a través de Home Assistant. Pots eliminar esdeveniments des d'aquí, però per editar-los, utilitza l'aplicació o el lloc web de Google Calendar.",
+      cannotModifyTitle: 'ℹ️ No es pot modificar:',
+      cannotModifyBody: "A aquest esdeveniment li falta informació obligatòria (UID) per a la seva edició o eliminació. Potser cal que el tornis a crear.",
+      untitledEvent: 'Esdeveniment sense títol',
+      noWritableCalendars: 'No hi ha calendaris editables disponibles',
+      eventTitleRequired: "El títol de l'esdeveniment és obligatori",
+      startEndDatesRequired: "Les dates d'inici i fi són obligatòries",
+      endDateBeforeStart: "La data de fi no pot ser anterior a la data d'inici",
+      startEndTimesRequired: "Les hores d'inici i fi són obligatòries",
+      endTimeBeforeStart: "L'hora de fi ha de ser posterior a l'hora d'inici",
+      failedCreateEvent: "Error en crear l'esdeveniment. Si us plau, torna-ho a provar.",
+      failedUpdateEvent: "Error en actualitzar l'esdeveniment. Si us plau, torna-ho a provar.",
+      failedDeleteEvent: "Error en eliminar l'esdeveniment. Si us plau, torna-ho a provar.",
+      homeAssistantUnavailable: 'Home Assistant no està disponible',
+      googleCalendarEditError: "Google Calendar no permet l'edició d'esdeveniments a través de Home Assistant. Si us plau, utilitza l'aplicació o el lloc web de Google Calendar.",
+      missingUidError: "A aquest esdeveniment li falta informació obligatòria (UID) i no es pot editar.",
+      calendarNoModifyError: "Aquest calendari no admet modificacions d'esdeveniments. Prova de crear un nou esdeveniment.",
+      createEventServiceError: "Error en crear l'esdeveniment",
+      deleteEventServiceError: "Error en eliminar l'esdeveniment",
+      updateEventServiceError: "Error en actualitzar l'esdeveniment. És possible que el calendari no admeti modificacions.",
+      durationHour: '{count} hora',
+      durationHours: '{count} hores',
+      durationMinute: '{count} minut',
+      durationMinutes: '{count} minuts',
+      moreEvents: '+{count} més',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'Set.'
+    }
+  },
+
+  da: {
+    locale: 'da-DK',
+    strings: {
+      defaultTitle: 'Familiekalender',
+      addEvent: 'Tilføj begivenhed',
+      today: 'I dag',
+      month: 'Måned',
+      week: 'Uge',
+      schedule: 'Skema',
+      agenda: 'Agenda',
+      resetAgenda: 'Gå til i dag',
+      openDashboard: 'Åbn dashboard',
+      calendars: 'Kalendere',
+      calendar: 'Kalender',
+      eventTitle: 'Begivenhedstitel',
+      eventTitlePlaceholder: 'Teammøde',
+      allDayEvent: 'Heldagsbegivenhed',
+      recurring: 'Gentagende',
+      eventOptions: 'Begivenhedsindstillinger',
+      recurringEventOptions: 'Gentagelsesindstillinger',
+      recurrenceFrequency: 'Gentag',
+      recurrenceEvery: 'Hver',
+      recurrenceIntervalSuffix: 'interval(er)',
+      recurrenceEndsOn: 'Slutter den',
+      recurrenceCount: 'Antal forekomster',
+      recurrenceWeekdays: 'Ugedage',
+      recurrenceNoEndDate: 'Ingen slutdato (valgfrit)',
+      recurrenceDaily: 'Dagligt',
+      recurrenceWeekly: 'Ugentligt',
+      recurrenceMonthly: 'Månedligt',
+      recurrenceYearly: 'Årligt',
+      recurrenceNever: 'Aldrig',
+      recurrenceOn: 'Den',
+      recurrenceAfter: 'Efter',
+      recurrenceOccurrences: 'forekomster',
+      recurrenceSelectWeekday: 'Vælg mindst én ugedag for ugentligt gentagende begivenheder',
+      start: 'Start',
+      end: 'Slut',
+      startDate: 'Startdato',
+      endDate: 'Slutdato',
+      location: 'Sted',
+      locationPlaceholder: 'Konferencerum A',
+      description: 'Beskrivelse',
+      descriptionPlaceholder: 'Begivenhedsdetaljer...',
+      cancel: 'Annuller',
+      createEvent: 'Opret begivenhed',
+      creating: 'Opretter...',
+      forwardEvent: 'Kopiér begivenhed',
+      forwardEventTitle: 'Kopiér begivenhed',
+      forwardEventPrompt: 'Vælg en eller flere kalendere, som begivenheden skal kopieres til.',
+      forwardEventAlreadyExists: 'Denne begivenhed findes allerede',
+      forwardEventNoNewCalendars: 'Vælg mindst én ny kalender, som begivenheden skal kopieres til.',
+      continue: 'Fortsæt',
+      editEvent: 'Rediger begivenhed',
+      saveChanges: 'Gem ændringer',
+      saving: 'Gemmer...',
+      delete: 'Slet',
+      deleting: 'Sletter...',
+      deleteEventTitle: 'Slet begivenhed',
+      deleteRecurringEventTitle: 'Slet gentagende begivenhed',
+      deleteEventConfirm: 'Er du sikker på, at du vil slette "{title}"? Denne handling kan ikke fortrydes.',
+      deleteRecurringPrompt: '"{title}" er en gentagende begivenhed. Hvordan vil du slette den?',
+      editRecurringEventTitle: 'Rediger gentagende begivenhed',
+      editRecurringPrompt: '"{title}" er en gentagende begivenhed. Hvordan vil du redigere den?',
+      editThisOccurrence: 'Rediger kun denne forekomst',
+      editThisOccurrenceAndFuture: 'Rediger denne forekomst og alle fremtidige forekomster',
+      editEntireSeries: 'Rediger hele serien',
+      deleteThisEventOnly: 'Kun denne begivenhed',
+      deleteThisOccurrence: 'Slet kun denne forekomst',
+      deleteThisAndFutureEvents: 'Denne og fremtidige begivenheder',
+      deleteThisOccurrenceAndFuture: 'Slet denne forekomst og alle fremtidige forekomster',
+      deleteAllEvents: 'Alle forekomster',
+      deleteEntireSeries: 'Slet hele serien',
+      noEvents: 'Ingen begivenheder',
+      allDay: 'Hele dagen',
+      at: 'kl.',
+      duration: 'Varighed',
+      attendees: 'Deltagere',
+      recurrence: 'Gentagelse',
+      recurringEvent: 'Gentagende begivenhed',
+      unknownAttendee: 'Ukendt',
+      googleCalendarLimitationTitle: 'ℹ️ Begrænsning i Google Kalender:',
+      googleCalendarLimitationBody: 'Redigering af begivenheder understøttes i øjeblikket ikke for Google Kalender via Home Assistant. Du kan slette begivenheder herfra, men brug Google Kalender-appen eller webstedet for at redigere dem.',
+      cannotModifyTitle: 'ℹ️ Kan ikke ændres:',
+      cannotModifyBody: 'Denne begivenhed mangler nødvendige oplysninger (UID) til redigering eller sletning. Du skal muligvis oprette den igen.',
+      untitledEvent: 'Begivenhed uden titel',
+      noWritableCalendars: 'Ingen redigerbare kalendere tilgængelige',
+      eventTitleRequired: 'Begivenhedstitel er påkrævet',
+      startEndDatesRequired: 'Start- og slutdatoer er påkrævede',
+      endDateBeforeStart: 'Slutdato kan ikke være før startdato',
+      startEndTimesRequired: 'Start- og sluttidspunkter er påkrævede',
+      endTimeBeforeStart: 'Sluttidspunkt skal være efter starttidspunkt',
+      failedCreateEvent: 'Kunne ikke oprette begivenhed. Prøv igen.',
+      failedUpdateEvent: 'Kunne ikke opdatere begivenhed. Prøv igen.',
+      failedDeleteEvent: 'Kunne ikke slette begivenhed. Prøv igen.',
+      homeAssistantUnavailable: 'Home Assistant er ikke tilgængelig',
+      googleCalendarEditError: 'Google Kalender understøtter ikke redigering af begivenheder via Home Assistant. Brug Google Kalender-appen eller webstedet.',
+      missingUidError: 'Denne begivenhed mangler nødvendige oplysninger (UID) og kan ikke redigeres.',
+      calendarNoModifyError: 'Denne kalender understøtter ikke ændringer af begivenheder. Prøv at oprette en ny begivenhed i stedet.',
+      createEventServiceError: 'Kunne ikke oprette begivenhed',
+      deleteEventServiceError: 'Kunne ikke slette begivenhed',
+      updateEventServiceError: 'Kunne ikke opdatere begivenhed. Kalenderen understøtter muligvis ikke ændringer.',
+      durationHour: '{count} time',
+      durationHours: '{count} timer',
+      durationMinute: '{count} minut',
+      durationMinutes: '{count} minutter',
+      moreEvents: '+{count} flere',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'Uge'
+    }
+  },
+
+  sv: {
+    locale: 'sv-SE',
+    strings: {
+      defaultTitle: 'Familjekalender',
+      addEvent: 'Ny händelse',
+      today: 'Idag',
+      month: 'Månad',
+      week: 'Vecka',
+      schedule: 'Schema',
+      agenda: 'Agenda',
+      resetAgenda: 'Gå till idag',
+      openDashboard: 'Öppna översikt',
+      calendars: 'Kalendrar',
+      calendar: 'Kalender',
+      eventTitle: 'Händelsetitel',
+      eventTitlePlaceholder: 'Teams-möte',
+      allDayEvent: 'Hela dagen',
+      recurring: 'Återkommande',
+      eventOptions: 'Alternativ',
+      recurringEventOptions: 'Återkommande alternativ',
+      recurrenceFrequency: 'Upprepa',
+      recurrenceEvery: 'Varje',
+      recurrenceIntervalSuffix: 'intervall(er)',
+      recurrenceEndsOn: 'Slutar',
+      recurrenceCount: 'Upprepningar (COUNT)',
+      recurrenceWeekdays: 'Veckodagar',
+      recurrenceNoEndDate: 'Inget slutdatum (valfritt)',
+      recurrenceDaily: 'Dagligen',
+      recurrenceWeekly: 'Veckovis',
+      recurrenceMonthly: 'Månadsvis',
+      recurrenceYearly: 'Årligen',
+      recurrenceNever: 'Aldrig',
+      recurrenceOn: 'På',
+      recurrenceAfter: 'Efter',
+      recurrenceOccurrences: 'Upprepningar',
+      recurrenceSelectWeekday: 'Välj minst en veckodag för återkommande händelser.',
+      start: 'Start',
+      end: 'Slut',
+      startDate: 'Startdatum',
+      endDate: 'Slutdatum',
+      location: 'Plats',
+      locationPlaceholder: 'Konferensrum A',
+      description: 'Beskrivning',
+      descriptionPlaceholder: 'Händelsebeskrivning...',
+      cancel: 'Avbryt',
+      createEvent: 'Skapa händelse',
+      creating: 'Skapar...',
+      editEvent: 'Redigera händelse',
+      saveChanges: 'Spara ändringar',
+      saving: 'Sparar...',
+      delete: 'Ta bort',
+      deleting: 'Tar bort...',
+      deleteEventTitle: 'Ta bort händelse',
+      deleteRecurringEventTitle: 'Ta bort återkommande händelser',
+      deleteEventConfirm: 'Är du säker på att du vill radera "{title}"? Detta går inte att ångra.',
+      deleteRecurringPrompt: '"{title}" är en återkommande händelse. Hur vill du ta bort den?',
+      editRecurringEventTitle: 'Redigera återkommande händelse',
+      editRecurringPrompt: '"{title}" är en återkommande händelse. Hur vill du redigera den?',
+      editThisOccurrence: 'Redigera enbart den här händelsen i serien',
+      editThisOccurrenceAndFuture: 'Redigera den här och alla återkommande händelser i serien',
+      editEntireSeries: 'Redigera alla händelser i serien',
+      deleteThisEventOnly: 'Den här händelsen enbart',
+      deleteThisOccurrence: 'Ta bort enbart den här händelsen',
+      deleteThisAndFutureEvents: 'Den här och framtida händelser',
+      deleteThisOccurrenceAndFuture: 'Ta bort den här och alla framtida händelser i den här serien.',
+      deleteAllEvents: 'Alla händelser',
+      deleteEntireSeries: 'Ta bort alla händelser i serien.',
+      noEvents: 'Inga händelser',
+      allDay: 'Hela dagen',
+      at: 'vid',
+      duration: 'Varaktighet',
+      attendees: 'Deltagare',
+      recurrence: 'Upprepningar',
+      recurringEvent: 'Återkommande händelse',
+      unknownAttendee: 'Okänt',
+      googleCalendarLimitationTitle: 'ℹ️ Begränsning i Google Kalender',
+      googleCalendarLimitationBody: 'Redigering av händelser stöds inte för Google Kalender via Home Assistant. Du kan ta bort händelser, men för att redigera dem måste du använda Google Kalender-appen eller webbplatsen.',
+      cannotModifyTitle: 'ℹ️ Kan inte ändra:',
+      cannotModifyBody: 'Den här händelsen saknar nödvändig information (UID) för redigering eller borttagning. Du kan behöva skapa den på nytt.',
+      untitledEvent: 'Ingen rubrik',
+      noWritableCalendars: 'Inga tillgängliga kalendrar',
+      eventTitleRequired: 'Händelserubrik saknas',
+      startEndDatesRequired: 'Fyll i start- och slutdatum',
+      endDateBeforeStart: 'Slutdatum måste vara efter startdatum',
+      startEndTimesRequired: 'Fyll i start- och sluttider',
+      endTimeBeforeStart: 'Sluttid måste vara efter starttid',
+      failedCreateEvent: 'Misslyckades att skapa händelse. Försök igen.',
+      failedUpdateEvent: 'Misslyckades att uppdatera händelse. Försök igen.',
+      failedDeleteEvent: 'Misslyckades att radera händelse. Försök igen.',
+      homeAssistantUnavailable: 'Home Assistant är inte tillgängligt',
+      googleCalendarEditError: 'Redigering av händelser stöds inte för Google Kalender via Home Assistant. Använd Google Kalender-appen eller webbplatsen i stället.',
+      missingUidError: 'Den här händelsen saknar nödvändig information (UID) och kan inte redigeras',
+      calendarNoModifyError: 'Den här kalendern stöder inte ändringar av händelser. Försök skapa en ny händelse.',
+      createEventServiceError: 'Skapa händelse misslyckades',
+      deleteEventServiceError: 'Ta bort händelse misslyckades',
+      updateEventServiceError: 'Uppdatera händelse misslyckades. Kalendern kanske inte har stöd för ändringar.',
+      durationHour: '{count} timme',
+      durationHours: '{count} timmar',
+      durationMinute: '{count} minut',
+      durationMinutes: '{count} minuter',
+      moreEvents: '+{count} fler',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'v.'
+    }
+  }
+};
+
+function renderDayBadge(badge, { escapeHtml }) {
+  const style = [
+    badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
+    badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
+    badge.size ? `--dcc-day-badge-size: ${badge.size};` : '',
+    badge.font_size ? `--dcc-day-badge-font-size: ${badge.font_size};` : ''
+  ].join(' ');
+  const hasIcon = Boolean(badge.icon);
+  const hasText = Boolean(badge.text);
+  const content = [
+    hasIcon ? `<ha-icon icon="${escapeHtml(badge.icon)}"></ha-icon>` : '',
+    hasText ? `<span class="day-badge-text">${escapeHtml(badge.text)}</span>` : ''
+  ].join('');
+  const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  return `<span class="${classes}" style="${style}">${content}</span>`;
+}
+
+function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges }) {
+  const badges = getDayBadges(date, dayEvents);
+  if (!badges.length) return '';
+
+  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml })).join('');
+
+  return `<div class="day-badges">${badgesHtml}</div>`;
+}
+
+function getDayForecastClass(viewMode = 'week-compact') {
+  return viewMode === 'week-standard'
+    ? 'week-standard-day-forecast'
+    : viewMode === 'month'
+      ? 'month-day-forecast'
+      : viewMode === 'agenda'
+        ? 'agenda-day-forecast'
+        : 'week-day-forecast';
+}
+
+function renderWeatherIcon(icon, { escapeHtml }) {
+  return `<span class="forecast-condition"><ha-icon icon="${escapeHtml(icon)}"></ha-icon></span>`;
+}
+
+function renderForecastTemperatures(forecast, { escapeHtml }) {
+  return `<span class="forecast-temperatures">
+          <span class="forecast-temp-high">${escapeHtml(forecast.highTemp)}</span>
+          ${forecast.lowTemp ? `<span class="forecast-temp-low">${escapeHtml(forecast.lowTemp)}</span>` : ''}
+        </span>`;
+}
+
+function renderDayForecast(date, viewMode = 'week-compact', { escapeHtml, getForecastForDate }) {
+  const forecast = getForecastForDate(date);
+  if (!forecast) return '';
+  const forecastClass = getDayForecastClass(viewMode);
+
+  return `
+      <div class="${forecastClass}">
+        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml })}
+        ${renderForecastTemperatures(forecast, { escapeHtml })}
+      </div>
     `;
+}
+
+function normalizeDayBadgeBlock(rule = {}, {
+  normalizeEventTextValue,
+  normalizeDayBadgeDisplayColor,
+  normalizeStyleSizeValue
+} = {}) {
+  const normalized = {};
+  const text = normalizeEventTextValue(rule.text);
+  const icon = normalizeEventTextValue(rule.icon);
+  const normalizedText = text || '';
+  const normalizedIcon = icon || '';
+  if (normalizedText) normalized.text = normalizedText;
+  if (normalizedIcon) normalized.icon = normalizedIcon;
+
+  const backgroundColor = normalizeDayBadgeDisplayColor(rule.background_color);
+  if (backgroundColor) normalized.background_color = backgroundColor;
+  const color = normalizeDayBadgeDisplayColor(rule.color);
+  if (color) normalized.color = color;
+
+  const size = normalizeStyleSizeValue(rule.size);
+  if (size) normalized.size = size;
+
+  const fontSize = normalizeStyleSizeValue(rule.font_size);
+  if (fontSize) normalized.font_size = fontSize;
+  return normalized;
+}
+
+function isFullValueTemplate(value) {
+  return typeof value === 'string' && /^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/.test(value);
+}
+
+function normalizeDayBadgeDisplayColor(value, { normalizeSingleColor } = {}) {
+  if (isFullValueTemplate(value)) return String(value).trim();
+  return normalizeSingleColor(value);
+}
+
+function normalizeResolvedDayBadgeDisplayColor(value, { normalizeSingleColor } = {}) {
+  const normalized = normalizeSingleColor(value);
+  if (typeof normalized !== 'string') return undefined;
+  const trimmed = normalized.trim();
+  if (!trimmed) return undefined;
+
+  if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
+  if (/^rgba?\(\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%?(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
+  if (/^hsla?\(\s*[+-]?(?:\d+|\d*\.\d+)(?:deg|grad|rad|turn)?\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%\s*(?:,|\s)\s*[+-]?(?:\d+|\d*\.\d+)%(?:\s*(?:,|\/)\s*(?:[01](?:\.\d+)?|\.\d+|\d+%))?\s*\)$/i.test(trimmed)) return trimmed;
+
+  return undefined;
+}
+
+function parseEventDescriptionJson(event) {
+  const raw = String(event?.description || '').trim();
+  if (!raw.startsWith('{') || !raw.endsWith('}')) return undefined;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+function buildDayBadgeResolutionContext(date, matchedEvent, { formatLocalDate } = {}) {
+  const event = matchedEvent && typeof matchedEvent === 'object' ? matchedEvent : {};
+  const calendar = event.entityId || event.entity_id || event.calendar;
+  const title = event.summary || event.title;
+  return {
+    date: date instanceof Date && !Number.isNaN(date.getTime()) ? formatLocalDate(date) : date,
+    calendar,
+    title,
+    event: {
+      ...event,
+      calendar,
+      entity_id: event.entity_id || event.entityId,
+      title,
+      summary: event.summary || event.title,
+      description_json: parseEventDescriptionJson(event)
+    }
+  };
+}
+
+function resolveSafePath(path, context) {
+  if (typeof path !== 'string' || !path) return undefined;
+  const blockedSegments = new Set(['__proto__', 'prototype', 'constructor']);
+  const segments = path.split('.');
+  if (!segments.length) return undefined;
+
+  let current = context;
+  for (const segment of segments) {
+    if (!/^[A-Za-z0-9_-]+$/.test(segment) || blockedSegments.has(segment)) return undefined;
+    if (current === null || current === undefined || (typeof current !== 'object' && typeof current !== 'function')) return undefined;
+    if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined;
+    current = current[segment];
+  }
+
+  if (current === null || current === undefined) return undefined;
+  if (['string', 'number', 'boolean'].includes(typeof current)) return String(current);
+  return undefined;
+}
+
+function resolveDayBadgeDisplayValue(value, context) {
+  if (typeof value !== 'string') return value;
+  const match = value.match(/^\s*\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}\s*$/);
+  if (!match) return value;
+  return resolveSafePath(match[1], context);
+}
+
+function resolveDayBadgeForRender(rule, date, matchedEvent, {
+  formatLocalDate,
+  normalizeResolvedDayBadgeDisplayColor
+} = {}) {
+  const context = buildDayBadgeResolutionContext(date, matchedEvent, { formatLocalDate });
+  const resolved = { ...rule };
+  ['icon', 'text', 'background_color', 'color'].forEach((field) => {
+    const value = resolveDayBadgeDisplayValue(rule[field], context);
+    if (value === undefined || value === null || String(value).trim() === '') {
+      delete resolved[field];
+      return;
+    }
+
+    if (field === 'background_color' || field === 'color') {
+      const normalizedColor = normalizeResolvedDayBadgeDisplayColor(value);
+      if (normalizedColor) {
+        resolved[field] = normalizedColor;
+      } else {
+        delete resolved[field];
+      }
+      return;
+    }
+
+    resolved[field] = String(value).trim();
+  });
+  return resolved;
+}
+
+function normalizeDayBadgeConditions(rawConditions, { normalizeEventMatchConditions } = {}) {
+  return normalizeEventMatchConditions(rawConditions);
+}
+
+function normalizeDayBadges(rawRules, {
+  normalizeAdvancedRuleMatch,
+  normalizeDayBadgeBlock
+} = {}) {
+  if (!Array.isArray(rawRules)) return [];
+
+  return rawRules
+    .map((rule, index) => {
+      if (!rule || typeof rule !== 'object') return null;
+      const rawMatch = rule.match && typeof rule.match === 'object'
+        ? rule.match
+        : (rule.conditions && typeof rule.conditions === 'object' ? { event: rule.conditions } : null);
+      const match = normalizeAdvancedRuleMatch(rawMatch, 'event');
+      if (!match) return null;
+
+      const output = normalizeDayBadgeBlock(rule);
+      if (!output.text && !output.icon) return null;
+
+      const numericPriority = Number(rule.priority);
+      const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
+      const normalized = {
+        id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `day-badge-${index + 1}`,
+        type: 'day_badge',
+        priority,
+        index,
+        match,
+        output,
+        conditions: match.event
+      };
+      Object.assign(normalized, output);
+      return normalized;
+    })
+    .filter(Boolean);
+}
+
+function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
+  const chunks = [];
+  let cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+
+  while (cursor <= endDate) {
+    const chunkStart = new Date(cursor);
+    const chunkEnd = new Date(cursor);
+    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+    if (chunkEnd > endDate) {
+      chunkEnd.setTime(endDate.getTime());
+    }
+    chunkEnd.setHours(23, 59, 59, 999);
+
+    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
+
+    cursor = new Date(chunkEnd);
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return chunks;
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+  return new Date(year, month - 1, day);
+}
+
+function parsePossiblyLocalDateTime(value) {
+  if (!value || typeof value !== 'string') return new Date(value);
+
+  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
+  if (hasTimezone) return new Date(value);
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return new Date(value);
+
+  const [, year, month, day, hour, minute, second = '0'] = match;
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+}
+
+function formatLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getIsoWeekNumber(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+function normalizeSingleColor(colorValue) {
+  if (colorValue === undefined || colorValue === null) {
+    return colorValue;
+  }
+
+  const trimmed = String(colorValue).trim();
+  if (!trimmed) return trimmed;
+
+  const normalizedName = trimmed
+    .toLowerCase()
+    .replace(/[()]/g, '')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const mappedColor = COMMON_NAMED_COLORS[normalizedName];
+  if (mappedColor) {
+    return mappedColor;
+  }
+
+  return trimmed;
+}
+
+function normalizeColorMap(colorMap, { normalizeColor = normalizeSingleColor } = {}) {
+  if (!colorMap || typeof colorMap !== 'object') return {};
+
+  return Object.entries(colorMap).reduce((acc, [entityId, color]) => {
+    const normalized = normalizeColor(color);
+    if (normalized !== undefined && normalized !== null && normalized !== '') {
+      acc[entityId] = normalized;
+    }
+    return acc;
+  }, {});
+}
+
+function colorToHex(color, { normalizeColor = normalizeSingleColor } = {}) {
+  if (!color) return null;
+
+  const normalizedColor = normalizeColor(color);
+  if (typeof normalizedColor !== 'string') return null;
+
+  const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
+  if (hex3Match) {
+    const [r, g, b] = hex3Match[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+
+  const hex6Match = normalizedColor.match(/^#([\da-fA-F]{6})$/);
+  if (hex6Match) {
+    return `#${hex6Match[1].toUpperCase()}`;
+  }
+
+  return null;
+}
+
+function parseColorToRgb(color, {
+  normalizeColor = normalizeSingleColor,
+  resolveComputedCssColorToRgb = null
+} = {}) {
+  const normalizedColor = normalizeColor(color);
+  if (typeof normalizedColor === 'string') {
+    const rgbMatch = normalizedColor
+      .match(/^rgba?\((.+)\)$/i);
+    if (rgbMatch) {
+      const normalizedChannels = rgbMatch[1]
+        .replace(/\s*\/\s*.*/, '')
+        .replace(/,/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 3)
+        .map((channel) => Number(channel));
+
+      if (normalizedChannels.length === 3 && normalizedChannels.every((value) => Number.isFinite(value))) {
+        const [r, g, b] = normalizedChannels.map((value) => Math.max(0, Math.min(255, Math.round(value))));
+        return { r, g, b };
+      }
+    }
+  }
+
+  const hex = colorToHex(normalizedColor, { normalizeColor });
+  if (hex) {
+    return {
+      r: parseInt(hex.slice(1, 3), 16),
+      g: parseInt(hex.slice(3, 5), 16),
+      b: parseInt(hex.slice(5, 7), 16)
+    };
+  }
+
+  return typeof resolveComputedCssColorToRgb === 'function'
+    ? resolveComputedCssColorToRgb(normalizedColor)
+    : null;
+}
+
+function colorWithAlpha(color, alpha = 1, { colorToRgb = parseColorToRgb } = {}) {
+  const rgb = colorToRgb(color);
+  if (!rgb) return color;
+
+  const clamped = Math.max(0, Math.min(1, alpha));
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
+}
+
+function blendRgb(top, bottom, topAlpha = 1) {
+  if (!top && !bottom) return null;
+  if (!top) return bottom;
+  if (!bottom) return top;
+  const clampedAlpha = Math.max(0, Math.min(1, topAlpha));
+  return {
+    r: Math.round((top.r * clampedAlpha) + (bottom.r * (1 - clampedAlpha))),
+    g: Math.round((top.g * clampedAlpha) + (bottom.g * (1 - clampedAlpha))),
+    b: Math.round((top.b * clampedAlpha) + (bottom.b * (1 - clampedAlpha)))
+  };
+}
+
+function getContrastColor(backgroundColor, { colorToRgb = parseColorToRgb } = {}) {
+  const rgb = colorToRgb(backgroundColor);
+  if (!rgb) return 'white';
+
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.6 ? 'black' : 'white';
+}
+
+function normalizeThemeMode(value) {
+  if (value === true) return 'dark';
+  if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
+
+  return normalizeEnumValue(value, {
+    allowed: THEME_MODE_OPTIONS,
+    fallback: DEFAULT_THEME_MODE
+  });
+}
+
+function normalizeEventTitlePrefixMode(value) {
+  return normalizeEnumValue(value, {
+    aliases: EVENT_TITLE_PREFIX_ALIASES,
+    allowed: EVENT_TITLE_PREFIX_OPTIONS,
+    fallback: DEFAULT_EVENT_TITLE_PREFIX
+  });
+}
+
+function normalizePastEventMode(value) {
+  return normalizeEnumValue(value, {
+    allowed: PAST_EVENT_MODE_OPTIONS,
+    fallback: DEFAULT_PAST_EVENT_MODE
+  });
+}
+
+function normalizeDayBadgeLayoutWeek(value) {
+  return normalizeEnumValue(value, {
+    allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
+    fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
+  });
+}
+
+function normalizeDefaultHiddenCalendars(config = {}) {
+  const knownEntities = new Set(Array.isArray(config.entities) ? config.entities : []);
+  const hiddenCalendars = new Set();
+
+  if (Array.isArray(config.default_hidden_calendars)) {
+    config.default_hidden_calendars.forEach((entityId) => {
+      if (knownEntities.has(entityId)) hiddenCalendars.add(entityId);
+    });
+  }
+
+  const visibilityMap = config.default_calendar_visibility || config.calendar_visibility || {};
+  if (visibilityMap && typeof visibilityMap === 'object' && !Array.isArray(visibilityMap)) {
+    Object.entries(visibilityMap).forEach(([entityId, value]) => {
+      if (!knownEntities.has(entityId)) return;
+      const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
+      if (HIDDEN_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
+        hiddenCalendars.add(entityId);
+      } else if (VISIBLE_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
+        hiddenCalendars.delete(entityId);
+      }
+    });
+  }
+
+  return Array.from(hiddenCalendars);
+}
+
+function normalizeCombineStyle(styleValue) {
+  return normalizeEnumValue(styleValue, {
+    allowed: COMBINE_STYLE_OPTIONS,
+    fallback: DEFAULT_COMBINE_STYLE
+  });
+}
+
+function normalizeEventColorMode(modeValue) {
+  return normalizeEnumValue(modeValue, {
+    allowed: EVENT_COLOR_MODE_OPTIONS,
+    fallback: DEFAULT_EVENT_COLOR_MODE
+  });
+}
+
+function normalizeCombineBackground(backgroundValue, { colorToHex: normalizeColorToHex = colorToHex } = {}) {
+  const normalized = String(backgroundValue || '').trim();
+  if (!normalized) return DEFAULT_COMBINE_BACKGROUND;
+
+  const lower = normalized.toLowerCase();
+  if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(lower)) {
+    return lower;
+  }
+
+  const hex = normalizeColorToHex(normalized);
+  return hex || DEFAULT_COMBINE_BACKGROUND;
+}
+
+function normalizeBackgroundOpacity(opacityValue, fallback = 0) {
+  const numericOpacity = Number(opacityValue);
+  if (!Number.isFinite(numericOpacity)) {
+    return fallback;
+  }
+
+  return Math.min(100, Math.max(0, numericOpacity));
+}
+
+function normalizeEventModalSize(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+}
+
+function normalizeEventTextValue(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function escapeHtmlAttribute(text) {
+  const replacements = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
+}
+
+const getEventIdentityKey = (entityId, event) => `${entityId}|${event.uid || ''}|${event.recurring_event_id || ''}|${event.start?.dateTime || event.start?.date || event.start || ''}|${event.end?.dateTime || event.end?.date || event.end || ''}|${event.summary || ''}`;
+
+const normalizeCalendarEvent = (event, { entityId, color }) => ({
+  ...event,
+  entityId,
+  color
+});
+
+const getEventStartDate = (event, { parseLocalDate } = {}) => {
+  if (event.start?.dateTime) return new Date(event.start.dateTime);
+  if (event.start?.date) return parseLocalDate(event.start.date);
+  return new Date(event.start);
+};
+
+const getEventDateTimeInfo = (event, { parseCalendarDate } = {}) => {
+  if (event.start.dateTime) {
+    return {
+      eventStart: new Date(event.start.dateTime),
+      eventEnd: new Date(event.end.dateTime),
+      isAllDay: false
+    };
+  }
+
+  if (event.start.date) {
+    return {
+      eventStart: parseCalendarDate(event.start.date),
+      eventEnd: parseCalendarDate(event.end.date),
+      isAllDay: true
+    };
+  }
+
+  const isAllDay = !event.start.includes('T');
+  return {
+    eventStart: new Date(event.start),
+    eventEnd: new Date(event.end),
+    isAllDay
+  };
+};
+
+const matchPrimitiveCondition = (value, condition) => {
+  if (typeof condition === 'boolean') {
+    return value === condition;
+  }
+
+  if (typeof condition === 'string') {
+    const normalized = condition.trim().toLowerCase();
+    if (normalized === 'true') return value === true;
+    if (normalized === 'false') return value === false;
+  }
+
+  return value === condition;
+};
+
+const parseRegexCondition = (value) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const prefixed = trimmed.match(/^regex:(.+)$/i);
+  if (prefixed) {
+    try {
+      return new RegExp(prefixed[1].trim(), 'i');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const slashDelimited = trimmed.match(/^\/(.+)\/([dgimsuvy]*)$/);
+  if (!slashDelimited) return null;
+
+  try {
+    return new RegExp(slashDelimited[1], slashDelimited[2] || 'i');
+  } catch (error) {
+    return null;
+  }
+};
+
+const matchTextCondition = (value, condition, { normalizeEventTextValue }) => {
+  const rawNormalizedValue = normalizeEventTextValue(value);
+  if (!rawNormalizedValue) return false;
+  const normalizedValue = rawNormalizedValue.toLowerCase();
+
+  if (typeof condition === 'string') {
+    const regex = parseRegexCondition(condition);
+    if (regex) return regex.test(rawNormalizedValue);
+
+    const normalizedCondition = condition.trim();
+    if (!normalizedCondition) return false;
+
+    const exactMatch = normalizedCondition.match(/^exact:(.+)$/i);
+    if (exactMatch) {
+      return normalizedValue === exactMatch[1].trim().toLowerCase();
+    }
+
+    const containsMatch = normalizedCondition.match(/^(?:contains|substring):(.+)$/i);
+    if (containsMatch) {
+      return normalizedValue.includes(containsMatch[1].trim().toLowerCase());
+    }
+
+    return normalizedValue.includes(normalizedCondition.toLowerCase());
+  }
+
+  if (condition && typeof condition === 'object' && !Array.isArray(condition)) {
+    if (typeof condition.exact === 'string') {
+      return normalizedValue === condition.exact.trim().toLowerCase();
+    }
+    if (typeof condition.substring === 'string') {
+      return normalizedValue.includes(condition.substring.trim().toLowerCase());
+    }
+    if (typeof condition.contains === 'string') {
+      return normalizedValue.includes(condition.contains.trim().toLowerCase());
+    }
+    if (typeof condition.regex === 'string') {
+      const regex = parseRegexCondition(`regex:${condition.regex}`);
+      return !!regex && regex.test(rawNormalizedValue);
+    }
+  }
+
+  return false;
+};
+
+const eventFieldMatches = (event, field, condition, helpers) => {
+  const fieldName = String(field || '').trim().toLowerCase();
+  if (!fieldName) return false;
+
+  if (fieldName === 'all_day') {
+    const { isAllDay } = helpers.getEventDateTimeInfo(event);
+    return matchPrimitiveCondition(isAllDay, condition);
+  }
+
+  if (fieldName === 'past') {
+    return matchPrimitiveCondition(helpers.isPastEvent(event), condition);
+  }
+
+  if (fieldName === 'calendar') {
+    return helpers.getEventCalendarMatchTokens(event).some((token) => matchTextCondition(token, condition, helpers));
+  }
+
+  const valueByField = {
+    title: event.summary,
+    summary: event.summary,
+    location: event.location,
+    description: event.description
+  };
+  return matchTextCondition(valueByField[fieldName], condition, helpers);
+};
+
+const eventMatchesNormalizedRule = (event, match, helpers) => {
+  if (!event || !match || typeof match !== 'object') return false;
+
+  const logicalKeys = new Set(['any', 'all', 'and', 'not']);
+  const fieldKeys = Object.keys(match).filter((key) => !logicalKeys.has(key));
+  const fieldsPass = fieldKeys.every((field) => eventFieldMatches(event, field, match[field], helpers));
+
+  if (!fieldsPass) return false;
+
+  const allConditions = Array.isArray(match.all) ? match.all : [];
+  if (!allConditions.every((condition) => eventMatchesNormalizedRule(event, condition, helpers))) return false;
+
+  const andConditions = Array.isArray(match.and) ? match.and : [];
+  if (!andConditions.every((condition) => eventMatchesNormalizedRule(event, condition, helpers))) return false;
+
+  if (Object.prototype.hasOwnProperty.call(match, 'any')) {
+    const anyConditions = Array.isArray(match.any) ? match.any : [];
+    if (anyConditions.length && !anyConditions.some((condition) => eventMatchesNormalizedRule(event, condition, helpers))) return false;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(match, 'not')) {
+    const notCondition = match.not;
+    if (Array.isArray(notCondition)) {
+      if (notCondition.some((condition) => eventMatchesNormalizedRule(event, condition, helpers))) return false;
+    } else if (notCondition && eventMatchesNormalizedRule(event, notCondition, helpers)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const findMatchingEventForCondition = (condition, dayEvents = [], helpers) => {
+  if (!Array.isArray(dayEvents) || !dayEvents.length) return null;
+  if (condition === true) return dayEvents[0] || null;
+  if (condition === false) return null;
+  return dayEvents.find((event) => eventMatchesNormalizedRule(event, condition, helpers)) || null;
+};
+
+const dateMatchesDayCondition = (date, conditionName, conditionValue, context = {}) => {
+  if (conditionValue === false) return false;
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  if (conditionName === 'today') return matchPrimitiveCondition(!!context.isToday, conditionValue);
+  if (conditionName === 'past') return matchPrimitiveCondition(dayStart.getTime() < todayStart.getTime(), conditionValue);
+  if (conditionName === 'future') return matchPrimitiveCondition(dayStart.getTime() > todayStart.getTime(), conditionValue);
+  if (conditionName === 'weekend') return matchPrimitiveCondition(dayStart.getDay() === 0 || dayStart.getDay() === 6, conditionValue);
+  if (conditionName === 'weekday') return matchPrimitiveCondition(dayStart.getDay() !== 0 && dayStart.getDay() !== 6, conditionValue);
+  if (conditionName === 'day_of_week') return Array.isArray(conditionValue) && conditionValue.includes(dayStart.getDay());
+  return false;
+};
+
+const dayMatchesNormalizedRule = (dayMatch, context = {}, helpers) => {
+  if (!dayMatch || typeof dayMatch !== 'object') return { matches: true, matchedEvent: null };
+
+  let matchedEvent = null;
+  const logicalKeys = new Set(['any', 'all', 'and', 'not']);
+  const fieldKeys = Object.keys(dayMatch).filter((key) => !logicalKeys.has(key));
+
+  for (const field of fieldKeys) {
+    const condition = dayMatch[field];
+    if (field === 'has_event') {
+      const event = findMatchingEventForCondition(condition, context.dayEvents || [], helpers);
+      if (!event) return { matches: false, matchedEvent: null };
+      if (!matchedEvent) matchedEvent = event;
+      continue;
+    }
+    if (field === 'no_event') {
+      const event = findMatchingEventForCondition(condition, context.dayEvents || [], helpers);
+      if (event) return { matches: false, matchedEvent: null };
+      continue;
+    }
+    if (!dateMatchesDayCondition(context.date, field, condition, context)) {
+      return { matches: false, matchedEvent: null };
+    }
+  }
+
+  const allConditions = Array.isArray(dayMatch.all) ? dayMatch.all : [];
+  for (const condition of allConditions) {
+    const result = dayMatchesNormalizedRule(condition, context, helpers);
+    if (!result.matches) return { matches: false, matchedEvent: null };
+    if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
+  }
+
+  const andConditions = Array.isArray(dayMatch.and) ? dayMatch.and : [];
+  for (const condition of andConditions) {
+    const result = dayMatchesNormalizedRule(condition, context, helpers);
+    if (!result.matches) return { matches: false, matchedEvent: null };
+    if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(dayMatch, 'any')) {
+    const anyConditions = Array.isArray(dayMatch.any) ? dayMatch.any : [];
+    if (!anyConditions.length) return { matches: true, matchedEvent };
+    let anyMatched = false;
+    for (const condition of anyConditions) {
+      const result = dayMatchesNormalizedRule(condition, context, helpers);
+      if (result.matches) {
+        anyMatched = true;
+        if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
+        break;
+      }
+    }
+    if (!anyMatched) return { matches: false, matchedEvent: null };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(dayMatch, 'not')) {
+    const notCondition = dayMatch.not;
+    if (Array.isArray(notCondition)) {
+      for (const condition of notCondition) {
+        if (dayMatchesNormalizedRule(condition, context, helpers).matches) return { matches: false, matchedEvent: null };
+      }
+    } else if (notCondition && dayMatchesNormalizedRule(notCondition, context, helpers).matches) {
+      return { matches: false, matchedEvent: null };
+    }
+  }
+
+  return { matches: true, matchedEvent };
+};
+
+const matchesAdvancedRule = (ruleOrMatch, context = {}, helpers) => {
+  const match = ruleOrMatch?.match || ruleOrMatch;
+  if (!match || typeof match !== 'object') return { matches: false, matchedEvent: null };
+
+  let matchedEvent = null;
+  const eventMatch = match.event && Object.keys(match.event).length ? match.event : null;
+  if (eventMatch) {
+    if (context.event) {
+      if (!eventMatchesNormalizedRule(context.event, eventMatch, helpers)) return { matches: false, matchedEvent: null };
+      matchedEvent = context.event;
+    } else {
+      const event = findMatchingEventForCondition(eventMatch, context.dayEvents || [], helpers);
+      if (!event) return { matches: false, matchedEvent: null };
+      matchedEvent = event;
+    }
+  }
+
+  const dayMatch = match.day && Object.keys(match.day).length ? match.day : null;
+  if (dayMatch) {
+    const dayResult = dayMatchesNormalizedRule(dayMatch, context, helpers);
+    if (!dayResult.matches) return { matches: false, matchedEvent: null };
+    if (!matchedEvent && dayResult.matchedEvent) matchedEvent = dayResult.matchedEvent;
+  }
+
+  const allConditions = Array.isArray(match.all) ? match.all : [];
+  for (const condition of allConditions) {
+    const result = matchesAdvancedRule(condition, context, helpers);
+    if (!result.matches) return { matches: false, matchedEvent: null };
+    if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
+  }
+
+  const anyConditions = Array.isArray(match.any) ? match.any : [];
+  if (anyConditions.length) {
+    let anyMatched = false;
+    for (const condition of anyConditions) {
+      const result = matchesAdvancedRule(condition, context, helpers);
+      if (result.matches) {
+        anyMatched = true;
+        if (!matchedEvent && result.matchedEvent) matchedEvent = result.matchedEvent;
+        break;
+      }
+    }
+    if (!anyMatched) return { matches: false, matchedEvent: null };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(match, 'not')) {
+    const notCondition = match.not;
+    if (Array.isArray(notCondition)) {
+      for (const condition of notCondition) {
+        if (matchesAdvancedRule(condition, context, helpers).matches) return { matches: false, matchedEvent: null };
+      }
+    } else if (notCondition && matchesAdvancedRule(notCondition, context, helpers).matches) {
+      return { matches: false, matchedEvent: null };
+    }
+  }
+
+  return { matches: true, matchedEvent };
+};
+
+const getEmptyAdvancedMatch = () => ({ event: {}, day: {}, any: [], all: [], not: null });
+
+const normalizeEventMatchConditions = (rawMatch) => {
+  if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
+
+  const normalized = {};
+  const logicalKeys = new Set(['all', 'and', 'any', 'not']);
+  const eventAliases = {
+    title_contains: 'title',
+    summary_contains: 'summary',
+    location_contains: 'location',
+    description_contains: 'description'
+  };
+  const calendarAliases = new Set(['calendar_entity', 'entity_id', 'entity']);
+
+  Object.entries(rawMatch).forEach(([key, value]) => {
+    const normalizedKey = String(key || '').trim().toLowerCase();
+    if (!normalizedKey) return;
+
+    if (logicalKeys.has(normalizedKey)) {
+      if (normalizedKey === 'all' || normalizedKey === 'and') {
+        const conditions = Array.isArray(value) ? value : [value];
+        const normalizedConditions = conditions
+          .map((condition) => normalizeEventMatchConditions(condition))
+          .filter(Boolean);
+        if (normalizedConditions.length) {
+          if (!Array.isArray(normalized.all)) normalized.all = [];
+          normalized.all.push(...normalizedConditions);
+        }
+        return;
+      }
+
+      if (normalizedKey === 'any') {
+        const conditions = Array.isArray(value) ? value : [value];
+        const normalizedConditions = conditions
+          .map((condition) => normalizeEventMatchConditions(condition))
+          .filter(Boolean);
+        if (normalizedConditions.length) normalized.any = normalizedConditions;
+        return;
+      }
+
+      if (normalizedKey === 'not') {
+        if (Array.isArray(value)) {
+          const normalizedConditions = value
+            .map((condition) => normalizeEventMatchConditions(condition))
+            .filter(Boolean);
+          if (normalizedConditions.length) normalized.not = normalizedConditions;
+        } else {
+          const normalizedCondition = normalizeEventMatchConditions(value);
+          if (normalizedCondition) normalized.not = normalizedCondition;
+        }
+        return;
+      }
+    }
+
+    if (eventAliases[normalizedKey]) {
+      const canonicalKey = eventAliases[normalizedKey];
+      if (normalized[canonicalKey] === undefined) normalized[canonicalKey] = `contains:${value}`;
+      return;
+    }
+
+    if (calendarAliases.has(normalizedKey)) {
+      if (normalized.calendar === undefined) normalized.calendar = value;
+      return;
+    }
+
+    if (normalizedKey === 'all_day_event') {
+      if (normalized.all_day === undefined) normalized.all_day = value;
+      return;
+    }
+
+    if (['title', 'summary', 'location', 'description', 'calendar', 'all_day', 'past'].includes(normalizedKey)) {
+      normalized[normalizedKey] = value;
+    }
+  });
+
+  return Object.keys(normalized).length ? normalized : null;
+};
+
+const normalizeDayMatchConditions = (rawMatch, { normalizeDayOfWeekRule, localeOverride = null } = {}) => {
+  if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
+
+  const normalized = {};
+  const logicalKeys = new Set(['all', 'and', 'any', 'not']);
+
+  Object.entries(rawMatch).forEach(([key, value]) => {
+    const normalizedKey = String(key || '').trim().toLowerCase();
+    if (!normalizedKey) return;
+
+    if (logicalKeys.has(normalizedKey)) {
+      if (normalizedKey === 'all' || normalizedKey === 'and') {
+        const conditions = Array.isArray(value) ? value : [value];
+        const normalizedConditions = conditions
+          .map((condition) => normalizeDayMatchConditions(condition, { normalizeDayOfWeekRule, localeOverride }))
+          .filter(Boolean);
+        if (normalizedConditions.length) {
+          if (!Array.isArray(normalized.all)) normalized.all = [];
+          normalized.all.push(...normalizedConditions);
+        }
+        return;
+      }
+
+      if (normalizedKey === 'any') {
+        const conditions = Array.isArray(value) ? value : [value];
+        const normalizedConditions = conditions
+          .map((condition) => normalizeDayMatchConditions(condition, { normalizeDayOfWeekRule, localeOverride }))
+          .filter(Boolean);
+        if (normalizedConditions.length) normalized.any = normalizedConditions;
+        return;
+      }
+
+      if (normalizedKey === 'not') {
+        if (Array.isArray(value)) {
+          const normalizedConditions = value
+            .map((condition) => normalizeDayMatchConditions(condition, { normalizeDayOfWeekRule, localeOverride }))
+            .filter(Boolean);
+          if (normalizedConditions.length) normalized.not = normalizedConditions;
+        } else {
+          const normalizedCondition = normalizeDayMatchConditions(value, { normalizeDayOfWeekRule, localeOverride });
+          if (normalizedCondition) normalized.not = normalizedCondition;
+        }
+        return;
+      }
+    }
+
+    if (['today', 'past', 'future', 'weekend', 'weekday'].includes(normalizedKey)) {
+      normalized[normalizedKey] = value;
+      return;
+    }
+
+    if (normalizedKey === 'day_of_week') {
+      const dayOfWeek = normalizeDayOfWeekRule(value, localeOverride);
+      if (dayOfWeek.length) normalized.day_of_week = dayOfWeek;
+      return;
+    }
+
+    if (normalizedKey === 'has_event' || normalizedKey === 'no_event') {
+      if (value === true || value === false) {
+        normalized[normalizedKey] = value;
+      } else {
+        const eventMatch = normalizeEventMatchConditions(value);
+        if (eventMatch) normalized[normalizedKey] = eventMatch;
+      }
+    }
+  });
+
+  return Object.keys(normalized).length ? normalized : null;
+};
+
+const normalizeAdvancedRuleMatch = (rawMatch, { defaultScope = 'event', localeOverride = null, normalizeDayOfWeekRule } = {}) => {
+  if (!rawMatch || typeof rawMatch !== 'object' || Array.isArray(rawMatch)) return null;
+
+  const match = getEmptyAdvancedMatch();
+  const logicalKeys = new Set(['all', 'and', 'any', 'not']);
+  const explicitKeys = new Set(['event', 'day', ...logicalKeys]);
+  let hasMatch = false;
+
+  if (rawMatch.event && typeof rawMatch.event === 'object' && !Array.isArray(rawMatch.event)) {
+    const eventMatch = normalizeEventMatchConditions(rawMatch.event);
+    if (eventMatch) {
+      match.event = eventMatch;
+      hasMatch = true;
+    }
+  }
+
+  if (rawMatch.day && typeof rawMatch.day === 'object' && !Array.isArray(rawMatch.day)) {
+    const dayMatch = normalizeDayMatchConditions(rawMatch.day, { normalizeDayOfWeekRule, localeOverride });
+    if (dayMatch) {
+      match.day = dayMatch;
+      hasMatch = true;
+    }
+  }
+
+  const implicitRaw = Object.fromEntries(Object.entries(rawMatch).filter(([key]) => !explicitKeys.has(String(key || '').trim().toLowerCase())));
+  if (Object.keys(implicitRaw).length) {
+    if (defaultScope === 'day') {
+      const dayMatch = normalizeDayMatchConditions(implicitRaw, { normalizeDayOfWeekRule, localeOverride });
+      if (dayMatch) {
+        match.day = { ...match.day, ...dayMatch };
+        hasMatch = true;
+      }
+    } else {
+      const eventMatch = normalizeEventMatchConditions(implicitRaw);
+      if (eventMatch) {
+        match.event = { ...match.event, ...eventMatch };
+        hasMatch = true;
+      }
+    }
+  }
+
+  ['all', 'and'].forEach((key) => {
+    if (rawMatch[key] === undefined) return;
+    const conditions = Array.isArray(rawMatch[key]) ? rawMatch[key] : [rawMatch[key]];
+    const normalizedConditions = conditions
+      .map((condition) => normalizeAdvancedRuleMatch(condition, { defaultScope, localeOverride, normalizeDayOfWeekRule }))
+      .filter(Boolean);
+    if (normalizedConditions.length) {
+      match.all.push(...normalizedConditions);
+      hasMatch = true;
+    }
+  });
+
+  if (rawMatch.any !== undefined) {
+    const conditions = Array.isArray(rawMatch.any) ? rawMatch.any : [rawMatch.any];
+    const normalizedConditions = conditions
+      .map((condition) => normalizeAdvancedRuleMatch(condition, { defaultScope, localeOverride, normalizeDayOfWeekRule }))
+      .filter(Boolean);
+    if (normalizedConditions.length) {
+      match.any = normalizedConditions;
+      hasMatch = true;
+    }
+  }
+
+  if (rawMatch.not !== undefined) {
+    if (Array.isArray(rawMatch.not)) {
+      const normalizedConditions = rawMatch.not
+        .map((condition) => normalizeAdvancedRuleMatch(condition, { defaultScope, localeOverride, normalizeDayOfWeekRule }))
+        .filter(Boolean);
+      if (normalizedConditions.length) {
+        match.not = normalizedConditions;
+        hasMatch = true;
+      }
+    } else {
+      const normalizedCondition = normalizeAdvancedRuleMatch(rawMatch.not, { defaultScope, localeOverride, normalizeDayOfWeekRule });
+      if (normalizedCondition) {
+        match.not = normalizedCondition;
+        hasMatch = true;
+      }
+    }
+  }
+
+  return hasMatch ? match : null;
+};
+
+const normalizeLegacyDayStyleMatch = (rule, { localeOverride = null, normalizeDayOfWeekRule, normalizeAdvancedRuleMatch }) => {
+  const rawCondition = String(rule.condition || '').trim().toLowerCase();
+  if (!rawCondition) return null;
+
+  const isNegatedCondition = rawCondition.startsWith('!');
+  const condition = isNegatedCondition ? rawCondition.slice(1) : rawCondition;
+  if (!condition) return null;
+
+  if (!['today', 'past', 'future', 'weekend', 'weekday', 'day_of_week', 'has_event'].includes(condition)) return null;
+  if (isNegatedCondition && condition !== 'has_event') return null;
+
+  const dayMatch = {};
+  if (condition === 'has_event') {
+    const eventMatch = {};
+    if (rule.calendar !== undefined && rule.calendar !== null && String(rule.calendar).trim()) {
+      eventMatch.calendar = rule.calendar;
+    }
+    if (rule.title_match !== undefined && rule.title_match !== null && rule.title_match !== '') {
+      eventMatch.title = rule.title_match;
+    }
+    if (!Object.keys(eventMatch).length) return null;
+    dayMatch[isNegatedCondition ? 'no_event' : 'has_event'] = eventMatch;
+  } else if (condition === 'day_of_week') {
+    const dayOfWeek = normalizeDayOfWeekRule(rule.day_of_week ?? rule.day ?? rule.days, localeOverride);
+    if (!dayOfWeek.length) return null;
+    dayMatch.day_of_week = dayOfWeek;
+  } else {
+    dayMatch[condition] = true;
+  }
+
+  return normalizeAdvancedRuleMatch({ day: dayMatch }, 'day', localeOverride);
+};
+
+function isWeatherEntityId(entityId) {
+  return !!entityId && entityId.startsWith('weather.');
+}
+
+function buildWeatherForecastSubscriptionMessage(entityId, forecastType = 'daily') {
+  return {
+    type: 'weather/subscribe_forecast',
+    entity_id: entityId,
+    forecast_type: forecastType
+  };
+}
+
+function buildWeatherForecastRequestMessage(entityId, forecastType = 'daily') {
+  return {
+    type: 'weather/get_forecasts',
+    entity_ids: [entityId],
+    forecast_type: forecastType
+  };
+}
+
+const DEFAULT_RETRY_DELAY_MS = 5 * 60 * 1000;
+
+class WeatherForecastController {
+  constructor({
+    getHass,
+    getWeatherEntityId,
+    onForecastUpdated = () => {},
+    now = () => Date.now(),
+    requestForecast = null,
+    subscribeForecast = null,
+    retryDelayMs = DEFAULT_RETRY_DELAY_MS
+  } = {}) {
+    this.getHass = getHass || (() => null);
+    this.getWeatherEntityId = getWeatherEntityId || (() => null);
+    this.onForecastUpdated = onForecastUpdated;
+    this.now = now;
+    this.requestForecast = requestForecast;
+    this.subscribeForecast = subscribeForecast;
+    this.retryDelayMs = retryDelayMs;
+
+    this.forecastByEntity = new Map();
+    this.subscriptionEntityId = null;
+    this.unsubscribe = null;
+    this.subscriptionInFlight = null;
+    this.subscriptionInFlightEntityId = null;
+    this.subscriptionGeneration = 0;
+    this.refreshInFlight = false;
+    this.refreshRetryAtByEntity = new Map();
+  }
+
+  getActiveWeatherEntityId() {
+    const entityId = this.getWeatherEntityId();
+    return isWeatherEntityId(entityId) ? entityId : null;
+  }
+
+  handleConfigChanged(previousEntityId, nextEntityId) {
+    if (previousEntityId !== nextEntityId) {
+      this.teardownSubscription();
+      this.clearForecasts();
+      this.clearRetryTimes();
+    }
+  }
+
+  clearForecasts() {
+    this.forecastByEntity.clear();
+  }
+
+  clearRetryTimes() {
+    this.refreshRetryAtByEntity.clear();
+  }
+
+  getForecastForEntity(entityId) {
+    return this.forecastByEntity.get(entityId);
+  }
+
+  getRenderSignature(entityId) {
+    const forecast = this.getForecastForEntity(entityId);
+    return JSON.stringify(Array.isArray(forecast) ? forecast : null);
+  }
+
+  teardownSubscription() {
+    this.subscriptionGeneration += 1;
+    if (typeof this.unsubscribe === 'function') {
+      this.unsubscribe();
+    }
+    this.unsubscribe = null;
+    this.subscriptionEntityId = null;
+    this.subscriptionInFlight = null;
+    this.subscriptionInFlightEntityId = null;
+  }
+
+  async ensureSubscription() {
+    const entityId = this.getActiveWeatherEntityId();
+    if (!entityId) {
+      this.teardownSubscription();
+      return undefined;
+    }
+
+    const hass = this.getHass();
+    const subscribeForecast = this.subscribeForecast || hass?.connection?.subscribeMessage?.bind(hass.connection);
+    if (typeof subscribeForecast !== 'function') {
+      return undefined;
+    }
+
+    if (this.subscriptionEntityId === entityId && this.unsubscribe) {
+      return undefined;
+    }
+
+    if (this.subscriptionInFlight && this.subscriptionInFlightEntityId === entityId) {
+      return this.subscriptionInFlight;
+    }
+
+    this.teardownSubscription();
+    const subscriptionGeneration = this.subscriptionGeneration;
+    this.subscriptionInFlightEntityId = entityId;
+
+    const setupPromise = subscribeForecast(
+      (message) => {
+        const nextForecast = Array.isArray(message?.forecast) ? message.forecast : [];
+        this.forecastByEntity.set(entityId, nextForecast);
+        this.onForecastUpdated(entityId, nextForecast, { source: 'subscription' });
+      },
+      buildWeatherForecastSubscriptionMessage(entityId)
+    )
+      .then((unsubscribe) => {
+        const generationMatches = subscriptionGeneration === this.subscriptionGeneration;
+        const entityMatches = entityId === this.subscriptionInFlightEntityId;
+        if (!generationMatches || !entityMatches) {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+          return;
+        }
+
+        this.unsubscribe = unsubscribe;
+        this.subscriptionEntityId = entityId;
+      })
+      .catch(() => {
+        if (subscriptionGeneration === this.subscriptionGeneration) {
+          this.unsubscribe = null;
+          this.subscriptionEntityId = null;
+        }
+      })
+      .finally(() => {
+        if (subscriptionGeneration === this.subscriptionGeneration) {
+          this.subscriptionInFlight = null;
+          this.subscriptionInFlightEntityId = null;
+        }
+      });
+
+    this.subscriptionInFlight = setupPromise;
+    return setupPromise;
+  }
+
+  async refreshForecastData() {
+    const entityId = this.getActiveWeatherEntityId();
+    if (!entityId) return undefined;
+    const hass = this.getHass();
+    if (!hass || this.refreshInFlight) return undefined;
+    if (this.forecastByEntity.has(entityId)) return undefined;
+    const now = this.now();
+    const retryAt = this.refreshRetryAtByEntity.get(entityId) || 0;
+    if (retryAt > now) return undefined;
+
+    const requestForecast = this.requestForecast || ((message) => hass.callWS(message));
+    if (typeof requestForecast !== 'function') return undefined;
+
+    this.refreshInFlight = true;
+    try {
+      const wsResponse = await requestForecast(buildWeatherForecastRequestMessage(entityId));
+      const dailyForecast = wsResponse?.[entityId]?.forecast;
+      if (Array.isArray(dailyForecast)) {
+        this.forecastByEntity.set(entityId, dailyForecast);
+        this.refreshRetryAtByEntity.delete(entityId);
+        this.onForecastUpdated(entityId, dailyForecast, { source: 'refresh' });
+      }
+    } catch (error) {
+      this.refreshRetryAtByEntity.set(entityId, now + this.retryDelayMs);
+    } finally {
+      this.refreshInFlight = false;
+    }
+    return undefined;
+  }
+}
+
+function createWeatherForecastController(dependencies) {
+  return new WeatherForecastController(dependencies);
+}
+
+const resolveTimedEventRange = (startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) => {
+  const start = parsePossiblyLocalDateTime(startValue);
+  if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
+    return { start: null, end: null };
+  }
+
+  const parsedEnd = endValue ? parsePossiblyLocalDateTime(endValue) : null;
+  if (parsedEnd instanceof Date && !Number.isNaN(parsedEnd.getTime())) {
+    return { start, end: parsedEnd };
+  }
+
+  return {
+    start,
+    end: new Date(start.getTime() + fallbackDurationMs)
+  };
+};
+
+const buildRRuleFromInputs = ({ frequency, interval, untilDate, count, byDay }) => {
+  const parts = [`FREQ=${frequency}`];
+  const parsedInterval = parseInt(interval, 10);
+
+  if (!Number.isNaN(parsedInterval) && parsedInterval > 1) {
+    parts.push(`INTERVAL=${parsedInterval}`);
+  }
+
+  if (Array.isArray(byDay) && byDay.length > 0) {
+    parts.push(`BYDAY=${byDay.join(',')}`);
+  }
+
+  const parsedCount = parseInt(count, 10);
+  if (!Number.isNaN(parsedCount) && parsedCount > 0) {
+    parts.push(`COUNT=${parsedCount}`);
+  } else if (untilDate) {
+    const until = new Date(`${untilDate}T23:59:59`);
+    if (!Number.isNaN(until.getTime())) {
+      const compactUntil = until.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      parts.push(`UNTIL=${compactUntil}`);
+    }
+  }
+
+  return parts.join(';');
+};
+
+const normalizeEventFormData = ({
+  title,
+  location,
+  description,
+  isAllDay,
+  startDate,
+  endDate,
+  startDateTime,
+  endDateTime,
+  fallbackDurationMs = 60 * 60 * 1000,
+  recurrence = null
+}) => {
+  if (!title) {
+    return { valid: false, errorKey: 'eventTitleRequired' };
+  }
+
+  const eventData = {
+    summary: title,
+    location: location || undefined,
+    description: description || undefined
+  };
+
+  if (isAllDay) {
+    if (!startDate || !endDate) {
+      return { valid: false, errorKey: 'startEndDatesRequired' };
+    }
+
+    const start = parseLocalDate(startDate);
+    const end = parseLocalDate(endDate);
+
+    if (end < start) {
+      return { valid: false, errorKey: 'endDateBeforeStart' };
+    }
+
+    const exclusiveEndDate = new Date(end);
+    exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
+    const exclusiveEndDateStr = formatLocalDate(exclusiveEndDate);
+
+    eventData.start = { date: startDate };
+    eventData.end = { date: exclusiveEndDateStr };
+  } else {
+    if (!startDateTime) {
+      return { valid: false, errorKey: 'startEndTimesRequired' };
+    }
+
+    const { start, end } = resolveTimedEventRange(startDateTime, endDateTime, fallbackDurationMs);
+
+    if (end <= start) {
+      return { valid: false, errorKey: 'endTimeBeforeStart' };
+    }
+
+    eventData.start = { dateTime: start.toISOString() };
+    eventData.end = { dateTime: end.toISOString() };
+  }
+
+  if (recurrence?.enabled) {
+    if (recurrence.frequency === 'WEEKLY' && (!Array.isArray(recurrence.byDay) || recurrence.byDay.length === 0)) {
+      return { valid: false, errorKey: 'recurrenceSelectWeekday' };
+    }
+
+    eventData.rrule = buildRRuleFromInputs({
+      frequency: recurrence.frequency,
+      interval: recurrence.interval,
+      untilDate: recurrence.untilDate,
+      count: recurrence.count,
+      byDay: recurrence.frequency === 'WEEKLY' ? recurrence.byDay : []
+    });
+  }
+
+  return { valid: true, eventData };
+};
+
+const buildEventServiceData = (calendarId, eventData) => {
+  const baseData = {
+    entity_id: calendarId,
+    summary: eventData.summary
+  };
+
+  if (eventData.location) {
+    baseData.location = eventData.location;
+  }
+
+  if (eventData.description) {
+    baseData.description = eventData.description;
+  }
+
+  if (eventData.start.date) {
+    baseData.start_date = eventData.start.date;
+    baseData.end_date = eventData.end.date;
+  } else {
+    baseData.start_date_time = eventData.start.dateTime;
+    baseData.end_date_time = eventData.end.dateTime;
+  }
+
+  if (eventData.rrule) {
+    baseData.rrule = eventData.rrule;
+  }
+
+  return baseData;
+};
+
+const buildCreateEventWebSocketPayload = (calendarId, eventData) => ({
+  type: 'calendar/event/create',
+  entity_id: calendarId,
+  event: {
+    summary: eventData.summary,
+    location: eventData.location,
+    description: eventData.description,
+    rrule: eventData.rrule,
+    dtstart: eventData.start.dateTime || eventData.start.date,
+    dtend: eventData.end.dateTime || eventData.end.date
+  }
+});
+
+const getRecurringUpdateControls = (originalEvent, eventData, editScope = 'this') => {
+  const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
+  return {
+    isRecurringUpdate,
+    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null,
+    recurrenceRange: (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null
+  };
+};
+
+const buildUpdateEventServiceData = (originalEvent, eventData, recurrenceId = null, recurrenceRange = null) => {
+  const serviceData = {
+    ...buildEventServiceData(originalEvent.entityId, eventData),
+    uid: originalEvent.uid
+  };
+
+  if (recurrenceId) {
+    serviceData.recurrence_id = recurrenceId;
+  }
+
+  if (recurrenceRange) {
+    serviceData.recurrence_range = recurrenceRange;
+  }
+
+  return serviceData;
+};
+
+const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recurrenceId = null, recurrenceRange = null) => {
+  const dtstart = eventData.start.dateTime || eventData.start.date;
+  const dtend = eventData.end.dateTime || eventData.end.date;
+
+  const eventPayload = {
+    summary: eventData.summary,
+    dtstart,
+    dtend
+  };
+
+  if (eventData.location) {
+    eventPayload.location = eventData.location;
+  }
+
+  if (eventData.description) {
+    eventPayload.description = eventData.description;
+  }
+
+  if (eventData.rrule) {
+    eventPayload.rrule = eventData.rrule;
+  }
+
+  const wsPayload = {
+    type: 'calendar/event/update',
+    entity_id: originalEvent.entityId,
+    uid: originalEvent.uid,
+    event: eventPayload
+  };
+
+  if (recurrenceId) {
+    wsPayload.recurrence_id = recurrenceId;
+  }
+
+  if (recurrenceRange) {
+    wsPayload.recurrence_range = recurrenceRange;
+  }
+
+  return wsPayload;
+};
+
+const buildDeleteEventPayload = (calendarId, uid, recurrenceId = null, recurrenceRange = null) => {
+  const payload = {
+    entity_id: calendarId,
+    uid: uid
+  };
+
+  if (recurrenceId) {
+    payload.recurrence_id = recurrenceId;
+  }
+
+  if (recurrenceRange) {
+    payload.recurrence_range = recurrenceRange;
+  }
+
+  return payload;
+};
+
+const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId = null, recurrenceRange = null) => ({
+  type: 'calendar/event/delete',
+  ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
+});
+
+function getVisibleCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVirtualBadgeForEvent, normalizeSingleColor, configColors = {} } = {}) {
+  const virtualCalendar = getVirtualBadgeForEvent?.(event);
+  if (virtualCalendar) {
+    const visibleSourceEntityIds = virtualCalendar.entities.filter((entityId) => !hiddenCalendars.has(entityId));
+    if (visibleSourceEntityIds.length === 0) return [];
+    const fallbackColor = event?.color || normalizeSingleColor?.(configColors[virtualCalendar.entities[0]]);
+    return [{ entityId: `virtual:${virtualCalendar.id}`, color: virtualCalendar.color || fallbackColor }];
+  }
+
+  if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+    return event.sourceCalendars.filter(calendar => !hiddenCalendars.has(calendar.entityId));
+  }
+
+  return [{ entityId: event.entityId, color: event.color }];
+}
+
+function isCombinedEventWithinSingleVirtualCalendar(event, { hiddenCalendars = new Set(), getVirtualBadgeForEntity } = {}) {
+  if (!event?.isCombinedCalendarEvent || !Array.isArray(event?.sourceEvents)) return false;
+
+  const visibleSources = event.sourceEvents.filter((sourceEvent) => !hiddenCalendars.has(sourceEvent.entityId));
+  if (visibleSources.length <= 1) return false;
+
+  const virtualIds = new Set();
+  for (const sourceEvent of visibleSources) {
+    const virtualCalendar = getVirtualBadgeForEntity?.(sourceEvent.entityId);
+    if (!virtualCalendar) return false;
+    virtualIds.add(virtualCalendar.id);
+    if (virtualIds.size > 1) return false;
+  }
+
+  return virtualIds.size === 1;
+}
+
+function shouldShowCombinedCornerBubbles(event, { combineCalendars = false, isSingleVirtualCalendar = false, styleOverrides = null } = {}) {
+  if (!event?.isCombinedCalendarEvent || !combineCalendars) return false;
+  if (isSingleVirtualCalendar) return false;
+  return !!styleOverrides?.hasDuplicateBackgroundColors;
+}
+
+function getModalCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVisibleCalendarBadges } = {}) {
+  if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+    const sourceBadges = event.sourceCalendars
+      .filter((calendar) => calendar?.entityId && !hiddenCalendars.has(calendar.entityId))
+      .map((calendar) => ({ entityId: calendar.entityId, color: calendar.color || event.color }));
+    if (sourceBadges.length > 0) {
+      return sourceBadges;
+    }
+  }
+
+  return getVisibleCalendarBadges?.(event) || [];
+}
+
+function getEventFontSizeDisplayValue(configuredSize, fallbackPx = 11) {
+  if (configuredSize === undefined || configuredSize === null || configuredSize === '') {
+    return `${fallbackPx}px`;
+  }
+
+  if (typeof configuredSize === 'number' && Number.isFinite(configuredSize)) {
+    return `${configuredSize}px`;
+  }
+
+  const normalized = String(configuredSize).trim();
+  if (!normalized) return `${fallbackPx}px`;
+  return /^\d+(\.\d+)?$/.test(normalized) ? `${normalized}px` : normalized;
+}
+
+function shouldShowEventLocation(event, { styleOverrides = null, showEventLocation = false } = {}) {
+  const showLocation = styleOverrides?.show_event_location ?? showEventLocation;
+  return !!(showLocation && event?.location);
+}
+
+function getDisplayLocation(location, { styleOverrides = null, useShortLocation = false } = {}) {
+  const normalizedLocation = normalizeEventTextValue(location);
+  if (!normalizedLocation) return '';
+  const shouldShorten = styleOverrides?.use_short_location ?? useShortLocation;
+  if (!shouldShorten) return normalizedLocation;
+
+  const numberMatch = normalizedLocation.match(/\b\d+[A-Za-z0-9-]*\b/);
+  if (!numberMatch) {
+    return normalizedLocation;
+  }
+
+  const numberIndex = numberMatch.index ?? -1;
+  const hasPrefix = numberIndex > 0;
+  if (hasPrefix) {
+    const prefix = normalizedLocation
+      .slice(0, numberIndex)
+      .replace(/[\s,;:\/\\|-]+$/g, '')
+      .trim();
+    if (prefix) {
+      return prefix;
+    }
+    return normalizedLocation;
+  }
+
+  const commonStreetEndingPattern = /\b(street|st\.?|road|rd\.?|avenue|ave\.?|boulevard|blvd\.?|drive|dr\.?|lane|ln\.?|court|ct\.?|circle|cir\.?|place|pl\.?|parkway|pkwy\.?|way|terrace|ter\.?|highway|hwy\.?)\b/i;
+  const firstSegmentEnd = normalizedLocation.search(/[,;]/);
+  const streetSegment = firstSegmentEnd >= 0
+    ? normalizedLocation.slice(0, firstSegmentEnd)
+    : normalizedLocation;
+  const endingMatch = streetSegment.match(commonStreetEndingPattern);
+  if (!endingMatch) {
+    return normalizedLocation;
+  }
+
+  const endingStart = endingMatch.index ?? -1;
+  if (endingStart < 0) {
+    return normalizedLocation;
+  }
+
+  const endingText = endingMatch[0] || '';
+  const shortened = streetSegment
+    .slice(0, endingStart + endingText.length)
+    .replace(/[,\s;:\/\\|-]+$/g, '')
+    .trim();
+
+  return shortened || normalizedLocation;
+}
+
+function shouldShowEventTime(event, { styleOverrides = null, hiddenCalendars = new Set(), hideTimesForCalendars = [] } = {}) {
+  if (!event) return true;
+  if (styleOverrides?.hide_time === true) return false;
+  if (styleOverrides?.show_time === true) return true;
+
+  const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
+    ? event.sourceEntityIds.filter(entityId => !hiddenCalendars.has(entityId))
+    : [event.entityId];
+
+  if (visibleEntityIds.length === 0) {
+    return false;
+  }
+
+  return visibleEntityIds.some(entityId => !hideTimesForCalendars.includes(entityId));
+}
+
+function getEventBubbleFontColor(event, { styleOverrides = null, hiddenCalendars = new Set(), eventFontColors = {}, normalizeSingleColor, getEventBackgroundColor, getContrastColor } = {}) {
+  if (!event) return 'white';
+  if (styleOverrides?.event_font_color) {
+    return styleOverrides.event_font_color;
+  }
+
+  const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
+    ? event.sourceEntityIds.filter(entityId => !hiddenCalendars.has(entityId))
+    : [event.entityId];
+
+  const preferredEntityId = visibleEntityIds[0] || event.entityId;
+  const configuredColor = preferredEntityId
+    ? normalizeSingleColor?.(eventFontColors?.[preferredEntityId])
+    : null;
+  if (configuredColor) {
+    return configuredColor;
+  }
+
+  return getContrastColor?.(getEventBackgroundColor?.(event)) || 'white';
+}
+
+function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, translate }) {
+  const { eventStart, eventEnd, isAllDay } = getEventDateTimeInfo(event);
+  const rendersAsAllDay = isAllDay || shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
+  const displayTitle = event.summary || translate('untitledEvent');
+  const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && shouldShowTime(event);
+
+  return {
+    eventStart,
+    eventEnd,
+    isAllDay,
+    rendersAsAllDay,
+    displayTitle: shouldIncludeStartTime
+      ? translate('eventTitleWithStartTime', {
+          title: displayTitle,
+          time: formatEventTime(eventStart, { schedule: true })
+        })
+      : displayTitle
+  };
+}
+
+async function fetchEventsByCalendarInRange({
+  hass,
+  entities = [],
+  startDate,
+  endDate,
+  getDateRangeChunks,
+  formatLocalDate,
+  getCalendarColor,
+  getEventIdentityKey,
+  normalizeCalendarEvent
+}) {
+  const chunks = getDateRangeChunks(startDate, endDate, 30);
+  const eventsByCalendar = await Promise.all(
+    entities.map((entityId, index) => fetchEventsForCalendar({
+      hass,
+      entityId,
+      colorIndex: index,
+      chunks,
+      formatLocalDate,
+      getCalendarColor,
+      getEventIdentityKey,
+      normalizeCalendarEvent
+    }))
+  );
+
+  return entities.reduce((acc, entityId, index) => {
+    acc[entityId] = eventsByCalendar[index] || [];
+    return acc;
+  }, {});
+}
+
+async function fetchEventsForCalendar({
+  hass,
+  entityId,
+  colorIndex = 0,
+  chunks = [],
+  formatLocalDate,
+  getCalendarColor,
+  getEventIdentityKey,
+  normalizeCalendarEvent
+}) {
+  const seen = new Set();
+  const color = getCalendarColor(entityId, colorIndex);
+
+  const chunkEventLists = await Promise.all(
+    chunks.map(chunk => fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }))
+  );
+
+  const mergedEvents = [];
+  chunkEventLists.forEach(events => {
+    if (!events || !Array.isArray(events)) return;
+
+    events.forEach(event => {
+      const key = getEventIdentityKey(entityId, event);
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      mergedEvents.push(normalizeCalendarEvent(event, { entityId, color }));
+    });
+  });
+
+  return mergedEvents;
+}
+
+async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
+  const chunkStartStr = chunk.startDate.toISOString();
+  const chunkEndStr = chunk.endDate.toISOString();
+
+  try {
+    return await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
+  } catch (error) {
+    try {
+      const startDateOnly = formatLocalDate(chunk.startDate);
+      const endDateOnly = formatLocalDate(chunk.endDate);
+      return await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
+    } catch (error2) {
+      console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
+      return [];
+    }
+  }
+}
+
+async function fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr }) {
+  return hass.callWS({
+    type: 'calendar/events',
+    entity_id: entityId,
+    start_date_time: chunkStartStr,
+    end_date_time: chunkEndStr
+  });
+}
+
+function mergeEvents(existingEvents, incomingEvents, { getEventIdentityKey, getEventStartDate }) {
+  const mergedByKey = new Map();
+
+  existingEvents.forEach(event => {
+    mergedByKey.set(getEventIdentityKey(event.entityId, event), event);
+  });
+
+  incomingEvents.forEach(event => {
+    mergedByKey.set(getEventIdentityKey(event.entityId, event), event);
+  });
+
+  return sortEventsByStartDate(Array.from(mergedByKey.values()), { getEventStartDate });
+}
+
+function sortEventsByStartDate(events, { getEventStartDate }) {
+  return [...events].sort((a, b) => getEventStartDate(a) - getEventStartDate(b));
+}
+
+function toStableString(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(item => toStableString(item)).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${toStableString(value[key])}`);
+    return `{${entries.join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function getCalendarDataSignature(events = []) {
+  return events
+    .map(event => {
+      const { entityId, color, ...eventData } = event;
+      return toStableString(eventData);
+    })
+    .sort()
+    .join('|');
+}
+
+function isDateRangeCoveredByLoadedEvents(loadedEventRange, targetStartDate, targetEndDate) {
+  if (!loadedEventRange) return false;
+
+  return targetStartDate >= loadedEventRange.startDate &&
+         targetEndDate <= loadedEventRange.endDate;
+}
+
+function shouldRefreshEvents({ lastFetch, now = Date.now(), maxAge = 60000 } = {}) {
+  return !lastFetch || (now - lastFetch > maxAge);
+}
+
+function getMonthGridDates(currentDate, firstDayOfWeek) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const startDay = (firstDay - firstDayOfWeek + 7) % 7;
+  const days = [];
+
+  for (let i = startDay - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i;
+    days.push({ day, date: new Date(year, month - 1, day), isOtherMonth: true });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push({ day, date: new Date(year, month, day), isOtherMonth: false });
+  }
+
+  const totalCells = startDay + daysInMonth;
+  const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let day = 1; day <= remainingCells; day++) {
+    days.push({ day, date: new Date(year, month + 1, day), isOtherMonth: true });
+  }
+
+  return days;
+}
+
+function getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks) {
+  const anchorDate = new Date(currentDate);
+  anchorDate.setHours(0, 0, 0, 0);
+
+  const currentDay = anchorDate.getDay();
+  const diff = (currentDay - firstDayOfWeek + 7) % 7;
+  const weekStart = new Date(anchorDate);
+  weekStart.setDate(anchorDate.getDate() - diff);
+
+  const totalWeeks = rollingWeeks + 1;
+  const totalDays = totalWeeks * 7;
+  const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const days = [];
+
+  for (let i = 0; i < totalDays; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    days.push({ day: date.getDate(), date, isOtherMonth: date < currentMonthStart });
+  }
+
+  return days;
+}
+
+function getMonthVisibleDateRange(currentDate, firstDayOfWeek, rollingWeeks = null) {
+  if (rollingWeeks !== null) {
+    const days = getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks);
+    const startDate = new Date(days[0].date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(days[days.length - 1].date);
+    endDate.setHours(23, 59, 59, 999);
+    return { startDate, endDate };
+  }
+
+  const days = getMonthGridDates(currentDate, firstDayOfWeek);
+  const startDate = new Date(days[0].date);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(days[days.length - 1].date);
+  endDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate };
+}
+
+function getRollingDaysForView(viewMode, config) {
+  if (viewMode === 'week-compact' && config.rolling_days_week_compact !== null) {
+    return config.rolling_days_week_compact;
+  }
+
+  if (viewMode === 'week-standard' && config.rolling_days_schedule !== null) {
+    return config.rolling_days_schedule;
+  }
+
+  return null;
+}
+
+function getWeekDays({ currentDate, weekStart, weekDays, rollingDays }) {
+  if (rollingDays !== null) {
+    const days = [];
+    const startDate = new Date(currentDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i <= rollingDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  }
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    if (weekDays.includes(date.getDay())) {
+      days.push(date);
+    }
+  }
+  return days;
+}
+
+function getWeekVisibleDateRange(weekDays) {
+  const startDate = new Date(weekDays[0]);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(weekDays[weekDays.length - 1]);
+  endDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate };
+}
+
+function getAgendaRollingDays(config) {
+  if (config?.rolling_days_agenda !== null && config?.rolling_days_agenda !== undefined) {
+    return config.rolling_days_agenda;
+  }
+
+  return null;
+}
+
+function getAgendaPeriodDaySpan(config) {
+  const rollingDays = getAgendaRollingDays(config);
+  return rollingDays !== null ? rollingDays : 14;
+}
+
+function createAgendaWindow(today, daySpan) {
+  const startDate = new Date(today);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + daySpan);
+  endDate.setHours(23, 59, 59, 999);
+  const visibleStartDate = new Date(startDate);
+  const visibleEndDate = new Date(endDate);
+  visibleEndDate.setHours(23, 59, 59, 999);
+  return { startDate, endDate, visibleStartDate, visibleEndDate };
+}
+
+function getAgendaDays(startDate, endDate) {
+  const days = [];
+  const cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return days;
+}
+
+function getAgendaVisibleDateRange(startDate, endDate) {
+  const visibleStartDate = new Date(startDate);
+  visibleStartDate.setHours(0, 0, 0, 0);
+  const visibleEndDate = new Date(endDate);
+  visibleEndDate.setHours(23, 59, 59, 999);
+  return { startDate: visibleStartDate, endDate: visibleEndDate };
+}
+
+function isAgendaRangeWithinWindow(range, windowStartDate, windowEndDate) {
+  if (!range?.startDate || !range?.endDate || !windowStartDate || !windowEndDate) {
+    return false;
+  }
+
+  const rangeStart = new Date(range.startDate);
+  rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(range.endDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+  const windowStart = new Date(windowStartDate);
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = new Date(windowEndDate);
+  windowEnd.setHours(23, 59, 59, 999);
+
+  return rangeStart >= windowStart && rangeEnd <= windowEnd;
+}
+
+function buildAgendaDayEntries(agendaDays, { getEventsForDay, isEventHiddenByStyle, sortEventsForDate, hideEmptyDays }) {
+  return agendaDays
+    .map((date) => ({
+      date,
+      matchingEvents: getEventsForDay(date, { includeHiddenStyledEvents: true }),
+      events: null
+    }))
+    .map((entry) => ({
+      ...entry,
+      events: sortEventsForDate(entry.matchingEvents.filter((event) => !isEventHiddenByStyle(event)), entry.date)
+    }))
+    .filter((entry) => !hideEmptyDays || entry.events.length > 0);
+}
+
+function renderAgendaView({
+  agendaDays,
+  agendaEventMinHeight,
+  compactMaxHeight,
+  config,
+  today,
+  dayNames,
+  monthFormatter,
+  helpers
+}) {
+  const containerStyle = helpers.getCompactContainerStyle(compactMaxHeight);
+  const agendaRows = [];
+  const shouldHideEmptyDays = !!config.hide_empty_days;
+  const agendaDayEntries = buildAgendaDayEntries(agendaDays, {
+    getEventsForDay: helpers.getEventsForDay,
+    isEventHiddenByStyle: helpers.isEventHiddenByStyle,
+    sortEventsForDate: helpers.sortEventsForDate,
+    hideEmptyDays: shouldHideEmptyDays
+  });
+
+  agendaDayEntries.forEach((entry, index) => {
+    const { date, events } = entry;
+    if (index > 0) {
+      const previousDate = agendaDayEntries[index - 1].date;
+      const monthChanged = previousDate.getMonth() !== date.getMonth() || previousDate.getFullYear() !== date.getFullYear();
+      if (monthChanged) {
+        agendaRows.push(`<div class="agenda-month-banner">${helpers.escapeHtml(monthFormatter.format(date))}</div>`);
+      }
+    }
+
+    const isToday = date.toDateString() === today.toDateString();
+    const dayStyle = helpers.getDayStyleAttributes(date, entry.matchingEvents, isToday);
+    const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
+    agendaRows.push(`
+        <div class="agenda-day-row ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
+          <div class="agenda-day-label">
+            <div class="agenda-day-weekday">${dayNames[date.getDay()]}</div>
+            <div class="agenda-day-date">${date.getDate()}</div>
+            ${helpers.renderDayForecast(date, 'agenda')}
+          </div>
+          <div class="agenda-day-events">
+            ${events.map(event => {
+              const daySegment = helpers.getEventDaySegment(event, date);
+              if (!daySegment) return '';
+              const { segmentStart, segmentEnd, isAllDaySegment } = daySegment;
+              const timeLabel = isAllDaySegment
+                ? helpers.t('allDay')
+                : helpers.formatEventTimeRange(segmentStart, segmentEnd);
+              const eventStyle = helpers.getEventStyle(event);
+              const eventAgendaMinHeight = helpers.shouldShowCombinedCornerBubbles(event)
+                ? `calc(${agendaEventMinHeight} + 16px)`
+                : agendaEventMinHeight;
+
+              return `
+                <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${helpers.getEventBubbleFontSize(event)}; --event-time-font-size: ${helpers.getEventTimeFontSize(event)}; --event-location-font-size: ${helpers.getEventLocationFontSize(event)}; --event-bubble-text-color: ${helpers.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                  <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, event.summary || helpers.t('untitledEvent'))}</div>
+                  ${helpers.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
+                  ${helpers.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${helpers.escapeHtml(helpers.getDisplayLocation(event.location, event))}</div>` : ''}
+                  ${helpers.renderEventIcon(event)}
+                  ${helpers.renderEventStyleCornerIcon(event)}
+                  ${helpers.renderCombinedCornerBubbles(event)}
+                </div>
+              `;
+            }).join('')}
+            ${events.length === 0 ? `<div class="agenda-empty-day">${helpers.t('noEvents')}</div>` : ''}
+          </div>
+        </div>
+      `);
+  });
+
+  return `
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
+      <div class="agenda-container" id="agenda-container" style="${containerStyle}">
+        ${agendaRows.join('')}
+      </div>
+    `;
+}
+
+function renderEventDetailsModal({
+  event,
+  startDate,
+  endDate,
+  isAllDay,
+  calendarName,
+  visibleBadges,
+  capabilities,
+  hasUID,
+  canEdit,
+  canDelete,
+  canForward,
+  canModify,
+  helpers
+}) {
+  const {
+    escapeHtml,
+    formatDate,
+    formatEventTime,
+    formatDuration,
+    renderEventDescription,
+    t
+  } = helpers;
+
+  const combinedBadgeHtml = event.isCombinedCalendarEvent
+    ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
+    : `<div class="modal-calendar-badge" style="background: ${event.color}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
+
+  return `
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">${escapeHtml(event.summary || t('untitledEvent'))}</h3>
+          ${combinedBadgeHtml}
+        </div>
+        <button class="modal-close" id="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <div class="modal-label">📅 ${t('start')}</div>
+          <div class="modal-value">
+            ${formatDate(startDate)}${!isAllDay ? ` ${t('at')} ${formatEventTime(startDate)}` : ` (${t('allDay')})`}
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">🏁 ${t('end')}</div>
+          <div class="modal-value">
+            ${formatDate(endDate)}${!isAllDay ? ` ${t('at')} ${formatEventTime(endDate)}` : ` (${t('allDay')})`}
+          </div>
+        </div>
+        ${!isAllDay ? `
+          <div class="modal-row">
+            <div class="modal-label">⏱️ ${t('duration')}</div>
+            <div class="modal-value">${formatDuration(startDate, endDate)}</div>
+          </div>
+        ` : ''}
+        ${event.location ? `
+          <div class="modal-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">${escapeHtml(event.location)}</div>
+          </div>
+        ` : ''}
+        ${event.description ? `
+          <div class="modal-row modal-row-description">
+            <div class="modal-label">📝 ${t('description')}</div>
+            <div class="modal-value event-description-content">${renderEventDescription(event.description)}</div>
+          </div>
+        ` : ''}
+        ${event.attendees && event.attendees.length > 0 ? `
+          <div class="modal-row">
+            <div class="modal-label">👥 ${t('attendees')}</div>
+            <div class="modal-value">
+              ${event.attendees.map(a => escapeHtml(a.email || a.displayName || t('unknownAttendee'))).join(', ')}
+            </div>
+          </div>
+        ` : ''}
+        ${event.rrule ? `
+          <div class="modal-row">
+            <div class="modal-label">🔁 ${t('recurrence')}</div>
+            <div class="modal-value">${t('recurringEvent')}</div>
+          </div>
+        ` : ''}
+
+        ${!canModify && !capabilities.isReadonly && capabilities.isGoogleCalendar ? `
+          <div class="info-banner warning">
+            <strong>${t('googleCalendarLimitationTitle')}</strong> ${t('googleCalendarLimitationBody')}
+          </div>
+        ` : ''}
+
+        ${!canModify && !hasUID && !capabilities.isGoogleCalendar ? `
+          <div class="info-banner warning">
+            <strong>${t('cannotModifyTitle')}</strong> ${t('cannotModifyBody')}
+          </div>
+        ` : ''}
+
+        ${(canEdit || canDelete || canForward) ? `
+          <div class="modal-actions">
+            <div class="modal-actions-left">
+              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+            </div>
+            <div class="modal-actions-right">
+              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
+              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
+function renderEventIcon(event, {
+  getEventStyleOverrides,
+  eventCalendarFriendlyName = false,
+  hideEventCalendarBubble = false,
+  getModalCalendarBadgesForEvent,
+  getCalendarName,
+  escapeHtml
+}) {
+  const styleOverrides = getEventStyleOverrides(event);
+  const hideCalendarBubble = styleOverrides?.hide_event_calendar_bubble ?? hideEventCalendarBubble;
+
+  if (eventCalendarFriendlyName) {
+    const visibleBadges = getModalCalendarBadgesForEvent(event);
+    if (visibleBadges.length === 0) {
+      return '';
+    }
+
+    const namesHtml = visibleBadges
+      .map(calendar => `<div class="week-standard-event-calendar-name">${escapeHtml(getCalendarName(calendar.entityId))}</div>`)
+      .join('');
+
+    return `<div class="week-standard-event-icons">${namesHtml}</div>`;
+  }
+
+  if (hideCalendarBubble) {
+    return '';
+  }
+
+  const visibleBadges = getModalCalendarBadgesForEvent(event);
+  if (visibleBadges.length === 0) {
+    return '';
+  }
+
+  const badgesHtml = visibleBadges.map(calendar => {
+    const name = getCalendarName(calendar.entityId);
+    const initial = name.charAt(0).toUpperCase();
+    return `<div class="week-standard-event-icon" style="background: ${calendar.color}; color: white;">${initial}</div>`;
+  }).join('');
+
+  return `<div class="week-standard-event-icons">${badgesHtml}</div>`;
+}
+
+function renderCombinedCornerBubbles(event, {
+  shouldShowCombinedCornerBubbles,
+  getModalCalendarBadgesForEvent,
+  getCalendarName,
+  escapeHtml
+}) {
+  if (!shouldShowCombinedCornerBubbles(event)) return '';
+
+  const visibleBadges = getModalCalendarBadgesForEvent(event);
+  if (visibleBadges.length <= 1) return '';
+
+  const bubblesHtml = visibleBadges.map((calendar) => {
+    const name = getCalendarName(calendar.entityId);
+    const initial = name.charAt(0).toUpperCase();
+    return `<span class="combined-corner-bubble" style="background: ${calendar.color}; color: white;" title="${escapeHtml(name)}">${escapeHtml(initial)}</span>`;
+  }).join('');
+
+  return `<div class="combined-corner-bubbles">${bubblesHtml}</div>`;
+}
+
+function renderEventStyleIcon(iconConfig, { position = 'before_title', escapeHtml } = {}) {
+  if (!iconConfig || iconConfig.position !== position) return '';
+
+  const styleParts = [];
+  if (iconConfig.color) styleParts.push(`color: ${iconConfig.color};`);
+  if (iconConfig.size) styleParts.push(`--event-style-icon-size: ${iconConfig.size};`);
+  const styleAttr = styleParts.length ? ` style="${styleParts.join(' ')}"` : '';
+  const className = position === 'corner' ? 'event-style-icon event-style-icon-corner' : 'event-style-icon event-style-icon-before-title';
+  return `<ha-icon class="${className}" icon="${escapeHtml(iconConfig.icon)}"${styleAttr}></ha-icon>`;
+}
+
+function renderEventStyleCornerIcon(event, { getEventStyleIconConfig, escapeHtml }) {
+  return renderEventStyleIcon(getEventStyleIconConfig(event), { position: 'corner', escapeHtml });
+}
+
+function renderEventTitleWithPrefix(event, title, {
+  t,
+  escapeHtml,
+  getEventStyleOverrides,
+  getEventStyleIconConfig,
+  normalizeEventTitlePrefixMode,
+  configuredEventTitlePrefix,
+  getModalCalendarBadgesForEvent,
+  getCalendarName,
+  normalizeSingleColor,
+  getCalendarBadgeIcon,
+  normalizeBackgroundImageUrl
+}) {
+  const titleText = escapeHtml(title || t('untitledEvent'));
+  const styleOverrides = getEventStyleOverrides(event);
+  const titleIcon = renderEventStyleIcon(getEventStyleIconConfig(event), { position: 'before_title', escapeHtml });
+  const titleHtml = titleIcon ? `${titleIcon}<span>${titleText}</span>` : titleText;
+  const prefixMode = normalizeEventTitlePrefixMode(styleOverrides?.event_title_prefix ?? configuredEventTitlePrefix);
+  const visibleBadges = getModalCalendarBadgesForEvent(event);
+  if (prefixMode === 'none' || visibleBadges.length === 0) {
+    return titleIcon ? `<span class="event-title-with-prefix">${titleHtml}</span>` : titleText;
+  }
+
+  if (prefixMode === 'friendly_name') {
+    const calendarNames = visibleBadges
+      .map((calendar) => getCalendarName(calendar.entityId))
+      .filter(Boolean);
+    const uniqueCalendarNames = Array.from(new Set(calendarNames));
+    const calendarNameLabel = escapeHtml(uniqueCalendarNames.join(', '));
+    return `<span class="event-title-with-prefix"><span class="event-title-prefix-friendly-name">${calendarNameLabel}:</span>${titleHtml}</span>`;
+  }
+
+  const badgesHtml = visibleBadges.map((calendar) => {
+    const iconColor = normalizeSingleColor(calendar.color) || '#6b7280';
+    const configuredBadgeIcon = getCalendarBadgeIcon(calendar.entityId);
+    let badgeIconHtml = '';
+    if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
+      badgeIconHtml = `<ha-icon icon="${escapeHtml(configuredBadgeIcon)}"></ha-icon>`;
+    } else if (configuredBadgeIcon) {
+      const normalizedUrl = normalizeBackgroundImageUrl(configuredBadgeIcon) || configuredBadgeIcon;
+      badgeIconHtml = `<img src="${escapeHtml(normalizedUrl)}" alt="" loading="lazy">`;
+    } else {
+      const initial = escapeHtml(getCalendarName(calendar.entityId).charAt(0).toUpperCase());
+      badgeIconHtml = `<span>${initial}</span>`;
+    }
+    return `<span class="event-title-prefix-badge" style="background: ${iconColor}; color: white;">${badgeIconHtml}</span>`;
+  }).join('');
+
+  return `<span class="event-title-with-prefix"><span class="event-title-prefix-badges">${badgesHtml}</span>${titleHtml}</span>`;
+}
+
+function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }) {
+  if (badgeItems.length === 0) return '';
+
+  return `
+      <div class="calendar-badges-container">
+        <div class="calendar-badges">
+          ${badgeItems.map((badgeItem) => renderCalendarBadge({
+            badgeItem,
+            hideCalendarNames,
+            inline: false,
+            helpers
+          })).join('')}
+        </div>
+      </div>
+    `;
+}
+
+function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, helpers }) {
+  if (badgeItems.length === 0) return '';
+
+  return `
+      <div class="calendar-badges-inline">
+        ${badgeItems.map((badgeItem) => renderCalendarBadge({
+          badgeItem,
+          hideCalendarNames,
+          inline: true,
+          helpers
+        })).join('')}
+      </div>
+    `;
+}
+
+function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) {
+  const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : helpers.lightenColor(badgeItem.color, 0.85);
+  const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : helpers.getContractColor(badgeBackground);
+  const inlineClass = inline ? ' calendar-badge-inline' : '';
+  const cursorStyle = inline ? '' : '\n                          cursor: pointer;';
+
+  return `
+            <div class="calendar-badge${inlineClass} ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
+                 data-entity="${badgeItem.entityId}"
+                 style="background: ${badgeBackground};
+                        border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};${cursorStyle}">
+              ${renderCalendarBadgeIcon({
+                entityId: badgeItem.entityId,
+                name: badgeItem.name,
+                color: badgeItem.color,
+                isHidden: badgeItem.isHidden,
+                iconOverride: badgeItem.icon,
+                helpers
+              })}
+              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers })}
+            </div>
+          `;
+}
+
+function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers }) {
+  const personStateLabel = helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
+  return `
+      <span class="calendar-badge-label" style="color: ${badgeTextColor}">
+        <span class="calendar-badge-name">${helpers.escapeHtml(badgeItem.name)}</span>
+        ${personStateLabel ? `<span class="calendar-badge-person-state">${helpers.escapeHtml(personStateLabel)}</span>` : ''}
+      </span>
+    `;
+}
+
+function renderCalendarBadgeIcon({ entityId, name, color, isHidden, iconOverride = null, helpers }) {
+  const configuredBadgeIcon = iconOverride || helpers.getCalendarBadgeIcon(entityId);
+  const hasPersonEntity = !!helpers.getCalendarBadgePersonEntityId(entityId);
+  const personPictureUrl = configuredBadgeIcon ? null : helpers.getPersonEntityPictureUrl(helpers.getCalendarBadgePersonState(entityId));
+  const iconBackground = isHidden ? '#9ca3af' : helpers.normalizeSingleColor(color);
+  const personIconClass = hasPersonEntity ? ' calendar-badge-person-icon' : '';
+
+  if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
+    return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}"><ha-icon icon="${helpers.escapeHtml(configuredBadgeIcon)}"></ha-icon></div>`;
+  }
+
+  if (configuredBadgeIcon || personPictureUrl) {
+    const imageUrl = configuredBadgeIcon || personPictureUrl;
+    const normalizedUrl = helpers.normalizeBackgroundImageUrl(imageUrl) || imageUrl;
+    return `<div class="calendar-badge-icon calendar-badge-photo${personIconClass}" style="background: ${iconBackground}"><img src="${helpers.escapeHtml(normalizedUrl)}" alt="${helpers.escapeHtml(name)}" loading="lazy"></div>`;
+  }
+
+  const initial = name.charAt(0).toUpperCase();
+  return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}">${helpers.escapeHtml(initial)}</div>`;
+}
+
+function formatDateTimeLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function renderRecurrenceControls({
+  recurrenceData,
+  recurrenceEndMode,
+  recurrenceWeekdayOptions,
+  showRecurringFields,
+  showWeekdays,
+  helpers
+}) {
+  const { escapeHtmlAttribute, t } = helpers;
+
+  return `
+          <div id="recurring-event-fields" style="display: ${showRecurringFields ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group form-group-inline">
+                <div class="form-inline-row">
+                  <label class="form-label">${t('recurrenceFrequency')}</label>
+                  <select class="form-select" id="event-recurrence-frequency">
+                  <option value="DAILY" ${recurrenceData.frequency === 'DAILY' ? 'selected' : ''}>${t('recurrenceDaily')}</option>
+                  <option value="WEEKLY" ${recurrenceData.frequency === 'WEEKLY' ? 'selected' : ''}>${t('recurrenceWeekly')}</option>
+                  <option value="MONTHLY" ${recurrenceData.frequency === 'MONTHLY' ? 'selected' : ''}>${t('recurrenceMonthly')}</option>
+                  <option value="YEARLY" ${recurrenceData.frequency === 'YEARLY' ? 'selected' : ''}>${t('recurrenceYearly')}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group form-group-inline">
+                <div class="form-inline-row">
+                  <label class="form-label">${t('recurrenceEvery')}</label>
+                  <input type="number" class="form-input" id="event-recurrence-interval" min="1" value="${escapeHtmlAttribute(recurrenceData.interval || '1')}" />
+                </div>
+              </div>
+            </div>
+            <div class="form-group" id="event-recurrence-weekdays-group" style="display: ${showWeekdays ? 'block' : 'none'};">
+              <label class="form-label">${t('recurrenceWeekdays')}</label>
+              <div class="form-checkbox-group" style="flex-wrap: wrap; gap: 10px;">
+                ${recurrenceWeekdayOptions.map(day => `
+                  <label class="form-checkbox-label" style="display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" class="form-checkbox event-recurrence-weekday" value="${day.key}" ${recurrenceData.byDay.includes(day.key) ? 'checked' : ''} />
+                    <span>${day.label}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label recurrence-ends-label">${t('recurrenceEndsOn')}</label>
+              <div class="recurrence-end-row">
+                <label class="recurrence-end-option" for="event-recurrence-end-never">
+                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-never" value="never" ${recurrenceEndMode === 'never' ? 'checked' : ''} />
+                  <span>${t('recurrenceNever')}</span>
+                </label>
+                <div></div>
+              </div>
+              <div class="recurrence-end-row">
+                <label class="recurrence-end-option" for="event-recurrence-end-on">
+                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-on" value="on" ${recurrenceEndMode === 'on' ? 'checked' : ''} />
+                  <span>${t('recurrenceOn')}</span>
+                </label>
+                <input type="date" class="form-input" id="event-recurrence-until" value="${escapeHtmlAttribute(recurrenceData.untilDate || '')}" ${recurrenceEndMode === 'on' ? '' : 'disabled'} />
+              </div>
+              <div class="recurrence-end-row">
+                <label class="recurrence-end-option" for="event-recurrence-end-after">
+                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-after" value="after" ${recurrenceEndMode === 'after' ? 'checked' : ''} />
+                  <span>${t('recurrenceAfter')}</span>
+                </label>
+                <div class="recurrence-after-input">
+                  <input type="number" class="form-input" id="event-recurrence-count" min="1" placeholder="13" value="${escapeHtmlAttribute(recurrenceData.count || '')}" ${recurrenceEndMode === 'after' ? '' : 'disabled'} />
+                  <span>${t('recurrenceOccurrences')}</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+}
+
+function renderEventFields({
+  title,
+  location,
+  description,
+  startDate,
+  startTime,
+  endDate,
+  endTime,
+  isAllDay,
+  isRecurring,
+  recurrenceData,
+  recurrenceEndMode,
+  recurrenceWeekdayOptions,
+  helpers
+}) {
+  const { escapeHtml, escapeHtmlAttribute, t } = helpers;
+
+  return `
+          <div class="form-group form-group-inline">
+            <div class="form-inline-row">
+              <label class="form-label">
+                ${t('eventTitle')}<span class="form-required">*</span>
+              </label>
+              <input type="text" class="form-input" id="event-title" placeholder="${escapeHtmlAttribute(t('eventTitlePlaceholder'))}" value="${escapeHtmlAttribute(title || '')}" required />
+            </div>
+          </div>
+
+          <div class="form-group form-group-inline">
+            <div class="form-inline-row form-inline-row-top">
+              <label class="form-label">${t('eventOptions')}</label>
+              <div class="form-checkbox-row">
+                <div class="form-group">
+                  <div class="form-checkbox-group">
+                    <input type="checkbox" class="form-checkbox" id="event-all-day" ${isAllDay ? 'checked' : ''} />
+                    <label class="form-checkbox-label" for="event-all-day">${t('allDayEvent')}</label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-checkbox-group">
+                    <input type="checkbox" class="form-checkbox" id="event-recurring" ${isRecurring ? 'checked' : ''} />
+                    <label class="form-checkbox-label" for="event-recurring">${t('recurring')}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+${renderRecurrenceControls({
+    recurrenceData,
+    recurrenceEndMode,
+    recurrenceWeekdayOptions,
+    showRecurringFields: isRecurring,
+    showWeekdays: isRecurring && recurrenceData.frequency === 'WEEKLY',
+    helpers
+  })}
+
+          <div id="timed-event-fields" style="display: ${isAllDay ? 'none' : 'block'};">
+            <div class="form-group form-group-inline">
+              <div class="form-inline-row">
+                <label class="form-label">${t('start')}</label>
+                <input type="datetime-local" class="form-input" id="event-start"
+                       value="${formatDateTimeLocal(startTime)}" required />
+              </div>
+            </div>
+
+            <div class="form-group form-group-inline">
+              <div class="form-inline-row">
+                <label class="form-label">${t('end')}</label>
+                <input type="datetime-local" class="form-input" id="event-end"
+                       value="${formatDateTimeLocal(endTime)}" />
+              </div>
+            </div>
+          </div>
+
+          <div id="all-day-event-fields" style="display: ${isAllDay ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">${t('startDate')}</label>
+                <input type="date" class="form-input" id="event-start-date"
+                       value="${formatDate(startDate)}" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">${t('endDate')}</label>
+                <input type="date" class="form-input" id="event-end-date"
+                       value="${formatDate(endDate)}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group form-group-inline">
+            <div class="form-inline-row">
+              <label class="form-label">${t('location')}</label>
+              <input type="text" class="form-input" id="event-location" placeholder="${escapeHtmlAttribute(t('locationPlaceholder'))}" value="${escapeHtmlAttribute(location || '')}" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('description')}</label>
+            <textarea class="form-textarea" id="event-description" placeholder="${escapeHtmlAttribute(t('descriptionPlaceholder'))}">${escapeHtml(description || '')}</textarea>
+          </div>
+
+          <div id="form-error" class="error-message" style="display: none;"></div>`;
+}
+
+function renderCreateEventForm({
+  writableCalendars,
+  selectedCalendarIds,
+  prefill,
+  startDate,
+  startTime,
+  endDate,
+  endTime,
+  recurrenceData,
+  isPrefilledRecurring,
+  isPrefilledAllDay,
+  recurrenceEndMode,
+  recurrenceWeekdayOptions,
+  helpers
+}) {
+  const { escapeHtml, getCalendarName, t } = helpers;
+
+  return `
+      <div class="modal-header">
+        <h3 class="modal-title">${t('createEvent')}</h3>
+        <button class="modal-close" id="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="create-event-form">
+          <div class="form-group form-group-inline">
+            <div class="form-inline-row">
+              <label class="form-label">
+                ${t('calendars')}<span class="form-required">*</span>
+              </label>
+              <div class="form-checkbox-grid">
+                ${writableCalendars.map((entityId, index) => `
+                  <label class="form-checkbox-group" style="margin: 0;">
+                    <input
+                      type="checkbox"
+                      class="form-checkbox create-event-calendar"
+                      value="${entityId}"
+                      ${(selectedCalendarIds.length > 0 ? selectedCalendarIds.includes(entityId) : index === 0) ? 'checked' : ''}
+                    />
+                    <span class="form-checkbox-label">${escapeHtml(getCalendarName(entityId))}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+${renderEventFields({
+    title: prefill?.summary || '',
+    location: prefill?.location || '',
+    description: prefill?.description || '',
+    startDate,
+    startTime,
+    endDate,
+    endTime,
+    isAllDay: isPrefilledAllDay,
+    isRecurring: isPrefilledRecurring,
+    recurrenceData,
+    recurrenceEndMode,
+    recurrenceWeekdayOptions,
+    helpers
+  })}
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-btn">${t('cancel')}</button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">${t('createEvent')}</button>
+          </div>
+        </form>
+      </div>
+    `;
+}
+
+function renderEditEventForm({
+  event,
+  startDate,
+  endDate,
+  isAllDay,
+  visibleCalendarOptions,
+  selectedCombinedCalendarIds,
+  recurrenceData,
+  recurringSelectedByDefault,
+  recurrenceEndMode,
+  recurrenceWeekdayOptions,
+  helpers
+}) {
+  const { escapeHtml, getCalendarName, t } = helpers;
+
+  return `
+      <div class="modal-header">
+        <h3 class="modal-title">${t('editEvent')}</h3>
+        <button class="modal-close" id="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-event-form">
+          <div class="form-group">
+            <label class="form-label">
+              ${t('calendar')}<span class="form-required">*</span>
+            </label>
+            <select class="form-select" id="event-calendar" required ${selectedCombinedCalendarIds.length > 1 ? 'disabled' : ''}>
+              ${visibleCalendarOptions.map((entityId) => `
+                <option value="${entityId}" ${entityId === event.entityId ? 'selected' : ''}>
+                  ${escapeHtml(getCalendarName(entityId))}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+
+${renderEventFields({
+    title: event.summary || '',
+    location: event.location || '',
+    description: event.description || '',
+    startDate,
+    startTime: startDate,
+    endDate,
+    endTime: endDate,
+    isAllDay,
+    isRecurring: recurringSelectedByDefault,
+    recurrenceData,
+    recurrenceEndMode,
+    recurrenceWeekdayOptions,
+    helpers
+  })}
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-btn">${t('cancel')}</button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">${t('saveChanges')}</button>
+          </div>
+        </form>
+      </div>
+    `;
+}
+
+function renderStandardHeader({
+  canAddEvents,
+  shouldShowControls,
+  helpers
+}) {
+  return `
+      <div class="header">
+        <div class="header-left">
+          ${helpers.renderDashboardNavButton()}
+          ${helpers.renderHeaderTitle()}
+        </div>
+        ${shouldShowControls ? `
+          <div class="header-controls">
+            ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
+            ${helpers.renderThemeToggle()}
+            <div class="period-controls">
+              ${helpers.renderPeriodNavigationButtons('previous')}
+              <div class="month-year">${helpers.getPeriodLabel()}</div>
+              ${helpers.renderPeriodNavigationButtons('next')}
+              ${helpers.renderPeriodNavigationButtons('today')}
+            </div>
+            ${helpers.renderViewModeButtons()}
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
+function renderCompactHeader({
+  canAddEvents,
+  shouldShowCalendars,
+  shouldShowControls,
+  helpers
+}) {
+  return `
+      <div class="header header-compact">
+        <div class="compact-header-left">
+          ${helpers.renderDashboardNavButton()}
+          ${helpers.renderHeaderTitle()}
+          ${shouldShowCalendars ? helpers.renderCalendarBadgesInline() : ''}
+        </div>
+        ${shouldShowControls ? `
+          <div class="header-controls compact-header-controls">
+            <div class="compact-period-controls">
+              ${helpers.renderPeriodNavigationButtons('previous')}
+              <div class="month-year">${helpers.getPeriodLabel()}</div>
+              ${helpers.renderPeriodNavigationButtons('next')}
+              ${helpers.renderPeriodNavigationButtons('today')}
+            </div>
+            ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
+            ${helpers.renderThemeToggle()}
+            ${helpers.renderViewModeButtons()}
+          </div>
+        ` : ''}
+      </div>
+    `;
+}
+
+function renderHeaderTitle({
+  title,
+  headerTime,
+  headerWeather,
+  helpers
+}) {
+  return `
+      <div class="header-title-wrap">
+        <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
+        ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
+        ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+      </div>
+    `;
+}
+
+function renderDashboardNavButton({ shouldShow, helpers }) {
+  if (!shouldShow) return '';
+  return `<button class="dashboard-nav-button" id="header-dashboard-btn" aria-label="${helpers.t('openDashboard')}" title="${helpers.t('openDashboard')}">⌂</button>`;
+}
+
+function renderPeriodNavigationButtons({
+  buttonType,
+  hideNavigationButtons,
+  shouldDisablePreviousNavigation,
+  helpers
+}) {
+  if (hideNavigationButtons) return '';
+
+  if (buttonType === 'previous') {
+    return `<button class="nav-button" id="prev-period" ${shouldDisablePreviousNavigation ? 'disabled' : ''}>‹</button>`;
+  }
+
+  if (buttonType === 'next') {
+    return '<button class="nav-button" id="next-period">›</button>';
+  }
+
+  if (buttonType === 'today') {
+    return `<button class="today-button" id="today">${helpers.t('today')}</button>`;
+  }
+
+  return '';
+}
+
+function renderViewModeButtons({ hideViewSelector, viewMode, helpers }) {
+  if (hideViewSelector) return '';
+
+  return `
+      <div class="view-mode-buttons">
+        <select class="view-mode-select" id="view-mode-select" aria-label="Select calendar view">
+          <option value="month" ${viewMode === 'month' ? 'selected' : ''}>${helpers.t('month')}</option>
+          <option value="week-compact" ${viewMode === 'week-compact' ? 'selected' : ''}>${helpers.t('week')}</option>
+          <option value="week-standard" ${viewMode === 'week-standard' ? 'selected' : ''}>${helpers.t('schedule')}</option>
+          <option value="agenda" ${viewMode === 'agenda' ? 'selected' : ''}>${helpers.t('agenda')}</option>
+        </select>
+      </div>
+    `;
+}
+
+function renderThemeToggle({ hideDarkModeToggle, isDarkMode }) {
+  if (hideDarkModeToggle) return '';
+  return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${isDarkMode ? '☀︎' : '☾'}</button>`;
+}
+
+function renderDayCellHeader({
+  date,
+  dayEventsForMatching,
+  dayNum,
+  helpers
+}) {
+  return `
+        <div class="day-header-row">
+          <div class="day-number">${dayNum}</div>
+          ${helpers.renderDayBadges(date, dayEventsForMatching)}
+          ${helpers.renderDayForecast(date, 'month')}
+        </div>`;
+}
+
+function renderDayCellEvents({
+  date,
+  dayEvents,
+  hiddenEventCount,
+  visibleEvents,
+  helpers
+}) {
+  return `
+        ${dayEvents.slice(0, visibleEvents).map(event => helpers.renderMonthDayEvent(event, date)).join('')}
+        ${hiddenEventCount > 0 ? `<div class="more-events" data-click-target="more-events">${helpers.t('moreEvents', { count: hiddenEventCount })}</div>` : ''}`;
+}
+
+function renderDayCell({
+  date,
+  dayEvents,
+  dayEventsForMatching,
+  dayNum,
+  dayStyle,
+  hiddenEventCount,
+  isOtherMonth,
+  isToday,
+  visibleEvents,
+  helpers
+}) {
+  let classes = 'day-cell';
+  if (isOtherMonth) classes += ' other-month';
+  if (isToday) classes += ' today';
+  classes += dayStyle.className ? ` ${dayStyle.className}` : '';
+  const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
+
+  return `
+      <div class="${classes}" data-date="${date.toISOString()}"${dayStyleAttr}>${renderDayCellHeader({
+        date,
+        dayEventsForMatching,
+        dayNum,
+        helpers
+      })}${renderDayCellEvents({
+        date,
+        dayEvents,
+        hiddenEventCount,
+        visibleEvents,
+        helpers
+      })}
+      </div>
+    `;
+}
+
+function renderWeekCompactView({
+  config,
+  weekDays,
+  today,
+  dayNames,
+  headerHeight,
+  helpers
+}) {
+  const headerHeightStyle = headerHeight ? `--week-compact-header-height: ${headerHeight}px;` : '';
+  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle()}`;
+
+  return `
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
+      <div class="week-compact-container day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+        ${weekDays.map(date => {
+          const isToday = date.toDateString() === today.toDateString();
+          const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });
+          const events = helpers.sortEventsForDate(dayEventsForMatching.filter((event) => !helpers.isEventHiddenByStyle(event)), date);
+          const dayStyle = helpers.getDayStyleAttributes(date, dayEventsForMatching, isToday);
+          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
+
+          return `
+            <div class="week-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}" data-click-target="day-header"${dayStyleAttr}>
+              <div class="week-day-header">
+                <div class="week-day-header-main">
+                  <div class="week-day-name">${dayNames[date.getDay()]}</div>
+                  <div class="week-day-meta-row">
+                    <div class="week-day-date">${date.getDate()}</div>
+                    ${helpers.renderDayBadges(date, dayEventsForMatching)}
+                    ${helpers.renderDayForecast(date, 'week-compact')}
+                  </div>
+                </div>
+              </div>
+              <div class="week-day-events">
+                ${events.map(event => {
+                  return helpers.renderWeekCompactEvent(event, date);
+                }).join('')}
+                ${events.length === 0 ? `<div style="color: #9ca3af; font-size: 13px; text-align: center; margin-top: 20px;">${helpers.t('noEvents')}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+}
+
+function renderWeekStandardView({
+  allDayHeight,
+  allDayLayout,
+  config,
+  containerStyle,
+  dayNames,
+  dayTimeSlotsStyle,
+  endHour,
+  hasAllDayEvents,
+  hourHeight,
+  hours,
+  showCurrentTimeBar,
+  startHour,
+  today,
+  weekDays,
+  helpers
+}) {
+  return `
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
+      <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+        <!-- Time column -->
+        <div class="time-column">
+          <div class="time-column-header-spacer"></div>
+          ${hasAllDayEvents ? `<div class="time-column-allday-spacer" style="height: ${allDayHeight}px;"></div>` : ''}
+          <div class="time-column-extra-spacer"></div>
+          ${hours.map(hour => `
+            <div class="time-slot" style="height: ${hourHeight}px;">
+              <span class="time-slot-label">${helpers.formatScheduleHour(hour)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Day columns -->
+        ${weekDays.map(date => {
+          const isToday = date.toDateString() === today.toDateString();
+          const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });
+          const dayEvents = helpers.sortEventsForDate(dayEventsForMatching.filter((event) => !helpers.isEventHiddenByStyle(event)), date);
+          const dateKey = helpers.getDateKey(date);
+          const allDayLanes = allDayLayout.dayLanesByDateKey.get(dateKey) || [];
+          const dayStyle = helpers.getDayStyleAttributes(date, dayEventsForMatching, isToday);
+          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
+
+          return `
+            <div class="week-standard-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
+              <div class="week-standard-day-header" data-click-target="day-header">
+                <div class="week-day-header-main">
+                  <div class="week-standard-day-name">${dayNames[date.getDay()]}</div>
+                  <div class="week-day-meta-row">
+                    <div class="week-standard-day-date">${date.getDate()}</div>
+                    ${helpers.renderDayBadges(date, dayEventsForMatching)}
+                    ${helpers.renderDayForecast(date, 'week-standard')}
+                  </div>
+                </div>
+              </div>
+              ${hasAllDayEvents ? helpers.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
+              <div class="day-time-slots" style="${dayTimeSlotsStyle}">
+                ${hours.map(hour => `
+                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
+                `).join('')}
+                ${showCurrentTimeBar && isToday ? helpers.renderCurrentTimeLine(startHour, hourHeight) : ''}
+                ${helpers.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+}
+
+function renderMonthDayHeaders({ weekdayNames, firstDayOfWeek, shouldShowWeekNumbers }) {
+  const orderedDays = [
+    ...weekdayNames.slice(firstDayOfWeek),
+    ...weekdayNames.slice(0, firstDayOfWeek)
+  ];
+
+  const dayHeaders = orderedDays.map(day => `
+      <div class="day-header">${day}</div>
+    `).join('');
+
+  if (!shouldShowWeekNumbers) {
+    return dayHeaders;
+  }
+
+  return `<div class="month-week-number-header"></div>${dayHeaders}`;
+}
+
+function renderMonthGridDays({ currentDate, firstDayOfWeek, shouldShowWeekNumbers, helpers }) {
+  let html = '';
+
+  getMonthGridDates(currentDate, firstDayOfWeek).forEach((dayEntry, dayIndex) => {
+    if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
+      html += helpers.renderMonthWeekNumberCell(dayEntry.date);
+    }
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+  });
+
+  return html;
+}
+
+function renderRollingWeeks({ currentDate, firstDayOfWeek, rollingWeeks, shouldShowWeekNumbers, helpers }) {
+  let html = '';
+
+  getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks).forEach((dayEntry, dayIndex) => {
+    if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
+      html += helpers.renderMonthWeekNumberCell(dayEntry.date);
+    }
+
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+  });
+
+  return html;
+}
+
+function renderMonthDays({ currentDate, config, viewMode, shouldShowWeekNumbers, helpers }) {
+  // If rolling_weeks is set, show current week + N additional weeks
+  if (config.rolling_weeks !== null && viewMode === 'month') {
+    return renderRollingWeeks({
+      currentDate,
+      firstDayOfWeek: config.firstDayOfWeek,
+      rollingWeeks: config.rolling_weeks,
+      shouldShowWeekNumbers,
+      helpers
+    });
+  }
+
+  return renderMonthGridDays({
+    currentDate,
+    firstDayOfWeek: config.firstDayOfWeek,
+    shouldShowWeekNumbers,
+    helpers
+  });
+}
+
+function renderMonthView({
+  compactMaxHeight,
+  config,
+  currentDate,
+  isCompactMonth,
+  monthWeekRows,
+  shouldShowHeaderBadges,
+  shouldShowWeekNumbers,
+  viewMode,
+  weekdayNames,
+  helpers
+}) {
+  const monthStyle = isCompactMonth ? helpers.getCompactMonthGridStyle(monthWeekRows, compactMaxHeight) : '';
+  const monthClass = [
+    'calendar-grid',
+    isCompactMonth ? 'compact-month' : '',
+    shouldShowWeekNumbers ? 'month-week-numbers' : ''
+  ].filter(Boolean).join(' ');
+
+  return `
+        ${shouldShowHeaderBadges ? helpers.renderCalendarBadges() : ''}
+        <div class="${monthClass}" style="${monthStyle}">
+          ${renderMonthDayHeaders({
+            weekdayNames,
+            firstDayOfWeek: config.firstDayOfWeek,
+            shouldShowWeekNumbers
+          })}
+          ${renderMonthDays({
+            currentDate,
+            config,
+            viewMode,
+            shouldShowWeekNumbers,
+            helpers
+          })}
+        </div>
+      `;
+}
+
+function normalizeVirtualCalendars(virtualCalendars, { normalizeSingleColor }) {
+  if (!Array.isArray(virtualCalendars)) return [];
+
+  return virtualCalendars
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const id = typeof entry.id === 'string' && entry.id.trim()
+        ? entry.id.trim()
+        : `virtual_${index + 1}`;
+      const entities = Array.isArray(entry.entities)
+        ? Array.from(new Set(entry.entities
+          .map((entityId) => typeof entityId === 'string' ? entityId.trim() : '')
+          .filter(Boolean)))
+        : [];
+      if (entities.length === 0) return null;
+      return {
+        id,
+        name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : id,
+        icon: typeof entry.icon === 'string' && entry.icon.trim() ? entry.icon.trim() : null,
+        color: normalizeSingleColor(entry.color),
+        entities
+      };
+    })
+    .filter(Boolean);
+}
+
+function getVirtualBadgeById(virtualCalendars = [], virtualId) {
+  return (virtualCalendars || []).find((virtualCalendar) => virtualCalendar.id === virtualId) || null;
+}
+
+function getVirtualBadgeForEntity(virtualCalendars = [], entityId) {
+  return (virtualCalendars || []).find((virtualCalendar) => virtualCalendar.entities.includes(entityId)) || null;
+}
+
+function getVirtualBadgeForEvent(virtualCalendars = [], event) {
+  if (!event) return null;
+
+  if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds) && event.sourceEntityIds.length > 0) {
+    const matchedVirtualCalendars = event.sourceEntityIds
+      .map((entityId) => getVirtualBadgeForEntity(virtualCalendars, entityId))
+      .filter(Boolean);
+    if (matchedVirtualCalendars.length > 0) {
+      return matchedVirtualCalendars[0];
+    }
+    return null;
+  }
+
+  return getVirtualBadgeForEntity(virtualCalendars, event.entityId);
+}
+
+function getCalendarColor(entityId, index = 0, { colors = {}, getDefaultColor, normalizeSingleColor }) {
+  return normalizeSingleColor(
+    colors?.[entityId] ||
+    getDefaultColor(index)
+  );
+}
+
+function getCalendarName(entityId, { calendarNames = {}, hassStates = {}, virtualCalendars = [] } = {}) {
+  if (!entityId) {
+    return '';
+  }
+
+  if (entityId.startsWith('virtual:')) {
+    const virtualId = entityId.replace('virtual:', '');
+    const virtualBadge = getVirtualBadgeById(virtualCalendars, virtualId);
+    if (virtualBadge?.name) {
+      return virtualBadge.name;
+    }
+    return virtualId;
+  }
+
+  // Check if there's a custom name mapping
+  if (calendarNames && calendarNames[entityId]) {
+    return calendarNames[entityId];
+  }
+
+  // Otherwise use friendly_name from entity or entity ID
+  const entity = hassStates?.[entityId];
+  const fallbackName = entityId.includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
+  return entity?.attributes?.friendly_name || fallbackName;
+}
+
+function getVirtualBadgeItems({
+  entities = [],
+  virtualCalendars = [],
+  hideBadgeCalendars = [],
+  hiddenCalendars = new Set(),
+  getCalendarColor,
+  getCalendarName,
+  getCalendarBadgeIcon
+}) {
+  const hiddenBadgeCalendars = new Set(hideBadgeCalendars || []);
+  const items = [];
+  const insertedVirtualIds = new Set();
+
+  entities.forEach((entityId, originalIndex) => {
+    const virtualCalendar = getVirtualBadgeForEntity(virtualCalendars, entityId);
+    if (virtualCalendar && !insertedVirtualIds.has(virtualCalendar.id)) {
+      const configuredEntities = virtualCalendar.entities.filter((configuredEntityId) => entities.includes(configuredEntityId));
+      const hasVisibleEntity = configuredEntities.some((configuredEntityId) => !hiddenBadgeCalendars.has(configuredEntityId));
+      if (hasVisibleEntity) {
+        const color = virtualCalendar.color || getCalendarColor(entityId, originalIndex);
+        const isHidden = configuredEntities.every((configuredEntityId) => hiddenCalendars.has(configuredEntityId));
+        items.push({
+          id: virtualCalendar.id,
+          entityId: `virtual:${virtualCalendar.id}`,
+          name: virtualCalendar.name,
+          icon: virtualCalendar.icon,
+          color,
+          entities: configuredEntities,
+          isHidden,
+          type: 'virtual'
+        });
+      }
+      insertedVirtualIds.add(virtualCalendar.id);
+      return;
+    }
+
+    if (virtualCalendar || hiddenBadgeCalendars.has(entityId)) return;
+    const color = getCalendarColor(entityId, originalIndex);
+    items.push({
+      id: entityId,
+      entityId,
+      name: getCalendarName(entityId),
+      icon: getCalendarBadgeIcon(entityId),
+      color,
+      entities: [entityId],
+      isHidden: hiddenCalendars.has(entityId),
+      type: 'entity'
+    });
+  });
+
+  return items;
+}
+
+function getWritableCalendars(entities = [], calendarCapabilities = {}) {
+  return entities.filter(entityId => {
+    const caps = calendarCapabilities[entityId];
+    return caps && caps.canCreate && !caps.isReadonly;
+  });
+}
+
+function getCalendarBadgePersonEntityId(badgeEntityId, calendarPersonEntities = {}) {
+  const mappings = calendarPersonEntities || {};
+  if (!badgeEntityId) return null;
+
+  if (mappings[badgeEntityId]) {
+    return mappings[badgeEntityId];
+  }
+
+  if (badgeEntityId.startsWith('virtual:')) {
+    const virtualId = badgeEntityId.replace('virtual:', '');
+    return mappings[virtualId] || null;
+  }
+
+  return null;
+}
+
+console.info(`Daylight Calendar Card ${getDaylightCalendarCardVersion()} loaded from skylight-calendar-card.js`);
+
+// ============================================================================
+// TRANSLATION HELPER FUNCTIONS
+// ============================================================================
+
+const normalizeLanguage = (language) => {
+  if (!language) return DEFAULT_LANGUAGE;
+  return language.toLowerCase().split('-')[0];
+};
+
+const resolveLanguage = (language) => {
+  const normalized = normalizeLanguage(language);
+  return TRANSLATIONS[normalized] ? normalized : DEFAULT_LANGUAGE;
+};
+
+const interpolate = (template, params = {}) =>
+  template.replace(/\{(\w+)\}/g, (_, key) => (params[key] !== undefined ? params[key] : ''));
+
+const translate = (language, key, params = {}) => {
+  const resolved = resolveLanguage(language);
+  const fallbackStrings = TRANSLATIONS[DEFAULT_LANGUAGE]?.strings || {};
+  const strings = TRANSLATIONS[resolved]?.strings || fallbackStrings;
+  const fallback = fallbackStrings[key] || key;
+  return interpolate(strings[key] || fallback, params);
+};
+
+
+const STALE_RESOURCE_BANNER_ID = 'daylight-calendar-card-stale-resource-warning';
+let staleResourceWarningHandled = false;
+
+const logStaleResourceWarning = (staleUrl) => {
+  console.warn(
+    `Daylight Calendar Card: old Skylight resource detected${staleUrl ? ` (${staleUrl})` : ''}. ` +
+    'Remove it from Settings → Dashboards → Resources and keep /hacsfiles/daylight-calendar-card/skylight-calendar-card.js. ' +
+    'The filename may still be skylight-calendar-card.js; the important part is the daylight-calendar-card folder.'
+  );
+};
+
+const isStaleResourceWarningDismissed = () => {
+  try {
+    return window.localStorage?.getItem(STALE_RESOURCE_WARNING_STORAGE_KEY) === 'true';
+  } catch (_error) {
+    return false;
+  }
+};
+
+const dismissStaleResourceWarning = (banner) => {
+  try {
+    window.localStorage?.setItem(STALE_RESOURCE_WARNING_STORAGE_KEY, 'true');
+  } catch (_error) {
+    // Ignore storage failures; the banner can still be dismissed for this page view.
+  }
+  banner?.remove?.();
+};
+
+const showStaleResourceWarningBanner = (staleUrl) => {
+  if (isStaleResourceWarningDismissed() || document.getElementById?.(STALE_RESOURCE_BANNER_ID)) return;
+
+  const banner = document.createElement('div');
+  banner.id = STALE_RESOURCE_BANNER_ID;
+  banner.setAttribute('role', 'status');
+  banner.style.cssText = [
+    'position: fixed',
+    'left: 0',
+    'right: 0',
+    'bottom: 0',
+    'z-index: 2147483647',
+    'box-sizing: border-box',
+    'width: 100%',
+    'display: flex',
+    'align-items: center',
+    'gap: 12px',
+    'padding: 12px 16px',
+    'background: #323232',
+    'color: #fff',
+    'box-shadow: 0 3px 8px rgba(0, 0, 0, 0.32)',
+    'font-family: var(--primary-font-family, Roboto, Arial, sans-serif)',
+    'font-size: 14px',
+    'line-height: 1.35',
+    'pointer-events: auto'
+  ].join(';');
+
+  const message = document.createElement('span');
+  message.textContent = 'Old Skylight Calendar Card resource detected. Remove it from Settings → Dashboards → Resources.';
+  message.style.cssText = 'min-width: 0; flex: 1 1 auto;';
+  if (staleUrl) {
+    message.title = staleUrl;
+  }
+  const docsLink = document.createElement('a');
+  docsLink.href = STALE_RESOURCE_TROUBLESHOOTING_URL;
+  docsLink.target = '_blank';
+  docsLink.rel = 'noreferrer';
+  docsLink.textContent = 'Help';
+  docsLink.style.cssText = [
+    'color: #bbdefb',
+    'font-size: 12px',
+    'font-weight: 500',
+    'text-decoration: none',
+    'white-space: nowrap'
+  ].join(';');
+
+  const dismissButton = document.createElement('button');
+  dismissButton.type = 'button';
+  dismissButton.textContent = 'Dismiss';
+  dismissButton.style.cssText = [
+    'border: 0',
+    'background: transparent',
+    'color: #90caf9',
+    'font: inherit',
+    'font-weight: 500',
+    'text-transform: uppercase',
+    'cursor: pointer',
+    'padding: 4px',
+    'white-space: nowrap'
+  ].join(';');
+  dismissButton.addEventListener('click', () => dismissStaleResourceWarning(banner));
+
+  banner.append(message, docsLink, dismissButton);
+  document.body?.appendChild?.(banner);
+};
+
+const checkAndShowStaleResourceWarning = () => {
+  if (staleResourceWarningHandled) return;
+  staleResourceWarningHandled = true;
+
+  const detection = detectStaleSkylightResource();
+  if (!detection.detected) return;
+
+  logStaleResourceWarning(detection.staleUrl);
+  showStaleResourceWarningBanner(detection.staleUrl);
+};
+
+// ============================================================================
+// MAIN CALENDAR CARD CLASS
+// ============================================================================
+
+class SkylightCalendarCard extends HTMLElement {
+  static COMMON_NAMED_COLORS = COMMON_NAMED_COLORS;
+  static detectStaleSkylightResource = detectStaleSkylightResource;
+
+  constructor() {
+    super();
+    this._root = this;
+    this._config = {};
+    this._events = [];
+    this._currentDate = new Date();
+    this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
+    this._weekStart = new Date();
+    this._fetching = false;
+    this._lastFetch = null;
+    this._loadedEventRange = null;
+    this._calendarDataSignatures = {}; // Track per-calendar data for change detection
+    this._lastUnchangedDataRender = null; // Throttle unchanged-data UI refreshes
+    this._hiddenCalendars = new Set(); // Track which calendars are hidden
+    this._calendarCapabilities = {}; // Track calendar capabilities
+    this._activeLanguage = DEFAULT_LANGUAGE;
+    this._hasCustomTitle = false;
+    this._isDarkMode = false;
+    this._themeMode = DEFAULT_THEME_MODE;
+    this._systemThemeMediaQuery = null;
+    this._handleSystemThemeChange = (event) => {
+      if (this._themeMode !== DEFAULT_THEME_MODE) {
+        return;
+      }
+
+      this._isDarkMode = !!event.matches;
+      this.render();
+    };
+    this._weekStandardFixedOffsetHeight = null;
+    this._weekStandardExtraHeaderHeight = 0;
+    this._weekStandardHeaderHeight = null;
+    this._weekCompactHeaderHeight = null;
+    this._weekStandardContainerTopInViewport = null;
+    this._monthContainerTopInViewport = null;
+    this._agendaContainerTopInViewport = null;
+    this._agendaStartDate = null;
+    this._agendaEndDate = null;
+    this._agendaVisibleStartDate = null;
+    this._agendaVisibleEndDate = null;
+    this._agendaDaysPerScrollLoad = 7;
+    this._agendaScrollLoadLock = false;
+    this._agendaSuppressScrollHandling = false;
+    this._agendaPendingScrollTop = null;
+    this._swipeStartX = null;
+    this._swipeStartY = null;
+    this._swipeTracking = false;
+    this._swipeStartedOnInteractive = false;
+    this._activeModalBackHandler = null;
+    this._combinedEditTargets = null;
+    this._combinedDeleteTargets = null;
+    this._pendingHeaderSensorRender = false;
+    this._weatherForecastController = createWeatherForecastController({
+      getHass: () => this._hass,
+      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      onForecastUpdated: () => {
+        if (!this.isEventManagementDialogOpen()) {
+          this.renderPreservingAgendaScroll();
+        } else {
+          this._pendingHeaderSensorRender = true;
+        }
+      }
+    });
+    this._modalVisibilityObserver = null;
+    this._monthMeasureRaf = null;
+    this._monthMeasureRenderRaf = null;
+    this._wrapMeasureRaf1 = null;
+    this._wrapMeasureRaf2 = null;
+    this._monthGridResizeObserver = null;
+    this._headerResizeObserver = null;
+    this._hostResizeObserver = null;
+    this._hostResizeRaf = null;
+    this._pendingHostResizeRender = false;
+    this._pendingWidthDependentLayoutRefresh = false;
+    this._observedResizeParent = null;
+    this._lastObservedHostSize = null;
+    this._monthCompactMeasurementDirty = true;
+    this._lastCompactMonthViewportHeight = null;
+    this._handleViewportResize = () => {
+      if (this.isEventManagementDialogOpen()) {
+        return;
+      }
+
+      if (this._config.compact_height && (this._viewMode === 'week-standard' || this._viewMode === 'agenda')) {
+        this.render();
+        return;
+      }
+
+      if (this._viewMode === 'month' && this._config.compact_height && !this.shouldShowAllEventsInMonth()) {
+        this._monthCompactMeasurementDirty = true;
+        this.scheduleMonthCompactTopMeasurement();
+        return;
+      }
+
+      this.updateCompactHeaderWrapState();
+      this.updateCalendarBadgesScrollState();
+      this.refreshWidthDependentLayoutMeasurements();
+    };
+  }
+
+  getRootElementById(id) {
+    return this._root?.querySelector(`#${id}`) || null;
+  }
+
+  shouldShowAllEventsInMonth() {
+    return !!(this._config?.show_all_events_month || this._config?.show_all_details_month);
+  }
+
+  shouldRenderMonthEventsAsWeekCompact() {
+    return this._viewMode === 'month' && !!this._config?.show_all_details_month;
+  }
+
+  getDashboardScopeKey() {
+    const pathnameSegments = (window.location?.pathname || '').split('/').filter(Boolean);
+    if (pathnameSegments.length > 0) {
+      return pathnameSegments[0];
+    }
+
+    const hashPath = (window.location?.hash || '').replace(/^#/, '');
+    const hashSegments = hashPath.split('/').filter(Boolean);
+    if (hashSegments.length > 0) {
+      return hashSegments[0];
+    }
+
+    return 'default';
+  }
+
+  getPreferenceStorageKey() {
+    const dashboardScope = this.getDashboardScopeKey();
+    const baseKey = this._config.preference_storage_key || (this._config.entities || []).join('|');
+
+    if (!baseKey) {
+      return null;
+    }
+
+    return `skylight-calendar-card:${dashboardScope}:${baseKey}`;
+  }
+
+  normalizeDashboardPath(pathValue) {
+    return normalizeDashboardPath(pathValue);
+  }
+
+  getConfiguredDashboardPath() {
+    return this.normalizeDashboardPath(this._config?.header_dashboard_path);
+  }
+
+  shouldShowDashboardNavButton() {
+    return !!(this._config?.show_dashboard_nav_button && this.getConfiguredDashboardPath());
+  }
+
+  normalizeEnumValue(value, options) {
+    return normalizeEnumValue(value, options);
+  }
+
+  normalizeDefaultDarkMode(value) {
+    return normalizeThemeMode(value);
+  }
+
+  normalizeEventTitlePrefixMode(value) {
+    return normalizeEventTitlePrefixMode(value);
+  }
+
+  normalizePastEventMode(value) {
+    return normalizePastEventMode(value);
+  }
+
+  normalizeDayBadgeLayoutWeek(value) {
+    return normalizeDayBadgeLayoutWeek(value);
+  }
+
+  normalizeEntityStringMap(value) {
+    return normalizeEntityStringMap(value);
+  }
+
+  normalizeBooleanStyleValue(value) {
+    return normalizeBooleanStyleValue(value);
+  }
+
+  applyThemeMode(mode = this._themeMode) {
+    this._themeMode = this.normalizeDefaultDarkMode(mode);
+
+    if (this._themeMode === 'dark') {
+      this._isDarkMode = true;
+      return;
+    }
+
+    if (this._themeMode === 'light') {
+      this._isDarkMode = false;
+      return;
+    }
+
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+    this._isDarkMode = !!mediaQuery?.matches;
+  }
+
+  attachSystemThemeListener() {
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mediaQuery || this._systemThemeMediaQuery === mediaQuery) {
+      return;
+    }
+
+    this.detachSystemThemeListener();
+    this._systemThemeMediaQuery = mediaQuery;
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', this._handleSystemThemeChange);
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(this._handleSystemThemeChange);
+    }
+  }
+
+  detachSystemThemeListener() {
+    if (!this._systemThemeMediaQuery) {
+      return;
+    }
+
+    if (typeof this._systemThemeMediaQuery.removeEventListener === 'function') {
+      this._systemThemeMediaQuery.removeEventListener('change', this._handleSystemThemeChange);
+    } else if (typeof this._systemThemeMediaQuery.removeListener === 'function') {
+      this._systemThemeMediaQuery.removeListener(this._handleSystemThemeChange);
+    }
+
+    this._systemThemeMediaQuery = null;
+  }
+
+  getDefaultHiddenCalendarSet() {
+    const knownEntities = new Set(this._config.entities || []);
+    return new Set((this._config.default_hidden_calendars || []).filter((entityId) => knownEntities.has(entityId)));
+  }
+
+  normalizeDefaultHiddenCalendars(config = {}) {
+    return normalizeDefaultHiddenCalendars(config);
+  }
+
+  loadPersistedPreferences() {
+    const storageKey = this.getPreferenceStorageKey();
+    if (!storageKey) return false;
+
+    try {
+      const raw = window.localStorage?.getItem(storageKey);
+      if (!raw) return false;
+
+      const parsed = JSON.parse(raw);
+
+      if (Array.isArray(parsed.hiddenCalendars)) {
+        const knownEntities = new Set(this._config.entities || []);
+        this._hiddenCalendars = new Set(parsed.hiddenCalendars.filter((entityId) => knownEntities.has(entityId)));
+        return true;
+      }
+    } catch (error) {
+      console.warn('Failed to load persisted calendar preferences:', error);
+    }
+
+    return false;
+  }
+
+  persistPreferences() {
+    const storageKey = this.getPreferenceStorageKey();
+    if (!storageKey) return;
+
+    try {
+      const payload = {
+        hiddenCalendars: Array.from(this._hiddenCalendars)
+      };
+      window.localStorage?.setItem(storageKey, JSON.stringify(payload));
+    } catch (error) {
+      console.warn('Failed to persist calendar preferences:', error);
+    }
+  }
+
+  updateCompactHeaderWrapState() {
+    if (!this._root) return;
+    if (typeof window.requestAnimationFrame !== 'function') {
+      this.measureAndApplyHeaderWrapState();
+      return;
+    }
+    if (this._wrapMeasureRaf1 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf1);
+    if (this._wrapMeasureRaf2 !== null) window.cancelAnimationFrame(this._wrapMeasureRaf2);
+    this._wrapMeasureRaf1 = window.requestAnimationFrame(() => {
+      this._wrapMeasureRaf1 = null;
+      this._wrapMeasureRaf2 = window.requestAnimationFrame(() => {
+        this._wrapMeasureRaf2 = null;
+        this.measureAndApplyHeaderWrapState();
+      });
+    });
+  }
+
+  shouldMarkWrappedFromChildren(children) {
+    const visibleChildren = children.filter((child) => child.offsetParent !== null);
+    if (visibleChildren.length <= 1) return false;
+    const firstTop = visibleChildren[0].offsetTop;
+    return visibleChildren.some((child) => Math.abs(child.offsetTop - firstTop) > 1);
+  }
+
+
+
+  getElementContentWidth(element) {
+    if (!element) return 0;
+
+    const computed = window.getComputedStyle(element);
+    const paddingLeft = parseFloat(computed.paddingLeft) || 0;
+    const paddingRight = parseFloat(computed.paddingRight) || 0;
+
+    return Math.max(0, element.clientWidth - paddingLeft - paddingRight);
+  }
+
+  getOuterWidth(element) {
+    if (!element) return 0;
+
+    const rect = element.getBoundingClientRect();
+    const computed = window.getComputedStyle(element);
+    const marginLeft = parseFloat(computed.marginLeft) || 0;
+    const marginRight = parseFloat(computed.marginRight) || 0;
+
+    return rect.width + marginLeft + marginRight;
+  }
+
+  measureNaturalGroupWidth(group) {
+    if (!group) return 0;
+
+    const computed = window.getComputedStyle(group);
+    const children = Array.from(group.children || [])
+      .filter((child) => child.offsetParent !== null);
+
+    if (!children.length) {
+      return Math.ceil(group.scrollWidth || 0);
+    }
+
+    const childWidths = children.reduce((sum, child) => {
+      return sum + this.getOuterWidth(child);
+    }, 0);
+
+    const internalGap = parseFloat(computed.columnGap)
+      || parseFloat(computed.gap)
+      || 0;
+
+    return Math.ceil(childWidths + internalGap * Math.max(children.length - 1, 0));
+  }
+
+  shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup) {
+    if (!header || !leftGroup || !controlsGroup) return false;
+
+    const computedStyle = window.getComputedStyle(header);
+    const gap = parseFloat(computedStyle.columnGap)
+      || parseFloat(computedStyle.gap)
+      || 0;
+    const requiredWidth = this.measureNaturalGroupWidth(leftGroup)
+      + this.measureNaturalGroupWidth(controlsGroup)
+      + gap;
+    const availableWidth = this.getElementContentWidth(header);
+    const tolerance = 2;
+
+    return requiredWidth > (availableWidth + tolerance);
+  }
+
+  getUnwrappedHeaderMeasurementElements(header) {
+    if (!header || typeof header.cloneNode !== 'function') return null;
+
+    const parent = header.parentNode || this._root;
+    if (typeof parent?.appendChild !== 'function') return null;
+
+    const clone = header.cloneNode(true);
+    if (!clone) return null;
+
+    clone.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.header-controls')?.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.compact-header-controls')?.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.calendar-badges-inline')?.classList?.remove?.('is-wrapped');
+
+    if (clone.style) {
+      const width = header.getBoundingClientRect?.().width || header.clientWidth || 0;
+      clone.style.position = 'absolute';
+      clone.style.visibility = 'hidden';
+      clone.style.pointerEvents = 'none';
+      clone.style.left = '-10000px';
+      clone.style.top = '0';
+      clone.style.height = 'auto';
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      if (width > 0) clone.style.width = `${width}px`;
+    }
+
+    parent.appendChild(clone);
+    return {
+      clone,
+      leftGroup: this._config.compact_header
+        ? clone.querySelector?.('.compact-header-left')
+        : clone.querySelector?.('.header-left'),
+      controlsGroup: this._config.compact_header
+        ? clone.querySelector?.('.compact-header-controls')
+        : clone.querySelector?.('.header-controls')
+    };
+  }
+
+
+  shouldMarkGroupWrappedFromWidth(group) {
+    if (!group) return false;
+
+    const requiredWidth = this.measureNaturalGroupWidth(group);
+    const availableWidth = this.getElementContentWidth(group);
+    const tolerance = 2;
+
+    return requiredWidth > (availableWidth + tolerance);
+  }
+
+  setClassStateIfChanged(element, className, shouldHaveClass) {
+    if (!element?.classList) return;
+    if (element.classList.contains(className) === shouldHaveClass) return;
+    element.classList.toggle(className, shouldHaveClass);
+  }
+
+  measureAndApplyHeaderWrapState() {
+    if (!this._root) return;
+
+    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
+    const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
+    const header = this._root.querySelector(headerSelector);
+    const controls = this._root.querySelector(controlsSelector);
+    const badges = this._root.querySelector('.calendar-badges-inline');
+
+    if (header) {
+      const liveLeftGroup = this._config.compact_header
+        ? header.querySelector('.compact-header-left')
+        : header.querySelector('.header-left');
+      const liveControlsGroup = this._config.compact_header
+        ? header.querySelector('.compact-header-controls')
+        : header.querySelector('.header-controls');
+      const probe = this.getUnwrappedHeaderMeasurementElements(header);
+      let shouldWrapHeader = false;
+      let shouldWrapControls = false;
+      try {
+        const leftGroup = probe?.leftGroup || liveLeftGroup;
+        const controlsGroup = probe?.controlsGroup || liveControlsGroup;
+        shouldWrapHeader = this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup);
+        shouldWrapControls = controls ? this.shouldMarkGroupWrappedFromWidth(probe?.controlsGroup || controls) : false;
+      } finally {
+        probe?.clone?.remove?.();
+      }
+
+      this.setClassStateIfChanged(header, 'is-wrapped', shouldWrapHeader);
+      if (controls) {
+        this.setClassStateIfChanged(controls, 'is-wrapped', shouldWrapControls);
+      }
+    } else if (controls) {
+      const shouldWrapControls = this.shouldMarkGroupWrappedFromWidth(controls);
+      this.setClassStateIfChanged(controls, 'is-wrapped', shouldWrapControls);
+    }
+
+    if (this._config.compact_header && badges) {
+      const shouldWrapBadges = this.shouldMarkWrappedFromChildren(Array.from(badges.children));
+      this.setClassStateIfChanged(badges, 'is-wrapped', shouldWrapBadges);
+    }
+  }
+
+
+  updateCalendarBadgesScrollState() {
+    if (!this._root || this._config.compact_header) return;
+
+    const badgesContainer = this._root.querySelector('.calendar-badges-container');
+    const badges = this._root.querySelector('.calendar-badges');
+    if (!badgesContainer || !badges) return;
+
+    const maxScrollLeft = badges.scrollWidth - badges.clientWidth;
+    const hasOverflow = maxScrollLeft > 1;
+    const showLeftIndicator = hasOverflow && badges.scrollLeft > 1;
+    const showRightIndicator = hasOverflow && badges.scrollLeft < (maxScrollLeft - 1);
+
+    badgesContainer.classList.toggle('has-overflow', hasOverflow);
+    badgesContainer.classList.toggle('show-left-indicator', showLeftIndicator);
+    badgesContainer.classList.toggle('show-right-indicator', showRightIndicator);
+  }
+
+  isEventManagementDialogOpen() {
+    const modal = this.getRootElementById('event-modal');
+    return !!modal && modal.classList.contains('show');
+  }
+
+  getConfigNormalizationSchema() {
+    return createConfigNormalizationSchema({
+      hasCustomTitle: this._hasCustomTitle,
+      normalizeDashboardPath: this.normalizeDashboardPath.bind(this),
+      normalizeCombineStyle: this.normalizeCombineStyle.bind(this),
+      normalizeCombineBackground: this.normalizeCombineBackground.bind(this),
+      normalizeEventColorMode: this.normalizeEventColorMode.bind(this),
+      normalizeSingleColor: this.normalizeSingleColor.bind(this),
+      normalizeBackgroundOpacity: this.normalizeBackgroundOpacity.bind(this),
+      normalizeEventModalSize: this.normalizeEventModalSize.bind(this),
+      normalizeVirtualCalendars: this.normalizeVirtualCalendars.bind(this),
+      normalizeDefaultDarkMode: this.normalizeDefaultDarkMode.bind(this),
+      getDefaultTitle: (language) => translate(language, 'defaultTitle')
+    });
+  }
+
+  getConfigNormalizationContext(rawConfig, language) {
+    const normalizedDefaultView = rawConfig.default_view === 'week'
+      ? 'week-compact'
+      : rawConfig.default_view === 'schedule'
+        ? 'week-standard'
+        : rawConfig.default_view;
+    const hasConfiguredHeaderBackgroundOpacity = rawConfig.header_background_opacity !== undefined && rawConfig.header_background_opacity !== null && rawConfig.header_background_opacity !== '';
+    const normalizedHeaderBackgroundOpacity = hasConfiguredHeaderBackgroundOpacity
+      ? this.normalizeBackgroundOpacity(rawConfig.header_background_opacity, 0)
+      : (rawConfig.header_background_transparent ? 100 : 0);
+    const hasConfiguredBackgroundOpacity = rawConfig.background_opacity !== undefined && rawConfig.background_opacity !== null && rawConfig.background_opacity !== '';
+    const normalizedBackgroundOpacity = hasConfiguredBackgroundOpacity
+      ? this.normalizeBackgroundOpacity(rawConfig.background_opacity, 0)
+      : (rawConfig.background_transparent ? 100 : 0);
+    const configuredWeekStartHour = Number(rawConfig.week_start_hour);
+    const normalizedWeekStartHour = Number.isFinite(configuredWeekStartHour)
+      ? Math.min(23, Math.max(0, configuredWeekStartHour))
+      : 0;
+    const configuredWeekEndHour = Number(rawConfig.week_end_hour);
+    const normalizedWeekEndHour = Number.isFinite(configuredWeekEndHour)
+      ? Math.min(23, Math.max(0, configuredWeekEndHour))
+      : 23;
+    const rawCombineWidth = Number(rawConfig.combine_calendars_width);
+    const rawEventBarWidth = Number(rawConfig.event_color_bar_width);
+    const hasCombineWidth = Number.isFinite(rawCombineWidth) && rawCombineWidth > 0;
+    const hasEventBarWidth = Number.isFinite(rawEventBarWidth) && rawEventBarWidth > 0;
+    const normalizedCombineWidth = hasCombineWidth
+      ? rawCombineWidth
+      : (hasEventBarWidth ? rawEventBarWidth : DEFAULT_EVENT_COLOR_BAR_WIDTH);
+
+    return {
+      normalizedDefaultView,
+      normalizedCalendarColors: this.normalizeColorMap(rawConfig.colors || {}),
+      normalizedEventFontColors: this.normalizeColorMap(rawConfig.event_font_colors || {}),
+      normalizedEventStyles: this.normalizeEventStyles(rawConfig.event_styles || []),
+      normalizedDayStyles: this.normalizeDayStyles(
+        this.buildDayStyleRules(rawConfig),
+        resolveLanguage(rawConfig.locale || rawConfig.language || this._hass?.locale?.language || this._hass?.language)
+      ),
+      normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
+      normalizedDayBadgeLayoutWeek: this.normalizeDayBadgeLayoutWeek(rawConfig.day_badge_layout_week),
+      normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
+      normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
+      normalizedHeaderBackgroundOpacity,
+      normalizedBackgroundOpacity,
+      normalizedWeekStartHour,
+      normalizedWeekEndHour,
+      normalizedEventTitlePrefix: this.normalizeEventTitlePrefixMode(rawConfig.event_title_prefix),
+      normalizedTimeZone: this.normalizeTimeZone(rawConfig.time_zone),
+      normalizedPastEventMode: rawConfig.past_event_mode !== undefined && rawConfig.past_event_mode !== null && rawConfig.past_event_mode !== ''
+        ? this.normalizePastEventMode(rawConfig.past_event_mode)
+        : (rawConfig.hide_the_past ? 'hide' : 'none'),
+      normalizedCombineWidth,
+      normalizedEventBarWidth: hasEventBarWidth ? rawEventBarWidth : normalizedCombineWidth,
+      normalizedCalendarPersonEntities: this.normalizeEntityStringMap(rawConfig.calendar_person_entities || {}),
+      normalizedDefaultHiddenCalendars: this.normalizeDefaultHiddenCalendars(rawConfig),
+      normalizedHeaderTimeSensor: typeof rawConfig.header_time_sensor === 'string' && rawConfig.header_time_sensor.trim()
+        ? rawConfig.header_time_sensor.trim()
+        : null,
+      normalizedHeaderWeatherSensor: typeof rawConfig.header_weather_sensor === 'string' && rawConfig.header_weather_sensor.trim()
+        ? rawConfig.header_weather_sensor.trim()
+        : null,
+      language
+    };
+  }
+
+  normalizeConfig(rawConfig, language = resolveLanguage(rawConfig.language || this._hass?.language || this._hass?.locale?.language)) {
+    const derived = this.getConfigNormalizationContext(rawConfig, language);
+    const schemaContext = { rawConfig, language, derived };
+    const schema = this.getConfigNormalizationSchema();
+    const defaults = schema.reduce((acc, field) => {
+      acc[field.key] = field.defaultValue(schemaContext);
+      return acc;
+    }, {});
+    const normalizedOverrides = schema.reduce((acc, field) => {
+      if (field.normalize) {
+        acc[field.key] = field.normalize(schemaContext);
+      }
+      return acc;
+    }, {});
+
+    const normalizedConfig = {
+      ...defaults,
+      ...rawConfig,
+      ...normalizedOverrides
+    };
+    if (!Object.prototype.hasOwnProperty.call(rawConfig, 'use_24hr_schedule')) {
+      delete normalizedConfig.use_24hr_schedule; // Preserve locale-based hour cycle defaults when unset
+    }
+    return normalizedConfig;
+  }
+
+  setConfig(config) {
+    const previousHeaderWeatherSensor = this._config?.header_weather_sensor || null;
+    if (!config.entities || !Array.isArray(config.entities)) {
+      throw new Error('You need to define calendar entities');
+    }
+    const language = resolveLanguage(config.language || this._hass?.language || this._hass?.locale?.language);
+    this._hasCustomTitle = config.title !== undefined && config.title !== null;
+    this._config = this.normalizeConfig(config, language);
+    this._viewMode = this._config.default_view;
+    this.applyThemeMode(this._config.color_scheme);
+    this._hiddenCalendars = this.getDefaultHiddenCalendarSet();
+    this.loadPersistedPreferences();
+    this._loadedEventRange = null;
+    this._calendarDataSignatures = {};
+    this._lastUnchangedDataRender = null;
+    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
+    this.ensureWeatherForecastSubscription();
+    this.setWeekStart();
+    this.resetAgendaWindowToToday();
+    this.render();
+    this._activeLanguage = language;
+  }
+
+  set hass(hass) {
+    const oldHass = this._hass;
+    this._hass = hass;
+    let shouldRender = false;
+
+    // Check calendar capabilities when hass is set
+    if (!oldHass || this._hass !== oldHass) {
+      this.checkAllCalendarCapabilities();
+    }
+
+    if (this._themeMode === DEFAULT_THEME_MODE) {
+      const hassDarkMode = this._hass?.themes?.darkMode;
+      if (typeof hassDarkMode === 'boolean' && this._isDarkMode !== hassDarkMode) {
+        this._isDarkMode = hassDarkMode;
+        shouldRender = true;
+      }
+    }
+
+    const resolvedLanguage = this.getLanguage();
+    if (resolvedLanguage !== this._activeLanguage) {
+      this._activeLanguage = resolvedLanguage;
+      if (!this._hasCustomTitle) {
+        this._config.title = translate(this._activeLanguage, 'defaultTitle');
+      }
+      shouldRender = true;
+    }
+
+    const configuredHeaderTimeSensor = this._config?.header_time_sensor;
+    const configuredHeaderWeatherSensor = this._config?.header_weather_sensor;
+    const previousHeaderTimeSensorState = configuredHeaderTimeSensor
+      ? this.getHeaderEntityRenderSignature(oldHass?.states?.[configuredHeaderTimeSensor])
+      : null;
+    const nextHeaderTimeSensorState = configuredHeaderTimeSensor
+      ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderTimeSensor])
+      : null;
+    const previousHeaderWeatherSensorState = configuredHeaderWeatherSensor
+      ? this.getHeaderEntityRenderSignature(oldHass?.states?.[configuredHeaderWeatherSensor])
+      : null;
+    const nextHeaderWeatherSensorState = configuredHeaderWeatherSensor
+      ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderWeatherSensor])
+      : null;
+    const headerSensorChanged = previousHeaderTimeSensorState !== nextHeaderTimeSensorState ||
+      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState;
+    const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
+      this.getCalendarBadgePersonRenderSignature(hass);
+
+    if (headerSensorChanged || badgePersonStateChanged) {
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHeaderSensorRender = true;
+      } else {
+        shouldRender = true;
+        this._pendingHeaderSensorRender = false;
+      }
+    }
+
+    this.ensureWeatherForecastSubscription();
+    this.refreshWeatherForecastData();
+
+    if (shouldRender) {
+      this.renderPreservingAgendaScroll();
+    }
+
+    // Refresh only when stale or when current view needs dates outside loaded range.
+    if (!oldHass) {
+      this.ensureEventsForCurrentRange({ force: true });
+    } else {
+      this.ensureEventsForCurrentRange();
+    }
+  }
+
+  async checkAllCalendarCapabilities() {
+    if (!this._hass) return;
+
+    for (const entityId of this._config.entities) {
+      const entity = this._hass.states[entityId];
+      if (entity) {
+        const features = entity.attributes?.supported_features || 0;
+
+        // Check if this is a Google Calendar (which doesn't support UPDATE/DELETE services)
+        const isGoogleCalendar = entityId.includes('google') ||
+                                 entity.attributes?.integration === 'google';
+
+        this._calendarCapabilities[entityId] = {
+          canCreate: true, // Most calendars support creation
+          canUpdate: (features & 2) !== 0, // UPDATE_EVENT = 2
+          canDelete: (features & 4) !== 0, // DELETE_EVENT = 4
+          isReadonly: this._config.readonly_calendars.includes(entityId),
+          isGoogleCalendar: isGoogleCalendar // Track Google Calendar separately
+        };
+      }
+    }
+  }
+
+
+  normalizeColorMap(colorMap) {
+    return normalizeColorMap(colorMap, {
+      normalizeColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  normalizeSingleColor(colorValue) {
+    return normalizeSingleColor(colorValue);
+  }
+
+  colorToHex(color) {
+    return colorToHex(color, {
+      normalizeColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  colorToRgb(color) {
+    return parseColorToRgb(color, {
+      normalizeColor: this.normalizeSingleColor.bind(this),
+      resolveComputedCssColorToRgb: this.resolveComputedCssColorToRgb.bind(this)
+    });
+  }
+
+  colorWithAlpha(color, alpha = 1) {
+    return colorWithAlpha(color, alpha, {
+      colorToRgb: this.colorToRgb.bind(this)
+    });
+  }
+
+  blendRgb(top, bottom, topAlpha = 1) {
+    return blendRgb(top, bottom, topAlpha);
+  }
+
+
+
+  resolveComputedCssColorToRgb(color) {
+    if (typeof color !== 'string' || typeof window === 'undefined' || typeof document === 'undefined') {
+      return null;
+    }
+
+    const probe = document.createElement('span');
+    probe.style.color = color;
+    probe.style.position = 'absolute';
+    probe.style.pointerEvents = 'none';
+    probe.style.opacity = '0';
+
+    const parent = this.isConnected ? this : document.body;
+    if (!parent) return null;
+
+    parent.appendChild(probe);
+    const computed = window.getComputedStyle(probe).color;
+    probe.remove();
+
+    const match = computed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (!match) return null;
+
+    return {
+      r: Number(match[1]),
+      g: Number(match[2]),
+      b: Number(match[3])
+    };
+  }
+
+  normalizeCombineStyle(styleValue) {
+    return normalizeCombineStyle(styleValue);
+  }
+
+  normalizeEventColorMode(modeValue) {
+    return normalizeEventColorMode(modeValue);
+  }
+
+  normalizeCombineBackground(backgroundValue) {
+    return normalizeCombineBackground(backgroundValue, {
+      colorToHex: this.colorToHex.bind(this)
+    });
+  }
+
+  getEmptyAdvancedMatch() {
+    return getEmptyAdvancedMatch();
+  }
+
+  normalizeEventMatchConditions(rawMatch) {
+    return normalizeEventMatchConditions(rawMatch);
+  }
+
+  normalizeDayMatchConditions(rawMatch, localeOverride = null) {
+    return normalizeDayMatchConditions(rawMatch, {
+      normalizeDayOfWeekRule: this.normalizeDayOfWeekRule.bind(this),
+      localeOverride
+    });
+  }
+
+  normalizeAdvancedRuleMatch(rawMatch, defaultScope = 'event', localeOverride = null) {
+    return normalizeAdvancedRuleMatch(rawMatch, {
+      defaultScope,
+      localeOverride,
+      normalizeDayOfWeekRule: this.normalizeDayOfWeekRule.bind(this)
+    });
+  }
+
+  normalizeEventStyles(rawRules) {
+    if (!Array.isArray(rawRules)) return [];
+
+    return rawRules
+      .map((rule, index) => {
+        if (!rule || typeof rule !== 'object') return null;
+
+        const rawMatch = rule.match && typeof rule.match === 'object' ? rule.match : (rule.when && typeof rule.when === 'object' ? rule.when : null);
+        const match = this.normalizeAdvancedRuleMatch(rawMatch, 'event');
+        let style = null;
+        if (typeof rule.style === 'string' && rule.style.trim().toLowerCase() === 'hide') {
+          style = { hide: true };
+        } else if (rule.style && typeof rule.style === 'object') {
+          style = rule.style;
+        }
+        if (!match || !style) return null;
+
+        const numericPriority = Number(rule.priority);
+        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
+        const normalizedStyle = this.normalizeEventStyleBlock(style);
+        if (!Object.keys(normalizedStyle).length) return null;
+
+        return {
+          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `event-style-${index + 1}`,
+          type: 'event_style',
+          priority,
+          index,
+          match,
+          output: { style: normalizedStyle },
+          style: normalizedStyle
+        };
+      })
+      .filter(Boolean);
+  }
+
+  normalizeLegacyDayStyleMatch(rule, localeOverride = null) {
+    return normalizeLegacyDayStyleMatch(rule, {
+      localeOverride,
+      normalizeDayOfWeekRule: this.normalizeDayOfWeekRule.bind(this),
+      normalizeAdvancedRuleMatch: this.normalizeAdvancedRuleMatch.bind(this)
+    });
+  }
+
+  normalizeDayStyles(rawRules, localeOverride = null) {
+    if (!Array.isArray(rawRules)) return [];
+
+    return rawRules
+      .map((rule, index) => {
+        if (!rule || typeof rule !== 'object') return null;
+
+        const rawExplicitMatch = rule.match && typeof rule.match === 'object' ? rule.match : (rule.when && typeof rule.when === 'object' ? rule.when : null);
+        const match = rawExplicitMatch
+          ? this.normalizeAdvancedRuleMatch(rawExplicitMatch, 'day', localeOverride)
+          : this.normalizeLegacyDayStyleMatch(rule, localeOverride);
+        if (!match) return null;
+
+        const numericPriority = Number(rule.priority);
+        const priority = Number.isFinite(numericPriority) ? numericPriority : 0;
+
+        const style = this.normalizeDayStyleBlock(rule.style && typeof rule.style === 'object' ? rule.style : rule);
+        if (
+          style.background === undefined &&
+          style.opacity === undefined &&
+          style.background_opacity === undefined &&
+          style.border_color === undefined &&
+          style.border_width === undefined
+        ) return null;
+
+        const normalized = {
+          id: typeof rule.id === 'string' && rule.id.trim() ? rule.id.trim() : `day-style-${index + 1}`,
+          type: 'day_style',
+          priority,
+          index,
+          match,
+          output: { style },
+          style
+        };
+
+        // Backward-compatible mirrors used by older internal tests and helper paths.
+        if (style.background !== undefined) normalized.background = style.background;
+        if (style.opacity !== undefined) normalized.opacity = style.opacity;
+        if (style.background_opacity !== undefined) normalized.background_opacity = style.background_opacity;
+        if (style.border_color !== undefined) normalized.border_color = style.border_color;
+        if (style.border_width !== undefined) normalized.border_width = style.border_width;
+        const day = match.day || {};
+        if (day.today !== undefined) normalized.condition = 'today';
+        else if (day.past !== undefined) normalized.condition = 'past';
+        else if (day.future !== undefined) normalized.condition = 'future';
+        else if (day.weekend !== undefined) normalized.condition = 'weekend';
+        else if (day.weekday !== undefined) normalized.condition = 'weekday';
+        else if (day.day_of_week !== undefined) {
+          normalized.condition = 'day_of_week';
+          normalized.day_of_week = day.day_of_week;
+        } else if (day.has_event !== undefined) normalized.condition = 'has_event';
+        else if (day.no_event !== undefined) {
+          normalized.condition = 'has_event';
+          normalized.negate = true;
+        }
+
+        return normalized;
+      })
+      .filter(Boolean);
+  }
+
+  buildDayStyleRules(rawConfig = {}) {
+    const rules = Array.isArray(rawConfig.day_styles) ? [...rawConfig.day_styles] : [];
+    const todayStyle = this.buildTodayDayStyleRule(rawConfig);
+    if (todayStyle) rules.push(todayStyle);
+    return rules;
+  }
+
+  buildTodayDayStyleRule(rawConfig = {}) {
+    const hasTodayBackgroundColor = rawConfig.today_background_color !== undefined && rawConfig.today_background_color !== null && rawConfig.today_background_color !== '';
+    const hasTodayStyle = rawConfig.today_style && typeof rawConfig.today_style === 'object' && !Array.isArray(rawConfig.today_style);
+    if (!hasTodayBackgroundColor && !hasTodayStyle) return null;
+
+    const style = {
+      ...(hasTodayBackgroundColor ? { background_color: rawConfig.today_background_color } : {}),
+      ...(hasTodayStyle ? rawConfig.today_style : {})
+    };
+
+    return {
+      condition: 'today',
+      priority: 0,
+      style
+    };
+  }
+
+  normalizeDayStyleBlock(style = {}) {
+    const normalized = {};
+    const backgroundValue = style.background !== undefined ? style.background : (style.background_color !== undefined ? style.background_color : style.color);
+    const normalizedBackground = String(backgroundValue || '').trim().toLowerCase() === 'auto'
+      ? 'auto'
+      : this.normalizeSingleColor(backgroundValue);
+    if (normalizedBackground) normalized.background = normalizedBackground;
+
+    const numericOpacity = Number(style.opacity);
+    if (Number.isFinite(numericOpacity)) {
+      normalized.opacity = Math.max(0, Math.min(1, numericOpacity));
+    }
+
+    const numericBackgroundOpacity = Number(style.background_opacity);
+    if (Number.isFinite(numericBackgroundOpacity)) {
+      normalized.background_opacity = Math.max(0, Math.min(1, numericBackgroundOpacity));
+    }
+
+    const normalizedBorderColor = this.normalizeSingleColor(style.border_color);
+    if (normalizedBorderColor) normalized.border_color = normalizedBorderColor;
+
+    const normalizedBorderWidth = this.normalizeStyleBorderWidth(style.border_width);
+    if (normalizedBorderWidth) normalized.border_width = normalizedBorderWidth;
+
+    return normalized;
+  }
+
+
+
+  normalizeDayBadgeBlock(rule = {}) {
+    return normalizeDayBadgeBlock(rule, {
+      normalizeEventTextValue: this.normalizeEventTextValue.bind(this),
+      normalizeDayBadgeDisplayColor: this.normalizeDayBadgeDisplayColor.bind(this),
+      normalizeStyleSizeValue: this.normalizeStyleSizeValue.bind(this)
+    });
+  }
+
+  isFullValueTemplate(value) {
+    return isFullValueTemplate(value);
+  }
+
+  normalizeDayBadgeDisplayColor(value) {
+    return normalizeDayBadgeDisplayColor(value, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  normalizeResolvedDayBadgeDisplayColor(value) {
+    return normalizeResolvedDayBadgeDisplayColor(value, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  parseEventDescriptionJson(event) {
+    return parseEventDescriptionJson(event);
+  }
+
+  buildDayBadgeResolutionContext(date, matchedEvent) {
+    return buildDayBadgeResolutionContext(date, matchedEvent, {
+      formatLocalDate: this.formatLocalDate.bind(this)
+    });
+  }
+
+  resolveSafePath(path, context) {
+    return resolveSafePath(path, context);
+  }
+
+  resolveDayBadgeDisplayValue(value, context) {
+    return resolveDayBadgeDisplayValue(value, context);
+  }
+
+  resolveDayBadgeForRender(rule, date, matchedEvent) {
+    return resolveDayBadgeForRender(rule, date, matchedEvent, {
+      formatLocalDate: this.formatLocalDate.bind(this),
+      normalizeResolvedDayBadgeDisplayColor: this.normalizeResolvedDayBadgeDisplayColor.bind(this)
+    });
+  }
+
+  normalizeDayBadgeConditions(rawConditions) {
+    return normalizeDayBadgeConditions(rawConditions, {
+      normalizeEventMatchConditions: this.normalizeEventMatchConditions.bind(this)
+    });
+  }
+
+  normalizeDayBadges(rawRules) {
+    return normalizeDayBadges(rawRules, {
+      normalizeAdvancedRuleMatch: this.normalizeAdvancedRuleMatch.bind(this),
+      normalizeDayBadgeBlock: this.normalizeDayBadgeBlock.bind(this)
+    });
+  }
+
+
+  normalizeCssLength(value, { allowZero = false } = {}) {
+    if (value === undefined || value === null || value === '') return null;
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      if (allowZero) return `${Math.max(0, value)}px`;
+      return value > 0 ? `${value}px` : null;
+    }
+
+    const trimmed = String(value).trim();
+    if (!trimmed) return null;
+
+    if (/^\d*\.?\d+(px|rem|em|%)$/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0)) {
+      return `${parsed}px`;
+    }
+
+    return null;
+  }
+
+  normalizeStyleSizeValue(value) {
+    return this.normalizeCssLength(value, { allowZero: false });
+  }
+
+  normalizeStyleBorderWidth(value) {
+    return this.normalizeCssLength(value, { allowZero: true });
+  }
+
+  normalizeDayOfWeekRule(value, localeOverride = null) {
+    const dayMap = new Map([
+      ['sun', 0], ['sunday', 0], ['0', 0],
+      ['mon', 1], ['monday', 1], ['1', 1],
+      ['tue', 2], ['tues', 2], ['tuesday', 2], ['2', 2],
+      ['wed', 3], ['weds', 3], ['wednesday', 3], ['3', 3],
+      ['thu', 4], ['thur', 4], ['thurs', 4], ['thursday', 4], ['4', 4],
+      ['fri', 5], ['friday', 5], ['5', 5],
+      ['sat', 6], ['saturday', 6], ['6', 6]
+    ]);
+    this.getLocalizedWeekdayMap(localeOverride).forEach((dayIndexes, token) => {
+      if (!dayMap.has(token)) {
+        dayMap.set(token, dayIndexes.length === 1 ? dayIndexes[0] : dayIndexes);
+      }
+    });
+
+    const values = Array.isArray(value) ? value : [value];
+    const normalizedDays = [];
+
+    values.forEach((entry) => {
+      if (entry === undefined || entry === null || entry === '') return;
+
+      if (typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 6) {
+        normalizedDays.push(entry);
+        return;
+      }
+
+      const normalizedEntry = String(entry).trim().toLowerCase();
+      if (!normalizedEntry) return;
+      if (dayMap.has(normalizedEntry)) {
+        const mappedValue = dayMap.get(normalizedEntry);
+        if (Array.isArray(mappedValue)) {
+          normalizedDays.push(...mappedValue);
+        } else {
+          normalizedDays.push(mappedValue);
+        }
+      }
+    });
+
+    return Array.from(new Set(normalizedDays));
+  }
+
+  getLocalizedWeekdayMap(localeOverride = null) {
+    const locale = resolveLanguage(localeOverride || this.getLocale());
+    const cacheKey = locale || 'default';
+    if (!this._localizedWeekdayMapCache) this._localizedWeekdayMapCache = new Map();
+    if (this._localizedWeekdayMapCache.has(cacheKey)) return this._localizedWeekdayMapCache.get(cacheKey);
+
+    const map = new Map();
+    const formats = ['long', 'short', 'narrow'];
+    const anchorSunday = new Date(Date.UTC(2024, 0, 7)); // Sunday
+
+    formats.forEach((weekdayFormat) => {
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const date = new Date(anchorSunday);
+        date.setUTCDate(anchorSunday.getUTCDate() + dayIndex);
+        const localizedName = new Intl.DateTimeFormat(locale, { weekday: weekdayFormat, timeZone: 'UTC' }).format(date);
+        const normalizedName = String(localizedName || '').trim().toLowerCase();
+        if (!normalizedName) continue;
+        if (!map.has(normalizedName)) {
+          map.set(normalizedName, [dayIndex]);
+          continue;
+        }
+        const existingDayIndexes = map.get(normalizedName);
+        if (!existingDayIndexes.includes(dayIndex)) existingDayIndexes.push(dayIndex);
+      }
+    });
+
+    this._localizedWeekdayMapCache.set(cacheKey, map);
+    return map;
+  }
+
+  normalizeEventStyleBlock(style = {}) {
+    const normalized = {};
+    const setIfDefined = (key, value) => {
+      if (value !== undefined && value !== null && value !== '') {
+        normalized[key] = value;
+      }
+    };
+
+    const normalizedBackground = this.normalizeSingleColor(style.background_color ?? style.color);
+    if (normalizedBackground) normalized.background_color = normalizedBackground;
+
+    const normalizedFontColor = this.normalizeSingleColor(style.event_font_color ?? style.font_color);
+    if (normalizedFontColor) normalized.event_font_color = normalizedFontColor;
+
+    const normalizedOpacity = this.normalizeEventStyleOpacity(style.opacity);
+    if (normalizedOpacity !== null) normalized.opacity = normalizedOpacity;
+
+    const normalizedFilter = this.normalizeEventStyleFilter(style.filter);
+    if (normalizedFilter !== null) normalized.filter = normalizedFilter;
+
+    setIfDefined('event_font_size', style.event_font_size);
+    setIfDefined('event_time_font_size', style.event_time_font_size);
+    setIfDefined('event_location_font_size', style.event_location_font_size);
+
+    const icon = this.normalizeEventIconName(style.icon);
+    if (icon) normalized.icon = icon;
+    const iconColor = this.normalizeEventIconColor(style.icon_color);
+    if (iconColor) normalized.icon_color = iconColor;
+    const iconSize = this.normalizeStyleSizeValue(style.icon_size);
+    if (iconSize) normalized.icon_size = iconSize;
+    const iconPosition = this.normalizeEventIconPosition(style.icon_position);
+    if (iconPosition) normalized.icon_position = iconPosition;
+
+    const showEventLocation = this.normalizeBooleanStyleValue(style.show_event_location);
+    if (showEventLocation !== null) normalized.show_event_location = showEventLocation;
+    const useShortLocation = this.normalizeBooleanStyleValue(style.use_short_location);
+    if (useShortLocation !== null) normalized.use_short_location = useShortLocation;
+    const hideTime = this.normalizeBooleanStyleValue(style.hide_time);
+    if (hideTime !== null) normalized.hide_time = hideTime;
+    const showTime = this.normalizeBooleanStyleValue(style.show_time);
+    if (showTime !== null) normalized.show_time = showTime;
+    const hideCalendarBubble = this.normalizeBooleanStyleValue(style.hide_event_calendar_bubble);
+    if (hideCalendarBubble !== null) normalized.hide_event_calendar_bubble = hideCalendarBubble;
+    const hideEvent = this.normalizeBooleanStyleValue(style.hide);
+    if (hideEvent !== null) normalized.hide = hideEvent;
+    if (style.event_title_prefix !== undefined) normalized.event_title_prefix = this.normalizeEventTitlePrefixMode(style.event_title_prefix);
+
+    return normalized;
+  }
+
+  normalizeEventIconName(iconValue) {
+    const normalized = this.normalizeEventTextValue(iconValue);
+    if (!normalized) return null;
+    if (!/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) return null;
+    return normalized;
+  }
+
+  normalizeEventIconColor(colorValue) {
+    if (colorValue === undefined || colorValue === null) return null;
+    const normalized = this.normalizeSingleColor(colorValue);
+    const trimmed = String(normalized || '').trim();
+    if (!trimmed) return null;
+    if (/[;{}<>\"']/.test(trimmed)) return null;
+    return trimmed;
+  }
+
+  normalizeEventIconPosition(positionValue) {
+    const normalized = String(positionValue || '').trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized === 'before_title' || normalized === 'corner') return normalized;
+    return null;
+  }
+
+  normalizeEventStyleOpacity(opacityValue) {
+    if (opacityValue === undefined || opacityValue === null || opacityValue === '') return null;
+    const numericOpacity = Number(opacityValue);
+    if (!Number.isFinite(numericOpacity)) return null;
+    return Math.max(0, Math.min(1, numericOpacity));
+  }
+
+  normalizeEventStyleFilter(filterValue) {
+    if (filterValue === undefined || filterValue === null) return null;
+    const normalized = String(filterValue).trim();
+    if (!normalized) return null;
+    if (/[;{}<>\"']/.test(normalized)) return null;
+    return normalized;
+  }
+
+  getRuleMatcherHelpers() {
+    return {
+      getEventCalendarMatchTokens: this.getEventCalendarMatchTokens.bind(this),
+      getEventDateTimeInfo: this.getEventDateTimeInfo.bind(this),
+      isPastEvent: this.isPastEvent.bind(this),
+      normalizeEventTextValue: this.normalizeEventTextValue.bind(this)
+    };
+  }
+
+  eventMatchesRule(event, match) {
+    const normalizedMatch = this.normalizeEventMatchConditions(match);
+    return this.eventMatchesNormalizedRule(event, normalizedMatch);
+  }
+
+  eventMatchesNormalizedRule(event, match) {
+    return eventMatchesNormalizedRule(event, match, this.getRuleMatcherHelpers());
+  }
+
+
+  getEventCalendarMatchTokens(event) {
+    const tokens = [];
+    const entityIds = new Set();
+
+    if (event?.entityId) entityIds.add(event.entityId);
+    if (Array.isArray(event?.sourceEntityIds)) {
+      event.sourceEntityIds.forEach((entityId) => entityId && entityIds.add(entityId));
+    } else if (Array.isArray(event?.sourceCalendars)) {
+      event.sourceCalendars.forEach((calendar) => calendar?.entityId && entityIds.add(calendar.entityId));
+    }
+
+    entityIds.forEach((entityId) => {
+      tokens.push(entityId);
+      tokens.push(this.getCalendarName(entityId));
+      const virtualCalendar = this.getVirtualBadgeForEntity(entityId);
+      if (virtualCalendar) {
+        tokens.push(`virtual:${virtualCalendar.id}`);
+        tokens.push(virtualCalendar.id);
+        tokens.push(virtualCalendar.name);
+      }
+    });
+
+    return Array.from(new Set(tokens.filter(Boolean)));
+  }
+
+  eventFieldMatches(event, field, condition) {
+    return eventFieldMatches(event, field, condition, this.getRuleMatcherHelpers());
+  }
+
+  matchPrimitiveCondition(value, condition) {
+    return matchPrimitiveCondition(value, condition);
+  }
+
+  parseRegexCondition(value) {
+    return parseRegexCondition(value);
+  }
+
+  matchTextCondition(value, condition) {
+    return matchTextCondition(value, condition, this.getRuleMatcherHelpers());
+  }
+
+  findMatchingEventForCondition(condition, dayEvents = []) {
+    return findMatchingEventForCondition(condition, dayEvents, this.getRuleMatcherHelpers());
+  }
+
+  dateMatchesDayCondition(date, conditionName, conditionValue, context = {}) {
+    return dateMatchesDayCondition(date, conditionName, conditionValue, context);
+  }
+
+  dayMatchesNormalizedRule(dayMatch, context = {}) {
+    return dayMatchesNormalizedRule(dayMatch, context, this.getRuleMatcherHelpers());
+  }
+
+  matchesAdvancedRule(ruleOrMatch, context = {}) {
+    return matchesAdvancedRule(ruleOrMatch, context, this.getRuleMatcherHelpers());
+  }
+
+  findMatchingDayStyleEvent(rule, dayEvents) {
+    return this.matchesAdvancedRule(rule, { dayEvents }).matchedEvent;
+  }
+
+  getDayStyleConfig(date, dayEvents, isToday) {
+    const rules = Array.isArray(this._config?.day_styles) ? this._config.day_styles : [];
+    if (!rules.length) return null;
+
+    const candidates = {};
+
+    const applyCandidate = (key, value, rule) => {
+      if (value === undefined || value === null) return;
+      const candidatePriority = Number.isFinite(rule.priority) ? rule.priority : 0;
+      const existing = candidates[key];
+      if (!existing || candidatePriority > existing.priority || (candidatePriority === existing.priority && rule.index < existing.ruleIndex)) {
+        candidates[key] = { value, priority: candidatePriority, ruleIndex: rule.index };
+      }
+    };
+
+    rules.forEach((rule) => {
+      const result = this.matchesAdvancedRule(rule, { date, dayEvents, isToday });
+      if (!result.matches) return;
+
+      const dayStyle = rule.output?.style || rule.style || {};
+      if (dayStyle.background) {
+        if (dayStyle.background === 'auto' && result.matchedEvent?.color) {
+          applyCandidate('background', result.matchedEvent.color, rule);
+        } else if (dayStyle.background !== 'auto') {
+          applyCandidate('background', dayStyle.background, rule);
+        }
+      }
+
+      applyCandidate('opacity', dayStyle.opacity, rule);
+      applyCandidate('background_opacity', dayStyle.background_opacity, rule);
+      applyCandidate('border_color', dayStyle.border_color, rule);
+      applyCandidate('border_width', dayStyle.border_width, rule);
+    });
+
+    const background = candidates.background?.value ?? null;
+    const opacity = candidates.opacity?.value ?? null;
+    const backgroundOpacity = candidates.background_opacity?.value ?? null;
+    const borderColor = candidates.border_color?.value ?? null;
+    const borderWidth = candidates.border_width?.value ?? null;
+
+    if (!background && opacity === null && backgroundOpacity === null && !borderColor && !borderWidth) return null;
+    return {
+      background,
+      opacity,
+      background_opacity: backgroundOpacity,
+      border_color: borderColor,
+      border_width: borderWidth
+    };
+  }
+
+  getDayStyleAttributes(date, dayEvents, isToday) {
+    const dayStyle = this.getDayStyleConfig(date, dayEvents, isToday);
+    if (!dayStyle) return { className: '', style: '' };
+
+    const styles = [];
+    if (dayStyle.background) {
+      const backgroundColor = dayStyle.background_opacity !== null
+        ? this.colorWithAlpha(dayStyle.background, dayStyle.background_opacity)
+        : dayStyle.background;
+      styles.push(`--day-conditional-background: ${dayStyle.background}`);
+      styles.push(`background: ${backgroundColor} !important`);
+    }
+    if (dayStyle.opacity !== null) {
+      styles.push(`--day-conditional-opacity: ${dayStyle.opacity}`);
+      styles.push(`opacity: ${dayStyle.opacity}`);
+    }
+
+    if (dayStyle.border_color || dayStyle.border_width) {
+      const borderWidth = dayStyle.border_width || '2px';
+      const borderColor = dayStyle.border_color || 'var(--divider-color, #d1d5db)';
+      styles.push(`--day-style-border-width: ${borderWidth}`);
+      styles.push(`--day-style-border-color: ${borderColor}`);
+    }
+    const classNames = ['day-style-rule'];
+    if (dayStyle.background) classNames.push('day-style-has-background');
+    if (dayStyle.border_color || dayStyle.border_width) classNames.push('day-style-has-border');
+
+    return {
+      className: classNames.join(' '),
+      style: styles.join('; ')
+    };
+  }
+
+
+  normalizeVirtualCalendars(virtualCalendars) {
+    return normalizeVirtualCalendars(virtualCalendars, {
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  getVirtualBadgeById(virtualId) {
+    return getVirtualBadgeById(this._config.virtual_calendars || [], virtualId);
+  }
+
+  getVirtualBadgeForEntity(entityId) {
+    return getVirtualBadgeForEntity(this._config.virtual_calendars || [], entityId);
+  }
+
+  getVirtualBadgeForEvent(event) {
+    return getVirtualBadgeForEvent(this._config.virtual_calendars || [], event);
+  }
+
+  getVirtualBadgeItems() {
+    return getVirtualBadgeItems({
+      entities: this._config.entities,
+      virtualCalendars: this._config.virtual_calendars || [],
+      hideBadgeCalendars: this._config.hide_badge_calendars || [],
+      hiddenCalendars: this._hiddenCalendars,
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getCalendarName: this.getCalendarName.bind(this),
+      getCalendarBadgeIcon: this.getCalendarBadgeIcon.bind(this)
+    });
+  }
+
+  getWritableCalendars() {
+    return getWritableCalendars(this._config.entities, this._calendarCapabilities);
+  }
+
+  getEventIdentityKey(entityId, event) {
+    return getEventIdentityKey(entityId, event);
+  }
+
+  async fetchEventsInRange(startDate, endDate) {
+    const eventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+    return Object.values(eventsByCalendar).flat();
+  }
+
+  async fetchEventsByCalendarInRange(startDate, endDate) {
+    return fetchEventsByCalendarInRange({
+      hass: this._hass,
+      entities: this._config.entities,
+      startDate,
+      endDate,
+      getDateRangeChunks: this.getDateRangeChunks.bind(this),
+      formatLocalDate: this.formatLocalDate.bind(this),
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      normalizeCalendarEvent
+    });
+  }
+
+  getCalendarColor(entityId, index = 0) {
+    return getCalendarColor(entityId, index, {
+      colors: this._config?.colors || {},
+      getDefaultColor: this.getDefaultColor.bind(this),
+      normalizeSingleColor: this.normalizeSingleColor.bind(this)
+    });
+  }
+
+  async fetchEventsForCalendar(entityId, colorIndex, chunks) {
+    return fetchEventsForCalendar({
+      hass: this._hass,
+      entityId,
+      colorIndex,
+      chunks,
+      formatLocalDate: this.formatLocalDate.bind(this),
+      getCalendarColor: this.getCalendarColor.bind(this),
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      normalizeCalendarEvent
+    });
+  }
+
+  async fetchEventsForChunk(entityId, chunk) {
+    return fetchEventsForChunk({
+      hass: this._hass,
+      entityId,
+      chunk,
+      formatLocalDate: this.formatLocalDate.bind(this)
+    });
+  }
+
+  async fetchEventsViaWebSocket(entityId, chunkStartStr, chunkEndStr) {
+    return fetchEventsViaWebSocket({
+      hass: this._hass,
+      entityId,
+      chunkStartStr,
+      chunkEndStr
+    });
+  }
+
+  mergeEvents(existingEvents, incomingEvents) {
+    return mergeEvents(existingEvents, incomingEvents, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this),
+      getEventStartDate: this.getEventStartDate.bind(this)
+    });
+  }
+
+  toStableString(value) {
+    return toStableString(value);
+  }
+
+  getCalendarDataSignature(events = []) {
+    return getCalendarDataSignature(events);
+  }
+
+  async updateEvents({ preserveScroll = false } = {}) {
+    if (!this._hass || this._fetching) return;
+
+    const { startDate, endDate } = this.getEventFetchRange();
+    this._fetching = true;
+    this._lastFetch = Date.now();
+
+    try {
+      const newEventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+      const changedCalendars = this._config.entities.filter(entityId => {
+        const hasOldSignature = Object.prototype.hasOwnProperty.call(this._calendarDataSignatures, entityId);
+        if (!hasOldSignature) {
+          return true;
+        }
+
+        const oldSignature = this._calendarDataSignatures[entityId];
+        const newSignature = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
+        return oldSignature !== newSignature;
+      });
+
+      if (changedCalendars.length === 0) {
+        this._loadedEventRange = { startDate, endDate };
+
+        const now = Date.now();
+        const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
+          (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
+
+        if (shouldRenderForUnchangedData) {
+          this._lastUnchangedDataRender = now;
+          if (preserveScroll) {
+            this.renderPreservingAgendaScroll();
+          } else {
+            this.render();
+          }
+        }
+
+        return;
+      }
+
+      this._config.entities.forEach(entityId => {
+        this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
+      });
+
+      const mergedEvents = sortEventsByStartDate(Object.values(newEventsByCalendar).flat(), {
+        getEventStartDate: this.getEventStartDate.bind(this)
+      });
+
+      this._events = mergedEvents;
+      this._loadedEventRange = { startDate, endDate };
+      this._lastUnchangedDataRender = Date.now();
+      if (preserveScroll) {
+        this.renderPreservingAgendaScroll();
+      } else {
+        this.render();
+      }
+    } finally {
+      this._fetching = false;
+    }
+  }
+
+  async extendEventsForRange(startDate, endDate, { render = true } = {}) {
+    if (!this._hass || this._fetching) return;
+
+    this._fetching = true;
+    this._lastFetch = Date.now();
+
+    try {
+      const additionalEvents = await this.fetchEventsInRange(startDate, endDate);
+      this._events = this.mergeEvents(this._events, additionalEvents);
+      if (render) {
+        this.render();
+      }
+    } finally {
+      this._fetching = false;
+    }
+  }
+
+  isDateRangeCoveredByLoadedEvents(targetStartDate, targetEndDate) {
+    return isDateRangeCoveredByLoadedEvents(this._loadedEventRange, targetStartDate, targetEndDate);
+  }
+
+  async ensureEventsForCurrentRange({ force = false, renderIfCovered = false } = {}) {
+    const shouldRefreshForAge = shouldRefreshEvents({ lastFetch: this._lastFetch });
+    const { startDate: visibleStartDate, endDate: visibleEndDate } = this.getVisibleDateRange();
+
+    // Background stale refreshes run through this path via hass updates.
+    // Keep dialogs stable by postponing only those refreshes while modal is open.
+    if (this.isEventManagementDialogOpen() && (force || shouldRefreshForAge)) {
+      return;
+    }
+
+    if (force || shouldRefreshForAge || !this._loadedEventRange) {
+      const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
+      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh });
+      return;
+    }
+
+    // Gate fetches on the actually visible range. If the user can already see
+    // all required dates from loaded data, avoid any network call.
+    if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
+      if (renderIfCovered) {
+        this.render();
+      }
+      return;
+    }
+
+    // Once visible range falls outside loaded coverage, fetch around current view
+    // (with buffer) and only request missing leading/trailing segments.
+    const { startDate, endDate } = this.getEventFetchRange();
+    const missingRanges = [];
+
+    if (startDate < this._loadedEventRange.startDate) {
+      const missingStartEnd = new Date(this._loadedEventRange.startDate);
+      missingStartEnd.setDate(missingStartEnd.getDate() - 1);
+      missingStartEnd.setHours(23, 59, 59, 999);
+      missingRanges.push({ startDate, endDate: missingStartEnd });
+    }
+
+    if (endDate > this._loadedEventRange.endDate) {
+      const missingEndStart = new Date(this._loadedEventRange.endDate);
+      missingEndStart.setDate(missingEndStart.getDate() + 1);
+      missingEndStart.setHours(0, 0, 0, 0);
+      missingRanges.push({ startDate: missingEndStart, endDate });
+    }
+
+    for (const range of missingRanges) {
+      await this.extendEventsForRange(range.startDate, range.endDate, { render: false });
+    }
+
+    this._loadedEventRange = {
+      startDate: new Date(Math.min(this._loadedEventRange.startDate.getTime(), startDate.getTime())),
+      endDate: new Date(Math.max(this._loadedEventRange.endDate.getTime(), endDate.getTime()))
+    };
+
+    this.render();
+  }
+
+  getEventFetchRange() {
+    const { startDate: visibleStart, endDate: visibleEnd } = this.getVisibleDateRange();
+
+    // Keep a small look-behind and look-ahead buffer.
+    const startDate = new Date(visibleStart);
+    startDate.setDate(startDate.getDate() - 7);
+
+    const endDate = new Date(visibleEnd);
+    endDate.setDate(endDate.getDate() + 30);
+
+    return { startDate, endDate };
+  }
+
+  getVisibleDateRange() {
+    if (this._viewMode === 'agenda') {
+      this.ensureAgendaWindowInitialized();
+      return getAgendaVisibleDateRange(this._agendaStartDate, this._agendaEndDate);
+    }
+
+    if (this._viewMode === 'month') {
+      return getMonthVisibleDateRange(this._currentDate, this._config.firstDayOfWeek, this._config.rolling_weeks);
+    }
+
+    // Week views: from first shown day to last shown day.
+    return getWeekVisibleDateRange(this.getWeekDays());
+  }
+
+  getDateRangeChunks(startDate, endDate, chunkDays = 30) {
+    return getDateRangeChunks(startDate, endDate, chunkDays);
+  }
+
+  getEventStartDate(event) {
+    return getEventStartDate(event, { parseLocalDate: this.parseLocalDate.bind(this) });
+  }
+
+  parseLocalDate(dateStr) {
+    return parseLocalDate(dateStr);
+  }
+
+  parseCalendarDate(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+    return this.zonedTimeToDate(year, month, day, 0, 0, 0, 0);
+  }
+
+  parseCalendarDateWithOffset(dateStr, dayOffset = 0) {
+    if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+    const adjusted = new Date(Date.UTC(year, month - 1, day + dayOffset));
+    return this.zonedTimeToDate(adjusted.getUTCFullYear(), adjusted.getUTCMonth() + 1, adjusted.getUTCDate(), 0, 0, 0, 0);
+  }
+
+  parsePossiblyLocalDateTime(value) {
+    return parsePossiblyLocalDateTime(value);
+  }
+
+  formatLocalDate(date) {
+    return formatLocalDate(date);
+  }
+
+
+  normalizeTimeZone(timeZone) {
+    if (timeZone === undefined || timeZone === null) return null;
+    const normalized = String(timeZone).trim();
+    if (!normalized) return null;
+
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: normalized }).resolvedOptions().timeZone || normalized;
+    } catch (error) {
+      console.warn(`Daylight Calendar Card: ignoring invalid time_zone config value "${normalized}".`);
+      return null;
+    }
+  }
+
+  getConfiguredTimeZone() {
+    return this._config?.time_zone || null;
+  }
+
+  withTimeZone(formatOptions = {}) {
+    const timeZone = this.getConfiguredTimeZone();
+    return timeZone ? { ...formatOptions, timeZone } : formatOptions;
+  }
+
+  getDateTimeParts(date, options = {}) {
+    const formatter = new Intl.DateTimeFormat('en-US', this.withTimeZone({
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hourCycle: 'h23', ...options
+    }));
+    return formatter.formatToParts(date).reduce((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+  }
+
+  getDateParts(date) {
+    if (!this.getConfiguredTimeZone()) {
+      return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), weekday: date.getDay() };
+    }
+    const parts = this.getDateTimeParts(date, { weekday: 'short' });
+    const utcDate = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)));
+    return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day), weekday: utcDate.getUTCDay() };
+  }
+
+  getDisplayDateParts(date) {
+    return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), weekday: date.getDay() };
+  }
+
+  zonedTimeToDate(year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0) {
+    const timeZone = this.getConfiguredTimeZone();
+    if (!timeZone) return new Date(year, month - 1, day, hour, minute, second, millisecond);
+
+    let timestamp = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+    for (let i = 0; i < 3; i++) {
+      const parts = this.getDateTimeParts(new Date(timestamp));
+      const asUTC = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second), millisecond);
+      const wantedUTC = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+      const delta = asUTC - wantedUTC;
+      if (delta === 0) break;
+      timestamp -= delta;
+    }
+    return new Date(timestamp);
+  }
+
+  getDayBounds(date) {
+    const { year, month, day } = this.getDisplayDateParts(date);
+    const dayStart = this.zonedTimeToDate(year, month, day, 0, 0, 0, 0);
+    const next = new Date(year, month - 1, day + 1);
+    const nextDayStart = this.zonedTimeToDate(next.getFullYear(), next.getMonth() + 1, next.getDate(), 0, 0, 0, 0);
+    return { dayStart, nextDayStart };
+  }
+
+  getDatePartValue(date, part) {
+    return this.getDisplayDateParts(date)[part];
+  }
+
+  getDefaultColor(index) {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+    return colors[index % colors.length];
+  }
+
+  connectedCallback() {
+    checkAndShowStaleResourceWarning();
+    window.addEventListener('resize', this._handleViewportResize);
+    window.visualViewport?.addEventListener('resize', this._handleViewportResize);
+    this.attachSystemThemeListener();
+    this.observeHostAndParentResize();
+    this.render();
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('resize', this._handleViewportResize);
+    window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    this.cancelMonthCompactMeasurement();
+    if (this._monthGridResizeObserver) {
+      this._monthGridResizeObserver.disconnect();
+      this._monthGridResizeObserver = null;
+    }
+    if (this._headerResizeObserver) {
+      this._headerResizeObserver.disconnect();
+      this._headerResizeObserver = null;
+    }
+    if (this._hostResizeObserver) {
+      this._hostResizeObserver.disconnect();
+      this._hostResizeObserver = null;
+    }
+    this._observedResizeParent = null;
+    this._lastObservedHostSize = null;
+    this._pendingHostResizeRender = false;
+    if (this._hostResizeRaf !== null) {
+      window.cancelAnimationFrame(this._hostResizeRaf);
+      this._hostResizeRaf = null;
+    }
+    this.detachSystemThemeListener();
+    this.teardownWeatherForecastSubscription();
+    this.updateEventModalOpenState(null);
+    if (this._modalVisibilityObserver) {
+      this._modalVisibilityObserver.disconnect();
+      this._modalVisibilityObserver = null;
+    }
+    if (this._wrapMeasureRaf1 !== null) {
+      window.cancelAnimationFrame(this._wrapMeasureRaf1);
+      this._wrapMeasureRaf1 = null;
+    }
+    if (this._wrapMeasureRaf2 !== null) {
+      window.cancelAnimationFrame(this._wrapMeasureRaf2);
+      this._wrapMeasureRaf2 = null;
+    }
+  }
+
+  getCompactMaxHeight(containerTopInViewport = null) {
+    if (!this._config.compact_height) return null;
+
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const containerTop = Math.max(
+      containerTopInViewport ?? this.getBoundingClientRect().top,
+      0
+    );
+    const bottomSpacing = 0;
+    const minimumHeight = 180;
+
+    return Math.max(minimumHeight, Math.floor(viewportHeight - containerTop - bottomSpacing));
+  }
+
+  getElementSizeForAllocation(element) {
+    if (!element || typeof element.getBoundingClientRect !== 'function') return { width: 0, height: 0 };
+    const rect = element.getBoundingClientRect();
+    return {
+      width: Number.isFinite(rect.width) ? rect.width : 0,
+      height: Number.isFinite(rect.height) ? rect.height : 0
+    };
+  }
+
+  hasFixedHeightParentAllocation() {
+    const parent = this.parentElement;
+    if (!parent || typeof parent.getBoundingClientRect !== 'function') return false;
+
+    const parentSize = this.getElementSizeForAllocation(parent);
+    if (parentSize.height <= 0) return false;
+
+    const parentStyle = typeof window.getComputedStyle === 'function' ? window.getComputedStyle(parent) : null;
+    const parentMaxHeight = parentStyle?.maxHeight || '';
+    const parentDisplay = parentStyle?.display || '';
+    const parentOverflowY = parentStyle?.overflowY || parentStyle?.overflow || '';
+    const inlineStyle = parent.getAttribute?.('style') || '';
+    const hasExplicitCssHeight = Boolean(
+      parent.style?.height ||
+      parent.style?.minHeight ||
+      parent.style?.maxHeight ||
+      /(?:^|;)\s*(?:height|min-height|max-height)\s*:/i.test(inlineStyle) ||
+      (parentMaxHeight && parentMaxHeight !== 'none' && parentMaxHeight !== '0px')
+    );
+    const looksLikeGridAllocation = /grid/i.test(parentDisplay) || parent.hasAttribute?.('grid_options') || parent.classList?.contains('grid-cell');
+    const clipsOrScrollsOverflow = /(auto|hidden|scroll|clip)/.test(parentOverflowY);
+    const hostSize = this.getElementSizeForAllocation(this);
+    const parentHasExtraAllocatedHeight = hostSize.height > 0 && parentSize.height - hostSize.height > 1;
+
+    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow || parentHasExtraAllocatedHeight;
+  }
+
+  getGridAwareCompactContainerStyle() {
+    return 'height: 100%; min-height: 0; overflow-y: auto;';
+  }
+
+  getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
+    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
+
+    if (this.hasFixedHeightParentAllocation()) {
+      return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;
+    }
+
+    const resolvedMaxHeight = compactMaxHeight || this.getCompactMaxHeight(this._monthContainerTopInViewport);
+    return resolvedMaxHeight
+      ? `height: ${resolvedMaxHeight}px; overflow-y: auto; ${rowTemplate}`
+      : '';
+  }
+
+  getCompactContainerStyle(maxHeight = null) {
+    if (!this._config.compact_height) return '';
+
+    if (this.hasFixedHeightParentAllocation()) {
+      return this.getGridAwareCompactContainerStyle();
+    }
+
+    const resolvedMaxHeight = maxHeight || this.getCompactMaxHeight();
+    if (!resolvedMaxHeight) return '';
+
+    return `height: ${resolvedMaxHeight}px; max-height: ${resolvedMaxHeight}px; overflow-y: auto;`;
+  }
+
+  preserveAgendaScrollForNextRender() {
+    if (this._viewMode !== 'agenda' || Number.isFinite(this._agendaPendingScrollTop)) return;
+    const agendaContainer = this.getRootElementById('agenda-container');
+    if (!agendaContainer) return;
+    this._agendaPendingScrollTop = agendaContainer.scrollTop;
+  }
+
+  renderPreservingAgendaScroll() {
+    this.preserveAgendaScrollForNextRender();
+    this.render();
+  }
+
+  setAgendaScrollTopWithoutTriggeringLoad(container, scrollTop) {
+    if (!container) return;
+
+    this._agendaSuppressScrollHandling = true;
+    container.scrollTop = scrollTop;
+
+    window.requestAnimationFrame(() => {
+      this._agendaSuppressScrollHandling = false;
+    });
+  }
+
+  updateWeekStandardFixedOffsetHeightFromDom({ renderOnChange = true } = {}) {
+    if (this._viewMode !== 'week-standard' || !this._root) return;
+    if (this.isEventManagementDialogOpen()) return;
+
+    const baselineHeaderHeight = 60;
+    const container = this._root.querySelector('.week-standard-container');
+    const dayHeaders = Array.from(this._root.querySelectorAll('.week-standard-day-header'));
+    if (!container || dayHeaders.length === 0) return;
+
+    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
+    if (!Number.isFinite(measuredContainerTop)) return;
+
+    const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
+      && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
+
+    if (!hasRenderedStackedDayBadges) {
+      const extraHeaderHeightChanged = this._weekStandardExtraHeaderHeight !== 0;
+      const headerHeightChanged = this._weekStandardHeaderHeight !== null;
+      const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
+
+      if (extraHeaderHeightChanged || headerHeightChanged || containerTopChanged) {
+        this._weekStandardExtraHeaderHeight = 0;
+        this._weekStandardHeaderHeight = null;
+        this._weekStandardContainerTopInViewport = measuredContainerTop;
+        container.style.removeProperty('--week-standard-day-header-height');
+        container.style.removeProperty('--week-standard-time-header-spacer-height');
+        if (renderOnChange) this.render();
+      }
+      return;
+    }
+
+    const previousHeaderHeightStyle = container.style.getPropertyValue('--week-standard-day-header-height');
+    if (previousHeaderHeightStyle) {
+      container.style.removeProperty('--week-standard-day-header-height');
+    }
+
+    const measuredSharedHeaderHeight = Math.ceil(Math.max(
+      baselineHeaderHeight,
+      ...dayHeaders.map((header) => header.getBoundingClientRect?.().height || 0)
+    ));
+
+    if (previousHeaderHeightStyle) {
+      container.style.setProperty('--week-standard-day-header-height', previousHeaderHeightStyle);
+    }
+
+    if (!Number.isFinite(measuredSharedHeaderHeight)) return;
+
+    const effectiveExtraHeaderHeight = Math.max(0, measuredSharedHeaderHeight - baselineHeaderHeight);
+    const effectiveSharedHeaderHeight = effectiveExtraHeaderHeight > 0 ? measuredSharedHeaderHeight : null;
+    const extraHeaderHeightChanged = Math.abs(this._weekStandardExtraHeaderHeight - effectiveExtraHeaderHeight) > 1;
+    const headerHeightChanged = this._weekStandardHeaderHeight === null
+      ? effectiveSharedHeaderHeight !== null
+      : effectiveSharedHeaderHeight === null || Math.abs(this._weekStandardHeaderHeight - effectiveSharedHeaderHeight) > 1;
+    const containerTopChanged = this._weekStandardContainerTopInViewport === null || Math.abs(this._weekStandardContainerTopInViewport - measuredContainerTop) > 1;
+
+    if (extraHeaderHeightChanged || headerHeightChanged || containerTopChanged) {
+      this._weekStandardExtraHeaderHeight = effectiveExtraHeaderHeight;
+      this._weekStandardHeaderHeight = effectiveSharedHeaderHeight;
+      this._weekStandardContainerTopInViewport = measuredContainerTop;
+      if (effectiveSharedHeaderHeight === null) {
+        container.style.removeProperty('--week-standard-day-header-height');
+        container.style.removeProperty('--week-standard-time-header-spacer-height');
+      } else {
+        const timeHeaderSpacerHeight = Math.max(60, effectiveSharedHeaderHeight - 35);
+        container.style.setProperty('--week-standard-day-header-height', `${effectiveSharedHeaderHeight}px`);
+        container.style.setProperty('--week-standard-time-header-spacer-height', `${timeHeaderSpacerHeight}px`);
+      }
+      if (renderOnChange) this.render();
+    }
+  }
+
+  updateWeekCompactStackedHeaderHeightFromDom({ renderOnChange = true } = {}) {
+    if (this._viewMode !== 'week-compact' || !this._root) return;
+    if (this.isEventManagementDialogOpen()) return;
+
+    const container = this._root.querySelector('.week-compact-container');
+    const dayHeaders = Array.from(this._root.querySelectorAll('.week-day-header'));
+    if (!container || dayHeaders.length === 0) return;
+
+    const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
+      && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
+
+    if (!hasRenderedStackedDayBadges) {
+      if (this._weekCompactHeaderHeight !== null) {
+        this._weekCompactHeaderHeight = null;
+        container.style.removeProperty('--week-compact-header-height');
+        if (renderOnChange) this.render();
+      }
+      return;
+    }
+
+    const previousHeaderHeightStyle = container.style.getPropertyValue('--week-compact-header-height');
+    if (previousHeaderHeightStyle) {
+      container.style.removeProperty('--week-compact-header-height');
+    }
+
+    const measuredHeaderHeight = Math.ceil(Math.max(
+      0,
+      ...dayHeaders.map((header) => header.getBoundingClientRect?.().height || 0)
+    ));
+
+    if (previousHeaderHeightStyle) {
+      container.style.setProperty('--week-compact-header-height', previousHeaderHeightStyle);
+    }
+
+    if (!Number.isFinite(measuredHeaderHeight) || measuredHeaderHeight <= 0) return;
+
+    const headerHeightChanged = this._weekCompactHeaderHeight === null || Math.abs(this._weekCompactHeaderHeight - measuredHeaderHeight) > 1;
+    if (headerHeightChanged) {
+      this._weekCompactHeaderHeight = measuredHeaderHeight;
+      container.style.setProperty('--week-compact-header-height', `${measuredHeaderHeight}px`);
+      if (renderOnChange) this.render();
+    }
+  }
+
+
+
+  cancelMonthCompactMeasurement() {
+    if (this._monthMeasureRaf !== null) {
+      window.cancelAnimationFrame(this._monthMeasureRaf);
+      this._monthMeasureRaf = null;
+    }
+
+    if (this._monthMeasureRenderRaf !== null) {
+      window.cancelAnimationFrame(this._monthMeasureRenderRaf);
+      this._monthMeasureRenderRaf = null;
+    }
+  }
+
+  scheduleMonthCompactTopMeasurement(force = false) {
+    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth()) return;
+    if (this.isEventManagementDialogOpen()) return;
+    if (!force && !this._monthCompactMeasurementDirty && this._monthContainerTopInViewport !== null) return;
+    if (this._monthMeasureRaf !== null) return;
+
+    this._monthMeasureRaf = window.requestAnimationFrame(() => {
+      this._monthMeasureRaf = null;
+      this.updateMonthContainerTopInViewportFromDom();
+      this._monthCompactMeasurementDirty = false;
+    });
+  }
+
+
+  observeHostAndParentResize() {
+    if (typeof window.ResizeObserver !== 'function') return;
+
+    const parent = this.parentElement || null;
+    if (this._hostResizeObserver && this._observedResizeParent === parent) return;
+
+    if (this._hostResizeObserver) {
+      this._hostResizeObserver.disconnect();
+      this._hostResizeObserver = null;
+    }
+
+    this._observedResizeParent = parent;
+    this._lastObservedHostSize = this.measureHostAndParentSize();
+    this._hostResizeObserver = new window.ResizeObserver(() => {
+      this.scheduleHostAndParentResizeHandling();
+    });
+    this._hostResizeObserver.observe(this);
+    if (parent) {
+      this._hostResizeObserver.observe(parent);
+    }
+  }
+
+  measureHostAndParentSize() {
+    const hostSize = this.getElementSizeForAllocation(this);
+    const parentSize = this.getElementSizeForAllocation(this.parentElement);
+    return {
+      hostWidth: Math.round(hostSize.width),
+      hostHeight: Math.round(hostSize.height),
+      parentWidth: Math.round(parentSize.width),
+      parentHeight: Math.round(parentSize.height)
+    };
+  }
+
+  hasObservedHostSizeChanged(nextSize) {
+    const previousSize = this._lastObservedHostSize;
+    if (!previousSize) return true;
+    return Object.keys(nextSize).some((key) => Math.abs(nextSize[key] - previousSize[key]) > 1);
+  }
+
+  scheduleHostAndParentResizeHandling() {
+    if (this._hostResizeRaf !== null) return;
+
+    this._hostResizeRaf = window.requestAnimationFrame(() => {
+      this._hostResizeRaf = null;
+      const nextSize = this.measureHostAndParentSize();
+      if (!this.hasObservedHostSizeChanged(nextSize)) return;
+
+      this._lastObservedHostSize = nextSize;
+      const needsCompactHeightRender = !!this._config.compact_height;
+      if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
+        this._monthCompactMeasurementDirty = true;
+      }
+
+      if (needsCompactHeightRender) {
+        if (this.isEventManagementDialogOpen()) {
+          this._pendingHostResizeRender = true;
+          return;
+        }
+
+        this.render();
+        return;
+      }
+
+      if (this.isEventManagementDialogOpen() && this.hasWidthDependentMeasuredLayoutState()) {
+        this._pendingWidthDependentLayoutRefresh = true;
+        return;
+      }
+
+      this.updateCompactHeaderWrapState();
+      this.updateCalendarBadgesScrollState();
+      this.refreshWidthDependentLayoutMeasurements();
+    });
+  }
+
+  hasWidthDependentMeasuredLayoutState() {
+    return this._config?.day_badge_layout_week === 'stacked'
+      && (this._viewMode === 'week-standard' || this._viewMode === 'week-compact');
+  }
+
+  refreshWidthDependentLayoutMeasurements() {
+    if (this._viewMode === 'week-standard') {
+      this.updateWeekStandardFixedOffsetHeightFromDom({ renderOnChange: false });
+    } else if (this._viewMode === 'week-compact') {
+      this.updateWeekCompactStackedHeaderHeightFromDom({ renderOnChange: false });
+    }
+  }
+
+  flushPendingHostResizeRender() {
+    const shouldRender = this._pendingHostResizeRender;
+    const shouldRefreshWidthMeasurements = this._pendingWidthDependentLayoutRefresh;
+    this._pendingHostResizeRender = false;
+    this._pendingWidthDependentLayoutRefresh = false;
+
+    if (shouldRefreshWidthMeasurements) {
+      this.refreshWidthDependentLayoutMeasurements();
+    }
+
+    if (shouldRender) {
+      this.render();
+    }
+  }
+
+  observeHeaderResize() {
+    if (!this._root || typeof window.ResizeObserver !== 'function') return;
+
+    if (this._headerResizeObserver) {
+      this._headerResizeObserver.disconnect();
+      this._headerResizeObserver = null;
+    }
+
+    const headerSelector = this._config.compact_header ? '.header-compact' : '.header';
+    const header = this._root.querySelector(headerSelector);
+    if (!header) return;
+
+    this._headerResizeObserver = new window.ResizeObserver(() => {
+      this.updateCompactHeaderWrapState();
+    });
+    this._headerResizeObserver.observe(header);
+  }
+
+  observeMonthGridResize() {
+    if (!this._root || typeof window.ResizeObserver !== 'function') return;
+
+    if (this._monthGridResizeObserver) {
+      this._monthGridResizeObserver.disconnect();
+      this._monthGridResizeObserver = null;
+    }
+
+    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth()) return;
+
+    const container = this._root.querySelector('.calendar-container');
+    if (!container) return;
+
+    this._monthGridResizeObserver = new window.ResizeObserver(() => {
+      this._monthCompactMeasurementDirty = true;
+      this.scheduleMonthCompactTopMeasurement();
+    });
+    this._monthGridResizeObserver.observe(container);
+  }
+
+  updateMonthContainerTopInViewportFromDom() {
+    if (this._viewMode !== 'month' || !this._config.compact_height || this.shouldShowAllEventsInMonth() || !this._root) return;
+    if (this.isEventManagementDialogOpen()) return;
+
+    const container = this._root.querySelector('.calendar-grid');
+    if (!container) return;
+
+    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    if (!Number.isFinite(measuredContainerTop)) return;
+    if (!Number.isFinite(viewportHeight)) return;
+
+    const containerTopChanged = this._monthContainerTopInViewport === null || Math.abs(this._monthContainerTopInViewport - measuredContainerTop) > 1;
+    const viewportHeightChanged = this._lastCompactMonthViewportHeight === null || Math.abs(this._lastCompactMonthViewportHeight - viewportHeight) > 1;
+
+    if (containerTopChanged) {
+      this._monthContainerTopInViewport = measuredContainerTop;
+    }
+    if (viewportHeightChanged) {
+      this._lastCompactMonthViewportHeight = viewportHeight;
+    }
+
+    if (containerTopChanged || viewportHeightChanged) {
+      if (this._monthMeasureRenderRaf === null) {
+        this._monthMeasureRenderRaf = window.requestAnimationFrame(() => {
+          this._monthMeasureRenderRaf = null;
+          this.render();
+        });
+      }
+    }
+  }
+
+  updateAgendaContainerTopInViewportFromDom() {
+    if (this._viewMode !== 'agenda' || !this._config.compact_height || !this._root) return;
+    if (this.isEventManagementDialogOpen()) return;
+
+    const container = this._root.querySelector('.agenda-container');
+    if (!container) return;
+
+    const measuredContainerTop = Math.max(container.getBoundingClientRect().top, 0);
+    if (!Number.isFinite(measuredContainerTop)) return;
+
+    const containerTopChanged = this._agendaContainerTopInViewport === null || Math.abs(this._agendaContainerTopInViewport - measuredContainerTop) > 1;
+    if (containerTopChanged) {
+      this._agendaContainerTopInViewport = measuredContainerTop;
+      this.render();
+    }
+  }
+
+
+  getLanguage() {
+    return resolveLanguage(this._config.language || this._hass?.language || this._hass?.locale?.language);
+  }
+
+  getLocale() {
+    if (this._config.locale) return this._config.locale;
+
+    const configuredLanguage = this._config.language ? resolveLanguage(this._config.language) : null;
+    if (configuredLanguage) return TRANSLATIONS[configuredLanguage]?.locale || this._config.language;
+
+    const hassLocale = this._hass?.locale?.language;
+    if (hassLocale) return hassLocale;
+
+    const hassLanguage = this._hass?.language;
+    if (hassLanguage) {
+      const resolvedHassLanguage = resolveLanguage(hassLanguage);
+      return TRANSLATIONS[resolvedHassLanguage]?.locale || hassLanguage;
+    }
+
+    return globalThis.navigator?.languages?.[0]
+      || globalThis.navigator?.language
+      || TRANSLATIONS[DEFAULT_LANGUAGE]?.locale
+      || 'en-US';
+  }
+
+  t(key, params = {}) {
+    return translate(this.getLanguage(), key, params);
+  }
+
+  getWeekdayNameFormat() {
+    return this._config?.display_full_weekday_names ? 'long' : 'short';
+  }
+
+  getWeekdayNames(format = this.getWeekdayNameFormat()) {
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), { weekday: format });
+    const baseDate = new Date(2021, 5, 6);
+    const names = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(baseDate);
+      date.setDate(baseDate.getDate() + i);
+      names.push(formatter.format(date));
+    }
+    return names;
+  }
+
+  setWeekStart() {
+    const date = new Date(this._currentDate);
+    const day = date.getDay();
+    const diff = (day - this._config.firstDayOfWeek + 7) % 7;
+    date.setDate(date.getDate() - diff);
+    date.setHours(0, 0, 0, 0);
+    this._weekStart = date;
+  }
+
+  resetAgendaWindowToToday() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    this._currentDate = new Date(today);
+    const agendaWindow = createAgendaWindow(today, this.getAgendaPeriodDaySpan());
+    this._agendaStartDate = agendaWindow.startDate;
+    this._agendaEndDate = agendaWindow.endDate;
+    this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
+    this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
+  }
+
+  ensureAgendaWindowInitialized() {
+    if (this._agendaStartDate && this._agendaEndDate) return;
+    this.resetAgendaWindowToToday();
+  }
+
+  getAgendaDays() {
+    this.ensureAgendaWindowInitialized();
+    return getAgendaDays(this._agendaStartDate, this._agendaEndDate);
+  }
+
+  getAgendaVisibleDateRangeFromDom() {
+    if (!this._root || this._viewMode !== 'agenda') return null;
+
+    const container = this.getRootElementById('agenda-container');
+    if (!container) return null;
+
+    const containerRect = container.getBoundingClientRect();
+    const dayRows = Array.from(container.querySelectorAll('.agenda-day-row'));
+    if (dayRows.length === 0) return null;
+
+    const visibleDates = dayRows
+      .map((row) => {
+        const rect = row.getBoundingClientRect();
+        const isVisible = rect.bottom > containerRect.top && rect.top < containerRect.bottom;
+        if (!isVisible) return null;
+        const rawDate = row.getAttribute('data-date');
+        if (!rawDate) return null;
+        return new Date(rawDate);
+      })
+      .filter((date) => date instanceof Date && !Number.isNaN(date.getTime()));
+
+    if (visibleDates.length === 0) return null;
+
+    const startDate = new Date(visibleDates[0]);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(visibleDates[visibleDates.length - 1]);
+    endDate.setHours(23, 59, 59, 999);
+
+    return { startDate, endDate };
+  }
+
+  updateAgendaVisibleDateRangeFromDom() {
+    const visibleRange = this.getAgendaVisibleDateRangeFromDom();
+    if (!visibleRange) {
+      this._agendaVisibleStartDate = null;
+      this._agendaVisibleEndDate = null;
+      this.updateAgendaPeriodLabelInDom();
+      return;
+    }
+
+    this._agendaVisibleStartDate = visibleRange.startDate;
+    this._agendaVisibleEndDate = visibleRange.endDate;
+    this.updateAgendaPeriodLabelInDom();
+  }
+
+  isAgendaRangeWithinCurrentWindow(range) {
+    return isAgendaRangeWithinWindow(range, this._agendaStartDate, this._agendaEndDate);
+  }
+
+  updateAgendaPeriodLabelInDom() {
+    if (!this._root || this._viewMode !== 'agenda') return;
+    const label = this.getPeriodLabel();
+    this._root.querySelectorAll('.month-year').forEach((labelEl) => {
+      labelEl.textContent = label;
+    });
+  }
+
+  getAgendaViewportDayCapacity() {
+    if (!this._root || this._viewMode !== 'agenda') {
+      return this._agendaDaysPerScrollLoad;
+    }
+
+    const container = this.getRootElementById('agenda-container');
+    if (!container) {
+      return this._agendaDaysPerScrollLoad;
+    }
+
+    const rows = Array.from(container.querySelectorAll('.agenda-day-row'));
+    if (rows.length === 0) {
+      return this._agendaDaysPerScrollLoad;
+    }
+
+    const maxHeight = container.clientHeight;
+    if (!Number.isFinite(maxHeight) || maxHeight <= 0) {
+      return this._agendaDaysPerScrollLoad;
+    }
+
+    let consumedHeight = 0;
+    let dayCount = 0;
+
+    for (const row of rows) {
+      const rowHeight = row.getBoundingClientRect().height;
+      if (!Number.isFinite(rowHeight) || rowHeight <= 0) continue;
+
+      if ((consumedHeight + rowHeight) > maxHeight && dayCount > 0) {
+        break;
+      }
+
+      consumedHeight += rowHeight;
+      dayCount += 1;
+
+      if (consumedHeight >= maxHeight) {
+        break;
+      }
+    }
+
+    return Math.max(1, dayCount || this._agendaDaysPerScrollLoad);
+  }
+
+  getAgendaRollingDays() {
+    return getAgendaRollingDays(this._config);
+  }
+
+  getAgendaPeriodDaySpan() {
+    return getAgendaPeriodDaySpan(this._config);
+  }
+
+  getRollingDaysForView(viewMode = this._viewMode) {
+    return getRollingDaysForView(viewMode, this._config);
+  }
+
+  getWeekDays(viewMode = this._viewMode) {
+    return getWeekDays({
+      currentDate: this._currentDate,
+      weekStart: this._weekStart,
+      weekDays: this._config.week_days,
+      rollingDays: this.getRollingDaysForView(viewMode)
+    });
+  }
+
+  getStyles() {
+    return getCardStyles();
   }
 
   render() {
@@ -6992,7 +12451,7 @@ class SkylightCalendarCard extends HTMLElement {
     const rawHeaderBackgroundColor = this.normalizeSingleColor(this._config.header_color);
     const resolvedHeaderBackgroundBase = typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
       ? calendarBaseBackground
-      : (rawHeaderBackgroundColor || 'var(--primary-color)');
+      : (rawHeaderBackgroundColor || DEFAULT_CONFIG_VALUES.header_color);
     const normalizedHeaderBackgroundOpacity = this.normalizeBackgroundOpacity(
       this._config.header_background_opacity,
       this._config.header_background_transparent ? 100 : 0
@@ -7086,6 +12545,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.updateCompactHeaderWrapState();
     this.updateCalendarBadgesScrollState();
     this.updateWeekStandardFixedOffsetHeightFromDom();
+    this.updateWeekCompactStackedHeaderHeightFromDom();
     this.observeHeaderResize();
     this.observeMonthGridResize();
     if (this._viewMode === 'month' && this._config.compact_height && !this.shouldShowAllEventsInMonth()) {
@@ -7111,32 +12571,30 @@ class SkylightCalendarCard extends HTMLElement {
     }
   }
 
+  getHeaderRenderHelpers() {
+    return {
+      escapeHtml: (value) => this.escapeHtml(value),
+      getPeriodLabel: () => this.getPeriodLabel(),
+      renderCalendarBadgesInline: () => this.renderCalendarBadgesInline(),
+      renderDashboardNavButton: () => this.renderDashboardNavButton(),
+      renderHeaderTitle: () => this.renderHeaderTitle(),
+      renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
+      renderThemeToggle: () => this.renderThemeToggle(),
+      renderViewModeButtons: () => this.renderViewModeButtons(),
+      t: (key, params) => this.t(key, params)
+    };
+  }
+
   renderStandardHeader() {
     const writableCalendars = this.getWritableCalendars();
     const canAddEvents = this._config.enable_event_management && writableCalendars.length > 0 && !this._config.hide_add_event_button;
     const shouldShowControls = !this._config.hide_controls;
 
-    return `
-      <div class="header">
-        <div class="header-left">
-          ${this.renderDashboardNavButton()}
-          ${this.renderHeaderTitle()}
-        </div>
-        ${shouldShowControls ? `
-          <div class="header-controls">
-            ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${this.t('addEvent')}</button>` : ''}
-            ${this.renderThemeToggle()}
-            <div class="period-controls">
-              ${this.renderPeriodNavigationButtons('previous')}
-              <div class="month-year">${this.getPeriodLabel()}</div>
-              ${this.renderPeriodNavigationButtons('next')}
-              ${this.renderPeriodNavigationButtons('today')}
-            </div>
-            ${this.renderViewModeButtons()}
-          </div>
-        ` : ''}
-      </div>
-    `;
+    return renderStandardHeader({
+      canAddEvents,
+      shouldShowControls,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderCompactHeader() {
@@ -7145,108 +12603,77 @@ class SkylightCalendarCard extends HTMLElement {
     const shouldShowCalendars = !this._config.hide_calendars;
     const shouldShowControls = !this._config.hide_controls;
 
-    return `
-      <div class="header header-compact">
-        <div class="compact-header-left">
-          ${this.renderDashboardNavButton()}
-          ${this.renderHeaderTitle()}
-          ${shouldShowCalendars ? this.renderCalendarBadgesInline() : ''}
-        </div>
-        ${shouldShowControls ? `
-          <div class="header-controls compact-header-controls">
-            <div class="compact-period-controls">
-              ${this.renderPeriodNavigationButtons('previous')}
-              <div class="month-year">${this.getPeriodLabel()}</div>
-              ${this.renderPeriodNavigationButtons('next')}
-              ${this.renderPeriodNavigationButtons('today')}
-            </div>
-            ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${this.t('addEvent')}" title="${this.t('addEvent')}">+</button>` : ''}
-            ${this.renderThemeToggle()}
-            ${this.renderViewModeButtons()}
-          </div>
-        ` : ''}
-      </div>
-    `;
+    return renderCompactHeader({
+      canAddEvents,
+      shouldShowCalendars,
+      shouldShowControls,
+      helpers: this.getHeaderRenderHelpers()
+    });
+  }
+
+  getCalendarBadgeRenderHelpers() {
+    return {
+      escapeHtml: (value) => this.escapeHtml(value),
+      formatPersonStateLabel: (state) => this.formatPersonStateLabel(state),
+      getCalendarBadgeIcon: (entityId) => this.getCalendarBadgeIcon(entityId),
+      getCalendarBadgePersonEntityId: (entityId) => this.getCalendarBadgePersonEntityId(entityId),
+      getCalendarBadgePersonState: (entityId) => this.getCalendarBadgePersonState(entityId),
+      getContractColor: (color) => this.getContractColor(color),
+      getPersonEntityPictureUrl: (state) => this.getPersonEntityPictureUrl(state),
+      lightenColor: (color, amount) => this.lightenColor(color, amount),
+      normalizeBackgroundImageUrl: (url) => this.normalizeBackgroundImageUrl(url),
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color)
+    };
   }
 
   renderCalendarBadgesInline() {
-    const badgeItems = this.getVirtualBadgeItems();
-    if (badgeItems.length === 0) return '';
-    const hideCalendarNames = !!this._config.hide_calendar_names;
-
-    return `
-      <div class="calendar-badges-inline">
-        ${badgeItems.map((badgeItem) => {
-          const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : this.lightenColor(badgeItem.color, 0.85);
-          const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : this.getContractColor(badgeBackground);
-
-          return `
-            <div class="calendar-badge calendar-badge-inline ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
-                 data-entity="${badgeItem.entityId}"
-                 style="background: ${badgeBackground};
-                        border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};">
-              ${this.renderCalendarBadgeIcon(badgeItem.entityId, badgeItem.name, badgeItem.color, badgeItem.isHidden, badgeItem.icon)}
-              ${hideCalendarNames ? '' : this.renderCalendarBadgeLabel(badgeItem, badgeTextColor)}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderCalendarBadgesInline({
+      badgeItems: this.getVirtualBadgeItems(),
+      hideCalendarNames: !!this._config.hide_calendar_names,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
-    return `
-      <div class="header-title-wrap">
-        <h2 class="header-title">${this.escapeHtml(this._config.title || '')}</h2>
-        ${headerTime ? `<span class="header-time">${this.escapeHtml(headerTime)}</span>` : ''}
-        ${headerWeather ? `<span class="header-weather"><ha-icon icon="${this.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${this.escapeHtml(headerWeather.temperature)}</span>` : ''}
-      </div>
-    `;
+    return renderHeaderTitle({
+      title: this._config.title,
+      headerTime,
+      headerWeather,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderDashboardNavButton() {
-    if (!this.shouldShowDashboardNavButton()) return '';
-    return `<button class="dashboard-nav-button" id="header-dashboard-btn" aria-label="${this.t('openDashboard')}" title="${this.t('openDashboard')}">⌂</button>`;
+    return renderDashboardNavButton({
+      shouldShow: this.shouldShowDashboardNavButton(),
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderPeriodNavigationButtons(buttonType) {
-    if (this._config.hide_navigation_buttons) return '';
-
-    if (buttonType === 'previous') {
-      return `<button class="nav-button" id="prev-period" ${this.shouldDisablePreviousNavigation() ? 'disabled' : ''}>‹</button>`;
-    }
-
-    if (buttonType === 'next') {
-      return '<button class="nav-button" id="next-period">›</button>';
-    }
-
-    if (buttonType === 'today') {
-      return `<button class="today-button" id="today">${this.t('today')}</button>`;
-    }
-
-    return '';
+    return renderPeriodNavigationButtons({
+      buttonType,
+      hideNavigationButtons: this._config.hide_navigation_buttons,
+      shouldDisablePreviousNavigation: this.shouldDisablePreviousNavigation(),
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderViewModeButtons() {
-    if (this._config.hide_view_selector) return '';
-
-    return `
-      <div class="view-mode-buttons">
-        <select class="view-mode-select" id="view-mode-select" aria-label="Select calendar view">
-          <option value="month" ${this._viewMode === 'month' ? 'selected' : ''}>${this.t('month')}</option>
-          <option value="week-compact" ${this._viewMode === 'week-compact' ? 'selected' : ''}>${this.t('week')}</option>
-          <option value="week-standard" ${this._viewMode === 'week-standard' ? 'selected' : ''}>${this.t('schedule')}</option>
-          <option value="agenda" ${this._viewMode === 'agenda' ? 'selected' : ''}>${this.t('agenda')}</option>
-        </select>
-      </div>
-    `;
+    return renderViewModeButtons({
+      hideViewSelector: this._config.hide_view_selector,
+      viewMode: this._viewMode,
+      helpers: this.getHeaderRenderHelpers()
+    });
   }
 
   renderThemeToggle() {
-    if (this._config.hide_dark_mode_toggle) return '';
-    return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${this._isDarkMode ? '☀︎' : '☾'}</button>`;
+    return renderThemeToggle({
+      hideDarkModeToggle: this._config.hide_dark_mode_toggle,
+      isDarkMode: this._isDarkMode
+    });
   }
 
   getPeriodLabel() {
@@ -7330,20 +12757,23 @@ class SkylightCalendarCard extends HTMLElement {
       const compactMaxHeight = isCompactMonth && !this.hasFixedHeightParentAllocation() ? this.getCompactMaxHeight(this._monthContainerTopInViewport) : null;
       const monthWeekRows = this.getMonthWeekRowCount();
       const showMonthWeekNumbers = this.shouldShowMonthWeekNumbers();
-      const monthStyle = isCompactMonth ? this.getCompactMonthGridStyle(monthWeekRows, compactMaxHeight) : '';
-      const monthClass = [
-        'calendar-grid',
-        isCompactMonth ? 'compact-month' : '',
-        showMonthWeekNumbers ? 'month-week-numbers' : ''
-      ].filter(Boolean).join(' ');
-
-      return `
-        ${shouldShowHeaderBadges ? this.renderCalendarBadges() : ''}
-        <div class="${monthClass}" style="${monthStyle}">
-          ${this.renderDayHeaders()}
-          ${this.renderDays()}
-        </div>
-      `;
+      return renderMonthView({
+        compactMaxHeight,
+        config: this._config,
+        currentDate: this._currentDate,
+        isCompactMonth,
+        monthWeekRows,
+        shouldShowHeaderBadges,
+        shouldShowWeekNumbers: showMonthWeekNumbers,
+        viewMode: this._viewMode,
+        weekdayNames: this.getWeekdayNames(),
+        helpers: {
+          getCompactMonthGridStyle: (weekRows, maxHeight) => this.getCompactMonthGridStyle(weekRows, maxHeight),
+          renderCalendarBadges: () => this.renderCalendarBadges(),
+          renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+          renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
+        }
+      });
     } else if (this._viewMode === 'week-compact') {
       return this.renderWeekCompact();
     } else if (this._viewMode === 'week-standard') {
@@ -7354,62 +12784,36 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayHeaders() {
-    const days = this.getWeekdayNames();
-    const firstDay = this._config.firstDayOfWeek;
-    const orderedDays = [...days.slice(firstDay), ...days.slice(0, firstDay)];
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-
-    const dayHeaders = orderedDays.map(day => `
-      <div class="day-header">${day}</div>
-    `).join('');
-
-    if (!shouldShowWeekNumbers) {
-      return dayHeaders;
-    }
-
-    return `<div class="month-week-number-header"></div>${dayHeaders}`;
+    return renderMonthDayHeaders({
+      weekdayNames: this.getWeekdayNames(),
+      firstDayOfWeek: this._config.firstDayOfWeek,
+      shouldShowWeekNumbers: this.shouldShowMonthWeekNumbers()
+    });
   }
 
   renderWeekCompact() {
-    const weekDays = this.getWeekDays();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dayNames = this.getWeekdayNames();
-    const containerStyle = this.getCompactContainerStyle();
 
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-compact-container" style="${containerStyle}">
-        ${weekDays.map(date => {
-          const isToday = date.toDateString() === today.toDateString();
-          const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
-          const events = this.sortEventsForDate(dayEventsForMatching.filter((event) => !this.isEventHiddenByStyle(event)), date);
-          const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-
-          return `
-            <div class="week-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}" data-click-target="day-header"${dayStyleAttr}>
-              <div class="week-day-header">
-                <div class="week-day-header-main">
-                  <div class="week-day-name">${dayNames[date.getDay()]}</div>
-                  <div class="week-day-meta-row">
-                    <div class="week-day-date">${date.getDate()}</div>
-                    ${this.renderDayBadges(date, dayEventsForMatching)}
-                    ${this.renderDayForecast(date, 'week-compact')}
-                  </div>
-                </div>
-              </div>
-              <div class="week-day-events">
-                ${events.map(event => {
-                  return this.renderWeekCompactEvent(event, date);
-                }).join('')}
-                ${events.length === 0 ? `<div style="color: #9ca3af; font-size: 13px; text-align: center; margin-top: 20px;">${this.t('noEvents')}</div>` : ''}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderWeekCompactView({
+      config: this._config,
+      weekDays: this.getWeekDays(),
+      today,
+      dayNames: this.getWeekdayNames(),
+      headerHeight: this._weekCompactHeaderHeight,
+      helpers: {
+        getCompactContainerStyle: () => this.getCompactContainerStyle(),
+        renderCalendarBadges: () => this.renderCalendarBadges(),
+        getEventsForDay: (date, options) => this.getEventsForDay(date, options),
+        isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
+        sortEventsForDate: (events, date) => this.sortEventsForDate(events, date),
+        getDayStyleAttributes: (date, events, isToday) => this.getDayStyleAttributes(date, events, isToday),
+        renderDayBadges: (date, events) => this.renderDayBadges(date, events),
+        renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
+        renderWeekCompactEvent: (event, date) => this.renderWeekCompactEvent(event, date),
+        t: (key, params) => this.t(key, params)
+      }
+    });
   }
 
   renderWeekStandard() {
@@ -7438,66 +12842,49 @@ class SkylightCalendarCard extends HTMLElement {
 
     const compactMaxHeight = this.getCompactMaxHeight(this._weekStandardContainerTopInViewport);
     const fallbackOffsetHeight = 127 + allDayHeight;
-    const staticOffsetHeight = this._weekStandardFixedOffsetHeight || fallbackOffsetHeight;
+    const headerOffsetAdjustment = this._weekStandardHeaderHeight ? Math.max(0, this._weekStandardHeaderHeight - 95) : 0;
+    const staticOffsetHeight = fallbackOffsetHeight + headerOffsetAdjustment;
     const availableSlotHeight = compactMaxHeight ? compactMaxHeight - staticOffsetHeight : null;
     const compactHourHeight = availableSlotHeight && availableSlotHeight > 0 ? Math.floor(availableSlotHeight / hours.length) : null;
     const hourHeight = compactHourHeight ? Math.max(20, Math.min(preferredHourHeight, compactHourHeight)) : preferredHourHeight;
     const timelineHeight = hourHeight * hours.length;
     const dayTimeSlotsStyle = `height: ${timelineHeight}px; min-height: ${timelineHeight}px;`;
-    const containerStyle = this.getCompactContainerStyle(compactMaxHeight);
+    const timeHeaderSpacerHeight = this._weekStandardHeaderHeight ? Math.max(60, this._weekStandardHeaderHeight - 35) : null;
+    const headerHeightStyle = this._weekStandardHeaderHeight ? `--week-standard-day-header-height: ${this._weekStandardHeaderHeight}px;--week-standard-time-header-spacer-height: ${timeHeaderSpacerHeight}px;` : '';
+    const containerStyle = `${headerHeightStyle}${this.getCompactContainerStyle(compactMaxHeight)}`;
 
     const showCurrentTimeBar = this._config.show_current_time_bar && this.shouldShowCurrentTimeBar(today, startHour, endHour);
 
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="week-standard-container ${this._config.compact_width ? 'compact-width' : ''}" style="${containerStyle}">
-        <!-- Time column -->
-        <div class="time-column">
-          <div class="time-column-header-spacer"></div>
-          ${hasAllDayEvents ? `<div class="time-column-allday-spacer" style="height: ${allDayHeight}px;"></div>` : ''}
-          <div class="time-column-extra-spacer"></div>
-          ${hours.map(hour => `
-            <div class="time-slot" style="height: ${hourHeight}px;">
-              <span class="time-slot-label">${this.formatScheduleHour(hour)}</span>
-            </div>
-          `).join('')}
-        </div>
-
-        <!-- Day columns -->
-        ${weekDays.map(date => {
-          const isToday = date.toDateString() === today.toDateString();
-          const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
-          const dayEvents = this.sortEventsForDate(dayEventsForMatching.filter((event) => !this.isEventHiddenByStyle(event)), date);
-          const dateKey = this.getDateKey(date);
-          const allDayLanes = allDayLayout.dayLanesByDateKey.get(dateKey) || [];
-          const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-          const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-
-          return `
-            <div class="week-standard-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
-              <div class="week-standard-day-header" data-click-target="day-header">
-                <div class="week-day-header-main">
-                  <div class="week-standard-day-name">${dayNames[date.getDay()]}</div>
-                  <div class="week-day-meta-row">
-                    <div class="week-standard-day-date">${date.getDate()}</div>
-                    ${this.renderDayBadges(date, dayEventsForMatching)}
-                    ${this.renderDayForecast(date, 'week-standard')}
-                  </div>
-                </div>
-              </div>
-              ${hasAllDayEvents ? this.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
-              <div class="day-time-slots" style="${dayTimeSlotsStyle}">
-                ${hours.map(hour => `
-                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
-                `).join('')}
-                ${showCurrentTimeBar && isToday ? this.renderCurrentTimeLine(startHour, hourHeight) : ''}
-                ${this.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    return renderWeekStandardView({
+      allDayHeight,
+      allDayLayout,
+      config: this._config,
+      containerStyle,
+      dayNames,
+      dayTimeSlotsStyle,
+      endHour,
+      hasAllDayEvents,
+      hourHeight,
+      hours,
+      showCurrentTimeBar,
+      startHour,
+      today,
+      weekDays,
+      helpers: {
+        formatScheduleHour: (hour) => this.formatScheduleHour(hour),
+        getDateKey: (date) => this.getDateKey(date),
+        getDayStyleAttributes: (date, events, isToday) => this.getDayStyleAttributes(date, events, isToday),
+        getEventsForDay: (date, options) => this.getEventsForDay(date, options),
+        isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
+        renderAllDayEventsForDay: (allDayLanes, height) => this.renderAllDayEventsForDay(allDayLanes, height),
+        renderCalendarBadges: () => this.renderCalendarBadges(),
+        renderCurrentTimeLine: (rangeStartHour, height) => this.renderCurrentTimeLine(rangeStartHour, height),
+        renderDayBadges: (date, events) => this.renderDayBadges(date, events),
+        renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
+        renderTimedEventsForDay: (events, date, rangeStartHour, rangeEndHour, height) => this.renderTimedEventsForDay(events, date, rangeStartHour, rangeEndHour, height),
+        sortEventsForDate: (events, date) => this.sortEventsForDate(events, date)
+      }
+    });
   }
 
   renderAgenda() {
@@ -7505,81 +12892,46 @@ class SkylightCalendarCard extends HTMLElement {
     const agendaDays = this.getAgendaDays();
     const agendaEventMinHeight = this.getAgendaEventMinHeight();
     const compactMaxHeight = this.getCompactMaxHeight(this._agendaContainerTopInViewport);
-    const containerStyle = this.getCompactContainerStyle(compactMaxHeight);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayNames = this.getWeekdayNames();
-    const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), { month: 'long', year: 'numeric' });
-    const agendaRows = [];
-    const shouldHideEmptyDays = this._viewMode === 'agenda' && !!this._config.hide_empty_days;
-    const agendaDayEntries = agendaDays
-      .map((date) => ({
-        date,
-        matchingEvents: this.getEventsForDay(date, { includeHiddenStyledEvents: true }),
-        events: null
-      }))
-      .map((entry) => ({
-        ...entry,
-        events: this.sortEventsForDate(entry.matchingEvents.filter((event) => !this.isEventHiddenByStyle(event)), entry.date)
-      }))
-      .filter((entry) => !shouldHideEmptyDays || entry.events.length > 0);
+    const monthFormatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'long', year: 'numeric' }));
 
-    agendaDayEntries.forEach((entry, index) => {
-      const { date, events } = entry;
-      if (index > 0) {
-        const previousDate = agendaDayEntries[index - 1].date;
-        const monthChanged = previousDate.getMonth() !== date.getMonth() || previousDate.getFullYear() !== date.getFullYear();
-        if (monthChanged) {
-          agendaRows.push(`<div class="agenda-month-banner">${this.escapeHtml(monthFormatter.format(date))}</div>`);
-        }
+    return renderAgendaView({
+      agendaDays,
+      agendaEventMinHeight,
+      compactMaxHeight,
+      config: this._config,
+      today,
+      dayNames,
+      monthFormatter,
+      helpers: {
+        escapeHtml: this.escapeHtml.bind(this),
+        formatEventTimeRange: this.formatEventTimeRange.bind(this),
+        getCompactContainerStyle: this.getCompactContainerStyle.bind(this),
+        getDisplayLocation: this.getDisplayLocation.bind(this),
+        getDayStyleAttributes: this.getDayStyleAttributes.bind(this),
+        getEventBubbleFontColor: this.getEventBubbleFontColor.bind(this),
+        getEventBubbleFontSize: this.getEventBubbleFontSize.bind(this),
+        getEventDaySegment: this.getEventDaySegment.bind(this),
+        getEventLocationFontSize: this.getEventLocationFontSize.bind(this),
+        getEventStyle: this.getEventStyle.bind(this),
+        getEventTimeFontSize: this.getEventTimeFontSize.bind(this),
+        getEventsForDay: this.getEventsForDay.bind(this),
+        isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
+        renderCalendarBadges: this.renderCalendarBadges.bind(this),
+        renderCombinedCornerBubbles: this.renderCombinedCornerBubbles.bind(this),
+        renderDayForecast: this.renderDayForecast.bind(this),
+        renderEventIcon: this.renderEventIcon.bind(this),
+        renderEventStyleCornerIcon: this.renderEventStyleCornerIcon.bind(this),
+        renderEventTitleWithPrefix: this.renderEventTitleWithPrefix.bind(this),
+        shouldShowCombinedCornerBubbles: this.shouldShowCombinedCornerBubbles.bind(this),
+        shouldShowEventLocation: this.shouldShowEventLocation.bind(this),
+        shouldShowEventTime: this.shouldShowEventTime.bind(this),
+        sortEventsForDate: this.sortEventsForDate.bind(this),
+        t: this.t.bind(this)
       }
-
-      const isToday = date.toDateString() === today.toDateString();
-      const dayStyle = this.getDayStyleAttributes(date, entry.matchingEvents, isToday);
-      const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
-      agendaRows.push(`
-        <div class="agenda-day-row ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
-          <div class="agenda-day-label">
-            <div class="agenda-day-weekday">${dayNames[date.getDay()]}</div>
-            <div class="agenda-day-date">${date.getDate()}</div>
-            ${this.renderDayForecast(date, 'agenda')}
-          </div>
-          <div class="agenda-day-events">
-            ${events.map(event => {
-              const daySegment = this.getEventDaySegment(event, date);
-              if (!daySegment) return '';
-              const { segmentStart, segmentEnd, isAllDaySegment } = daySegment;
-              const timeLabel = isAllDaySegment
-                ? this.t('allDay')
-                : this.formatEventTimeRange(segmentStart, segmentEnd);
-              const eventStyle = this.getEventStyle(event);
-              const eventAgendaMinHeight = this.shouldShowCombinedCornerBubbles(event)
-                ? `calc(${agendaEventMinHeight} + 16px)`
-                : agendaEventMinHeight;
-
-              return `
-                <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-                  <div class="agenda-event-title">${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}</div>
-                  ${this.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
-                  ${this.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
-                  ${this.renderEventIcon(event)}
-                  ${this.renderEventStyleCornerIcon(event)}
-                  ${this.renderCombinedCornerBubbles(event)}
-                </div>
-              `;
-            }).join('')}
-            ${events.length === 0 ? `<div class="agenda-empty-day">${this.t('noEvents')}</div>` : ''}
-          </div>
-        </div>
-      `);
     });
-
-    return `
-      ${!this._config.compact_header && !this._config.hide_calendars ? this.renderCalendarBadges() : ''}
-      <div class="agenda-container" id="agenda-container" style="${containerStyle}">
-        ${agendaRows.join('')}
-      </div>
-    `;
   }
 
   getScheduleHourRangeForWeek(weekDays) {
@@ -7740,31 +13092,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderCalendarBadges() {
-    const badgeItems = this.getVirtualBadgeItems();
-    if (badgeItems.length === 0) return '';
-    const hideCalendarNames = !!this._config.hide_calendar_names;
-
-    return `
-      <div class="calendar-badges-container">
-        <div class="calendar-badges">
-          ${badgeItems.map((badgeItem) => {
-            const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : this.lightenColor(badgeItem.color, 0.85);
-            const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : this.getContractColor(badgeBackground);
-
-            return `
-              <div class="calendar-badge ${badgeItem.isHidden ? 'calendar-badge-hidden' : ''} ${hideCalendarNames ? 'hide-calendar-name' : ''}"
-                   data-entity="${badgeItem.entityId}"
-                   style="background: ${badgeBackground};
-                          border-color: ${badgeItem.isHidden ? '#d1d5db' : badgeItem.color};
-                          cursor: pointer;">
-                ${this.renderCalendarBadgeIcon(badgeItem.entityId, badgeItem.name, badgeItem.color, badgeItem.isHidden, badgeItem.icon)}
-                ${hideCalendarNames ? '' : this.renderCalendarBadgeLabel(badgeItem, badgeTextColor)}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+    return renderCalendarBadges({
+      badgeItems: this.getVirtualBadgeItems(),
+      hideCalendarNames: !!this._config.hide_calendar_names,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderAllDayEventsForDay(allDayLanes, allDayHeight) {
@@ -7926,31 +13258,26 @@ class SkylightCalendarCard extends HTMLElement {
   getLocalDayHourFloat(dateTime, referenceDate) {
     // Use wall-clock hour values relative to the rendered day so DST transitions
     // do not visually shift events by ±1 hour in the schedule grid.
-    const dayKey = Date.UTC(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
-    const timeKey = Date.UTC(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate());
+    const referenceParts = this.getDisplayDateParts(referenceDate);
+    const timeParts = this.getDateTimeParts(dateTime);
+    const dayKey = Date.UTC(referenceParts.year, referenceParts.month - 1, referenceParts.day);
+    const timeKey = Date.UTC(Number(timeParts.year), Number(timeParts.month) - 1, Number(timeParts.day));
     const dayDiff = (timeKey - dayKey) / 86400000;
 
     return (dayDiff * 24) +
-      dateTime.getHours() +
-      (dateTime.getMinutes() / 60) +
-      (dateTime.getSeconds() / 3600) +
+      Number(timeParts.hour) +
+      (Number(timeParts.minute) / 60) +
+      (Number(timeParts.second) / 3600) +
       (dateTime.getMilliseconds() / 3600000);
   }
 
   getVisibleCalendarBadgesForEvent(event) {
-    const virtualCalendar = this.getVirtualBadgeForEvent(event);
-    if (virtualCalendar) {
-      const visibleSourceEntityIds = virtualCalendar.entities.filter((entityId) => !this._hiddenCalendars.has(entityId));
-      if (visibleSourceEntityIds.length === 0) return [];
-      const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
-      return [{ entityId: `virtual:${virtualCalendar.id}`, color: virtualCalendar.color || fallbackColor }];
-    }
-
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
-      return event.sourceCalendars.filter(calendar => !this._hiddenCalendars.has(calendar.entityId));
-    }
-
-    return [{ entityId: event.entityId, color: event.color }];
+    return getVisibleCalendarBadgesForEvent(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVirtualBadgeForEvent: (badgeEvent) => this.getVirtualBadgeForEvent(badgeEvent),
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color),
+      configColors: this._config.colors
+    });
   }
 
   renderEventIcon(event) {
@@ -7958,79 +13285,39 @@ class SkylightCalendarCard extends HTMLElement {
       return '';
     }
 
-    const styleOverrides = this.getEventStyleOverrides(event);
-    const useFriendlyName = this._config.event_calendar_friendly_name;
-    const hideCalendarBubble = styleOverrides?.hide_event_calendar_bubble ?? this._config.hide_event_calendar_bubble;
-
-    if (useFriendlyName) {
-      const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-      if (visibleBadges.length === 0) {
-        return '';
-      }
-
-      const namesHtml = visibleBadges
-        .map(calendar => `<div class="week-standard-event-calendar-name">${this.escapeHtml(this.getCalendarName(calendar.entityId))}</div>`)
-        .join('');
-
-      return `<div class="week-standard-event-icons">${namesHtml}</div>`;
-    }
-
-    if (hideCalendarBubble) {
-      return '';
-    }
-
-    const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-    if (visibleBadges.length === 0) {
-      return '';
-    }
-
-    const badgesHtml = visibleBadges.map(calendar => {
-      const name = this.getCalendarName(calendar.entityId);
-      const initial = name.charAt(0).toUpperCase();
-      return `<div class="week-standard-event-icon" style="background: ${calendar.color}; color: white;">${initial}</div>`;
-    }).join('');
-
-    return `<div class="week-standard-event-icons">${badgesHtml}</div>`;
+    return renderEventIcon(event, {
+      getEventStyleOverrides: (iconEvent) => this.getEventStyleOverrides(iconEvent),
+      eventCalendarFriendlyName: this._config.event_calendar_friendly_name,
+      hideEventCalendarBubble: this._config.hide_event_calendar_bubble,
+      getModalCalendarBadgesForEvent: (iconEvent) => this.getModalCalendarBadgesForEvent(iconEvent),
+      getCalendarName: (entityId) => this.getCalendarName(entityId),
+      escapeHtml: (value) => this.escapeHtml(value)
+    });
   }
 
 
   isCombinedEventWithinSingleVirtualCalendar(event) {
-    if (!event?.isCombinedCalendarEvent || !Array.isArray(event?.sourceEvents)) return false;
-
-    const visibleSources = event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
-    if (visibleSources.length <= 1) return false;
-
-    const virtualIds = new Set();
-    for (const sourceEvent of visibleSources) {
-      const virtualCalendar = this.getVirtualBadgeForEntity(sourceEvent.entityId);
-      if (!virtualCalendar) return false;
-      virtualIds.add(virtualCalendar.id);
-      if (virtualIds.size > 1) return false;
-    }
-
-    return virtualIds.size === 1;
+    return isCombinedEventWithinSingleVirtualCalendar(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVirtualBadgeForEntity: (entityId) => this.getVirtualBadgeForEntity(entityId)
+    });
   }
 
   shouldShowCombinedCornerBubbles(event) {
-    if (!event?.isCombinedCalendarEvent || !this._config.combine_calendars) return false;
-    if (this.isCombinedEventWithinSingleVirtualCalendar(event)) return false;
-    const styleOverrides = this.getEventStyleOverrides(event);
-    return !!styleOverrides?.hasDuplicateBackgroundColors;
+    return shouldShowCombinedCornerBubbles(event, {
+      combineCalendars: this._config.combine_calendars,
+      isSingleVirtualCalendar: this.isCombinedEventWithinSingleVirtualCalendar(event),
+      styleOverrides: this.getEventStyleOverrides(event)
+    });
   }
 
   renderCombinedCornerBubbles(event) {
-    if (!this.shouldShowCombinedCornerBubbles(event)) return '';
-
-    const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-    if (visibleBadges.length <= 1) return '';
-
-    const bubblesHtml = visibleBadges.map((calendar) => {
-      const name = this.getCalendarName(calendar.entityId);
-      const initial = name.charAt(0).toUpperCase();
-      return `<span class="combined-corner-bubble" style="background: ${calendar.color}; color: white;" title="${this.escapeHtml(name)}">${this.escapeHtml(initial)}</span>`;
-    }).join('');
-
-    return `<div class="combined-corner-bubbles">${bubblesHtml}</div>`;
+    return renderCombinedCornerBubbles(event, {
+      shouldShowCombinedCornerBubbles: (bubbleEvent) => this.shouldShowCombinedCornerBubbles(bubbleEvent),
+      getModalCalendarBadgesForEvent: (bubbleEvent) => this.getModalCalendarBadgesForEvent(bubbleEvent),
+      getCalendarName: (entityId) => this.getCalendarName(entityId),
+      escapeHtml: (value) => this.escapeHtml(value)
+    });
   }
 
   getEventStyleIconConfig(event) {
@@ -8047,58 +13334,33 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderEventStyleIcon(event, { position = 'before_title' } = {}) {
-    const iconConfig = this.getEventStyleIconConfig(event);
-    if (!iconConfig || iconConfig.position !== position) return '';
-
-    const styleParts = [];
-    if (iconConfig.color) styleParts.push(`color: ${iconConfig.color};`);
-    if (iconConfig.size) styleParts.push(`--event-style-icon-size: ${iconConfig.size};`);
-    const styleAttr = styleParts.length ? ` style="${styleParts.join(' ')}"` : '';
-    const className = position === 'corner' ? 'event-style-icon event-style-icon-corner' : 'event-style-icon event-style-icon-before-title';
-    return `<ha-icon class="${className}" icon="${this.escapeHtml(iconConfig.icon)}"${styleAttr}></ha-icon>`;
+    return renderEventStyleIcon(this.getEventStyleIconConfig(event), {
+      position,
+      escapeHtml: (value) => this.escapeHtml(value)
+    });
   }
 
   renderEventStyleCornerIcon(event) {
-    return this.renderEventStyleIcon(event, { position: 'corner' });
+    return renderEventStyleCornerIcon(event, {
+      getEventStyleIconConfig: (iconEvent) => this.getEventStyleIconConfig(iconEvent),
+      escapeHtml: (value) => this.escapeHtml(value)
+    });
   }
 
   renderEventTitleWithPrefix(event, title) {
-    const titleText = this.escapeHtml(title || this.t('untitledEvent'));
-    const styleOverrides = this.getEventStyleOverrides(event);
-    const titleIcon = this.renderEventStyleIcon(event, { position: 'before_title' });
-    const titleHtml = titleIcon ? `${titleIcon}<span>${titleText}</span>` : titleText;
-    const prefixMode = this.normalizeEventTitlePrefixMode(styleOverrides?.event_title_prefix ?? this._config.event_title_prefix);
-    const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-    if (prefixMode === 'none' || visibleBadges.length === 0) {
-      return titleIcon ? `<span class="event-title-with-prefix">${titleHtml}</span>` : titleText;
-    }
-
-    if (prefixMode === 'friendly_name') {
-      const calendarNames = visibleBadges
-        .map((calendar) => this.getCalendarName(calendar.entityId))
-        .filter(Boolean);
-      const uniqueCalendarNames = Array.from(new Set(calendarNames));
-      const calendarNameLabel = this.escapeHtml(uniqueCalendarNames.join(', '));
-      return `<span class="event-title-with-prefix"><span class="event-title-prefix-friendly-name">${calendarNameLabel}:</span>${titleHtml}</span>`;
-    }
-
-    const badgesHtml = visibleBadges.map((calendar) => {
-      const iconColor = this.normalizeSingleColor(calendar.color) || '#6b7280';
-      const configuredBadgeIcon = this.getCalendarBadgeIcon(calendar.entityId);
-      let badgeIconHtml = '';
-      if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
-        badgeIconHtml = `<ha-icon icon="${this.escapeHtml(configuredBadgeIcon)}"></ha-icon>`;
-      } else if (configuredBadgeIcon) {
-        const normalizedUrl = this.normalizeBackgroundImageUrl(configuredBadgeIcon) || configuredBadgeIcon;
-        badgeIconHtml = `<img src="${this.escapeHtml(normalizedUrl)}" alt="" loading="lazy">`;
-      } else {
-        const initial = this.escapeHtml(this.getCalendarName(calendar.entityId).charAt(0).toUpperCase());
-        badgeIconHtml = `<span>${initial}</span>`;
-      }
-      return `<span class="event-title-prefix-badge" style="background: ${iconColor}; color: white;">${badgeIconHtml}</span>`;
-    }).join('');
-
-    return `<span class="event-title-with-prefix"><span class="event-title-prefix-badges">${badgesHtml}</span>${titleHtml}</span>`;
+    return renderEventTitleWithPrefix(event, title, {
+      t: (key) => this.t(key),
+      escapeHtml: (value) => this.escapeHtml(value),
+      getEventStyleOverrides: (titleEvent) => this.getEventStyleOverrides(titleEvent),
+      getEventStyleIconConfig: (titleEvent) => this.getEventStyleIconConfig(titleEvent),
+      normalizeEventTitlePrefixMode: (mode) => this.normalizeEventTitlePrefixMode(mode),
+      configuredEventTitlePrefix: this._config.event_title_prefix,
+      getModalCalendarBadgesForEvent: (titleEvent) => this.getModalCalendarBadgesForEvent(titleEvent),
+      getCalendarName: (entityId) => this.getCalendarName(entityId),
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color),
+      getCalendarBadgeIcon: (entityId) => this.getCalendarBadgeIcon(entityId),
+      normalizeBackgroundImageUrl: (url) => this.normalizeBackgroundImageUrl(url)
+    });
   }
 
 
@@ -8118,18 +13380,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getEventFontSize(event = null, configKey = 'event_font_size', fallbackPx = 11) {
     const styleOverrides = event ? this.getEventStyleOverrides(event) : null;
-    const configuredSize = styleOverrides?.[configKey] ?? this._config?.[configKey];
-    if (configuredSize === undefined || configuredSize === null || configuredSize === '') {
-      return `${fallbackPx}px`;
-    }
-
-    if (typeof configuredSize === 'number' && Number.isFinite(configuredSize)) {
-      return `${configuredSize}px`;
-    }
-
-    const normalized = String(configuredSize).trim();
-    if (!normalized) return `${fallbackPx}px`;
-    return /^\d+(\.\d+)?$/.test(normalized) ? `${normalized}px` : normalized;
+    return getEventFontSizeDisplayValue(styleOverrides?.[configKey] ?? this._config?.[configKey], fallbackPx);
   }
 
   getEventBubbleFontSize(event = null) {
@@ -8145,97 +13396,36 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   shouldShowEventLocation(event) {
-    const styleOverrides = this.getEventStyleOverrides(event);
-    const showLocation = styleOverrides?.show_event_location ?? this._config.show_event_location;
-    return !!(showLocation && event?.location);
+    return shouldShowEventLocation(event, {
+      styleOverrides: this.getEventStyleOverrides(event),
+      showEventLocation: this._config.show_event_location
+    });
   }
 
   getDisplayLocation(location, event = null) {
-    const normalizedLocation = this.normalizeEventTextValue(location);
-    if (!normalizedLocation) return '';
-    const styleOverrides = event ? this.getEventStyleOverrides(event) : null;
-    const shouldShorten = styleOverrides?.use_short_location ?? this._config?.use_short_location;
-    if (!shouldShorten) return normalizedLocation;
-
-    const numberMatch = normalizedLocation.match(/\b\d+[A-Za-z0-9-]*\b/);
-    if (!numberMatch) {
-      return normalizedLocation;
-    }
-
-    const numberIndex = numberMatch.index ?? -1;
-    const hasPrefix = numberIndex > 0;
-    if (hasPrefix) {
-      const prefix = normalizedLocation
-        .slice(0, numberIndex)
-        .replace(/[\s,;:\/\\|-]+$/g, '')
-        .trim();
-      if (prefix) {
-        return prefix;
-      }
-      return normalizedLocation;
-    }
-
-    const commonStreetEndingPattern = /\b(street|st\.?|road|rd\.?|avenue|ave\.?|boulevard|blvd\.?|drive|dr\.?|lane|ln\.?|court|ct\.?|circle|cir\.?|place|pl\.?|parkway|pkwy\.?|way|terrace|ter\.?|highway|hwy\.?)\b/i;
-    const firstSegmentEnd = normalizedLocation.search(/[,;]/);
-    const streetSegment = firstSegmentEnd >= 0
-      ? normalizedLocation.slice(0, firstSegmentEnd)
-      : normalizedLocation;
-    const endingMatch = streetSegment.match(commonStreetEndingPattern);
-    if (!endingMatch) {
-      return normalizedLocation;
-    }
-
-    const endingStart = endingMatch.index ?? -1;
-    if (endingStart < 0) {
-      return normalizedLocation;
-    }
-
-    const endingText = endingMatch[0] || '';
-    const shortened = streetSegment
-      .slice(0, endingStart + endingText.length)
-      .replace(/[,\s;:\/\\|-]+$/g, '')
-      .trim();
-
-    return shortened || normalizedLocation;
+    return getDisplayLocation(location, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      useShortLocation: this._config?.use_short_location
+    });
   }
 
   getEventBubbleFontColor(event) {
-    if (!event) return 'white';
-    const styleOverrides = this.getEventStyleOverrides(event);
-    if (styleOverrides?.event_font_color) {
-      return styleOverrides.event_font_color;
-    }
-
-    const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
-      ? event.sourceEntityIds.filter(entityId => !this._hiddenCalendars.has(entityId))
-      : [event.entityId];
-
-    const preferredEntityId = visibleEntityIds[0] || event.entityId;
-    const configuredColor = preferredEntityId
-      ? this.normalizeSingleColor(this._config?.event_font_colors?.[preferredEntityId])
-      : null;
-    if (configuredColor) {
-      return configuredColor;
-    }
-
-    return this.getContractColor(this.getEventBackgroundColor(event));
+    return getEventBubbleFontColor(event, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      hiddenCalendars: this._hiddenCalendars,
+      eventFontColors: this._config?.event_font_colors,
+      normalizeSingleColor: (color) => this.normalizeSingleColor(color),
+      getEventBackgroundColor: (colorEvent) => this.getEventBackgroundColor(colorEvent),
+      getContrastColor: (color) => this.getContractColor(color)
+    });
   }
 
   shouldShowEventTime(event) {
-    if (!event) return true;
-    const styleOverrides = this.getEventStyleOverrides(event);
-    if (styleOverrides?.hide_time === true) return false;
-    if (styleOverrides?.show_time === true) return true;
-
-    const visibleEntityIds = event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)
-      ? event.sourceEntityIds.filter(entityId => !this._hiddenCalendars.has(entityId))
-      : [event.entityId];
-
-    if (visibleEntityIds.length === 0) {
-      return false;
-    }
-
-    return visibleEntityIds.some(entityId => !this._config.hide_times_for_calendars.includes(entityId));
+    return shouldShowEventTime(event, {
+      styleOverrides: event ? this.getEventStyleOverrides(event) : null,
+      hiddenCalendars: this._hiddenCalendars,
+      hideTimesForCalendars: this._config.hide_times_for_calendars
+    });
   }
 
   shouldShowCurrentTimeBar(today, startHour, endHour) {
@@ -8257,7 +13447,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatScheduleHour(hour) {
-    const date = new Date(2020, 0, 1, hour, 0, 0, 0);
+    const date = this.zonedTimeToDate(2020, 1, 1, hour, 0, 0, 0);
     return this.formatScheduleTime(date);
   }
 
@@ -8276,20 +13466,21 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatScheduleTime(date) {
-    return new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions()).format(date);
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions())).format(date);
   }
 
   uses24HourEventTime() {
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     return formatter.resolvedOptions().hour12 === false;
   }
 
   isWholeHour(date) {
-    return date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0;
+    const parts = this.getDateTimeParts(date);
+    return Number(parts.minute) === 0 && Number(parts.second) === 0 && date.getMilliseconds() === 0;
   }
 
   formatLocalizedHour(date) {
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     const hourPart = formatter.formatToParts(date).find((part) => part.type === 'hour');
     if (hourPart) {
       return hourPart.value;
@@ -8303,7 +13494,7 @@ class SkylightCalendarCard extends HTMLElement {
       return this.formatBaseEventTime(date, options);
     }
 
-    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions());
+    const formatter = new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions()));
     const parts = formatter.formatToParts(date);
     const minuteIndex = parts.findIndex((part) => part.type === 'minute');
     const shortenedParts = parts.filter((part, index) => {
@@ -8437,100 +13628,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDays() {
-    const year = this._currentDate.getFullYear();
-    const month = this._currentDate.getMonth();
-
-    // If rolling_weeks is set, show current week + N additional weeks
-    if (this._config.rolling_weeks !== null && this._viewMode === 'month') {
-      return this.renderRollingWeeks();
-    }
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const daysInPrevMonth = new Date(year, month, 0).getDate();
-
-    const today = new Date();
-    const isToday = (d) => {
-      return d.getDate() === today.getDate() &&
-             d.getMonth() === today.getMonth() &&
-             d.getFullYear() === today.getFullYear();
-    };
-
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-    let html = '';
-    let dayIndex = 0;
-    const startDay = (firstDay - this._config.firstDayOfWeek + 7) % 7;
-
-    // Previous month days
-    for (let i = startDay - 1; i >= 0; i--) {
-      const day = daysInPrevMonth - i;
-      const date = new Date(year, month - 1, day);
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
+    return renderMonthDays({
+      currentDate: this._currentDate,
+      config: this._config,
+      viewMode: this._viewMode,
+      shouldShowWeekNumbers: this.shouldShowMonthWeekNumbers(),
+      helpers: {
+        renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+        renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
       }
-      html += this.renderDay(day, date, true);
-      dayIndex++;
-    }
-
-    // Current month days
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
-      }
-      html += this.renderDay(day, date, false);
-      dayIndex++;
-    }
-
-    // Next month days
-    const totalCells = startDay + daysInMonth;
-    const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-    for (let day = 1; day <= remainingCells; day++) {
-      const date = new Date(year, month + 1, day);
-      if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
-      }
-      html += this.renderDay(day, date, true);
-      dayIndex++;
-    }
-
-    return html;
-  }
-
-  renderRollingWeeks() {
-    const anchorDate = new Date(this._currentDate);
-    anchorDate.setHours(0, 0, 0, 0);
-
-    // Find the start of the current week based on firstDayOfWeek
-    const currentDay = anchorDate.getDay();
-    const diff = (currentDay - this._config.firstDayOfWeek + 7) % 7;
-    const weekStart = new Date(anchorDate);
-    weekStart.setDate(anchorDate.getDate() - diff);
-
-    // Calculate total days to show: (rolling_weeks + 1) * 7 days
-    const totalWeeks = this._config.rolling_weeks + 1;
-    const totalDays = totalWeeks * 7;
-
-    const shouldShowWeekNumbers = this.shouldShowMonthWeekNumbers();
-    let html = '';
-
-    // Render all days in the rolling weeks
-    for (let i = 0; i < totalDays; i++) {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
-      if (shouldShowWeekNumbers && i % 7 === 0) {
-        html += this.renderMonthWeekNumberCell(date);
-      }
-
-      // In rolling-weeks month view, keep trailing (next-month) days visually active
-      // while still dimming any leading days from the previous month.
-      const currentMonthStart = new Date(this._currentDate.getFullYear(), this._currentDate.getMonth(), 1);
-      const isOtherMonth = date < currentMonthStart;
-
-      html += this.renderDay(date.getDate(), date, isOtherMonth);
-    }
-
-    return html;
+    });
   }
 
   getMaxVisibleEventsForMonthDay() {
@@ -8578,11 +13685,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getIsoWeekNumber(date) {
-    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNumber = utcDate.getUTCDay() || 7;
-    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
-    const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-    return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+    return getIsoWeekNumber(date);
   }
 
   formatMonthWeekNumberLabel(date) {
@@ -8624,27 +13727,10 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderDayBadges(date, dayEvents) {
-    const badges = this.getDayBadges(date, dayEvents);
-    if (!badges.length) return '';
-
-    const badgesHtml = badges.map((badge) => {
-      const style = [
-        badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
-        badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
-        badge.size ? `--dcc-day-badge-size: ${badge.size};` : '',
-        badge.font_size ? `--dcc-day-badge-font-size: ${badge.font_size};` : ''
-      ].join(' ');
-      const hasIcon = Boolean(badge.icon);
-      const hasText = Boolean(badge.text);
-      const content = [
-        hasIcon ? `<ha-icon icon="${this.escapeHtml(badge.icon)}"></ha-icon>` : '',
-        hasText ? `<span class="day-badge-text">${this.escapeHtml(badge.text)}</span>` : ''
-      ].join('');
-      const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
-      return `<span class="${classes}" style="${style}">${content}</span>`;
-    }).join('');
-
-    return `<div class="day-badges">${badgesHtml}</div>`;
+    return renderDayBadges(date, dayEvents, {
+      escapeHtml: this.escapeHtml.bind(this),
+      getDayBadges: this.getDayBadges.bind(this)
+    });
   }
 
   renderDay(dayNum, date, isOtherMonth) {
@@ -8659,24 +13745,25 @@ class SkylightCalendarCard extends HTMLElement {
     const visibleEvents = hasOverflow ? Math.max(0, maxVisible - 1) : maxVisible;
     const hiddenEventCount = Math.max(0, dayEvents.length - visibleEvents);
 
-    let classes = 'day-cell';
-    if (isOtherMonth) classes += ' other-month';
-    if (isToday) classes += ' today';
     const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
-    classes += dayStyle.className ? ` ${dayStyle.className}` : '';
-    const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
 
-    return `
-      <div class="${classes}" data-date="${date.toISOString()}"${dayStyleAttr}>
-        <div class="day-header-row">
-          <div class="day-number">${dayNum}</div>
-          ${this.renderDayBadges(date, dayEventsForMatching)}
-          ${this.renderDayForecast(date, 'month')}
-        </div>
-        ${dayEvents.slice(0, visibleEvents).map(event => this.renderMonthDayEvent(event, date)).join('')}
-        ${hiddenEventCount > 0 ? `<div class="more-events" data-click-target="more-events">${this.t('moreEvents', { count: hiddenEventCount })}</div>` : ''}
-      </div>
-    `;
+    return renderDayCell({
+      date,
+      dayEvents,
+      dayEventsForMatching,
+      dayNum,
+      dayStyle,
+      hiddenEventCount,
+      isOtherMonth,
+      isToday,
+      visibleEvents,
+      helpers: {
+        renderDayBadges: this.renderDayBadges.bind(this),
+        renderDayForecast: this.renderDayForecast.bind(this),
+        renderMonthDayEvent: this.renderMonthDayEvent.bind(this),
+        t: this.t.bind(this)
+      }
+    });
   }
 
   renderMonthDayEvent(event, date) {
@@ -8724,10 +13811,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeEventTextValue(value) {
-    return String(value || '')
-      .normalize('NFKC')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return normalizeEventTextValue(value);
   }
 
   getNormalizedEventTimeValue(value) {
@@ -9019,18 +14103,18 @@ class SkylightCalendarCard extends HTMLElement {
   getCombinedBackgroundColor(visibleColors, fallbackColor) {
     const primaryColor = visibleColors[0] || fallbackColor;
     const option = this.normalizeCombineBackground(this._config?.combine_background);
-    if (option === 'primary') return primaryColor;
-    if (option === 'neutral') return '#F8F3E9';
+    if (option === DEFAULT_COMBINE_BACKGROUND) return primaryColor;
+    if (option === 'neutral') return DEFAULT_EVENT_NEUTRAL_BACKGROUND;
     return option;
   }
 
   getEventNeutralBackgroundColor() {
     const normalized = this.normalizeSingleColor(this._config?.event_neutral_background);
-    return normalized || '#F8F3E9';
+    return normalized || DEFAULT_EVENT_NEUTRAL_BACKGROUND;
   }
 
   getEventTintBackgroundColor(primaryColor) {
-    const tintTransparency = this.normalizeBackgroundOpacity(this._config?.event_tint_opacity, 80);
+    const tintTransparency = this.normalizeBackgroundOpacity(this._config?.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY);
     const tintOpacity = 1 - (tintTransparency / 100);
     const baseRgb = this._isDarkMode
       ? { r: 42, g: 47, b: 54 }
@@ -9046,7 +14130,7 @@ class SkylightCalendarCard extends HTMLElement {
     if (Number.isFinite(configuredWidth) && configuredWidth > 0) return configuredWidth;
     const combineWidth = Number(this._config?.combine_calendars_width);
     if (Number.isFinite(combineWidth) && combineWidth > 0) return combineWidth;
-    return 18;
+    return DEFAULT_EVENT_COLOR_BAR_WIDTH;
   }
 
   getEventBackgroundColor(event) {
@@ -9068,11 +14152,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getContractColor(backgroundColor) {
-    const rgb = this.colorToRgb(backgroundColor);
-    if (!rgb) return 'white';
-
-    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-    return luminance > 0.6 ? 'black' : 'white';
+    return getContrastColor(backgroundColor, {
+      colorToRgb: this.colorToRgb.bind(this)
+    });
   }
 
   getIndicatorColors(visibleColors, combineStyle, combineBackgroundOption) {
@@ -9159,32 +14241,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getEventDateTimeInfo(event) {
-    if (event.start.dateTime) {
-      return {
-        eventStart: new Date(event.start.dateTime),
-        eventEnd: new Date(event.end.dateTime),
-        isAllDay: false
-      };
-    }
-
-    if (event.start.date) {
-      return {
-        eventStart: this.parseLocalDate(event.start.date),
-        eventEnd: this.parseLocalDate(event.end.date),
-        isAllDay: true
-      };
-    }
-
-    const isAllDay = !event.start.includes('T');
-    return {
-      eventStart: new Date(event.start),
-      eventEnd: new Date(event.end),
-      isAllDay
-    };
+    return getEventDateTimeInfo(event, { parseCalendarDate: this.parseCalendarDate.bind(this) });
   }
 
   getLocalDateKey(date) {
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const { year, month, day } = this.getDateParts(date);
+    return Date.UTC(year, month - 1, day);
   }
 
   eventSpansMultipleLocalDates(eventStart, eventEnd) {
@@ -9197,23 +14259,13 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getScheduleVisualInfo(event) {
-    const { eventStart, eventEnd, isAllDay } = this.getEventDateTimeInfo(event);
-    const rendersAsAllDay = isAllDay || this.shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
-    const displayTitle = event.summary || this.t('untitledEvent');
-    const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && this.shouldShowEventTime(event);
-
-    return {
-      eventStart,
-      eventEnd,
-      isAllDay,
-      rendersAsAllDay,
-      displayTitle: shouldIncludeStartTime
-        ? this.t('eventTitleWithStartTime', {
-            title: displayTitle,
-            time: this.formatEventTime(eventStart, { schedule: true })
-          })
-        : displayTitle
-    };
+    return getScheduleVisualInfo(event, {
+      getEventDateTimeInfo: (infoEvent) => this.getEventDateTimeInfo(infoEvent),
+      shouldRenderTimedEventAsAllDayInSchedule: (eventStart, eventEnd) => this.shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd),
+      shouldShowEventTime: (timeEvent) => this.shouldShowEventTime(timeEvent),
+      formatEventTime: (date, options) => this.formatEventTime(date, options),
+      translate: (key, params) => this.t(key, params)
+    });
   }
 
   getEventDaySegment(event, date, options = {}) {
@@ -9221,9 +14273,7 @@ class SkylightCalendarCard extends HTMLElement {
     const { eventStart, eventEnd, isAllDay } = scheduleVisualInfo || this.getEventDateTimeInfo(event);
     const rendersAsAllDay = scheduleVisualInfo?.rendersAsAllDay || isAllDay;
 
-    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const nextDayStart = new Date(dayStart);
-    nextDayStart.setDate(nextDayStart.getDate() + 1);
+    const { dayStart, nextDayStart } = this.getDayBounds(date);
 
     if (eventEnd <= dayStart || eventStart >= nextDayStart) {
       return null;
@@ -9537,6 +14587,9 @@ class SkylightCalendarCard extends HTMLElement {
   updateEventModalOpenState(modal = this.getRootElementById('event-modal')) {
     const isOpen = !!modal && modal.classList.contains('show');
     this.classList?.toggle('event-modal-open', isOpen);
+    if (!isOpen) {
+      this.flushPendingHostResizeRender();
+    }
   }
 
   observeModalVisibility(modal) {
@@ -9768,29 +14821,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   buildRRuleFromInputs({ frequency, interval, untilDate, count, byDay }) {
-    const parts = [`FREQ=${frequency}`];
-    const parsedInterval = parseInt(interval, 10);
-
-    if (!Number.isNaN(parsedInterval) && parsedInterval > 1) {
-      parts.push(`INTERVAL=${parsedInterval}`);
-    }
-
-    if (Array.isArray(byDay) && byDay.length > 0) {
-      parts.push(`BYDAY=${byDay.join(',')}`);
-    }
-
-    const parsedCount = parseInt(count, 10);
-    if (!Number.isNaN(parsedCount) && parsedCount > 0) {
-      parts.push(`COUNT=${parsedCount}`);
-    } else if (untilDate) {
-      const until = new Date(`${untilDate}T23:59:59`);
-      if (!Number.isNaN(until.getTime())) {
-        const compactUntil = until.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-        parts.push(`UNTIL=${compactUntil}`);
-      }
-    }
-
-    return parts.join(';');
+    return buildRRuleFromInputs({ frequency, interval, untilDate, count, byDay });
   }
 
   parseRRule(rrule = '') {
@@ -9910,20 +14941,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   resolveTimedEventRange(startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) {
-    const start = this.parsePossiblyLocalDateTime(startValue);
-    if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
-      return { start: null, end: null };
-    }
-
-    const parsedEnd = endValue ? this.parsePossiblyLocalDateTime(endValue) : null;
-    if (parsedEnd instanceof Date && !Number.isNaN(parsedEnd.getTime())) {
-      return { start, end: parsedEnd };
-    }
-
-    return {
-      start,
-      end: new Date(start.getTime() + fallbackDurationMs)
-    };
+    return resolveTimedEventRange(startValue, endValue, fallbackDurationMs);
   }
 
   showCreateEventModal(defaultDate = null, defaultTime = null, options = {}) {
@@ -9974,196 +14992,26 @@ class SkylightCalendarCard extends HTMLElement {
     const isPrefilledRecurring = !!prefill?.rrule;
     const isPrefilledAllDay = !!prefill?.isAllDay;
 
-    // Format for datetime-local input
-    const formatDateTimeLocal = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    };
-
-    const formatDate = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    content.innerHTML = `
-      <div class="modal-header">
-        <h3 class="modal-title">${this.t('createEvent')}</h3>
-        <button class="modal-close" id="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="create-event-form">
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row">
-              <label class="form-label">
-                ${this.t('calendars')}<span class="form-required">*</span>
-              </label>
-              <div class="form-checkbox-grid">
-                ${writableCalendars.map((entityId, index) => `
-                  <label class="form-checkbox-group" style="margin: 0;">
-                    <input
-                      type="checkbox"
-                      class="form-checkbox create-event-calendar"
-                      value="${entityId}"
-                      ${(selectedCalendarIds.length > 0 ? selectedCalendarIds.includes(entityId) : index === 0) ? 'checked' : ''}
-                    />
-                    <span class="form-checkbox-label">${this.escapeHtml(this.getCalendarName(entityId))}</span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row">
-              <label class="form-label">
-                ${this.t('eventTitle')}<span class="form-required">*</span>
-              </label>
-              <input type="text" class="form-input" id="event-title" placeholder="${this.escapeHtmlAttribute(this.t('eventTitlePlaceholder'))}" value="${this.escapeHtmlAttribute(prefill?.summary || '')}" required />
-            </div>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row form-inline-row-top">
-              <label class="form-label">${this.t('eventOptions')}</label>
-              <div class="form-checkbox-row">
-                <div class="form-group">
-                  <div class="form-checkbox-group">
-                    <input type="checkbox" class="form-checkbox" id="event-all-day" ${isPrefilledAllDay ? 'checked' : ''} />
-                    <label class="form-checkbox-label" for="event-all-day">${this.t('allDayEvent')}</label>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <div class="form-checkbox-group">
-                    <input type="checkbox" class="form-checkbox" id="event-recurring" ${isPrefilledRecurring ? 'checked' : ''} />
-                    <label class="form-checkbox-label" for="event-recurring">${this.t('recurring')}</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="recurring-event-fields" style="display: ${isPrefilledRecurring ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group form-group-inline">
-                <div class="form-inline-row">
-                  <label class="form-label">${this.t('recurrenceFrequency')}</label>
-                  <select class="form-select" id="event-recurrence-frequency">
-                  <option value="DAILY" ${recurrenceData.frequency === 'DAILY' ? 'selected' : ''}>${this.t('recurrenceDaily')}</option>
-                  <option value="WEEKLY" ${recurrenceData.frequency === 'WEEKLY' ? 'selected' : ''}>${this.t('recurrenceWeekly')}</option>
-                  <option value="MONTHLY" ${recurrenceData.frequency === 'MONTHLY' ? 'selected' : ''}>${this.t('recurrenceMonthly')}</option>
-                  <option value="YEARLY" ${recurrenceData.frequency === 'YEARLY' ? 'selected' : ''}>${this.t('recurrenceYearly')}</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group form-group-inline">
-                <div class="form-inline-row">
-                  <label class="form-label">${this.t('recurrenceEvery')}</label>
-                  <input type="number" class="form-input" id="event-recurrence-interval" min="1" value="${this.escapeHtmlAttribute(recurrenceData.interval || '1')}" />
-                </div>
-              </div>
-            </div>
-            <div class="form-group" id="event-recurrence-weekdays-group" style="display: ${isPrefilledRecurring && recurrenceData.frequency === 'WEEKLY' ? 'block' : 'none'};">
-              <label class="form-label">${this.t('recurrenceWeekdays')}</label>
-              <div class="form-checkbox-group" style="flex-wrap: wrap; gap: 10px;">
-                ${this.getRecurrenceWeekdayOptions().map(day => `
-                  <label class="form-checkbox-label" style="display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" class="form-checkbox event-recurrence-weekday" value="${day.key}" ${recurrenceData.byDay.includes(day.key) ? 'checked' : ''} />
-                    <span>${day.label}</span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label recurrence-ends-label">${this.t('recurrenceEndsOn')}</label>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-never">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-never" value="never" ${this.getRecurrenceEndMode(recurrenceData) === 'never' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceNever')}</span>
-                </label>
-                <div></div>
-              </div>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-on">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-on" value="on" ${this.getRecurrenceEndMode(recurrenceData) === 'on' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceOn')}</span>
-                </label>
-                <input type="date" class="form-input" id="event-recurrence-until" value="${this.escapeHtmlAttribute(recurrenceData.untilDate || '')}" ${this.getRecurrenceEndMode(recurrenceData) === 'on' ? '' : 'disabled'} />
-              </div>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-after">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-after" value="after" ${this.getRecurrenceEndMode(recurrenceData) === 'after' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceAfter')}</span>
-                </label>
-                <div class="recurrence-after-input">
-                  <input type="number" class="form-input" id="event-recurrence-count" min="1" placeholder="13" value="${this.escapeHtmlAttribute(recurrenceData.count || '')}" ${this.getRecurrenceEndMode(recurrenceData) === 'after' ? '' : 'disabled'} />
-                  <span>${this.t('recurrenceOccurrences')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="timed-event-fields" style="display: ${isPrefilledAllDay ? 'none' : 'block'};">
-            <div class="form-group form-group-inline">
-              <div class="form-inline-row">
-                <label class="form-label">${this.t('start')}</label>
-                <input type="datetime-local" class="form-input" id="event-start"
-                       value="${formatDateTimeLocal(startTime)}" required />
-              </div>
-            </div>
-
-            <div class="form-group form-group-inline">
-              <div class="form-inline-row">
-                <label class="form-label">${this.t('end')}</label>
-                <input type="datetime-local" class="form-input" id="event-end"
-                       value="${formatDateTimeLocal(endTime)}" />
-              </div>
-            </div>
-          </div>
-
-          <div id="all-day-event-fields" style="display: ${isPrefilledAllDay ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">${this.t('startDate')}</label>
-                <input type="date" class="form-input" id="event-start-date"
-                       value="${formatDate(startDate)}" />
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">${this.t('endDate')}</label>
-                <input type="date" class="form-input" id="event-end-date"
-                       value="${formatDate(endDate)}" />
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row">
-              <label class="form-label">${this.t('location')}</label>
-              <input type="text" class="form-input" id="event-location" placeholder="${this.escapeHtmlAttribute(this.t('locationPlaceholder'))}" value="${this.escapeHtmlAttribute(prefill?.location || '')}" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">${this.t('description')}</label>
-            <textarea class="form-textarea" id="event-description" placeholder="${this.escapeHtmlAttribute(this.t('descriptionPlaceholder'))}">${this.escapeHtml(prefill?.description || '')}</textarea>
-          </div>
-
-          <div id="form-error" class="error-message" style="display: none;"></div>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" id="cancel-btn">${this.t('cancel')}</button>
-            <button type="submit" class="btn btn-primary" id="submit-btn">${this.t('createEvent')}</button>
-          </div>
-        </form>
-      </div>
-    `;
+    content.innerHTML = renderCreateEventForm({
+      writableCalendars,
+      selectedCalendarIds,
+      prefill,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      recurrenceData,
+      isPrefilledRecurring,
+      isPrefilledAllDay,
+      recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
+      recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      helpers: {
+        escapeHtml: (value) => this.escapeHtml(value),
+        escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
+        getCalendarName: (entityId) => this.getCalendarName(entityId),
+        t: (key) => this.t(key)
+      }
+    });
 
     modal.classList.add('show');
 
@@ -10236,61 +15084,23 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
 
-      if (!title) {
-        this.showFormError(errorDiv, this.t('eventTitleRequired'));
+      const formResult = normalizeEventFormData({
+        title,
+        location,
+        description,
+        isAllDay,
+        startDate: this.getRootElementById('event-start-date').value,
+        endDate: this.getRootElementById('event-end-date').value,
+        startDateTime: this.getRootElementById('event-start').value,
+        endDateTime: this.getRootElementById('event-end').value
+      });
+
+      if (!formResult.valid) {
+        this.showFormError(errorDiv, this.t(formResult.errorKey));
         return;
       }
 
-      let eventData = {
-        summary: title,
-        location: location || undefined,
-        description: description || undefined
-      };
-
-      if (isAllDay) {
-        const startDate = this.getRootElementById('event-start-date').value;
-        const endDate = this.getRootElementById('event-end-date').value;
-
-        if (!startDate || !endDate) {
-          this.showFormError(errorDiv, this.t('startEndDatesRequired'));
-          return;
-        }
-
-        // Validate that end date is on or after start date
-        const start = this.parseLocalDate(startDate);
-        const end = this.parseLocalDate(endDate);
-
-        if (end < start) {
-          this.showFormError(errorDiv, this.t('endDateBeforeStart'));
-          return;
-        }
-
-        // For Home Assistant, end date is exclusive, so add 1 day
-        const exclusiveEndDate = new Date(end);
-        exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
-        const exclusiveEndDateStr = this.formatLocalDate(exclusiveEndDate);
-
-        eventData.start = { date: startDate };
-        eventData.end = { date: exclusiveEndDateStr };
-      } else {
-        const startDateTime = this.getRootElementById('event-start').value;
-        const endDateTime = this.getRootElementById('event-end').value;
-
-        if (!startDateTime) {
-          this.showFormError(errorDiv, this.t('startEndTimesRequired'));
-          return;
-        }
-
-        const { start, end } = this.resolveTimedEventRange(startDateTime, endDateTime);
-
-        if (end <= start) {
-          this.showFormError(errorDiv, this.t('endTimeBeforeStart'));
-          return;
-        }
-
-        eventData.start = { dateTime: start.toISOString() };
-        eventData.end = { dateTime: end.toISOString() };
-      }
+      let eventData = formResult.eventData;
 
       if (recurringCheckbox.checked) {
         const frequency = this.getRootElementById('event-recurrence-frequency').value;
@@ -10301,19 +15111,31 @@ class SkylightCalendarCard extends HTMLElement {
         const untilDate = recurrenceEndMode === 'on' ? untilDateRaw : '';
         const recurrenceCount = recurrenceEndMode === 'after' ? recurrenceCountRaw : '';
         const byDay = Array.from(this._root.querySelectorAll('.event-recurrence-weekday:checked')).map((el) => el.value);
+        const recurrenceResult = normalizeEventFormData({
+          title,
+          location,
+          description,
+          isAllDay,
+          startDate: this.getRootElementById('event-start-date').value,
+          endDate: this.getRootElementById('event-end-date').value,
+          startDateTime: this.getRootElementById('event-start').value,
+          endDateTime: this.getRootElementById('event-end').value,
+          recurrence: {
+            enabled: true,
+            frequency,
+            interval,
+            untilDate,
+            count: recurrenceCount,
+            byDay
+          }
+        });
 
-        if (frequency === 'WEEKLY' && byDay.length === 0) {
-          this.showFormError(errorDiv, this.t('recurrenceSelectWeekday'));
+        if (!recurrenceResult.valid) {
+          this.showFormError(errorDiv, this.t(recurrenceResult.errorKey));
           return;
         }
 
-        eventData.rrule = this.buildRRuleFromInputs({
-          frequency,
-          interval,
-          untilDate,
-          count: recurrenceCount,
-          byDay: frequency === 'WEEKLY' ? byDay : []
-        });
+        eventData = recurrenceResult.eventData;
       }
 
       // Disable submit button
@@ -10363,197 +15185,29 @@ class SkylightCalendarCard extends HTMLElement {
       : [];
     const visibleCalendarOptions = selectedCombinedCalendarIds.length > 0 ? selectedCombinedCalendarIds : writableCalendars;
 
-    // Format for datetime-local input
-    const formatDateTimeLocal = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    };
-
-    const formatDate = (date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
     const recurrenceData = this.parseRRule(event.rrule || '');
     const isRecurring = !!event.rrule;
     const isSingleOccurrenceEdit = editScope === 'this' && isRecurring;
     const recurringSelectedByDefault = isRecurring && !isSingleOccurrenceEdit;
 
-    content.innerHTML = `
-      <div class="modal-header">
-        <h3 class="modal-title">${this.t('editEvent')}</h3>
-        <button class="modal-close" id="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="edit-event-form">
-          <div class="form-group">
-            <label class="form-label">
-              ${this.t('calendar')}<span class="form-required">*</span>
-            </label>
-            <select class="form-select" id="event-calendar" required ${selectedCombinedCalendarIds.length > 1 ? 'disabled' : ''}>
-              ${visibleCalendarOptions.map((entityId) => `
-                <option value="${entityId}" ${entityId === event.entityId ? 'selected' : ''}>
-                  ${this.escapeHtml(this.getCalendarName(entityId))}
-                </option>
-              `).join('')}
-            </select>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row">
-              <label class="form-label">
-                ${this.t('eventTitle')}<span class="form-required">*</span>
-              </label>
-              <input type="text" class="form-input" id="event-title"
-                     placeholder="${this.escapeHtmlAttribute(this.t('eventTitlePlaceholder'))}"
-                     value="${this.escapeHtmlAttribute(event.summary || '')}" required />
-            </div>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row form-inline-row-top">
-              <label class="form-label">${this.t('eventOptions')}</label>
-              <div class="form-checkbox-row">
-                <div class="form-group">
-                  <div class="form-checkbox-group">
-                    <input type="checkbox" class="form-checkbox" id="event-all-day" ${isAllDay ? 'checked' : ''} />
-                    <label class="form-checkbox-label" for="event-all-day">${this.t('allDayEvent')}</label>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <div class="form-checkbox-group">
-                    <input type="checkbox" class="form-checkbox" id="event-recurring" ${recurringSelectedByDefault ? 'checked' : ''} />
-                    <label class="form-checkbox-label" for="event-recurring">${this.t('recurring')}</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="recurring-event-fields" style="display: ${recurringSelectedByDefault ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group form-group-inline">
-                <div class="form-inline-row">
-                  <label class="form-label">${this.t('recurrenceFrequency')}</label>
-                  <select class="form-select" id="event-recurrence-frequency">
-                  <option value="DAILY" ${recurrenceData.frequency === 'DAILY' ? 'selected' : ''}>${this.t('recurrenceDaily')}</option>
-                  <option value="WEEKLY" ${recurrenceData.frequency === 'WEEKLY' ? 'selected' : ''}>${this.t('recurrenceWeekly')}</option>
-                  <option value="MONTHLY" ${recurrenceData.frequency === 'MONTHLY' ? 'selected' : ''}>${this.t('recurrenceMonthly')}</option>
-                  <option value="YEARLY" ${recurrenceData.frequency === 'YEARLY' ? 'selected' : ''}>${this.t('recurrenceYearly')}</option>
-                </select>
-                </div>
-              </div>
-              <div class="form-group form-group-inline">
-                <div class="form-inline-row">
-                  <label class="form-label">${this.t('recurrenceEvery')}</label>
-                  <input type="number" class="form-input" id="event-recurrence-interval" min="1" value="${this.escapeHtmlAttribute(recurrenceData.interval || '1')}" />
-                </div>
-              </div>
-            </div>
-            <div class="form-group" id="event-recurrence-weekdays-group" style="display: ${recurringSelectedByDefault && recurrenceData.frequency === 'WEEKLY' ? 'block' : 'none'};">
-              <label class="form-label">${this.t('recurrenceWeekdays')}</label>
-              <div class="form-checkbox-group" style="flex-wrap: wrap; gap: 10px;">
-                ${this.getRecurrenceWeekdayOptions().map(day => `
-                  <label class="form-checkbox-label" style="display:flex;align-items:center;gap:6px;">
-                    <input type="checkbox" class="form-checkbox event-recurrence-weekday" value="${day.key}" ${recurrenceData.byDay.includes(day.key) ? 'checked' : ''} />
-                    <span>${day.label}</span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label recurrence-ends-label">${this.t('recurrenceEndsOn')}</label>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-never">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-never" value="never" ${this.getRecurrenceEndMode(recurrenceData) === 'never' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceNever')}</span>
-                </label>
-                <div></div>
-              </div>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-on">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-on" value="on" ${this.getRecurrenceEndMode(recurrenceData) === 'on' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceOn')}</span>
-                </label>
-                <input type="date" class="form-input" id="event-recurrence-until" value="${this.escapeHtmlAttribute(recurrenceData.untilDate || '')}" ${this.getRecurrenceEndMode(recurrenceData) === 'on' ? '' : 'disabled'} />
-              </div>
-              <div class="recurrence-end-row">
-                <label class="recurrence-end-option" for="event-recurrence-end-after">
-                  <input type="radio" name="event-recurrence-end-mode" id="event-recurrence-end-after" value="after" ${this.getRecurrenceEndMode(recurrenceData) === 'after' ? 'checked' : ''} />
-                  <span>${this.t('recurrenceAfter')}</span>
-                </label>
-                <div class="recurrence-after-input">
-                  <input type="number" class="form-input" id="event-recurrence-count" min="1" placeholder="13" value="${this.escapeHtmlAttribute(recurrenceData.count || '')}" ${this.getRecurrenceEndMode(recurrenceData) === 'after' ? '' : 'disabled'} />
-                  <span>${this.t('recurrenceOccurrences')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="timed-event-fields" style="display: ${isAllDay ? 'none' : 'block'};">
-            <div class="form-group form-group-inline">
-              <div class="form-inline-row">
-                <label class="form-label">${this.t('start')}</label>
-                <input type="datetime-local" class="form-input" id="event-start"
-                       value="${formatDateTimeLocal(startDate)}" required />
-              </div>
-            </div>
-
-            <div class="form-group form-group-inline">
-              <div class="form-inline-row">
-                <label class="form-label">${this.t('end')}</label>
-                <input type="datetime-local" class="form-input" id="event-end"
-                       value="${formatDateTimeLocal(endDate)}" />
-              </div>
-            </div>
-          </div>
-
-          <div id="all-day-event-fields" style="display: ${isAllDay ? 'block' : 'none'};">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">${this.t('startDate')}</label>
-                <input type="date" class="form-input" id="event-start-date"
-                       value="${formatDate(startDate)}" />
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">${this.t('endDate')}</label>
-                <input type="date" class="form-input" id="event-end-date"
-                       value="${formatDate(endDate)}" />
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group form-group-inline">
-            <div class="form-inline-row">
-              <label class="form-label">${this.t('location')}</label>
-              <input type="text" class="form-input" id="event-location"
-                     placeholder="${this.escapeHtmlAttribute(this.t('locationPlaceholder'))}"
-                     value="${this.escapeHtmlAttribute(event.location || '')}" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">${this.t('description')}</label>
-            <textarea class="form-textarea" id="event-description" placeholder="${this.escapeHtmlAttribute(this.t('descriptionPlaceholder'))}">${this.escapeHtml(event.description || '')}</textarea>
-          </div>
-
-          <div id="form-error" class="error-message" style="display: none;"></div>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" id="cancel-btn">${this.t('cancel')}</button>
-            <button type="submit" class="btn btn-primary" id="submit-btn">${this.t('saveChanges')}</button>
-          </div>
-        </form>
-      </div>
-    `;
+    content.innerHTML = renderEditEventForm({
+      event,
+      startDate,
+      endDate,
+      isAllDay,
+      visibleCalendarOptions,
+      selectedCombinedCalendarIds,
+      recurrenceData,
+      recurringSelectedByDefault,
+      recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
+      recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      helpers: {
+        escapeHtml: (value) => this.escapeHtml(value),
+        escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
+        getCalendarName: (entityId) => this.getCalendarName(entityId),
+        t: (key) => this.t(key)
+      }
+    });
 
     modal.classList.add('show');
 
@@ -10620,62 +15274,24 @@ class SkylightCalendarCard extends HTMLElement {
       const location = this.getRootElementById('event-location').value.trim();
       const description = this.getRootElementById('event-description').value.trim();
 
-      if (!title) {
-        this.showFormError(errorDiv, this.t('eventTitleRequired'));
+      const formResult = normalizeEventFormData({
+        title,
+        location,
+        description,
+        isAllDay: isAllDayChecked,
+        startDate: this.getRootElementById('event-start-date').value,
+        endDate: this.getRootElementById('event-end-date').value,
+        startDateTime: this.getRootElementById('event-start').value,
+        endDateTime: this.getRootElementById('event-end').value,
+        fallbackDurationMs: Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000)
+      });
+
+      if (!formResult.valid) {
+        this.showFormError(errorDiv, this.t(formResult.errorKey));
         return;
       }
 
-      let eventData = {
-        summary: title,
-        location: location || undefined,
-        description: description || undefined
-      };
-
-      if (isAllDayChecked) {
-        const startDateStr = this.getRootElementById('event-start-date').value;
-        const endDateStr = this.getRootElementById('event-end-date').value;
-
-        if (!startDateStr || !endDateStr) {
-          this.showFormError(errorDiv, this.t('startEndDatesRequired'));
-          return;
-        }
-
-        // Validate that end date is on or after start date
-        const start = this.parseLocalDate(startDateStr);
-        const end = this.parseLocalDate(endDateStr);
-
-        if (end < start) {
-          this.showFormError(errorDiv, this.t('endDateBeforeStart'));
-          return;
-        }
-
-        // For Home Assistant, end date is exclusive, so add 1 day
-        const exclusiveEndDate = new Date(end);
-        exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
-        const exclusiveEndDateStr = this.formatLocalDate(exclusiveEndDate);
-
-        eventData.start = { date: startDateStr };
-        eventData.end = { date: exclusiveEndDateStr };
-      } else {
-        const startDateTime = this.getRootElementById('event-start').value;
-        const endDateTime = this.getRootElementById('event-end').value;
-        const existingDurationMs = Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000);
-
-        if (!startDateTime) {
-          this.showFormError(errorDiv, this.t('startEndTimesRequired'));
-          return;
-        }
-
-        const { start, end } = this.resolveTimedEventRange(startDateTime, endDateTime, existingDurationMs);
-
-        if (end <= start) {
-          this.showFormError(errorDiv, this.t('endTimeBeforeStart'));
-          return;
-        }
-
-        eventData.start = { dateTime: start.toISOString() };
-        eventData.end = { dateTime: end.toISOString() };
-      }
+      let eventData = formResult.eventData;
 
       if (recurringCheckbox.checked) {
         const frequency = this.getRootElementById('event-recurrence-frequency').value;
@@ -10686,19 +15302,32 @@ class SkylightCalendarCard extends HTMLElement {
         const untilDate = recurrenceEndMode === 'on' ? untilDateRaw : '';
         const recurrenceCount = recurrenceEndMode === 'after' ? recurrenceCountRaw : '';
         const byDay = Array.from(this._root.querySelectorAll('.event-recurrence-weekday:checked')).map((el) => el.value);
+        const recurrenceResult = normalizeEventFormData({
+          title,
+          location,
+          description,
+          isAllDay: isAllDayChecked,
+          startDate: this.getRootElementById('event-start-date').value,
+          endDate: this.getRootElementById('event-end-date').value,
+          startDateTime: this.getRootElementById('event-start').value,
+          endDateTime: this.getRootElementById('event-end').value,
+          fallbackDurationMs: Math.max(endDate.getTime() - startDate.getTime(), 60 * 1000),
+          recurrence: {
+            enabled: true,
+            frequency,
+            interval,
+            untilDate,
+            count: recurrenceCount,
+            byDay
+          }
+        });
 
-        if (frequency === 'WEEKLY' && byDay.length === 0) {
-          this.showFormError(errorDiv, this.t('recurrenceSelectWeekday'));
+        if (!recurrenceResult.valid) {
+          this.showFormError(errorDiv, this.t(recurrenceResult.errorKey));
           return;
         }
 
-        eventData.rrule = this.buildRRuleFromInputs({
-          frequency,
-          interval,
-          untilDate,
-          count: recurrenceCount,
-          byDay: frequency === 'WEEKLY' ? byDay : []
-        });
+        eventData = recurrenceResult.eventData;
       }
 
       // Disable submit button
@@ -10769,47 +15398,10 @@ class SkylightCalendarCard extends HTMLElement {
       throw new Error(this.t('missingUidError'));
     }
 
-    const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
-
-    const recurrenceId = (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null;
-    const recurrenceRange = (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null;
+    const { isRecurringUpdate, recurrenceId, recurrenceRange } = getRecurringUpdateControls(originalEvent, eventData, editScope);
 
     if (isRecurringUpdate && !movingCalendar && this._hass.connection?.sendMessagePromise) {
-      const dtstart = eventData.start.dateTime || eventData.start.date;
-      const dtend = eventData.end.dateTime || eventData.end.date;
-
-      const eventPayload = {
-        summary: eventData.summary,
-        dtstart,
-        dtend
-      };
-
-      if (eventData.location) {
-        eventPayload.location = eventData.location;
-      }
-
-      if (eventData.description) {
-        eventPayload.description = eventData.description;
-      }
-
-      if (eventData.rrule) {
-        eventPayload.rrule = eventData.rrule;
-      }
-
-      const wsPayload = {
-        type: 'calendar/event/update',
-        entity_id: originalEvent.entityId,
-        uid: originalEvent.uid,
-        event: eventPayload
-      };
-
-      if (recurrenceId) {
-        wsPayload.recurrence_id = recurrenceId;
-      }
-
-      if (recurrenceRange) {
-        wsPayload.recurrence_range = recurrenceRange;
-      }
+      const wsPayload = buildUpdateEventWebSocketPayload(originalEvent, eventData, recurrenceId, recurrenceRange);
 
       try {
         await this._hass.connection.sendMessagePromise(wsPayload);
@@ -10823,43 +15415,7 @@ class SkylightCalendarCard extends HTMLElement {
     const hasUpdateService = !!this._hass.services?.calendar?.update_event;
     if (capabilities.canUpdate && !movingCalendar && hasUpdateService) {
       try {
-        const serviceData = {
-          entity_id: originalEvent.entityId,
-          uid: originalEvent.uid,
-          summary: eventData.summary
-        };
-
-        // Add location if provided
-        if (eventData.location) {
-          serviceData.location = eventData.location;
-        }
-
-        // Add description if provided
-        if (eventData.description) {
-          serviceData.description = eventData.description;
-        }
-
-        // Add date/time fields
-        if (eventData.start.date) {
-          serviceData.start_date = eventData.start.date;
-          serviceData.end_date = eventData.end.date;
-        } else {
-          serviceData.start_date_time = eventData.start.dateTime;
-          serviceData.end_date_time = eventData.end.dateTime;
-        }
-
-        if (eventData.rrule) {
-          serviceData.rrule = eventData.rrule;
-        }
-
-        // Add recurrence controls for recurring event edits
-        if (recurrenceId) {
-          serviceData.recurrence_id = recurrenceId;
-        }
-
-        if (recurrenceRange) {
-          serviceData.recurrence_range = recurrenceRange;
-        }
+        const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
 
         await this._hass.callService('calendar', 'update_event', serviceData);
         return;
@@ -10897,21 +15453,7 @@ class SkylightCalendarCard extends HTMLElement {
     // This is the official Calendar WebSocket API that the HA Calendar UI uses
     try {
       if (this._hass.connection && this._hass.connection.sendMessagePromise && uid) {
-        const payload = {
-          type: 'calendar/event/delete',
-          entity_id: calendarId,
-          uid: uid
-        };
-
-        // Add recurrence_id if deleting a specific instance
-        if (recurrenceId) {
-          payload.recurrence_id = recurrenceId;
-        }
-
-        // Add recurrence_range if deleting this and future events
-        if (recurrenceRange) {
-          payload.recurrence_range = recurrenceRange;
-        }
+        const payload = buildDeleteEventWebSocketPayload(calendarId, uid, recurrenceId, recurrenceRange);
 
         await this._hass.connection.sendMessagePromise(payload);
         return; // Success via WebSocket
@@ -10922,20 +15464,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
 
     // Fallback to service call (works for Local Calendar and some others)
-    const serviceData = {
-      entity_id: calendarId,
-      uid: uid
-    };
-
-    // Add recurrence_id if deleting a specific instance
-    if (recurrenceId) {
-      serviceData.recurrence_id = recurrenceId;
-    }
-
-    // Add recurrence_range if deleting this and future events
-    if (recurrenceRange) {
-      serviceData.recurrence_range = recurrenceRange;
-    }
+    const serviceData = buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange);
 
     try {
       await this._hass.callService('calendar', 'delete_event', serviceData);
@@ -10953,44 +15482,14 @@ class SkylightCalendarCard extends HTMLElement {
     const isRecurring = !!eventData.rrule;
 
     // Build service-style data (used by both API variants)
-    const baseData = {
-      entity_id: calendarId,
-      summary: eventData.summary
-    };
-
-    if (eventData.location) {
-      baseData.location = eventData.location;
-    }
-
-    if (eventData.description) {
-      baseData.description = eventData.description;
-    }
-
-    if (eventData.start.date) {
-      baseData.start_date = eventData.start.date;
-      baseData.end_date = eventData.end.date;
-    } else {
-      baseData.start_date_time = eventData.start.dateTime;
-      baseData.end_date_time = eventData.end.dateTime;
-    }
+    const baseData = buildEventServiceData(calendarId, eventData);
 
     if (isRecurring) {
       baseData.rrule = eventData.rrule;
 
       // HA recurring event support is exposed through Calendar WebSocket API.
       // WebSocket schema expects event.dtstart / event.dtend (not start/end keys).
-      const wsPayload = {
-        type: 'calendar/event/create',
-        entity_id: calendarId,
-        event: {
-          summary: baseData.summary,
-          location: baseData.location,
-          description: baseData.description,
-          rrule: baseData.rrule,
-          dtstart: eventData.start.dateTime || eventData.start.date,
-          dtend: eventData.end.dateTime || eventData.end.date
-        }
-      };
+      const wsPayload = buildCreateEventWebSocketPayload(calendarId, eventData);
 
       try {
         if (this._hass.connection?.sendMessagePromise) {
@@ -11455,16 +15954,10 @@ class SkylightCalendarCard extends HTMLElement {
 
 
   getModalCalendarBadgesForEvent(event) {
-    if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
-      const sourceBadges = event.sourceCalendars
-        .filter((calendar) => calendar?.entityId && !this._hiddenCalendars.has(calendar.entityId))
-        .map((calendar) => ({ entityId: calendar.entityId, color: calendar.color || event.color }));
-      if (sourceBadges.length > 0) {
-        return sourceBadges;
-      }
-    }
-
-    return this.getVisibleCalendarBadgesForEvent(event);
+    return getModalCalendarBadgesForEvent(event, {
+      hiddenCalendars: this._hiddenCalendars,
+      getVisibleCalendarBadges: (badgeEvent) => this.getVisibleCalendarBadgesForEvent(badgeEvent)
+    });
   }
 
   showEventModal(event, onCloseBack = null) {
@@ -11479,12 +15972,11 @@ class SkylightCalendarCard extends HTMLElement {
       endDate = new Date(event.end.dateTime);
       isAllDay = false;
     } else if (event.start.date) {
-      // For all-day events, add T00:00:00 to prevent timezone shifts
-      startDate = this.parseLocalDate(event.start.date);
-      endDate = this.parseLocalDate(event.end.date);
-
-      // End date is exclusive for all-day events, so subtract 1 day for display
-      endDate.setDate(endDate.getDate() - 1);
+      // Date-only all-day events use configured-zone calendar bounds for display.
+      startDate = this.parseCalendarDate(event.start.date);
+      // End date is exclusive for all-day events, so subtract a configured-zone
+      // calendar day before converting to a Date for display.
+      endDate = this.parseCalendarDateWithOffset(event.end.date, -1);
       isAllDay = true;
     } else {
       startDate = new Date(event.start);
@@ -11499,10 +15991,11 @@ class SkylightCalendarCard extends HTMLElement {
     // Get calendar info and capabilities
     const calendarName = this.getCalendarName(event.entityId);
     const capabilities = this._calendarCapabilities[event.entityId] || {};
-    const visibleBadges = this.getModalCalendarBadgesForEvent(event);
-    const combinedBadgeHtml = event.isCombinedCalendarEvent
-      ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${this.escapeHtml(this.getCalendarName(calendar.entityId))}</span>`).join('')}</div>`
-      : `<div class="modal-calendar-badge" style="background: ${event.color}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${this.escapeHtml(calendarName)}</div>`;
+    const visibleBadges = this.getModalCalendarBadgesForEvent(event)
+      .map((calendar) => ({
+        ...calendar,
+        name: this.getCalendarName(calendar.entityId)
+      }));
 
     // For edit/delete to work, we need:
     // 1. Event management enabled
@@ -11518,85 +16011,28 @@ class SkylightCalendarCard extends HTMLElement {
     const canDelete = canModify; // WebSocket delete works for all calendars including Google
     const canForward = !!this._config.enable_event_management && this.getWritableCalendars().length > 0;
 
-    content.innerHTML = `
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">${this.escapeHtml(event.summary || this.t('untitledEvent'))}</h3>
-          ${combinedBadgeHtml}
-        </div>
-        <button class="modal-close" id="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-row">
-          <div class="modal-label">📅 ${this.t('start')}</div>
-          <div class="modal-value">
-            ${this.formatDate(startDate)}${!isAllDay ? ` ${this.t('at')} ${this.formatEventTime(startDate)}` : ` (${this.t('allDay')})`}
-          </div>
-        </div>
-        <div class="modal-row">
-          <div class="modal-label">🏁 ${this.t('end')}</div>
-          <div class="modal-value">
-            ${this.formatDate(endDate)}${!isAllDay ? ` ${this.t('at')} ${this.formatEventTime(endDate)}` : ` (${this.t('allDay')})`}
-          </div>
-        </div>
-        ${!isAllDay ? `
-          <div class="modal-row">
-            <div class="modal-label">⏱️ ${this.t('duration')}</div>
-            <div class="modal-value">${this.formatDuration(startDate, endDate)}</div>
-          </div>
-        ` : ''}
-        ${event.location ? `
-          <div class="modal-row">
-            <div class="modal-label">📍 ${this.t('location')}</div>
-            <div class="modal-value">${this.escapeHtml(event.location)}</div>
-          </div>
-        ` : ''}
-        ${event.description ? `
-          <div class="modal-row modal-row-description">
-            <div class="modal-label">📝 ${this.t('description')}</div>
-            <div class="modal-value event-description-content">${this.renderEventDescription(event.description)}</div>
-          </div>
-        ` : ''}
-        ${event.attendees && event.attendees.length > 0 ? `
-          <div class="modal-row">
-            <div class="modal-label">👥 ${this.t('attendees')}</div>
-            <div class="modal-value">
-              ${event.attendees.map(a => this.escapeHtml(a.email || a.displayName || this.t('unknownAttendee'))).join(', ')}
-            </div>
-          </div>
-        ` : ''}
-        ${event.rrule ? `
-          <div class="modal-row">
-            <div class="modal-label">🔁 ${this.t('recurrence')}</div>
-            <div class="modal-value">${this.t('recurringEvent')}</div>
-          </div>
-        ` : ''}
-
-        ${!canModify && !capabilities.isReadonly && capabilities.isGoogleCalendar ? `
-          <div class="info-banner warning">
-            <strong>${this.t('googleCalendarLimitationTitle')}</strong> ${this.t('googleCalendarLimitationBody')}
-          </div>
-        ` : ''}
-
-        ${!canModify && !hasUID && !capabilities.isGoogleCalendar ? `
-          <div class="info-banner warning">
-            <strong>${this.t('cannotModifyTitle')}</strong> ${this.t('cannotModifyBody')}
-          </div>
-        ` : ''}
-
-        ${(canEdit || canDelete || canForward) ? `
-          <div class="modal-actions">
-            <div class="modal-actions-left">
-              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${this.t('delete')}</button>` : ''}
-            </div>
-            <div class="modal-actions-right">
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${this.t('forwardEvent')}</button>` : ''}
-              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${this.t('editEvent')}</button>` : ''}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-    `;
+    content.innerHTML = renderEventDetailsModal({
+      event,
+      startDate,
+      endDate,
+      isAllDay,
+      calendarName,
+      visibleBadges,
+      capabilities,
+      hasUID,
+      canEdit,
+      canDelete,
+      canForward,
+      canModify,
+      helpers: {
+        escapeHtml: this.escapeHtml.bind(this),
+        formatDate: this.formatDate.bind(this),
+        formatEventTime: this.formatEventTime.bind(this),
+        formatDuration: this.formatDuration.bind(this),
+        renderEventDescription: this.renderEventDescription.bind(this),
+        t: this.t.bind(this)
+      }
+    });
 
     modal.classList.add('show');
     this.setModalBackHandler(onCloseBack);
@@ -11652,7 +16088,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     content.innerHTML = `
       <div class="modal-header">
-        <h3 class="modal-title">${this.formatDate(date)}</h3>
+        <h3 class="modal-title">${this.formatDisplayDate(date)}</h3>
         <button class="modal-close" id="close-modal">×</button>
       </div>
       <div class="modal-body">
@@ -11708,7 +16144,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     content.innerHTML = `
       <div class="modal-header">
-        <h3 class="modal-title">${this.formatDate(date)}</h3>
+        <h3 class="modal-title">${this.formatDisplayDate(date)}</h3>
         <button class="modal-close" id="close-modal">×</button>
       </div>
       <div class="modal-body">
@@ -11759,7 +16195,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatTime(date) {
-    return new Intl.DateTimeFormat(this.getLocale(), this.getTimeFormatOptions()).format(date);
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone(this.getTimeFormatOptions())).format(date);
   }
 
   parseTimeValue(value) {
@@ -11797,199 +16233,44 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   teardownWeatherForecastSubscription() {
-    this._weatherForecastSubscriptionGeneration += 1;
-    if (typeof this._weatherForecastUnsubscribe === 'function') {
-      this._weatherForecastUnsubscribe();
-    }
-    this._weatherForecastUnsubscribe = null;
-    this._weatherForecastSubscriptionEntityId = null;
-    this._weatherForecastSubscriptionInFlight = null;
-    this._weatherForecastSubscriptionInFlightEntityId = null;
+    this._weatherForecastController.teardownSubscription();
   }
 
-  async ensureWeatherForecastSubscription() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!entityId || !entityId.startsWith('weather.')) {
-      this.teardownWeatherForecastSubscription();
-      return;
-    }
-
-    if (!this._hass?.connection?.subscribeMessage) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionEntityId === entityId && this._weatherForecastUnsubscribe) {
-      return;
-    }
-
-    if (this._weatherForecastSubscriptionInFlight && this._weatherForecastSubscriptionInFlightEntityId === entityId) {
-      return this._weatherForecastSubscriptionInFlight;
-    }
-
-    this.teardownWeatherForecastSubscription();
-    const subscriptionGeneration = this._weatherForecastSubscriptionGeneration;
-    this._weatherForecastSubscriptionInFlightEntityId = entityId;
-
-    const setupPromise = this._hass.connection.subscribeMessage(
-        (message) => {
-          const nextForecast = Array.isArray(message?.forecast) ? message.forecast : [];
-          this._weatherForecastByEntity.set(entityId, nextForecast);
-          if (!this.isEventManagementDialogOpen()) {
-            this.renderPreservingAgendaScroll();
-          } else {
-            this._pendingHeaderSensorRender = true;
-          }
-        },
-        {
-          type: 'weather/subscribe_forecast',
-          entity_id: entityId,
-          forecast_type: 'daily'
-        }
-      )
-      .then((unsubscribe) => {
-        const generationMatches = subscriptionGeneration === this._weatherForecastSubscriptionGeneration;
-        const entityMatches = entityId === this._weatherForecastSubscriptionInFlightEntityId;
-        if (!generationMatches || !entityMatches) {
-          if (typeof unsubscribe === 'function') {
-            unsubscribe();
-          }
-          return;
-        }
-
-        this._weatherForecastUnsubscribe = unsubscribe;
-        this._weatherForecastSubscriptionEntityId = entityId;
-      })
-      .catch(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastUnsubscribe = null;
-          this._weatherForecastSubscriptionEntityId = null;
-        }
-      })
-      .finally(() => {
-        if (subscriptionGeneration === this._weatherForecastSubscriptionGeneration) {
-          this._weatherForecastSubscriptionInFlight = null;
-          this._weatherForecastSubscriptionInFlightEntityId = null;
-        }
-      });
-
-    this._weatherForecastSubscriptionInFlight = setupPromise;
-    return setupPromise;
+  ensureWeatherForecastSubscription() {
+    return this._weatherForecastController.ensureSubscription();
   }
 
-  async refreshWeatherForecastData() {
-    const entityId = this._config?.header_weather_sensor;
-    if (!entityId || !entityId.startsWith('weather.')) return;
-    if (!this._hass || this._weatherForecastRefreshInFlight) return;
-    if (this._weatherForecastByEntity.has(entityId)) return;
-    const now = Date.now();
-    const retryAt = this._weatherForecastRefreshRetryAtByEntity.get(entityId) || 0;
-    if (retryAt > now) return;
-
-    this._weatherForecastRefreshInFlight = true;
-    try {
-      const wsResponse = await this._hass.callWS({
-        type: 'weather/get_forecasts',
-        entity_ids: [entityId],
-        forecast_type: 'daily'
-      });
-
-      const dailyForecast = wsResponse?.[entityId]?.forecast;
-      if (Array.isArray(dailyForecast)) {
-        this._weatherForecastByEntity.set(entityId, dailyForecast);
-        this._weatherForecastRefreshRetryAtByEntity.delete(entityId);
-        if (!this.isEventManagementDialogOpen()) {
-          this.renderPreservingAgendaScroll();
-        } else {
-          this._pendingHeaderSensorRender = true;
-        }
-      }
-    } catch (error) {
-      // forecast websocket may be unavailable in older HA versions; keep graceful fallback paths
-      const retryDelayMs = 5 * 60 * 1000;
-      this._weatherForecastRefreshRetryAtByEntity.set(entityId, now + retryDelayMs);
-    } finally {
-      this._weatherForecastRefreshInFlight = false;
-    }
+  refreshWeatherForecastData() {
+    return this._weatherForecastController.refreshForecastData();
   }
 
   getHeaderEntityRenderSignature(entityState) {
-    if (!entityState) return '';
-    const attrs = entityState.attributes || {};
-    return JSON.stringify({
-      state: entityState.state,
-      temperature: attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? null,
-      condition: attrs.condition ?? null,
-      friendly_name: attrs.friendly_name ?? null,
-      entity_picture: attrs.entity_picture ?? null,
-      forecast: Array.isArray(attrs.forecast)
-        ? attrs.forecast.map((forecastItem) => ({
-          datetime: forecastItem?.datetime ?? forecastItem?.date ?? null,
-          condition: forecastItem?.condition ?? null,
-          high: forecastItem?.temperature ?? forecastItem?.temphigh ?? forecastItem?.high ?? null,
-          low: forecastItem?.templow ?? forecastItem?.low ?? forecastItem?.temperature_low ?? null
-        }))
-        : null
-    });
+    return getHeaderEntityRenderSignatureFromState(entityState);
   }
 
   getFormattedHeaderSensorTime() {
     const sensorEntityId = this._config?.header_time_sensor;
     if (!sensorEntityId) return '';
-    const sensorState = this._hass?.states?.[sensorEntityId]?.state;
-    const parsed = this.parseTimeValue(sensorState);
-    if (!parsed) return '';
-    return this.formatTime(parsed);
+    return getFormattedHeaderSensorTime(
+      this._hass,
+      sensorEntityId,
+      (value) => this.parseTimeValue(value),
+      (date) => this.formatTime(date)
+    );
   }
 
   normalizeWeatherTemperature(value) {
-    const numericValue = Number(value);
-    if (!Number.isFinite(numericValue)) return null;
-    return `${Math.round(numericValue)}°`;
+    return normalizeWeatherTemperature(value);
   }
 
   mapWeatherConditionToIcon(conditionValue) {
-    const condition = String(conditionValue || '').trim().toLowerCase().replace(/_/g, '-');
-    if (!condition || condition === 'unknown' || condition === 'unavailable') return '';
-
-    const iconMap = {
-      sunny: 'mdi:weather-sunny',
-      clear: 'mdi:weather-sunny',
-      'clear-night': 'mdi:weather-night',
-      partlycloudy: 'mdi:weather-partly-cloudy',
-      cloudy: 'mdi:weather-cloudy',
-      overcast: 'mdi:weather-cloudy',
-      rainy: 'mdi:weather-rainy',
-      pouring: 'mdi:weather-pouring',
-      snow: 'mdi:weather-snowy',
-      snowy: 'mdi:weather-snowy',
-      'snowy-rainy': 'mdi:weather-snowy-rainy',
-      hail: 'mdi:weather-hail',
-      lightning: 'mdi:weather-lightning',
-      'lightning-rainy': 'mdi:weather-lightning-rainy',
-      windy: 'mdi:weather-windy',
-      'windy-variant': 'mdi:weather-windy-variant',
-      fog: 'mdi:weather-fog',
-      exceptional: 'mdi:alert-circle-outline'
-    };
-
-    return iconMap[condition] || '';
+    return mapWeatherConditionToIcon(conditionValue);
   }
 
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    const weatherEntity = this._hass?.states?.[sensorEntityId];
-    if (!weatherEntity) return null;
-
-    const attrs = weatherEntity.attributes || {};
-    const condition = attrs.condition || weatherEntity.state;
-    const conditionIcon = this.mapWeatherConditionToIcon(condition);
-    const temperature = this.normalizeWeatherTemperature(
-      attrs.temperature ?? attrs.current_temperature ?? attrs.temp ?? weatherEntity.state
-    );
-
-    if (!conditionIcon || !temperature) return null;
-    return { conditionIcon, temperature };
+    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
   }
 
   getFormattedHeaderWeather() {
@@ -12002,54 +16283,23 @@ class SkylightCalendarCard extends HTMLElement {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
-    const wsForecast = this._weatherForecastByEntity.get(sensorEntityId);
-    const forecasts = Array.isArray(wsForecast) && wsForecast.length > 0
-      ? wsForecast
-      : weatherEntity?.attributes?.forecast;
-    if (!Array.isArray(forecasts) || forecasts.length === 0) return null;
-
-    const targetDateKey = this.getDateKey(date);
-    const match = forecasts.find((item) => {
-      const forecastDateValue = item?.datetime || item?.date;
-      if (!forecastDateValue) return false;
-      const forecastDate = new Date(forecastDateValue);
-      if (Number.isNaN(forecastDate.getTime())) return false;
-      return this.getDateKey(forecastDate) === targetDateKey;
-    });
-
-    if (!match) return null;
-
-    const highTemp = this.normalizeWeatherTemperature(match.temperature ?? match.temphigh ?? match.high);
-    const lowTemp = this.normalizeWeatherTemperature(match.templow ?? match.low ?? match.temperature_low);
-    const conditionIcon = this.mapWeatherConditionToIcon(match.condition);
-
-    if (!conditionIcon || !highTemp) return null;
-    return { conditionIcon, highTemp, lowTemp };
+    const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
+    const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
+    return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
-    const forecast = this.getForecastForDate(date);
-    if (!forecast) return '';
-    const forecastClass = viewMode === 'week-standard'
-      ? 'week-standard-day-forecast'
-      : viewMode === 'month'
-        ? 'month-day-forecast'
-        : viewMode === 'agenda'
-          ? 'agenda-day-forecast'
-          : 'week-day-forecast';
-
-    return `
-      <div class="${forecastClass}">
-        <span class="forecast-condition"><ha-icon icon="${this.escapeHtml(forecast.conditionIcon)}"></ha-icon></span>
-        <span class="forecast-temperatures">
-          <span class="forecast-temp-high">${this.escapeHtml(forecast.highTemp)}</span>
-          ${forecast.lowTemp ? `<span class="forecast-temp-low">${this.escapeHtml(forecast.lowTemp)}</span>` : ''}
-        </span>
-      </div>
-    `;
+    return renderDayForecast(date, viewMode, {
+      escapeHtml: this.escapeHtml.bind(this),
+      getForecastForDate: this.getForecastForDate.bind(this)
+    });
   }
 
   formatDate(date) {
+    return new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })).format(date);
+  }
+
+  formatDisplayDate(date) {
     return new Intl.DateTimeFormat(this.getLocale(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
   }
 
@@ -12073,28 +16323,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCalendarName(entityId) {
-    if (!entityId) {
-      return '';
-    }
-
-    if (entityId.startsWith('virtual:')) {
-      const virtualId = entityId.replace('virtual:', '');
-      const virtualBadge = this.getVirtualBadgeById(virtualId);
-      if (virtualBadge?.name) {
-        return virtualBadge.name;
-      }
-      return virtualId;
-    }
-
-    // Check if there's a custom name mapping
-    if (this._config.calendar_names && this._config.calendar_names[entityId]) {
-      return this._config.calendar_names[entityId];
-    }
-
-    // Otherwise use friendly_name from entity or entity ID
-    const entity = this._hass?.states[entityId];
-    const fallbackName = entityId.includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
-    return entity?.attributes?.friendly_name || fallbackName;
+    return getCalendarName(entityId, {
+      calendarNames: this._config.calendar_names || {},
+      hassStates: this._hass?.states || {},
+      virtualCalendars: this._config.virtual_calendars || []
+    });
   }
 
   getCalendarBadgeIcon(entityId) {
@@ -12108,19 +16341,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCalendarBadgePersonEntityId(badgeEntityId) {
-    const mappings = this._config?.calendar_person_entities || {};
-    if (!badgeEntityId) return null;
-
-    if (mappings[badgeEntityId]) {
-      return mappings[badgeEntityId];
-    }
-
-    if (badgeEntityId.startsWith('virtual:')) {
-      const virtualId = badgeEntityId.replace('virtual:', '');
-      return mappings[virtualId] || null;
-    }
-
-    return null;
+    return getCalendarBadgePersonEntityId(badgeEntityId, this._config?.calendar_person_entities || {});
   }
 
   getCalendarBadgePersonState(badgeEntityId) {
@@ -12130,26 +16351,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   formatPersonStateLabel(personState) {
-    if (!personState || !personState.state || ['unknown', 'unavailable'].includes(personState.state)) {
-      return '';
-    }
-
-    if (personState.state === 'home') return 'Home';
-    if (personState.state === 'not_home') return 'Away';
-
-    return String(personState.state)
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return getPersonStateLabel(personState);
   }
 
   getPersonEntityPictureUrl(personState) {
-    const picture = personState?.attributes?.entity_picture;
-    if (typeof picture !== 'string' || !picture.trim()) return null;
-    const trimmedPicture = picture.trim();
-    if (trimmedPicture.startsWith('/') && typeof this._hass?.hassUrl === 'function') {
-      return this._hass.hassUrl(trimmedPicture);
-    }
-    return trimmedPicture;
+    return getPersonEntityPictureUrl(this._hass, personState);
   }
 
   getCalendarBadgePersonRenderSignature(hass = this._hass) {
@@ -12159,46 +16365,26 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (personEntityIds.length === 0) return '';
 
-    return JSON.stringify(personEntityIds.map((entityId) => {
-      const entityState = hass?.states?.[entityId];
-      return {
-        entityId,
-        state: entityState?.state ?? null,
-        picture: entityState?.attributes?.entity_picture ?? null,
-        friendlyName: entityState?.attributes?.friendly_name ?? null
-      };
-    }));
+    return getEntityRenderSignature(hass, personEntityIds);
   }
 
   renderCalendarBadgeLabel(badgeItem, badgeTextColor) {
-    const personStateLabel = this.formatPersonStateLabel(this.getCalendarBadgePersonState(badgeItem.entityId));
-    return `
-      <span class="calendar-badge-label" style="color: ${badgeTextColor}">
-        <span class="calendar-badge-name">${this.escapeHtml(badgeItem.name)}</span>
-        ${personStateLabel ? `<span class="calendar-badge-person-state">${this.escapeHtml(personStateLabel)}</span>` : ''}
-      </span>
-    `;
+    return renderCalendarBadgeLabel({
+      badgeItem,
+      badgeTextColor,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderCalendarBadgeIcon(entityId, name, color, isHidden, iconOverride = null) {
-    const configuredBadgeIcon = iconOverride || this.getCalendarBadgeIcon(entityId);
-    const hasPersonEntity = !!this.getCalendarBadgePersonEntityId(entityId);
-    const personPictureUrl = configuredBadgeIcon ? null : this.getPersonEntityPictureUrl(this.getCalendarBadgePersonState(entityId));
-    const iconBackground = isHidden ? '#9ca3af' : this.normalizeSingleColor(color);
-    const personIconClass = hasPersonEntity ? ' calendar-badge-person-icon' : '';
-
-    if (configuredBadgeIcon && configuredBadgeIcon.startsWith('mdi:')) {
-      return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}"><ha-icon icon="${this.escapeHtml(configuredBadgeIcon)}"></ha-icon></div>`;
-    }
-
-    if (configuredBadgeIcon || personPictureUrl) {
-      const imageUrl = configuredBadgeIcon || personPictureUrl;
-      const normalizedUrl = this.normalizeBackgroundImageUrl(imageUrl) || imageUrl;
-      return `<div class="calendar-badge-icon calendar-badge-photo${personIconClass}" style="background: ${iconBackground}"><img src="${this.escapeHtml(normalizedUrl)}" alt="${this.escapeHtml(name)}" loading="lazy"></div>`;
-    }
-
-    const initial = name.charAt(0).toUpperCase();
-    return `<div class="calendar-badge-icon${personIconClass}" style="background: ${iconBackground}">${this.escapeHtml(initial)}</div>`;
+    return renderCalendarBadgeIcon({
+      entityId,
+      name,
+      color,
+      isHidden,
+      iconOverride,
+      helpers: this.getCalendarBadgeRenderHelpers()
+    });
   }
 
   renderEventDescription(description) {
@@ -12382,14 +16568,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   escapeHtmlAttribute(text) {
-    const replacements = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    };
-    return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
+    return escapeHtmlAttribute(text);
   }
 
   normalizeBackgroundImageUrl(url) {
@@ -12408,17 +16587,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeBackgroundOpacity(opacityValue, fallback = 0) {
-    const numericOpacity = Number(opacityValue);
-    if (!Number.isFinite(numericOpacity)) {
-      return fallback;
-    }
-
-    return Math.min(100, Math.max(0, numericOpacity));
+    return normalizeBackgroundOpacity(opacityValue, fallback);
   }
 
   normalizeEventModalSize(value) {
-    const normalized = String(value || '').trim().toLowerCase();
-    return ['narrow', 'medium', 'wide', 'full'].includes(normalized) ? normalized : 'medium';
+    return normalizeEventModalSize(value);
   }
 
   getEventModalSizeClass() {
@@ -12433,57 +16606,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return {
-      title: 'Family Calendar',
-      entities: ['calendar.personal'],
-      default_view: 'month',
-      first_day_of_week: 0,
-      week_days: [0, 1, 2, 3, 4, 5, 6],
-      week_start_hour: 0,
-      week_end_hour: 23,
-      lock_schedule_hours: false,
-      hide_the_past: false,
-      past_event_mode: 'none',
-      disable_swipe_controls: false,
-      show_all_events_month: false,
-      show_all_details_month: false,
-      hide_empty_days: false,
-      agenda_compact_events: false,
-      shorten_event_times: false,
-      display_full_weekday_names: false,
-      compact_width: false,
-      show_current_time_bar: false,
-      show_event_location: false,
-      use_short_location: false,
-      event_location_font_size: 9,
-      background_opacity: 0,
-      header_background_opacity: 0,
-      event_calendar_friendly_name: false,
-      event_title_prefix: 'none',
-      combine_style: 'bars',
-      combine_background: 'primary',
-      event_color_mode: 'classic',
-      event_neutral_background: '#F8F3E9',
-      event_tint_opacity: 80,
-      event_color_bar_width: 18,
-      day_badges: [],
-      hide_calendars: false,
-      hide_header: false,
-      hide_year: false,
-      hide_controls: false,
-      hide_navigation_buttons: false,
-      hide_add_event_button: false,
-      hide_view_selector: false,
-      hide_dark_mode_toggle: false,
-      show_dashboard_nav_button: false,
-      header_dashboard_path: null,
-      header_weather_sensor: '',
-      calendar_person_entities: {},
-      default_hidden_calendars: [],
-      color_scheme: 'auto',
-      enable_event_management: true,
-      event_modal_size: 'medium'
-    };
+    return createDefaultStubConfig();
   }
 
   getCardSize() {
@@ -12495,2131 +16618,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 }
 
-class SkylightCalendarCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this._config = SkylightCalendarCard.getStubConfig();
-    this._hass = null;
-    this._rendered = false;
-    this._lastCalendarEntitiesKey = '';
-    this._colorPickerState = {
-      open: false,
-      field: null,
-      mapKey: null,
-      h: 0,
-      s: 1,
-      v: 1,
-      color: '#3f51b5'
-    };
-    this._combineBackgroundMode = 'primary';
-    this._combineBackgroundHexDraft = '';
-    this._openDisclosureKeys = new Set();
-    this._dashboardOptions = [];
-  }
-
-  normalizeHexColor(colorValue) {
-    const normalizedColor = String(colorValue || '').trim();
-    if (!normalizedColor) return null;
-
-    const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
-    if (hex3Match) {
-      const [r, g, b] = hex3Match[1].split('');
-      return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
-    }
-
-    const hex6Match = normalizedColor.match(/^#([\da-fA-F]{6})$/);
-    if (hex6Match) {
-      return `#${hex6Match[1].toUpperCase()}`;
-    }
-
-    return null;
-  }
-
-  normalizeBackgroundOpacity(opacityValue, fallback = 0) {
-    const numericOpacity = Number(opacityValue);
-    if (!Number.isFinite(numericOpacity)) {
-      return fallback;
-    }
-
-    return Math.min(100, Math.max(0, numericOpacity));
-  }
-
-  syncCombineBackgroundEditorState(backgroundValue) {
-    const rawValue = String(backgroundValue || '').trim();
-    const normalizedLower = rawValue.toLowerCase();
-    if (normalizedLower === 'neutral' || normalizedLower === 'primary') {
-      this._combineBackgroundMode = normalizedLower;
-      this._combineBackgroundHexDraft = '';
-      return;
-    }
-
-    const normalizedHex = this.normalizeHexColor(rawValue);
-    if (normalizedHex) {
-      this._combineBackgroundMode = 'hex';
-      this._combineBackgroundHexDraft = normalizedHex;
-      return;
-    }
-
-    this._combineBackgroundMode = 'primary';
-    this._combineBackgroundHexDraft = '';
-  }
-
-  setConfig(config) {
-    const previousEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
-    const normalizedDefaultView = config.default_view === 'week'
-      ? 'week-compact'
-      : config.default_view === 'schedule'
-        ? 'week-standard'
-        : config.default_view;
-    const normalizedPastEventMode = config.past_event_mode !== undefined && config.past_event_mode !== null && config.past_event_mode !== ''
-      ? SkylightCalendarCard.prototype.normalizePastEventMode(config.past_event_mode)
-      : (config.hide_the_past ? 'hide' : SkylightCalendarCard.getStubConfig().past_event_mode);
-
-    this._config = {
-      ...SkylightCalendarCard.getStubConfig(),
-      ...config,
-      default_view: normalizedDefaultView || (SkylightCalendarCard.getStubConfig().default_view || 'month'),
-      past_event_mode: normalizedPastEventMode,
-      color_scheme: SkylightCalendarCard.prototype.normalizeDefaultDarkMode(config.color_scheme),
-      header_dashboard_path: SkylightCalendarCard.prototype.normalizeDashboardPath(config.header_dashboard_path),
-      event_modal_size: SkylightCalendarCard.prototype.normalizeEventModalSize(config.event_modal_size)
-    };
-    this.syncCombineBackgroundEditorState(this._config.combine_background);
-
-    if (!this._rendered) {
-      this.render();
-      return;
-    }
-
-    const nextEntities = Array.isArray(this._config.entities) ? this._config.entities : [];
-    const entitiesChanged = previousEntities.join('|') !== nextEntities.join('|');
-
-    if (entitiesChanged) {
-      this.render();
-      return;
-    }
-
-    this.updateFieldValues();
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    this._dashboardOptions = this.getDashboardOptionsForEditor();
-
-    if (!this._rendered) {
-      this.render();
-      return;
-    }
-
-    this.refreshCalendarEntities();
-  }
-
-  get value() {
-    return this._config || SkylightCalendarCard.getStubConfig();
-  }
-
-  getCalendarEntities() {
-    return Object.keys(this._hass?.states || {})
-      .filter((entityId) => entityId.startsWith('calendar.'))
-      .sort();
-  }
-
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  normalizeDefaultViewForEditor(value) {
-    if (value === 'week') return 'week-compact';
-    if (value === 'schedule') return 'week-standard';
-    return value || 'month';
-  }
-
-  getEventCalendarBubbleMode() {
-    if (this._config.event_calendar_friendly_name) {
-      return 'friendly_name';
-    }
-
-    if (this._config.hide_event_calendar_bubble) {
-      return 'none';
-    }
-
-    return 'icon';
-  }
-
-  getMapFieldValue(key) {
-    const value = this._config[key];
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  }
-
-  getListFieldValue(key) {
-    const value = this._config[key];
-    return Array.isArray(value) ? value : [];
-  }
-
-  getListInputValue(key) {
-    return this.getListFieldValue(key).join(', ');
-  }
-
-  getEditorDefaultValue(key) {
-    const defaults = {
-      week_start_hour: 0,
-      week_end_hour: 23,
-      lock_schedule_hours: false,
-      hide_the_past: false,
-      past_event_mode: 'none',
-      height_scale: 1,
-      event_font_size: 11,
-      event_time_font_size: 9,
-      event_location_font_size: 9,
-      combine_calendars_width: 18,
-      event_color_bar_width: 18,
-      event_tint_opacity: 80,
-      first_day_of_week: 0,
-      header_background_opacity: 0,
-      background_opacity: 0
-    };
-    return Object.prototype.hasOwnProperty.call(defaults, key) ? defaults[key] : 0;
-  }
-
-  getConfiguredEntitiesForEditor() {
-    const entities = Array.isArray(this._config.entities) ? this._config.entities : [];
-    return entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'));
-  }
-
-  getEntityFriendlyName(entityId) {
-    return this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
-  }
-
-  getConfiguredEntityIndex(entityId) {
-    return this.getConfiguredEntitiesForEditor().indexOf(entityId);
-  }
-
-  getEditorCalendarColor(entityId) {
-    const entityIndex = this.getConfiguredEntityIndex(entityId);
-    return this.normalizeHexColor(this.getMapFieldValue('colors')[entityId]) ||
-      SkylightCalendarCard.prototype.getDefaultColor(Math.max(entityIndex, 0));
-  }
-
-  getContrastingEditorColor(backgroundColor) {
-    const hex = this.normalizeHexColor(backgroundColor);
-    if (!hex) return '#FFFFFF';
-
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6 ? '#000000' : '#FFFFFF';
-  }
-
-  getEditorEventFontColor(entityId) {
-    return this.normalizeHexColor(this.getMapFieldValue('event_font_colors')[entityId]) ||
-      this.getContrastingEditorColor(this.getEditorCalendarColor(entityId));
-  }
-
-  getVirtualCalendarsForEditor() {
-    return Array.isArray(this._config.virtual_calendars) ? this._config.virtual_calendars : [];
-  }
-
-  getRenderableVirtualCalendarsForEditor() {
-    return this.getVirtualCalendarsForEditor()
-      .map((virtualCalendar, index) => ({ virtualCalendar, index }))
-      .filter(({ virtualCalendar }) => virtualCalendar && typeof virtualCalendar === 'object' && !Array.isArray(virtualCalendar));
-  }
-
-  getNextVirtualCalendarId() {
-    const existingIds = new Set(this.getVirtualCalendarsForEditor()
-      .filter((virtualCalendar) => virtualCalendar && typeof virtualCalendar === 'object')
-      .map((virtualCalendar) => String(virtualCalendar.id || '').trim())
-      .filter(Boolean));
-    let index = 1;
-    let candidate = `virtual_${index}`;
-    while (existingIds.has(candidate)) {
-      index += 1;
-      candidate = `virtual_${index}`;
-    }
-    return candidate;
-  }
-
-  sanitizeVirtualCalendarForEditor(virtualCalendar) {
-    const nextVirtualCalendar = {
-      ...(virtualCalendar && typeof virtualCalendar === 'object' ? virtualCalendar : {})
-    };
-
-    nextVirtualCalendar.id = String(nextVirtualCalendar.id || '').trim();
-    nextVirtualCalendar.name = String(nextVirtualCalendar.name || '').trim();
-
-    const icon = String(nextVirtualCalendar.icon || '').trim();
-    if (icon) nextVirtualCalendar.icon = icon;
-    else nextVirtualCalendar.icon = null;
-
-    const color = String(nextVirtualCalendar.color || '').trim();
-    if (color) nextVirtualCalendar.color = color;
-    else nextVirtualCalendar.color = null;
-
-    nextVirtualCalendar.entities = Array.isArray(nextVirtualCalendar.entities)
-      ? nextVirtualCalendar.entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'))
-      : [];
-
-    return nextVirtualCalendar;
-  }
-
-  getVirtualCalendarIdValidation(index) {
-    const virtualCalendars = this.getVirtualCalendarsForEditor();
-    const virtualCalendar = virtualCalendars[index];
-    if (!virtualCalendar || typeof virtualCalendar !== 'object') return '';
-
-    const id = String(virtualCalendar.id || '').trim();
-    if (!id) return 'ID is required for runtime matching.';
-
-    const duplicateIndex = virtualCalendars.findIndex((otherVirtualCalendar, otherIndex) => (
-      otherIndex !== index &&
-      otherVirtualCalendar &&
-      typeof otherVirtualCalendar === 'object' &&
-      String(otherVirtualCalendar.id || '').trim() === id
-    ));
-
-    return duplicateIndex === -1 ? '' : 'ID duplicates another virtual calendar.';
-  }
-
-  getEditorVirtualCalendarColor(index) {
-    const virtualCalendar = this.getVirtualCalendarsForEditor()[index];
-    return this.toColorInputValue(virtualCalendar?.color);
-  }
-
-  getEditorMapColorValue(field, entityId) {
-    if (field === 'colors') {
-      return this.getEditorCalendarColor(entityId);
-    }
-
-    if (field === 'event_font_colors') {
-      return this.getEditorEventFontColor(entityId);
-    }
-
-    return this.toColorInputValue(this.getMapFieldValue(field)[entityId]);
-  }
-
-  getDashboardOptionsForEditor() {
-    const panels = this._hass?.panels || {};
-    const dashboards = Object.values(panels)
-      .filter((panel) => panel?.component_name === 'lovelace' && typeof panel.url_path === 'string' && panel.url_path.trim())
-      .map((panel) => {
-        const path = panel.url_path.startsWith('/') ? panel.url_path : `/${panel.url_path}`;
-        const title = panel.title || panel.config?.title || panel.url_path;
-        return { path, title };
-      });
-
-    const uniqueByPath = new Map();
-    dashboards.forEach((dashboard) => {
-      uniqueByPath.set(dashboard.path, dashboard);
-    });
-
-    const configuredPath = SkylightCalendarCard.prototype.normalizeDashboardPath(this._config.header_dashboard_path);
-    if (configuredPath && !uniqueByPath.has(configuredPath)) {
-      uniqueByPath.set(configuredPath, { path: configuredPath, title: configuredPath });
-    }
-
-    return Array.from(uniqueByPath.values())
-      .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
-  }
-
-  toColorInputValue(value, fallback = '#3f51b5') {
-    const normalized = String(value || '').trim();
-    if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-      return normalized;
-    }
-    return fallback;
-  }
-
-  hexToHsv(hex) {
-    const normalizedHex = this.toColorInputValue(hex).replace('#', '');
-    const r = parseInt(normalizedHex.slice(0, 2), 16) / 255;
-    const g = parseInt(normalizedHex.slice(2, 4), 16) / 255;
-    const b = parseInt(normalizedHex.slice(4, 6), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-
-    let h = 0;
-    if (delta !== 0) {
-      if (max === r) h = ((g - b) / delta) % 6;
-      else if (max === g) h = (b - r) / delta + 2;
-      else h = (r - g) / delta + 4;
-      h = Math.round(h * 60);
-      if (h < 0) h += 360;
-    }
-
-    const s = max === 0 ? 0 : delta / max;
-    const v = max;
-    return { h, s, v };
-  }
-
-  hsvToHex(h, s, v) {
-    const hue = ((h % 360) + 360) % 360;
-    const sat = Math.max(0, Math.min(1, s));
-    const val = Math.max(0, Math.min(1, v));
-
-    const c = val * sat;
-    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-    const m = val - c;
-
-    let r = 0;
-    let g = 0;
-    let b = 0;
-
-    if (hue < 60) [r, g, b] = [c, x, 0];
-    else if (hue < 120) [r, g, b] = [x, c, 0];
-    else if (hue < 180) [r, g, b] = [0, c, x];
-    else if (hue < 240) [r, g, b] = [0, x, c];
-    else if (hue < 300) [r, g, b] = [x, 0, c];
-    else [r, g, b] = [c, 0, x];
-
-    const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  }
-
-  getColorValue(field, mapKey = null) {
-    if (field === 'virtual_calendar_color') {
-      return this.getEditorVirtualCalendarColor(Number(mapKey));
-    }
-    if (mapKey) {
-      return this.getEditorMapColorValue(field, mapKey);
-    }
-    return this.toColorInputValue(this._config[field]);
-  }
-
-  emitConfigChanged(nextConfig) {
-    this._config = nextConfig;
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: nextConfig },
-        bubbles: true,
-        composed: true
-      })
-    );
-  }
-
-  openColorPicker(field, mapKey = null) {
-    const initialColor = this.getColorValue(field, mapKey);
-    const hsv = this.hexToHsv(initialColor);
-    this._colorPickerState = {
-      open: true,
-      field,
-      mapKey,
-      h: hsv.h,
-      s: hsv.s,
-      v: hsv.v,
-      color: initialColor
-    };
-
-    const dialog = this.querySelector('.color-picker-dialog');
-    if (dialog) {
-      dialog.classList.add('show');
-      this.syncColorPickerUi();
-    }
-  }
-
-  closeColorPicker() {
-    this._colorPickerState.open = false;
-    const dialog = this.querySelector('.color-picker-dialog');
-    if (dialog) dialog.classList.remove('show');
-  }
-
-  syncColorPickerUi() {
-    const dialog = this.querySelector('.color-picker-dialog');
-    if (!dialog) return;
-
-    const { h, s, v, color } = this._colorPickerState;
-    const marker = dialog.querySelector('.color-picker-wheel-marker');
-    const brightnessInput = dialog.querySelector('#color-picker-brightness');
-    const hexInput = dialog.querySelector('#color-picker-hex');
-    const preview = dialog.querySelector('.color-picker-preview');
-    const valueText = dialog.querySelector('.color-picker-value');
-
-    if (marker) {
-      const radius = 120;
-      const angle = ((h - 90) * Math.PI) / 180;
-      const markerRadius = s * radius;
-      const x = Math.cos(angle) * markerRadius;
-      const y = Math.sin(angle) * markerRadius;
-      marker.style.left = `calc(50% + ${x}px)`;
-      marker.style.top = `calc(50% + ${y}px)`;
-    }
-
-    if (brightnessInput) brightnessInput.value = String(Math.round(v * 100));
-    if (hexInput && document.activeElement !== hexInput) hexInput.value = color;
-    if (preview) preview.style.background = color;
-    if (valueText) valueText.textContent = color;
-  }
-
-  updateColorPickerFromWheelEvent(event) {
-    const wheel = event.currentTarget;
-    const rect = wheel.getBoundingClientRect();
-    const x = event.clientX - rect.left - rect.width / 2;
-    const y = event.clientY - rect.top - rect.height / 2;
-    const radius = rect.width / 2;
-    const distance = Math.min(Math.sqrt(x * x + y * y), radius);
-    const saturation = distance / radius;
-    const hue = (Math.atan2(y, x) * 180) / Math.PI + 90;
-
-    this._colorPickerState.h = hue < 0 ? hue + 360 : hue;
-    this._colorPickerState.s = saturation;
-    this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-    this.syncColorPickerUi();
-  }
-
-  applyColorPickerColor(hexColor) {
-    const { field, mapKey } = this._colorPickerState;
-    if (!field) return;
-
-    if (field === 'virtual_calendar_color') {
-      this.updateVirtualCalendar(Number(mapKey), { color: hexColor }, { render: true });
-      this.closeColorPicker();
-      return;
-    }
-
-    const nextConfig = { ...this.value };
-    if (mapKey) {
-      nextConfig[field] = {
-        ...this.getMapFieldValue(field),
-        [mapKey]: hexColor
-      };
-    } else {
-      nextConfig[field] = hexColor;
-    }
-
-    this.emitConfigChanged(nextConfig);
-    this.updateFieldValues();
-    this.closeColorPicker();
-  }
-
-  normalizeHexColorInput(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return null;
-    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
-    return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : null;
-  }
-
-  renderColorPickerDialog() {
-    return `
-      <div class="color-picker-dialog">
-        <div class="color-picker-overlay" data-close-color-picker="true"></div>
-        <div class="color-picker-modal" role="dialog" aria-label="Select color">
-          <div class="color-picker-title">Select color</div>
-          <div class="color-picker-wheel" id="color-picker-wheel">
-            <div class="color-picker-wheel-marker"></div>
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-brightness">Color brightness</label>
-            <input id="color-picker-brightness" type="range" min="5" max="100" step="1">
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-hex">Hex color</label>
-            <input id="color-picker-hex" type="text" placeholder="#3f51b5">
-          </div>
-          <div class="color-picker-presets">
-            ${['#ffffff', '#ff0000', '#ffff00', '#00ff00', '#000000', '#00ffff', '#0000ff', '#ff00ff']
-              .map((color) => `<button type="button" class="color-preset" data-color-preset="${color}" style="background:${color}"></button>`)
-              .join('')}
-          </div>
-          <div class="color-picker-selected-row">
-            <span>Chosen color</span>
-            <span class="color-picker-preview"></span>
-            <span class="color-picker-value"></span>
-          </div>
-          <div class="color-picker-actions">
-            <button type="button" data-close-color-picker="true">Cancel</button>
-            <button type="button" class="primary" id="apply-color-picker">Set</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  renderColorInputControl({ id, field, mapKey = null, value }) {
-    const colorValue = this.toColorInputValue(value);
-    const triggerAttributes = mapKey
-      ? `data-color-trigger="true" data-color-field="${field}" data-color-map-key="${mapKey}"`
-      : `data-color-trigger="true" data-color-field="${field}"`;
-
-    return `
-      <div class="color-picker-wrap">
-        <button id="${id}" class="selected-color-swatch" data-color-field="${field}" ${mapKey ? `data-color-map-key="${mapKey}"` : ''} ${triggerAttributes} style="--selected-color: ${colorValue};" title="Choose color" type="button"></button>
-      </div>
-    `;
-  }
-
-  renderMapRowInputs(mapKey, { label, inputType = 'text', placeholder = '' } = {}) {
-    const mapValue = this.getMapFieldValue(mapKey);
-    const entities = this.getConfiguredEntitiesForEditor();
-
-    if (!entities.length) {
-      return `<p class="helper">Select at least one calendar to configure ${label || mapKey}.</p>`;
-    }
-
-    return entities
-      .map((entityId) => {
-        const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
-        const value = inputType === 'color' ? this.getEditorMapColorValue(mapKey, entityId) : (mapValue[entityId] || '');
-        if (inputType === 'color') {
-          return `
-            <div class="map-row">
-              <label class="map-label" for="${mapKey}-${entityId}">${displayName}</label>
-              ${this.renderColorInputControl({ id: `${mapKey}-${entityId}`, field: mapKey, mapKey: entityId, value })}
-            </div>
-          `;
-        }
-
-        return `
-          <div class="map-row">
-            <label class="map-label" for="${mapKey}-${entityId}">${displayName}</label>
-            <input id="${mapKey}-${entityId}" type="text" data-map-field="${mapKey}" data-map-key="${entityId}" value="${this.escapeHtml(value)}" placeholder="${placeholder}">
-          </div>
-        `;
-      })
-      .join('');
-  }
-
-  renderCalendarListCheckboxes(field, { label }) {
-    const entities = this.getConfiguredEntitiesForEditor();
-    const selectedValues = new Set(this.getListFieldValue(field));
-
-    if (!entities.length) {
-      return `<p class="helper">Select at least one calendar to configure ${label || field}.</p>`;
-    }
-
-    return entities
-      .map((entityId) => {
-        const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
-        const checked = selectedValues.has(entityId) ? 'checked' : '';
-        return `
-          <label class="list-checkbox-row">
-            <span>${displayName}</span>
-            <input type="checkbox" data-list-field="${field}" value="${entityId}" ${checked}>
-          </label>
-        `;
-      })
-      .join('');
-  }
-
-  buildDisclosureKey(scope, title) {
-    return `${scope}:${title}`;
-  }
-
-  captureOpenDisclosures() {
-    const openKeys = new Set();
-    this.querySelectorAll('details[data-disclosure-key][open]').forEach((detail) => {
-      const key = detail.dataset.disclosureKey;
-      if (key) openKeys.add(key);
-    });
-    this._openDisclosureKeys = openKeys;
-  }
-
-  renderSection(title, content) {
-    const disclosureKey = this.buildDisclosureKey('section', title);
-    const openAttr = this._openDisclosureKeys.has(disclosureKey) ? 'open' : '';
-    return `
-      <details class="config-section" data-disclosure-key="${disclosureKey}" ${openAttr}>
-        <summary>${title}</summary>
-        <div class="section-content">${content}</div>
-      </details>
-    `;
-  }
-
-  renderSubSection(title, content) {
-    const disclosureKey = this.buildDisclosureKey('subsection', title);
-    const openAttr = this._openDisclosureKeys.has(disclosureKey) ? 'open' : '';
-    return `
-      <details class="config-subsection" data-disclosure-key="${disclosureKey}" ${openAttr}>
-        <summary>${title}</summary>
-        <div class="subsection-content">${content}</div>
-      </details>
-    `;
-  }
-
-  renderVirtualCalendarsEditor() {
-    const renderableVirtualCalendars = this.getRenderableVirtualCalendarsForEditor();
-
-    return `
-      <div class="virtual-calendars-editor">
-        <p class="helper">Create display-only calendar badges that group one or more configured real calendars.</p>
-        ${renderableVirtualCalendars.length ? renderableVirtualCalendars
-          .map(({ virtualCalendar, index }, renderIndex) => this.renderVirtualCalendarRow(virtualCalendar, index, renderIndex, renderableVirtualCalendars.length))
-          .join('') : '<p class="helper">No virtual calendars configured yet.</p>'}
-        <button type="button" class="secondary-action" data-virtual-calendar-action="add">Add virtual calendar</button>
-      </div>
-    `;
-  }
-
-  renderVirtualCalendarRow(virtualCalendar, index, renderIndex = index, renderCount = this.getRenderableVirtualCalendarsForEditor().length) {
-    const configuredEntities = this.getConfiguredEntitiesForEditor();
-    const configuredEntitySet = new Set(configuredEntities);
-    const selectedEntityValues = Array.isArray(virtualCalendar.entities)
-      ? virtualCalendar.entities.filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'))
-      : [];
-    const selectedEntities = new Set(selectedEntityValues);
-    const legacyEntities = selectedEntityValues.filter((entityId) => !configuredEntitySet.has(entityId));
-    const virtualCalendarName = String(virtualCalendar.name || '').trim();
-    const virtualCalendarId = String(virtualCalendar.id || '').trim();
-    const virtualCalendarIcon = String(virtualCalendar.icon || '').trim();
-    const virtualCalendarColor = String(virtualCalendar.color || '').trim();
-    const idValidation = this.getVirtualCalendarIdValidation(index);
-    const idValidationMarkup = idValidation
-      ? `<p class="validation-message" id="virtual-calendar-id-error-${index}">${this.escapeHtml(idValidation)}</p>`
-      : '';
-    const colorStatusMarkup = virtualCalendarColor
-      ? `<span class="virtual-calendar-color-status">Override: ${this.escapeHtml(virtualCalendarColor)}</span>`
-      : '<span class="virtual-calendar-color-status no-override">No color override set</span>';
-    const checkboxRows = configuredEntities.map((entityId) => {
-      const displayName = this.escapeHtml(this.getEntityFriendlyName(entityId));
-      const checked = selectedEntities.has(entityId) ? 'checked' : '';
-      return `
-        <label class="list-checkbox-row virtual-calendar-entity-row">
-          <span>${displayName}</span>
-          <input type="checkbox" data-virtual-calendar-entity="true" data-virtual-calendar-index="${index}" value="${this.escapeHtml(entityId)}" ${checked}>
-        </label>
-      `;
-    });
-
-    legacyEntities.forEach((entityId) => {
-      checkboxRows.push(`
-        <label class="list-checkbox-row virtual-calendar-entity-row legacy-entity-row">
-          <span>${this.escapeHtml(entityId)} <em>(not in configured calendars)</em></span>
-          <input type="checkbox" data-virtual-calendar-entity="true" data-virtual-calendar-index="${index}" value="${this.escapeHtml(entityId)}" checked disabled>
-        </label>
-      `);
-    });
-
-    const checkboxMarkup = checkboxRows.length
-      ? checkboxRows.join('')
-      : '<p class="helper">Select at least one real calendar above to include calendars here.</p>';
-
-    return `
-      <div class="virtual-calendar-card" data-virtual-calendar-card="${index}">
-        <div class="virtual-calendar-card-header">
-          <strong>${this.escapeHtml(virtualCalendarName || virtualCalendarId || `Virtual calendar ${renderIndex + 1}`)}</strong>
-          <div class="virtual-calendar-actions">
-            <button type="button" title="Move up" data-virtual-calendar-action="move-up" data-virtual-calendar-index="${index}" ${renderIndex === 0 ? 'disabled' : ''}>↑</button>
-            <button type="button" title="Move down" data-virtual-calendar-action="move-down" data-virtual-calendar-index="${index}" ${renderIndex === renderCount - 1 ? 'disabled' : ''}>↓</button>
-            <button type="button" title="Remove" data-virtual-calendar-action="remove" data-virtual-calendar-index="${index}">Remove</button>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="virtual-calendar-name-${index}">Name</label>
-            <input id="virtual-calendar-name-${index}" type="text" data-virtual-calendar-field="name" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarName)}" placeholder="Virtual Calendar">
-          </div>
-          <div class="field">
-            <label for="virtual-calendar-id-${index}">ID</label>
-            <input id="virtual-calendar-id-${index}" type="text" data-virtual-calendar-field="id" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarId)}" placeholder="virtual_1" ${idValidation ? 'aria-invalid="true"' : ''} ${idValidation ? `aria-describedby="virtual-calendar-id-error-${index}"` : ''}>
-            ${idValidationMarkup}
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="virtual-calendar-icon-${index}">Icon</label>
-            <input id="virtual-calendar-icon-${index}" type="text" data-virtual-calendar-field="icon" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarIcon)}" placeholder="mdi:calendar">
-          </div>
-          <div class="field virtual-calendar-color-field">
-            <label for="virtual-calendar-color-${index}">Color override (optional)</label>
-            <div class="virtual-calendar-color-row">
-              ${this.renderColorInputControl({ id: `virtual-calendar-color-picker-${index}`, field: 'virtual_calendar_color', mapKey: String(index), value: virtualCalendarColor })}
-              <input id="virtual-calendar-color-${index}" type="text" data-virtual-calendar-field="color" data-virtual-calendar-index="${index}" value="${this.escapeHtml(virtualCalendarColor)}" placeholder="#3f51b5">
-              ${colorStatusMarkup}
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label>Included calendar entities</label>
-          <div class="list-checkbox-grid virtual-calendar-entities">
-            ${checkboxMarkup}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  updateVirtualCalendar(index, patch, { render = false } = {}) {
-    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
-    if (index < 0 || index >= virtualCalendars.length) return;
-    const currentVirtualCalendar = virtualCalendars[index];
-    if (!currentVirtualCalendar || typeof currentVirtualCalendar !== 'object' || Array.isArray(currentVirtualCalendar)) return;
-
-    virtualCalendars[index] = this.sanitizeVirtualCalendarForEditor({
-      ...currentVirtualCalendar,
-      ...patch
-    });
-
-    this.emitConfigChanged({
-      ...this.value,
-      virtual_calendars: virtualCalendars
-    });
-
-    if (render) this.render();
-    else this.updateFieldValues();
-  }
-
-  addVirtualCalendar() {
-    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
-    virtualCalendars.push({
-      id: this.getNextVirtualCalendarId(),
-      name: 'Virtual Calendar',
-      icon: null,
-      color: null,
-      entities: []
-    });
-
-    this.emitConfigChanged({
-      ...this.value,
-      virtual_calendars: virtualCalendars
-    });
-    this.render();
-  }
-
-  removeVirtualCalendar(index) {
-    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
-    if (index < 0 || index >= virtualCalendars.length) return;
-    virtualCalendars.splice(index, 1);
-
-    this.emitConfigChanged({
-      ...this.value,
-      virtual_calendars: virtualCalendars
-    });
-    this.render();
-  }
-
-  moveVirtualCalendar(index, direction) {
-    const renderableVirtualCalendars = this.getRenderableVirtualCalendarsForEditor();
-    const renderIndex = renderableVirtualCalendars.findIndex((entry) => entry.index === index);
-    const swapEntry = renderableVirtualCalendars[renderIndex + direction];
-    const virtualCalendars = [...this.getVirtualCalendarsForEditor()];
-    if (renderIndex === -1 || !swapEntry || index < 0 || index >= virtualCalendars.length) return;
-    [virtualCalendars[index], virtualCalendars[swapEntry.index]] = [virtualCalendars[swapEntry.index], virtualCalendars[index]];
-
-    this.emitConfigChanged({
-      ...this.value,
-      virtual_calendars: virtualCalendars
-    });
-    this.render();
-  }
-
-  handleVirtualCalendarAction(event) {
-    const action = event.currentTarget.dataset.virtualCalendarAction;
-    const index = Number(event.currentTarget.dataset.virtualCalendarIndex);
-    if (action === 'add') this.addVirtualCalendar();
-    else if (action === 'remove') this.removeVirtualCalendar(index);
-    else if (action === 'move-up') this.moveVirtualCalendar(index, -1);
-    else if (action === 'move-down') this.moveVirtualCalendar(index, 1);
-  }
-
-  handleVirtualCalendarInput(event) {
-    const index = Number(event.target.dataset.virtualCalendarIndex);
-    const field = event.target.dataset.virtualCalendarField;
-    if (!field) return;
-    const value = String(event.target.value || '').trim();
-    this.updateVirtualCalendar(index, {
-      [field]: field === 'icon' || field === 'color' ? (value || null) : value
-    }, { render: field === 'id' || field === 'name' || field === 'color' });
-  }
-
-  handleVirtualCalendarEntityChange(event) {
-    const index = Number(event.target.dataset.virtualCalendarIndex);
-    const checkedEntities = Array.from(this.querySelectorAll(`input[data-virtual-calendar-entity][data-virtual-calendar-index="${index}"]:checked`))
-      .map((input) => input.value)
-      .filter((entityId) => typeof entityId === 'string' && entityId.startsWith('calendar.'));
-    this.updateVirtualCalendar(index, { entities: checkedEntities });
-  }
-
-  renderWeekdayCheckboxes() {
-    const selectedWeekdays = new Set(this.getListFieldValue('week_days'));
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    return `
-      <div class="weekday-grid" role="group" aria-label="Week days">
-        ${days.map((day) => `<span class="weekday-label">${day}</span>`).join('')}
-        ${days.map((_, index) => `
-          <label class="weekday-checkbox-wrap" aria-label="${days[index]}">
-            <input type="checkbox" data-weekday="${index}" ${selectedWeekdays.has(index) ? 'checked' : ''}>
-          </label>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  render() {
-    this.captureOpenDisclosures();
-
-    const displayLayoutSection = this.renderSection('Display & layout', `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="first_day_of_week">First day of week</label>
-          <select id="first_day_of_week" data-field="first_day_of_week" data-type="number">
-            <option value="0" ${Number(this._config.first_day_of_week) === 0 ? 'selected' : ''}>Sunday</option>
-            <option value="1" ${Number(this._config.first_day_of_week) === 1 ? 'selected' : ''}>Monday</option>
-            <option value="2" ${Number(this._config.first_day_of_week) === 2 ? 'selected' : ''}>Tuesday</option>
-            <option value="3" ${Number(this._config.first_day_of_week) === 3 ? 'selected' : ''}>Wednesday</option>
-            <option value="4" ${Number(this._config.first_day_of_week) === 4 ? 'selected' : ''}>Thursday</option>
-            <option value="5" ${Number(this._config.first_day_of_week) === 5 ? 'selected' : ''}>Friday</option>
-            <option value="6" ${Number(this._config.first_day_of_week) === 6 ? 'selected' : ''}>Saturday</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label>Week days</label>
-        ${this.renderWeekdayCheckboxes()}
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="week_start_hour">Week start hour</label>
-          <input id="week_start_hour" data-field="week_start_hour" data-type="number" type="number" min="0" max="23" value="${Number(this._config.week_start_hour ?? this.getEditorDefaultValue('week_start_hour'))}">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="week_end_hour">Week end hour</label>
-          <input id="week_end_hour" data-field="week_end_hour" data-type="number" type="number" min="0" max="23" value="${Number(this._config.week_end_hour ?? this.getEditorDefaultValue('week_end_hour'))}">
-        </div>
-      </div>
-      <div class="boolean-list">
-        <label><input type="checkbox" data-field="lock_schedule_hours" ${this._config.lock_schedule_hours ? 'checked' : ''}> Schedule view: lock week start/end hours</label>
-        <label class="field-inline">Past-ended events
-          <select data-field="past_event_mode">
-            <option value="none" ${this._config.past_event_mode === 'none' ? 'selected' : ''}>Show normally</option>
-            <option value="hide" ${this._config.past_event_mode === 'hide' ? 'selected' : ''}>Hide</option>
-            <option value="muted" ${this._config.past_event_mode === 'muted' ? 'selected' : ''}>Mute</option>
-          </select>
-        </label>
-        <label><input type="checkbox" data-field="hide_empty_days" ${this._config.hide_empty_days ? 'checked' : ''}> Agenda view: hide empty days</label>
-        <label><input type="checkbox" data-field="agenda_compact_events" ${this._config.agenda_compact_events ? 'checked' : ''}> Agenda view: compact events</label>
-        <label><input type="checkbox" data-field="disable_swipe_controls" ${this._config.disable_swipe_controls ? 'checked' : ''}> Disable swipe period controls</label>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="rolling_days_week_compact">Rolling days (week view)</label>
-          <input id="rolling_days_week_compact" data-field="rolling_days_week_compact" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_week_compact ?? ''}" placeholder="Disabled">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="rolling_days_schedule">Rolling days (schedule view)</label>
-          <input id="rolling_days_schedule" data-field="rolling_days_schedule" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_schedule ?? ''}" placeholder="Disabled">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="rolling_days_agenda">Rolling days (agenda view)</label>
-          <input id="rolling_days_agenda" data-field="rolling_days_agenda" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_agenda ?? ''}" placeholder="Disabled">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="rolling_weeks">Rolling weeks (month view)</label>
-          <input id="rolling_weeks" data-field="rolling_weeks" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_weeks ?? ''}" placeholder="Disabled">
-        </div>
-      </div>
-      <div class="boolean-list">
-        <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
-        <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
-        <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
-        <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
-        <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
-        <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
-        <label><input type="checkbox" data-field="hide_year" ${this._config.hide_year ? 'checked' : ''}> Hide year in header period label</label>
-        <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
-        <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
-        <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
-        <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
-        <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
-        <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
-        <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
-        <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
-      </div>
-      ${this._config.show_dashboard_nav_button ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="header_dashboard_path">Dashboard target</label>
-          <select id="header_dashboard_path" data-field="header_dashboard_path">
-            <option value="">Select a dashboard</option>
-            ${this._dashboardOptions.map((dashboard) => `
-              <option value="${this.escapeHtml(dashboard.path)}" ${this._config.header_dashboard_path === dashboard.path ? 'selected' : ''}>${this.escapeHtml(dashboard.title)}</option>
-            `).join('')}
-          </select>
-        </div>
-      </div>
-      ` : ''}
-      ${this._config.compact_height ? '' : `
-        <div class="field">
-          <label for="height_scale">Height scale</label>
-          <input id="height_scale" data-field="height_scale" data-type="number" type="number" min="0.1" step="0.1" value="${Number(this._config.height_scale ?? this.getEditorDefaultValue('height_scale'))}">
-        </div>
-      `}
-    `);
-
-    const colorStylingSection = this.renderSection('Colors & styling', `
-      <div class="field">
-        <label for="header_color">Header color</label>
-        <div class="field-row">
-          ${this.renderColorInputControl({ id: 'header_color', field: 'header_color', value: this._config.header_color })}
-          <input data-field="header_color_text" data-type="color-text" type="text" value="${this.escapeHtml(this._config.header_color || '')}" placeholder="var(--primary-color) or match-card-background">
-        </div>
-      </div>
-      <div class="field">
-        <label for="header_text_color">Header text color</label>
-        <div class="field-row">
-          ${this.renderColorInputControl({ id: 'header_text_color', field: 'header_text_color', value: this._config.header_text_color })}
-          <input data-field="header_text_color_text" data-type="header-text-color-text" type="text" value="${this.escapeHtml(this._config.header_text_color || '')}" placeholder="Auto contrast">
-        </div>
-      </div>
-      ${this.renderSubSection('Calendar colors', `<div class="map-grid">${this.renderMapRowInputs('colors', { label: 'calendar colors', inputType: 'color' })}</div>`)}
-      ${this.renderSubSection('Event font colors', `<div class="map-grid">${this.renderMapRowInputs('event_font_colors', { label: 'event font colors', inputType: 'color' })}</div>`)}
-      ${this.renderSubSection('Calendar display names', `<div class="map-grid">${this.renderMapRowInputs('calendar_names', { label: 'calendar names', placeholder: 'Display name' })}</div>`)}
-      ${this.renderSubSection('Calendar badge icons', `<div class="map-grid">${this.renderMapRowInputs('calendar_badge_icons', { label: 'badge icons', placeholder: 'mdi:icon or URL' })}</div>`)}
-      ${this.renderSubSection('Calendar badge people', `<div class="map-grid">${this.renderMapRowInputs('calendar_person_entities', { label: 'badge people', placeholder: 'person.ian' })}</div>`)}
-      <div class="boolean-list">
-        <label><input type="checkbox" data-field="header_background_transparent" ${this.normalizeBackgroundOpacity(this._config.header_background_opacity, this._config.header_background_transparent ? 100 : 0) >= 100 ? 'checked' : ''}> Transparent header surfaces</label>
-        <label><input type="checkbox" data-field="background_transparent" ${this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0) >= 100 ? 'checked' : ''}> Transparent background surfaces</label>
-        <label><input type="checkbox" data-field="hide_dark_mode_toggle" ${this._config.hide_dark_mode_toggle ? 'checked' : ''}> Hide dark mode toggle</label>
-      </div>
-      <div class="field">
-        <label for="color_scheme">Color scheme</label>
-        <select id="color_scheme" data-field="color_scheme">
-          <option value="auto">Auto (browser/app)</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </div>
-    `);
-
-    const backgroundSection = this.renderSection('Background image', `
-      <div class="field field-inline">
-        <label for="header_background_opacity">Header opacity</label>
-        <input id="header_background_opacity" data-field="header_background_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this.normalizeBackgroundOpacity(this._config.header_background_opacity, this._config.header_background_transparent ? 100 : 0))}">
-      </div>
-      <div class="field field-inline">
-        <label for="background_opacity">Background opacity</label>
-        <input id="background_opacity" data-field="background_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0))}">
-      </div>
-      <div class="field field-inline">
-        <label for="background_image_url">Background image URL</label>
-        <input id="background_image_url" data-field="background_image_url" type="text" value="${this._config.background_image_url || ''}" placeholder="https://... or /media/local/...">
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="background_image_size">Image size</label>
-          <input id="background_image_size" data-field="background_image_size" type="text" value="${this._config.background_image_size || 'cover'}" placeholder="cover">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="background_image_position">Image position</label>
-          <input id="background_image_position" data-field="background_image_position" type="text" value="${this._config.background_image_position || 'center'}" placeholder="center">
-        </div>
-      </div>
-      <div class="field field-inline">
-        <label for="background_image_repeat">Image repeat</label>
-        <input id="background_image_repeat" data-field="background_image_repeat" type="text" value="${this._config.background_image_repeat || 'no-repeat'}" placeholder="no-repeat">
-      </div>
-    `);
-
-    const eventSection = this.renderSection('Events & schedule', `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_font_size">Event font size</label>
-          <input id="event_font_size" data-field="event_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_font_size ?? this.getEditorDefaultValue('event_font_size'))}">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_time_font_size">Event time font size</label>
-          <input id="event_time_font_size" data-field="event_time_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_time_font_size ?? this.getEditorDefaultValue('event_time_font_size'))}">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_location_font_size">Event location font size</label>
-          <input id="event_location_font_size" data-field="event_location_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_location_font_size ?? this.getEditorDefaultValue('event_location_font_size'))}">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_calendar_bubble_mode">Event calendar bubble</label>
-          <select id="event_calendar_bubble_mode" data-field="event_calendar_bubble_mode">
-            <option value="icon" ${this.getEventCalendarBubbleMode() === 'icon' ? 'selected' : ''}>Icon</option>
-            <option value="friendly_name" ${this.getEventCalendarBubbleMode() === 'friendly_name' ? 'selected' : ''}>Friendly Name</option>
-            <option value="none" ${this.getEventCalendarBubbleMode() === 'none' ? 'selected' : ''}>None</option>
-          </select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_title_prefix">Event title prefix</label>
-          <select id="event_title_prefix" data-field="event_title_prefix">
-            <option value="none" ${this._config.event_title_prefix === 'none' || !this._config.event_title_prefix ? 'selected' : ''}>None</option>
-            <option value="badge_icon" ${this._config.event_title_prefix === 'badge_icon' ? 'selected' : ''}>Calendar Badge Icon</option>
-            <option value="friendly_name" ${this._config.event_title_prefix === 'friendly_name' ? 'selected' : ''}>Calendar Friendly Name</option>
-          </select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_color_mode">Event color style</label>
-          <select id="event_color_mode" data-field="event_color_mode">
-            <option value="classic" ${this._config.event_color_mode === 'classic' ? 'selected' : ''}>Classic</option>
-            <option value="left-neutral" ${this._config.event_color_mode === 'left-neutral' ? 'selected' : ''}>Bar + Neutral</option>
-            <option value="left-tint" ${this._config.event_color_mode === 'left-tint' ? 'selected' : ''}>Bar + Tint</option>
-          </select>
-        </div>
-      </div>
-      ${this._config.event_color_mode === 'left-neutral' ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_neutral_background">Neutral event background color</label>
-          ${this.renderColorInputControl({ id: 'event_neutral_background', field: 'event_neutral_background', value: this._config.event_neutral_background || '#F8F3E9' })}
-        </div>
-      </div>
-      ` : ''}
-      ${this._config.event_color_mode === 'left-tint' ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_tint_opacity">Tint opacity</label>
-          <input id="event_tint_opacity" data-field="event_tint_opacity" data-type="number" type="number" min="0" max="100" step="1" value="${Number(this._config.event_tint_opacity ?? 80)}">
-        </div>
-      </div>
-      ` : ''}
-      ${this._config.event_color_mode !== 'classic' ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_color_bar_width">Event color bar width (px)</label>
-          <input id="event_color_bar_width" data-field="event_color_bar_width" data-type="number" type="number" min="1" value="${Number(this._config.event_color_bar_width ?? this._config.combine_calendars_width ?? 18)}">
-        </div>
-      </div>
-      ` : ''}
-      ${this.renderSubSection('Hide times for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_times_for_calendars', { label: 'hidden times calendars' })}</div>`)}
-      <div class="boolean-list">
-        <label><input type="checkbox" data-field="show_current_time_bar" ${this._config.show_current_time_bar ? 'checked' : ''}> Show current time bar</label>
-        <label><input type="checkbox" data-field="use_24hr_schedule" ${this._config.use_24hr_schedule ? 'checked' : ''}> Use 24-hour schedule time</label>
-        <label><input type="checkbox" data-field="shorten_event_times" ${this._config.shorten_event_times ? 'checked' : ''}> Shorten event times</label>
-        <label><input type="checkbox" data-field="display_full_weekday_names" ${this._config.display_full_weekday_names ? 'checked' : ''}> Display full weekday names</label>
-        <label><input type="checkbox" data-field="show_event_location" ${this._config.show_event_location ? 'checked' : ''}> Show event location</label>
-        <label><input type="checkbox" data-field="use_short_location" ${this._config.use_short_location ? 'checked' : ''}> Shorten event location in views</label>
-        <label><input type="checkbox" data-field="combine_calendars" ${this._config.combine_calendars ? 'checked' : ''}> Combine duplicate events across calendars</label>
-      </div>
-      ${this._config.combine_calendars ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="combine_style">Combined indicator style</label>
-          <select id="combine_style" data-field="combine_style">
-            <option value="stripes" ${this._config.combine_style === 'stripes' ? 'selected' : ''}>Stripes</option>
-            <option value="bars" ${this._config.combine_style === 'bars' || !this._config.combine_style ? 'selected' : ''}>Bars</option>
-            <option value="dots" ${this._config.combine_style === 'dots' ? 'selected' : ''}>Dots</option>
-          </select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="combine_background_mode">Combined background</label>
-          <select id="combine_background_mode" data-field="combine_background_mode">
-            <option value="neutral" ${this._combineBackgroundMode === 'neutral' ? 'selected' : ''}>Neutral</option>
-            <option value="primary" ${this._combineBackgroundMode === 'primary' ? 'selected' : ''}>Primary</option>
-            <option value="hex" ${this._combineBackgroundMode === 'hex' ? 'selected' : ''}>Hex</option>
-          </select>
-        </div>
-      </div>
-      ${this._combineBackgroundMode === 'hex' ? `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="combine_background_hex">Combined background hex value</label>
-          <input id="combine_background_hex" data-field="combine_background_hex" type="text" value="${this.escapeHtml(this._combineBackgroundHexDraft || '#FFFFFF')}" placeholder="#RRGGBB">
-        </div>
-      </div>
-      ` : ''}
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="combine_calendars_width">Combined indicator width (px)</label>
-          <input id="combine_calendars_width" data-field="combine_calendars_width" data-type="number" type="number" min="1" value="${Number(this._config.combine_calendars_width ?? this.getEditorDefaultValue('combine_calendars_width'))}">
-        </div>
-      </div>
-      ` : ''}
-    `);
-
-    const managementSection = this.renderSection('Event management', `
-      <div class="boolean-list">
-        <label><input type="checkbox" data-field="enable_event_management" ${this._config.enable_event_management !== false ? 'checked' : ''}> Enable event management</label>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="event_modal_size">Event modal size</label>
-          <select id="event_modal_size" data-field="event_modal_size">
-            <option value="narrow" ${this._config.event_modal_size === 'narrow' ? 'selected' : ''}>Narrow</option>
-            <option value="medium" ${this._config.event_modal_size === 'medium' || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
-            <option value="wide" ${this._config.event_modal_size === 'wide' ? 'selected' : ''}>Wide</option>
-            <option value="full" ${this._config.event_modal_size === 'full' ? 'selected' : ''}>Full</option>
-          </select>
-        </div>
-      </div>
-      ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
-      ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
-      ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}
-      ${this.renderSubSection('Virtual calendars', this.renderVirtualCalendarsEditor())}
-    `);
-
-    const localeSection = this.renderSection('Localization & preferences', `
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="language">Language code</label>
-          <input id="language" data-field="language" type="text" value="${this._config.language || ''}" placeholder="en, fr, de...">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="locale">Locale override</label>
-          <input id="locale" data-field="locale" type="text" value="${this._config.locale || ''}" placeholder="en-US">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="header_time_sensor">Header time sensor</label>
-          <input id="header_time_sensor" data-field="header_time_sensor" type="text" value="${this._config.header_time_sensor || ''}" placeholder="sensor.current_time">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field field-inline">
-          <label for="header_weather_sensor">Header weather sensor</label>
-          <input id="header_weather_sensor" data-field="header_weather_sensor" type="text" value="${this._config.header_weather_sensor || ''}" placeholder="weather.home">
-        </div>
-      </div>
-      <div class="field field-inline">
-        <label for="preference_storage_key">Preference storage key</label>
-        <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
-      </div>
-    `);
-
-    const diagnosticsSection = this.renderSection('About / Diagnostics', `
-      <p class="helper">Daylight Calendar Card</p>
-      <p class="helper">Loaded version: ${this.escapeHtml(getDaylightCalendarCardVersion())}</p>
-      <p class="helper">Resource file: skylight-calendar-card.js</p>
-      <p class="helper">If this version does not match the version shown in HACS, Home Assistant may be loading a cached or stale resource.</p>
-    `);
-
-    this.innerHTML = `
-      <style>
-        .card-config {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          padding: 8px 0;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .field.field-inline {
-          display: grid;
-          grid-template-columns: minmax(180px, 260px) 1fr;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .field-row {
-          display: grid;
-          gap: 8px;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        }
-
-        .field label {
-          font-weight: 500;
-          color: var(--primary-text-color);
-        }
-
-        .field input,
-        .field select,
-        .field textarea {
-          padding: 8px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          font: inherit;
-          color: var(--primary-text-color);
-          background: var(--card-background-color);
-        }
-
-        .field textarea {
-          min-height: 70px;
-          resize: vertical;
-        }
-
-        .weekday-grid {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 6px;
-          align-items: center;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          padding: 8px;
-          background: var(--card-background-color);
-        }
-
-        .weekday-label {
-          text-align: center;
-          font-weight: 500;
-          color: var(--secondary-text-color);
-          font-size: 0.85rem;
-        }
-
-        .weekday-checkbox-wrap {
-          display: flex;
-          justify-content: center;
-        }
-
-        .map-grid {
-          display: grid;
-          gap: 8px;
-        }
-
-        .map-row {
-          display: grid;
-          grid-template-columns: minmax(160px, 220px) 1fr;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .list-checkbox-grid {
-          display: grid;
-          gap: 8px;
-        }
-
-        .list-checkbox-row {
-          display: grid;
-          grid-template-columns: minmax(160px, 220px) 1fr;
-          gap: 8px;
-          align-items: center;
-          font-weight: 400;
-        }
-
-        .list-checkbox-row input[type="checkbox"] {
-          justify-self: end;
-        }
-
-        .virtual-calendars-editor {
-          display: grid;
-          gap: 10px;
-        }
-
-        .virtual-calendar-card {
-          border: 1px solid var(--divider-color);
-          border-radius: 8px;
-          padding: 10px;
-          background: var(--card-background-color);
-          display: grid;
-          gap: 10px;
-        }
-
-        .virtual-calendar-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-        }
-
-        .virtual-calendar-actions {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-
-        .virtual-calendar-actions button,
-        .secondary-action {
-          border: 1px solid var(--divider-color);
-          background: var(--card-background-color);
-          border-radius: 6px;
-          padding: 6px 10px;
-          cursor: pointer;
-          color: var(--primary-text-color);
-          font: inherit;
-        }
-
-        .virtual-calendar-actions button:disabled {
-          cursor: default;
-          opacity: 0.45;
-        }
-
-        .virtual-calendar-color-row {
-          display: grid;
-          grid-template-columns: auto 1fr;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .virtual-calendar-color-status {
-          grid-column: 1 / -1;
-          color: var(--secondary-text-color);
-          font-size: 0.85rem;
-        }
-
-        .virtual-calendar-color-status.no-override {
-          font-style: italic;
-        }
-
-        .virtual-calendar-entities {
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          padding: 8px;
-        }
-
-        .legacy-entity-row {
-          color: var(--secondary-text-color);
-        }
-
-        .legacy-entity-row em {
-          font-size: 0.85rem;
-        }
-
-        .validation-message {
-          color: var(--error-color, #db4437);
-          font-size: 0.85rem;
-          margin: 2px 0 0;
-        }
-
-        input[aria-invalid="true"] {
-          border-color: var(--error-color, #db4437);
-        }
-
-        .color-picker-wrap {
-          display: inline-flex;
-          align-items: center;
-        }
-
-        .selected-color-swatch {
-          width: 26px;
-          height: 26px;
-          border-radius: 6px;
-          border: 1px solid var(--divider-color);
-          background: var(--selected-color);
-          cursor: pointer;
-          padding: 0;
-          display: inline-block;
-        }
-
-        .color-picker-dialog {
-          display: none;
-          position: fixed;
-          inset: 0;
-          z-index: 1000;
-        }
-
-        .color-picker-dialog.show {
-          display: block;
-        }
-
-        .color-picker-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.4);
-        }
-
-        .color-picker-modal {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          width: min(460px, calc(100vw - 24px));
-          background: var(--card-background-color);
-          border-radius: 12px;
-          padding: 16px;
-          box-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
-          display: grid;
-          gap: 12px;
-        }
-
-        .color-picker-title {
-          font-size: 1.8rem;
-          font-weight: 600;
-        }
-
-        .color-picker-wheel {
-          position: relative;
-          width: 260px;
-          height: 260px;
-          border-radius: 50%;
-          margin: 0 auto;
-          background:
-            radial-gradient(circle at center, #ffffff 0%, rgba(255, 255, 255, 0.85) 16%, rgba(255, 255, 255, 0) 58%),
-            conic-gradient(from 0deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff00ff, #ff0000);
-        }
-
-        .color-picker-wheel-marker {
-          position: absolute;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          border: 2px solid white;
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-        }
-
-        .color-picker-controls {
-          display: grid;
-          gap: 6px;
-        }
-
-        .color-picker-controls input[type="text"] {
-          padding: 8px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          font: inherit;
-          color: var(--primary-text-color);
-          background: var(--card-background-color);
-        }
-
-        .color-picker-presets {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-        }
-
-        .color-preset {
-          width: 100%;
-          aspect-ratio: 1;
-          border-radius: 50%;
-          border: 2px solid rgba(0, 0, 0, 0.08);
-          cursor: pointer;
-        }
-
-        .color-picker-selected-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .color-picker-preview {
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-          border: 1px solid var(--divider-color);
-        }
-
-        .color-picker-value {
-          font-family: monospace;
-        }
-
-        .color-picker-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-        }
-
-        .color-picker-actions button {
-          border: 1px solid var(--divider-color);
-          background: var(--card-background-color);
-          border-radius: 6px;
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--primary-text-color);
-        }
-
-        .color-picker-actions button.primary {
-          background: var(--primary-color);
-          color: white;
-          border-color: transparent;
-        }
-
-        .map-label {
-          font-weight: 500;
-          color: var(--primary-text-color);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .config-section {
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          background: color-mix(in srgb, var(--card-background-color) 96%, var(--primary-text-color) 4%);
-        }
-
-        .config-section summary {
-          cursor: pointer;
-          padding: 10px;
-          font-weight: 600;
-          list-style: none;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .config-section summary::before,
-        .config-subsection summary::before {
-          content: '›';
-          font-size: 1.2rem;
-          line-height: 1;
-          transform: rotate(0deg);
-          transition: transform 120ms ease;
-          color: var(--secondary-text-color);
-        }
-
-        .config-section[open] > summary::before,
-        .config-subsection[open] > summary::before {
-          transform: rotate(90deg);
-        }
-
-        .config-section summary::-webkit-details-marker {
-          display: none;
-        }
-
-        .section-content {
-          border-top: 1px solid var(--divider-color);
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .config-subsection {
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          background: var(--card-background-color);
-        }
-
-        .config-subsection summary {
-          cursor: pointer;
-          padding: 8px 10px;
-          font-weight: 600;
-          list-style: none;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .config-subsection summary::-webkit-details-marker {
-          display: none;
-        }
-
-        .subsection-content {
-          border-top: 1px solid var(--divider-color);
-          padding: 10px;
-        }
-
-        .entity-list,
-        .boolean-list {
-          display: grid;
-          gap: 4px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          padding: 8px;
-          background: var(--card-background-color);
-        }
-
-        .entity-list {
-          max-height: 200px;
-          overflow: auto;
-        }
-
-        .entity-list label,
-        .boolean-list label {
-          font-weight: 400;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .helper {
-          margin: 0;
-          color: var(--secondary-text-color);
-          font-size: 0.85rem;
-        }
-      </style>
-      <div class="card-config">
-        <div class="field field-inline">
-          <label for="title">Title</label>
-          <input id="title" data-field="title" type="text" value="${this._config.title || ''}" placeholder="Family Calendar">
-        </div>
-
-        <div class="field">
-          <label for="default_view">Default view</label>
-          <select id="default_view" data-field="default_view">
-            <option value="month" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'month' ? 'selected' : ''}>Month</option>
-            <option value="week-compact" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-compact' ? 'selected' : ''}>Week</option>
-            <option value="week-standard" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-standard' ? 'selected' : ''}>Schedule</option>
-            <option value="agenda" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'agenda' ? 'selected' : ''}>Agenda</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Calendars</label>
-          <div class="entity-list" id="entity-list"></div>
-          <p class="helper">Select one or more calendar entities to display.</p>
-        </div>
-
-        ${displayLayoutSection}
-        ${colorStylingSection}
-        ${backgroundSection}
-        ${eventSection}
-        ${managementSection}
-        ${localeSection}
-        ${diagnosticsSection}
-      </div>
-      ${this.renderColorPickerDialog()}
-    `;
-
-    this.refreshCalendarEntities();
-
-    this.querySelectorAll('[data-field]').forEach((input) => {
-      const eventName = input.type === 'text' ? 'input' : 'change';
-      input.addEventListener(eventName, (event) => this.handleChange(event));
-    });
-
-    this.querySelectorAll('[data-map-field]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleChange(event));
-    });
-
-    this.querySelectorAll('[data-list-field]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleChange(event));
-    });
-
-    this.querySelectorAll('[data-weekday]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleChange(event));
-    });
-
-    this.querySelectorAll('[data-virtual-calendar-action]').forEach((button) => {
-      button.addEventListener('click', (event) => this.handleVirtualCalendarAction(event));
-    });
-
-    this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleVirtualCalendarInput(event));
-    });
-
-    this.querySelectorAll('[data-virtual-calendar-entity]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleVirtualCalendarEntityChange(event));
-    });
-
-    this.querySelectorAll('[data-color-trigger]').forEach((trigger) => {
-      trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
-    });
-
-    const wheel = this.querySelector('#color-picker-wheel');
-    if (wheel) {
-      let dragging = false;
-      wheel.addEventListener('pointerdown', (event) => {
-        dragging = true;
-        this.updateColorPickerFromWheelEvent(event);
-      });
-      wheel.addEventListener('pointermove', (event) => {
-        if (dragging) this.updateColorPickerFromWheelEvent(event);
-      });
-      wheel.addEventListener('pointerup', () => { dragging = false; });
-      wheel.addEventListener('pointerleave', () => { dragging = false; });
-    }
-
-    this.querySelectorAll('[data-color-preset]').forEach((preset) => {
-      preset.addEventListener('click', () => {
-        const hex = preset.dataset.colorPreset;
-        const hsv = this.hexToHsv(hex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = this.hsvToHex(hsv.h, hsv.s, hsv.v);
-        this.syncColorPickerUi();
-      });
-    });
-
-    this.querySelectorAll('[data-close-color-picker]').forEach((button) => {
-      button.addEventListener('click', () => this.closeColorPicker());
-    });
-
-    const brightnessInput = this.querySelector('#color-picker-brightness');
-    if (brightnessInput) {
-      brightnessInput.addEventListener('input', (event) => {
-        this._colorPickerState.v = Number(event.target.value) / 100;
-        this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-        this.syncColorPickerUi();
-      });
-    }
-
-    const hexInput = this.querySelector('#color-picker-hex');
-    if (hexInput) {
-      const syncHexColor = () => {
-        const normalizedHex = this.normalizeHexColorInput(hexInput.value);
-        if (!normalizedHex) return;
-        const hsv = this.hexToHsv(normalizedHex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = normalizedHex;
-        this.syncColorPickerUi();
-      };
-      hexInput.addEventListener('input', syncHexColor);
-      hexInput.addEventListener('change', syncHexColor);
-    }
-
-    const applyBtn = this.querySelector('#apply-color-picker');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        this.applyColorPickerColor(this._colorPickerState.color);
-      });
-    }
-
-    this._rendered = true;
-  }
-
-  refreshCalendarEntities() {
-    const entityListContainer = this.querySelector('#entity-list');
-    if (!entityListContainer) return;
-
-    const calendarEntities = this.getCalendarEntities();
-    const nextKey = calendarEntities.join('|');
-
-    if (this._lastCalendarEntitiesKey === nextKey && entityListContainer.childElementCount > 0) {
-      const selectedEntities = new Set(this._config.entities || []);
-      entityListContainer.querySelectorAll('input[data-field="entity"]').forEach((checkbox) => {
-        checkbox.checked = selectedEntities.has(checkbox.value);
-      });
-      return;
-    }
-
-    this._lastCalendarEntitiesKey = nextKey;
-    const selectedEntities = new Set(this._config.entities || []);
-
-    if (calendarEntities.length === 0) {
-      entityListContainer.innerHTML = '<p class="helper">No calendar entities found yet.</p>';
-      return;
-    }
-
-    entityListContainer.innerHTML = calendarEntities
-      .map((entityId) => {
-        const friendlyName = this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
-        const checked = selectedEntities.has(entityId) ? 'checked' : '';
-        return `<label><input type="checkbox" data-field="entity" value="${entityId}" ${checked}> ${friendlyName}</label>`;
-      })
-      .join('');
-
-    entityListContainer.querySelectorAll('input[data-field="entity"]').forEach((input) => {
-      input.addEventListener('change', (event) => this.handleChange(event));
-    });
-  }
-
-  updateFieldValues() {
-    const titleInput = this.querySelector('input[data-field="title"]');
-    if (titleInput && document.activeElement !== titleInput) {
-      titleInput.value = this._config.title || '';
-    }
-
-    const defaultView = this.querySelector('select[data-field="default_view"]');
-    if (defaultView && document.activeElement !== defaultView) {
-      defaultView.value = this.normalizeDefaultViewForEditor(this._config.default_view);
-    }
-
-    const firstDayOfWeek = this.querySelector('select[data-field="first_day_of_week"]');
-    if (firstDayOfWeek && document.activeElement !== firstDayOfWeek) {
-      firstDayOfWeek.value = String(Number(this._config.first_day_of_week ?? 0));
-    }
-
-    this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (checkbox.dataset.field === 'enable_event_management') {
-        checkbox.checked = this._config.enable_event_management !== false;
-        return;
-      }
-      checkbox.checked = !!this._config[checkbox.dataset.field];
-    });
-
-    this.querySelectorAll('input[type="checkbox"][data-list-field]').forEach((checkbox) => {
-      const listField = checkbox.dataset.listField;
-      checkbox.checked = this.getListFieldValue(listField).includes(checkbox.value);
-    });
-
-    this.querySelectorAll('input[data-type="number"], input[data-type="nullable-number"], input[data-type="list"], input[data-field="language"], input[data-field="locale"], input[data-field="header_time_sensor"], input[data-field="header_weather_sensor"], input[data-field="preference_storage_key"], input[data-field="background_image_url"], input[data-field="background_image_size"], input[data-field="background_image_position"], input[data-field="background_image_repeat"]').forEach((input) => {
-      if (document.activeElement === input) return;
-      const field = input.dataset.field;
-      const type = input.dataset.type;
-      if (type === 'list') input.value = this.getListInputValue(field);
-      else if (type === 'nullable-number') input.value = this._config[field] ?? '';
-      else if (type === 'number') input.value = Number(this._config[field] ?? this.getEditorDefaultValue(field));
-      else input.value = this._config[field] || '';
-    });
-
-    this.querySelectorAll('input[type="checkbox"][data-weekday]').forEach((checkbox) => {
-      const weekday = Number(checkbox.dataset.weekday);
-      checkbox.checked = this.getListFieldValue('week_days').includes(weekday);
-    });
-
-    this.querySelectorAll('select[data-field]').forEach((select) => {
-      if (document.activeElement === select) return;
-      const field = select.dataset.field;
-      if (field === 'default_view') return;
-      if (field === 'first_day_of_week') return;
-      if (field === 'event_calendar_bubble_mode') {
-        select.value = this.getEventCalendarBubbleMode();
-        return;
-      }
-
-      if (field === 'combine_background_mode') {
-        select.value = this._combineBackgroundMode;
-        return;
-      }
-      select.value = this._config[field] || '';
-    });
-
-    const combineBackgroundHexInput = this.querySelector('input[data-field="combine_background_hex"]');
-    if (combineBackgroundHexInput && document.activeElement !== combineBackgroundHexInput) {
-      combineBackgroundHexInput.value = this._combineBackgroundHexDraft || '#FFFFFF';
-    }
-
-    const headerColorTextInput = this.querySelector('input[data-field="header_color_text"]');
-    if (headerColorTextInput && document.activeElement !== headerColorTextInput) {
-      headerColorTextInput.value = this._config.header_color || '';
-    }
-
-    const headerTextColorTextInput = this.querySelector('input[data-field="header_text_color_text"]');
-    if (headerTextColorTextInput && document.activeElement !== headerTextColorTextInput) {
-      headerTextColorTextInput.value = this._config.header_text_color || '';
-    }
-
-    this.querySelectorAll('[data-map-field]').forEach((input) => {
-      if (document.activeElement === input) return;
-      const mapField = input.dataset.mapField;
-      const mapKey = input.dataset.mapKey;
-      const value = this.getMapFieldValue(mapField)[mapKey] || '';
-      input.value = value;
-    });
-
-    this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
-      if (document.activeElement === input) return;
-      const index = Number(input.dataset.virtualCalendarIndex);
-      const field = input.dataset.virtualCalendarField;
-      const virtualCalendar = this.getVirtualCalendarsForEditor()[index] || {};
-      input.value = virtualCalendar[field] || '';
-    });
-
-    this.querySelectorAll('[data-virtual-calendar-entity]').forEach((checkbox) => {
-      const index = Number(checkbox.dataset.virtualCalendarIndex);
-      const virtualCalendar = this.getVirtualCalendarsForEditor()[index] || {};
-      const entities = Array.isArray(virtualCalendar.entities) ? virtualCalendar.entities : [];
-      checkbox.checked = entities.includes(checkbox.value);
-    });
-
-    this.querySelectorAll('.selected-color-swatch').forEach((swatch) => {
-      const field = swatch.dataset.colorField;
-      const mapKey = swatch.dataset.colorMapKey || null;
-      const nextColor = this.getColorValue(field, mapKey);
-      swatch.style.setProperty('--selected-color', nextColor);
-    });
-
-    this.refreshCalendarEntities();
-  }
-
-  parseList(value, { asNumbers = false } = {}) {
-    const parsed = String(value || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (!asNumbers) return parsed;
-    return parsed
-      .map((item) => Number(item))
-      .filter((item) => Number.isFinite(item));
-  }
-
-  handleChange(event) {
-    const field = event.target.dataset.field;
-    const nextConfig = { ...this.value };
-
-    if (field === 'event_calendar_bubble_mode') {
-      const selectedMode = event.target.value;
-      if (selectedMode === 'friendly_name') {
-        nextConfig.event_calendar_friendly_name = true;
-        nextConfig.hide_event_calendar_bubble = false;
-      } else if (selectedMode === 'none') {
-        nextConfig.event_calendar_friendly_name = false;
-        nextConfig.hide_event_calendar_bubble = true;
-      } else {
-        nextConfig.event_calendar_friendly_name = false;
-        nextConfig.hide_event_calendar_bubble = false;
-      }
-
-      this._config = nextConfig;
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config: nextConfig },
-          bubbles: true,
-          composed: true
-        })
-      );
-      return;
-    }
-
-    if (field === 'combine_background_mode') {
-      this._combineBackgroundMode = event.target.value;
-      if (this._combineBackgroundMode === 'hex') {
-        const currentHex = this.normalizeHexColor(this._config.combine_background) || this._combineBackgroundHexDraft || '#FFFFFF';
-        this._combineBackgroundHexDraft = currentHex;
-        nextConfig.combine_background = currentHex;
-      } else {
-        this._combineBackgroundHexDraft = '';
-        nextConfig.combine_background = this._combineBackgroundMode;
-      }
-
-      this._config = nextConfig;
-      this.render();
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config: nextConfig },
-          bubbles: true,
-          composed: true
-        })
-      );
-      return;
-    }
-
-    if (field === 'combine_background_hex') {
-      const normalizedHex = this.normalizeHexColor(event.target.value);
-      if (normalizedHex) {
-        this._combineBackgroundHexDraft = normalizedHex;
-        nextConfig.combine_background = normalizedHex;
-      } else {
-        this._combineBackgroundHexDraft = event.target.value;
-      }
-
-      this._config = nextConfig;
-      this.render();
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config: nextConfig },
-          bubbles: true,
-          composed: true
-        })
-      );
-      return;
-    }
-
-    if (field === 'entity') {
-      const selected = Array.from(this.querySelectorAll('input[data-field="entity"]:checked')).map((input) => input.value);
-      nextConfig.entities = selected;
-      this._config = nextConfig;
-      this.render();
-      this.dispatchEvent(
-        new CustomEvent('config-changed', {
-          detail: { config: nextConfig },
-          bubbles: true,
-          composed: true
-        })
-      );
-      return;
-    } else if (event.target.dataset.mapField) {
-      const mapField = event.target.dataset.mapField;
-      const mapKey = event.target.dataset.mapKey;
-      const mapValue = { ...this.getMapFieldValue(mapField) };
-      const nextValue = event.target.value;
-      if (nextValue === '') delete mapValue[mapKey];
-      else mapValue[mapKey] = nextValue;
-      nextConfig[mapField] = mapValue;
-    } else if (event.target.dataset.listField) {
-      const listField = event.target.dataset.listField;
-      const checkedValues = Array.from(this.querySelectorAll(`input[data-list-field="${listField}"]:checked`)).map((input) => input.value);
-      nextConfig[listField] = checkedValues;
-    } else if (event.target.dataset.weekday !== undefined) {
-      const selectedWeekdays = Array.from(this.querySelectorAll('input[data-weekday]:checked'))
-        .map((input) => Number(input.dataset.weekday))
-        .filter((value) => Number.isFinite(value))
-        .sort((a, b) => a - b);
-      nextConfig.week_days = selectedWeekdays;
-    } else if (event.target.type === 'checkbox') {
-      nextConfig[field] = event.target.checked;
-      if (field === 'background_transparent') {
-        nextConfig.background_opacity = event.target.checked ? 100 : 0;
-      } else if (field === 'header_background_transparent') {
-        nextConfig.header_background_opacity = event.target.checked ? 100 : 0;
-      }
-      if (field === 'compact_height' || field === 'combine_calendars' || field === 'show_dashboard_nav_button') {
-        this._config = nextConfig;
-        this.render();
-        this.dispatchEvent(
-          new CustomEvent('config-changed', {
-            detail: { config: nextConfig },
-            bubbles: true,
-            composed: true
-          })
-        );
-        return;
-      }
-    } else if (event.target.dataset.type === 'color') {
-      nextConfig[field] = event.target.value;
-    } else if (event.target.dataset.type === 'color-text') {
-      nextConfig.header_color = event.target.value;
-    } else if (event.target.dataset.type === 'header-text-color-text') {
-      nextConfig.header_text_color = event.target.value;
-    } else if (event.target.dataset.type === 'number') {
-      if (event.target.value === '') {
-        nextConfig[field] = this.getEditorDefaultValue(field);
-        if (field === 'background_opacity') {
-          nextConfig.background_transparent = false;
-        }
-        if (field === 'header_background_opacity') {
-          nextConfig.header_background_transparent = false;
-        }
-      } else {
-        const numericValue = Number(event.target.value);
-        const parsedValue = Number.isFinite(numericValue) ? numericValue : this.getEditorDefaultValue(field);
-        if (field === 'week_start_hour' || field === 'week_end_hour') {
-          nextConfig[field] = Math.min(23, Math.max(0, parsedValue));
-        } else if (field === 'header_background_opacity') {
-          nextConfig.header_background_opacity = this.normalizeBackgroundOpacity(parsedValue, 0);
-          nextConfig.header_background_transparent = nextConfig.header_background_opacity >= 100;
-        } else if (field === 'background_opacity') {
-          nextConfig.background_opacity = this.normalizeBackgroundOpacity(parsedValue, 0);
-          nextConfig.background_transparent = nextConfig.background_opacity >= 100;
-        } else if (field === 'event_tint_opacity') {
-          nextConfig.event_tint_opacity = this.normalizeBackgroundOpacity(parsedValue, 80);
-        } else {
-          nextConfig[field] = parsedValue;
-        }
-      }
-    } else if (event.target.dataset.type === 'nullable-number') {
-      if (event.target.value === '') {
-        nextConfig[field] = null;
-      } else {
-        const numericValue = Number(event.target.value);
-        nextConfig[field] = Number.isFinite(numericValue) ? numericValue : null;
-      }
-    } else if (event.target.dataset.type === 'list') {
-      nextConfig[field] = this.parseList(event.target.value);
-    } else {
-      nextConfig[field] = event.target.value;
-      if (field === 'event_color_mode' || field === 'past_event_mode') {
-        this._config = nextConfig;
-        this.render();
-        this.dispatchEvent(
-          new CustomEvent('config-changed', {
-            detail: { config: nextConfig },
-            bubbles: true,
-            composed: true
-          })
-        );
-        return;
-      }
-    }
-
-    this._config = nextConfig;
-    this.dispatchEvent(
-      new CustomEvent('config-changed', {
-        detail: { config: nextConfig },
-        bubbles: true,
-        composed: true
-      })
-    );
-  }
-}
-
 class LegacySkylightCalendarCard extends SkylightCalendarCard {}
-class LegacySkylightCalendarCardEditor extends SkylightCalendarCardEditor {}
 
 customElements.define('daylight-calendar-card', SkylightCalendarCard);
-customElements.define('daylight-calendar-card-editor', SkylightCalendarCardEditor);
 customElements.define('skylight-calendar-card', LegacySkylightCalendarCard);
-customElements.define('skylight-calendar-card-editor', LegacySkylightCalendarCardEditor);
+registerDaylightCalendarCardEditor();
 
 window.customCards = window.customCards || [];
 window.customCards.push({
