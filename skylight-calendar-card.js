@@ -10059,6 +10059,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._hostResizeObserver = null;
     this._hostResizeRaf = null;
     this._pendingHostResizeRender = false;
+    this._pendingWidthDependentLayoutRefresh = false;
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
     this._monthCompactMeasurementDirty = true;
@@ -10081,6 +10082,7 @@ class SkylightCalendarCard extends HTMLElement {
 
       this.updateCompactHeaderWrapState();
       this.updateCalendarBadgesScrollState();
+      this.refreshWidthDependentLayoutMeasurements();
     };
   }
 
@@ -10339,6 +10341,45 @@ class SkylightCalendarCard extends HTMLElement {
     return requiredWidth > (availableWidth + tolerance);
   }
 
+  getUnwrappedHeaderMeasurementElements(header) {
+    if (!header || typeof header.cloneNode !== 'function') return null;
+
+    const parent = header.parentNode || this._root;
+    if (typeof parent?.appendChild !== 'function') return null;
+
+    const clone = header.cloneNode(true);
+    if (!clone) return null;
+
+    clone.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.header-controls')?.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.compact-header-controls')?.classList?.remove?.('is-wrapped');
+    clone.querySelector?.('.calendar-badges-inline')?.classList?.remove?.('is-wrapped');
+
+    if (clone.style) {
+      const width = header.getBoundingClientRect?.().width || header.clientWidth || 0;
+      clone.style.position = 'absolute';
+      clone.style.visibility = 'hidden';
+      clone.style.pointerEvents = 'none';
+      clone.style.left = '-10000px';
+      clone.style.top = '0';
+      clone.style.height = 'auto';
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      if (width > 0) clone.style.width = `${width}px`;
+    }
+
+    parent.appendChild(clone);
+    return {
+      clone,
+      leftGroup: this._config.compact_header
+        ? clone.querySelector?.('.compact-header-left')
+        : clone.querySelector?.('.header-left'),
+      controlsGroup: this._config.compact_header
+        ? clone.querySelector?.('.compact-header-controls')
+        : clone.querySelector?.('.header-controls')
+    };
+  }
+
 
   shouldMarkGroupWrappedFromWidth(group) {
     if (!group) return false;
@@ -10350,6 +10391,12 @@ class SkylightCalendarCard extends HTMLElement {
     return requiredWidth > (availableWidth + tolerance);
   }
 
+  setClassStateIfChanged(element, className, shouldHaveClass) {
+    if (!element?.classList) return;
+    if (element.classList.contains(className) === shouldHaveClass) return;
+    element.classList.toggle(className, shouldHaveClass);
+  }
+
   measureAndApplyHeaderWrapState() {
     if (!this._root) return;
 
@@ -10357,31 +10404,39 @@ class SkylightCalendarCard extends HTMLElement {
     const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
     const header = this._root.querySelector(headerSelector);
     const controls = this._root.querySelector(controlsSelector);
-    const compactControls = this._root.querySelector('.compact-header-controls');
-    const standardControls = this._root.querySelector('.header-controls');
     const badges = this._root.querySelector('.calendar-badges-inline');
 
-    header?.classList.remove('is-wrapped');
-    standardControls?.classList.remove('is-wrapped');
-    compactControls?.classList.remove('is-wrapped');
-    badges?.classList.remove('is-wrapped');
-
     if (header) {
-      const leftGroup = this._config.compact_header
+      const liveLeftGroup = this._config.compact_header
         ? header.querySelector('.compact-header-left')
         : header.querySelector('.header-left');
-      const controlsGroup = this._config.compact_header
+      const liveControlsGroup = this._config.compact_header
         ? header.querySelector('.compact-header-controls')
         : header.querySelector('.header-controls');
-      header.classList.toggle('is-wrapped', this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup));
-    }
+      const probe = this.getUnwrappedHeaderMeasurementElements(header);
+      let shouldWrapHeader = false;
+      let shouldWrapControls = false;
+      try {
+        const leftGroup = probe?.leftGroup || liveLeftGroup;
+        const controlsGroup = probe?.controlsGroup || liveControlsGroup;
+        shouldWrapHeader = this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup);
+        shouldWrapControls = controls ? this.shouldMarkGroupWrappedFromWidth(probe?.controlsGroup || controls) : false;
+      } finally {
+        probe?.clone?.remove?.();
+      }
 
-    if (controls) {
-      controls.classList.toggle('is-wrapped', this.shouldMarkGroupWrappedFromWidth(controls));
+      this.setClassStateIfChanged(header, 'is-wrapped', shouldWrapHeader);
+      if (controls) {
+        this.setClassStateIfChanged(controls, 'is-wrapped', shouldWrapControls);
+      }
+    } else if (controls) {
+      const shouldWrapControls = this.shouldMarkGroupWrappedFromWidth(controls);
+      this.setClassStateIfChanged(controls, 'is-wrapped', shouldWrapControls);
     }
 
     if (this._config.compact_header && badges) {
-      badges.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(Array.from(badges.children)));
+      const shouldWrapBadges = this.shouldMarkWrappedFromChildren(Array.from(badges.children));
+      this.setClassStateIfChanged(badges, 'is-wrapped', shouldWrapBadges);
     }
   }
 
@@ -11851,7 +11906,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  updateWeekStandardFixedOffsetHeightFromDom() {
+  updateWeekStandardFixedOffsetHeightFromDom({ renderOnChange = true } = {}) {
     if (this._viewMode !== 'week-standard' || !this._root) return;
     if (this.isEventManagementDialogOpen()) return;
 
@@ -11875,7 +11930,9 @@ class SkylightCalendarCard extends HTMLElement {
         this._weekStandardExtraHeaderHeight = 0;
         this._weekStandardHeaderHeight = null;
         this._weekStandardContainerTopInViewport = measuredContainerTop;
-        this.render();
+        container.style.removeProperty('--week-standard-day-header-height');
+        container.style.removeProperty('--week-standard-time-header-spacer-height');
+        if (renderOnChange) this.render();
       }
       return;
     }
@@ -11908,11 +11965,19 @@ class SkylightCalendarCard extends HTMLElement {
       this._weekStandardExtraHeaderHeight = effectiveExtraHeaderHeight;
       this._weekStandardHeaderHeight = effectiveSharedHeaderHeight;
       this._weekStandardContainerTopInViewport = measuredContainerTop;
-      this.render();
+      if (effectiveSharedHeaderHeight === null) {
+        container.style.removeProperty('--week-standard-day-header-height');
+        container.style.removeProperty('--week-standard-time-header-spacer-height');
+      } else {
+        const timeHeaderSpacerHeight = Math.max(60, effectiveSharedHeaderHeight - 35);
+        container.style.setProperty('--week-standard-day-header-height', `${effectiveSharedHeaderHeight}px`);
+        container.style.setProperty('--week-standard-time-header-spacer-height', `${timeHeaderSpacerHeight}px`);
+      }
+      if (renderOnChange) this.render();
     }
   }
 
-  updateWeekCompactStackedHeaderHeightFromDom() {
+  updateWeekCompactStackedHeaderHeightFromDom({ renderOnChange = true } = {}) {
     if (this._viewMode !== 'week-compact' || !this._root) return;
     if (this.isEventManagementDialogOpen()) return;
 
@@ -11926,7 +11991,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (!hasRenderedStackedDayBadges) {
       if (this._weekCompactHeaderHeight !== null) {
         this._weekCompactHeaderHeight = null;
-        this.render();
+        container.style.removeProperty('--week-compact-header-height');
+        if (renderOnChange) this.render();
       }
       return;
     }
@@ -11950,7 +12016,8 @@ class SkylightCalendarCard extends HTMLElement {
     const headerHeightChanged = this._weekCompactHeaderHeight === null || Math.abs(this._weekCompactHeaderHeight - measuredHeaderHeight) > 1;
     if (headerHeightChanged) {
       this._weekCompactHeaderHeight = measuredHeaderHeight;
-      this.render();
+      container.style.setProperty('--week-compact-header-height', `${measuredHeaderHeight}px`);
+      if (renderOnChange) this.render();
     }
   }
 
@@ -12030,23 +12097,58 @@ class SkylightCalendarCard extends HTMLElement {
       if (!this.hasObservedHostSizeChanged(nextSize)) return;
 
       this._lastObservedHostSize = nextSize;
+      const needsCompactHeightRender = !!this._config.compact_height;
       if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
         this._monthCompactMeasurementDirty = true;
       }
 
-      if (this.isEventManagementDialogOpen()) {
-        this._pendingHostResizeRender = true;
+      if (needsCompactHeightRender) {
+        if (this.isEventManagementDialogOpen()) {
+          this._pendingHostResizeRender = true;
+          return;
+        }
+
+        this.render();
         return;
       }
 
-      this.render();
+      if (this.isEventManagementDialogOpen() && this.hasWidthDependentMeasuredLayoutState()) {
+        this._pendingWidthDependentLayoutRefresh = true;
+        return;
+      }
+
+      this.updateCompactHeaderWrapState();
+      this.updateCalendarBadgesScrollState();
+      this.refreshWidthDependentLayoutMeasurements();
     });
   }
 
+  hasWidthDependentMeasuredLayoutState() {
+    return this._config?.day_badge_layout_week === 'stacked'
+      && (this._viewMode === 'week-standard' || this._viewMode === 'week-compact');
+  }
+
+  refreshWidthDependentLayoutMeasurements() {
+    if (this._viewMode === 'week-standard') {
+      this.updateWeekStandardFixedOffsetHeightFromDom({ renderOnChange: false });
+    } else if (this._viewMode === 'week-compact') {
+      this.updateWeekCompactStackedHeaderHeightFromDom({ renderOnChange: false });
+    }
+  }
+
   flushPendingHostResizeRender() {
-    if (!this._pendingHostResizeRender) return;
+    const shouldRender = this._pendingHostResizeRender;
+    const shouldRefreshWidthMeasurements = this._pendingWidthDependentLayoutRefresh;
     this._pendingHostResizeRender = false;
-    this.render();
+    this._pendingWidthDependentLayoutRefresh = false;
+
+    if (shouldRefreshWidthMeasurements) {
+      this.refreshWidthDependentLayoutMeasurements();
+    }
+
+    if (shouldRender) {
+      this.render();
+    }
   }
 
   observeHeaderResize() {
