@@ -10059,6 +10059,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._hostResizeObserver = null;
     this._hostResizeRaf = null;
     this._pendingHostResizeRender = false;
+    this._pendingWidthDependentLayoutRefresh = false;
     this._observedResizeParent = null;
     this._lastObservedHostSize = null;
     this._monthCompactMeasurementDirty = true;
@@ -12111,10 +12112,20 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
 
+      if (this.isEventManagementDialogOpen() && this.hasWidthDependentMeasuredLayoutState()) {
+        this._pendingWidthDependentLayoutRefresh = true;
+        return;
+      }
+
       this.updateCompactHeaderWrapState();
       this.updateCalendarBadgesScrollState();
       this.refreshWidthDependentLayoutMeasurements();
     });
+  }
+
+  hasWidthDependentMeasuredLayoutState() {
+    return this._config?.day_badge_layout_week === 'stacked'
+      && (this._viewMode === 'week-standard' || this._viewMode === 'week-compact');
   }
 
   refreshWidthDependentLayoutMeasurements() {
@@ -12126,9 +12137,18 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHostResizeRender() {
-    if (!this._pendingHostResizeRender) return;
+    const shouldRender = this._pendingHostResizeRender;
+    const shouldRefreshWidthMeasurements = this._pendingWidthDependentLayoutRefresh;
     this._pendingHostResizeRender = false;
-    this.render();
+    this._pendingWidthDependentLayoutRefresh = false;
+
+    if (shouldRefreshWidthMeasurements) {
+      this.refreshWidthDependentLayoutMeasurements();
+    }
+
+    if (shouldRender) {
+      this.render();
+    }
   }
 
   observeHeaderResize() {

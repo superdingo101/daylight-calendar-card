@@ -3185,6 +3185,63 @@ test('scheduleHostAndParentResizeHandling refreshes stacked week-standard header
   }
 });
 
+
+test('scheduleHostAndParentResizeHandling defers stacked week header refresh while modal is open', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const modalClasses = new Set(['show']);
+  const modal = { classList: { contains: (name) => modalClasses.has(name) } };
+  const styleValues = new Map([['--week-compact-header-height', '120px']]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    }
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 84, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card._viewMode = 'week-compact';
+    card._weekCompactHeaderHeight = 120;
+    card._root = {
+      querySelector(selector) {
+        if (selector === '#event-modal') return modal;
+        if (selector === '.week-compact-container') return container;
+        return null;
+      },
+      querySelectorAll: (selector) => selector === '.week-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingWidthDependentLayoutRefresh, true);
+    assert.equal(card._weekCompactHeaderHeight, 120);
+    assert.equal(styleValues.get('--week-compact-header-height'), '120px');
+
+    modalClasses.delete('show');
+    card.updateEventModalOpenState(modal);
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._pendingWidthDependentLayoutRefresh, false);
+    assert.equal(card._weekCompactHeaderHeight, 84);
+    assert.equal(styleValues.get('--week-compact-header-height'), '84px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
 test('disconnectedCallback disconnects host ResizeObserver', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   let disconnectCount = 0;
