@@ -3032,8 +3032,41 @@ test('scheduleHostAndParentResizeHandling defers host resize render while event 
   }
 });
 
-test('scheduleHostAndParentResizeHandling renders immediately when event modal is closed', () => {
+test('scheduleHostAndParentResizeHandling updates header state without rendering for ordinary size changes', () => {
   const card = makeCard({ entities: ['calendar.a'] });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    let wrapUpdateCount = 0;
+    let badgeUpdateCount = 0;
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => { wrapUpdateCount += 1; };
+    card.updateCalendarBadgesScrollState = () => { badgeUpdateCount += 1; };
+    card.isEventManagementDialogOpen = () => false;
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 340, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(wrapUpdateCount, 1);
+    assert.equal(badgeUpdateCount, 1);
+    assert.equal(card._pendingHostResizeRender, false);
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling renders for compact-height size changes', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_height: true });
   let renderCount = 0;
   let hostSize = { width: 300, height: 400 };
   const originalRequestAnimationFrame = window.requestAnimationFrame;
@@ -3428,11 +3461,11 @@ test('updateCompactHeaderWrapState keeps header single-row after delayed updates
   const controls = {
     scrollWidth: 400,
     children: [{ offsetParent: {}, offsetTop: 20 }, { offsetParent: {}, offsetTop: 20 }],
-    classList: { remove() {}, toggle() {} }
+    classList: { remove() {}, toggle() {}, contains() { return false; } }
   };
   Object.defineProperty(header, 'clientWidth', { configurable: true, value: 1000 });
 
-  const badges = { children: [], classList: { remove() {}, toggle() {} } };
+  const badges = { children: [], classList: { remove() {}, toggle() {}, contains() { return false; } } };
   card._root = {
     querySelector(sel) {
       if (sel === '.header-compact') return header;
@@ -3472,6 +3505,97 @@ test('updateCompactHeaderWrapState keeps header single-row after delayed updates
     window.getComputedStyle = originalGetComputedStyle;
     card.measureNaturalGroupWidth = originalMeasure;
   }
+});
+
+
+test('measureAndApplyHeaderWrapState does not mutate classes when measured state is unchanged', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = (initial = []) => ({
+    _set: new Set(initial),
+    toggles: [],
+    removes: [],
+    contains(name) { return this._set.has(name); },
+    toggle(name, force) { this.toggles.push([name, force]); if (force) this._set.add(name); else this._set.delete(name); },
+    remove(name) { this.removes.push(name); this._set.delete(name); }
+  });
+  const left = { classList: makeClassList(), children: [] };
+  const controls = { classList: makeClassList(['is-wrapped']), children: [] };
+  const badges = { classList: makeClassList(['is-wrapped']), children: [{ offsetParent: {}, offsetTop: 0 }, { offsetParent: {}, offsetTop: 3 }] };
+  const header = {
+    classList: makeClassList(['is-wrapped']),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return left;
+      if (selector === '.compact-header-controls') return controls;
+      return null;
+    }
+  };
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return controls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+  card.shouldMarkHeaderWrappedFromWidth = () => true;
+  card.shouldMarkGroupWrappedFromWidth = () => true;
+
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+
+  assert.deepEqual(header.classList.removes, []);
+  assert.deepEqual(controls.classList.removes, []);
+  assert.deepEqual(badges.classList.removes, []);
+  assert.deepEqual(header.classList.toggles, []);
+  assert.deepEqual(controls.classList.toggles, []);
+  assert.deepEqual(badges.classList.toggles, []);
+});
+
+test('measureAndApplyHeaderWrapState reaches stable compact wrapped and unwrapped states', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = () => ({
+    _set: new Set(),
+    toggleCount: 0,
+    contains(name) { return this._set.has(name); },
+    toggle(name, force) { this.toggleCount += 1; if (force) this._set.add(name); else this._set.delete(name); }
+  });
+  const left = {};
+  const controls = { classList: makeClassList(), children: [] };
+  const badges = { classList: makeClassList(), children: [] };
+  const header = {
+    classList: makeClassList(),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return left;
+      if (selector === '.compact-header-controls') return controls;
+      return null;
+    }
+  };
+  let shouldWrap = true;
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return controls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+  card.shouldMarkHeaderWrappedFromWidth = () => shouldWrap;
+  card.shouldMarkGroupWrappedFromWidth = () => shouldWrap;
+
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+  assert.equal(header.classList.contains('is-wrapped'), true);
+  assert.equal(controls.classList.contains('is-wrapped'), true);
+  assert.equal(header.classList.toggleCount, 1);
+  assert.equal(controls.classList.toggleCount, 1);
+
+  shouldWrap = false;
+  card.measureAndApplyHeaderWrapState();
+  card.measureAndApplyHeaderWrapState();
+  assert.equal(header.classList.contains('is-wrapped'), false);
+  assert.equal(controls.classList.contains('is-wrapped'), false);
+  assert.equal(header.classList.toggleCount, 2);
+  assert.equal(controls.classList.toggleCount, 2);
 });
 
 test('repeated updateCompactHeaderWrapState calls cancel previous pending RAFs', () => {

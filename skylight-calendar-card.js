@@ -10350,6 +10350,12 @@ class SkylightCalendarCard extends HTMLElement {
     return requiredWidth > (availableWidth + tolerance);
   }
 
+  setClassStateIfChanged(element, className, shouldHaveClass) {
+    if (!element?.classList) return;
+    if (element.classList.contains(className) === shouldHaveClass) return;
+    element.classList.toggle(className, shouldHaveClass);
+  }
+
   measureAndApplyHeaderWrapState() {
     if (!this._root) return;
 
@@ -10357,14 +10363,7 @@ class SkylightCalendarCard extends HTMLElement {
     const controlsSelector = this._config.compact_header ? '.compact-header-controls' : '.header-controls';
     const header = this._root.querySelector(headerSelector);
     const controls = this._root.querySelector(controlsSelector);
-    const compactControls = this._root.querySelector('.compact-header-controls');
-    const standardControls = this._root.querySelector('.header-controls');
     const badges = this._root.querySelector('.calendar-badges-inline');
-
-    header?.classList.remove('is-wrapped');
-    standardControls?.classList.remove('is-wrapped');
-    compactControls?.classList.remove('is-wrapped');
-    badges?.classList.remove('is-wrapped');
 
     if (header) {
       const leftGroup = this._config.compact_header
@@ -10373,15 +10372,18 @@ class SkylightCalendarCard extends HTMLElement {
       const controlsGroup = this._config.compact_header
         ? header.querySelector('.compact-header-controls')
         : header.querySelector('.header-controls');
-      header.classList.toggle('is-wrapped', this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup));
+      const shouldWrapHeader = this.shouldMarkHeaderWrappedFromWidth(header, leftGroup, controlsGroup);
+      this.setClassStateIfChanged(header, 'is-wrapped', shouldWrapHeader);
     }
 
     if (controls) {
-      controls.classList.toggle('is-wrapped', this.shouldMarkGroupWrappedFromWidth(controls));
+      const shouldWrapControls = this.shouldMarkGroupWrappedFromWidth(controls);
+      this.setClassStateIfChanged(controls, 'is-wrapped', shouldWrapControls);
     }
 
     if (this._config.compact_header && badges) {
-      badges.classList.toggle('is-wrapped', this.shouldMarkWrappedFromChildren(Array.from(badges.children)));
+      const shouldWrapBadges = this.shouldMarkWrappedFromChildren(Array.from(badges.children));
+      this.setClassStateIfChanged(badges, 'is-wrapped', shouldWrapBadges);
     }
   }
 
@@ -12030,16 +12032,23 @@ class SkylightCalendarCard extends HTMLElement {
       if (!this.hasObservedHostSizeChanged(nextSize)) return;
 
       this._lastObservedHostSize = nextSize;
+      const needsCompactHeightRender = !!this._config.compact_height;
       if (this._config.compact_height && this._viewMode === 'month' && !this.shouldShowAllEventsInMonth()) {
         this._monthCompactMeasurementDirty = true;
       }
 
-      if (this.isEventManagementDialogOpen()) {
-        this._pendingHostResizeRender = true;
+      if (needsCompactHeightRender) {
+        if (this.isEventManagementDialogOpen()) {
+          this._pendingHostResizeRender = true;
+          return;
+        }
+
+        this.render();
         return;
       }
 
-      this.render();
+      this.updateCompactHeaderWrapState();
+      this.updateCalendarBadgesScrollState();
     });
   }
 
