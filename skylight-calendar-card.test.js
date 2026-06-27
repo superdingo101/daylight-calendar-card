@@ -3092,6 +3092,99 @@ test('scheduleHostAndParentResizeHandling renders for compact-height size change
   }
 });
 
+
+test('scheduleHostAndParentResizeHandling refreshes stacked week-compact header height without rendering', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-compact', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const styleValues = new Map([['--week-compact-header-height', '120px']]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    }
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 84, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card._viewMode = 'week-compact';
+    card._weekCompactHeaderHeight = 120;
+    card._root = {
+      querySelector: (selector) => selector === '.week-compact-container' ? container : null,
+      querySelectorAll: (selector) => selector === '.week-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._weekCompactHeaderHeight, 84);
+    assert.equal(styleValues.get('--week-compact-header-height'), '84px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
+test('scheduleHostAndParentResizeHandling refreshes stacked week-standard header height without rendering', () => {
+  const card = makeCard({ entities: ['calendar.a'], default_view: 'week-standard', day_badge_layout_week: 'stacked' });
+  let renderCount = 0;
+  let hostSize = { width: 300, height: 400 };
+  const styleValues = new Map([
+    ['--week-standard-day-header-height', '120px'],
+    ['--week-standard-time-header-spacer-height', '85px']
+  ]);
+  const container = {
+    style: {
+      getPropertyValue: (name) => styleValues.get(name) || '',
+      removeProperty: (name) => styleValues.delete(name),
+      setProperty: (name, value) => styleValues.set(name, value)
+    },
+    getBoundingClientRect: () => ({ top: 24 })
+  };
+  const header = makeMeasuredDayHeader({ headerHeight: 90, badgeHeight: 20 });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  try {
+    window.requestAnimationFrame = (callback) => { callback(); return 1; };
+    card.render = () => { renderCount += 1; };
+    card.updateCompactHeaderWrapState = () => {};
+    card.updateCalendarBadgesScrollState = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card._viewMode = 'week-standard';
+    card._weekStandardHeaderHeight = 120;
+    card._weekStandardExtraHeaderHeight = 60;
+    card._weekStandardContainerTopInViewport = 24;
+    card._root = {
+      querySelector: (selector) => selector === '.week-standard-container' ? container : null,
+      querySelectorAll: (selector) => selector === '.week-standard-day-header' ? [header] : []
+    };
+    card.getBoundingClientRect = () => ({ width: hostSize.width, height: hostSize.height });
+    card.parentElement = { getBoundingClientRect: () => ({ width: 320, height: 480 }) };
+    card._lastObservedHostSize = card.measureHostAndParentSize();
+
+    hostSize = { width: 360, height: 400 };
+    card.scheduleHostAndParentResizeHandling();
+
+    assert.equal(renderCount, 0);
+    assert.equal(card._weekStandardHeaderHeight, 90);
+    assert.equal(card._weekStandardExtraHeaderHeight, 30);
+    assert.equal(styleValues.get('--week-standard-day-header-height'), '90px');
+    assert.equal(styleValues.get('--week-standard-time-header-spacer-height'), '60px');
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
+
 test('disconnectedCallback disconnects host ResizeObserver', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   let disconnectCount = 0;
@@ -3549,6 +3642,79 @@ test('measureAndApplyHeaderWrapState does not mutate classes when measured state
   assert.deepEqual(header.classList.toggles, []);
   assert.deepEqual(controls.classList.toggles, []);
   assert.deepEqual(badges.classList.toggles, []);
+});
+
+
+test('measureAndApplyHeaderWrapState uses unwrapped probe to remove stale compact wrapping when width grows', () => {
+  const card = makeCard({ entities: ['calendar.a'], compact_header: true });
+  const makeClassList = (initial = []) => ({
+    _set: new Set(initial),
+    contains(name) { return this._set.has(name); },
+    add(name) { this._set.add(name); },
+    remove(name) { this._set.delete(name); },
+    toggle(name, force) { if (force) this._set.add(name); else this._set.delete(name); }
+  });
+  const makeGroup = (naturalWidth, wrappedWidth, classes = []) => ({
+    naturalWidth,
+    wrappedWidth,
+    classList: makeClassList(classes),
+    children: []
+  });
+  const liveLeft = makeGroup(300, 300);
+  const liveControls = makeGroup(300, 500, ['is-wrapped']);
+  const cloneLeft = makeGroup(300, 300);
+  const cloneControls = makeGroup(300, 300, ['is-wrapped']);
+  const badges = { classList: makeClassList(['is-wrapped']), children: [] };
+  let appendedClone = null;
+  const clone = {
+    style: {},
+    classList: makeClassList(['is-wrapped']),
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return cloneLeft;
+      if (selector === '.compact-header-controls') return cloneControls;
+      return null;
+    },
+    remove() { appendedClone = null; }
+  };
+  const header = {
+    clientWidth: 700,
+    style: {},
+    classList: makeClassList(['is-wrapped']),
+    parentNode: { appendChild(node) { appendedClone = node; } },
+    getBoundingClientRect: () => ({ width: 700 }),
+    cloneNode: () => clone,
+    querySelector(selector) {
+      if (selector === '.compact-header-left') return liveLeft;
+      if (selector === '.compact-header-controls') return liveControls;
+      return null;
+    }
+  };
+  card._root = {
+    querySelector(selector) {
+      if (selector === '.header-compact') return header;
+      if (selector === '.compact-header-controls') return liveControls;
+      if (selector === '.calendar-badges-inline') return badges;
+      return null;
+    }
+  };
+
+  const originalMeasure = card.measureNaturalGroupWidth;
+  const originalGetComputedStyle = window.getComputedStyle;
+  try {
+    card.measureNaturalGroupWidth = (group) => group.naturalWidth;
+    window.getComputedStyle = () => ({ columnGap: '16px', gap: '16px', paddingLeft: '0px', paddingRight: '0px' });
+
+    card.measureAndApplyHeaderWrapState();
+
+    assert.equal(header.classList.contains('is-wrapped'), false);
+    assert.equal(liveControls.classList.contains('is-wrapped'), false);
+    assert.equal(appendedClone, null);
+    assert.equal(clone.classList.contains('is-wrapped'), false);
+    assert.equal(cloneControls.classList.contains('is-wrapped'), false);
+  } finally {
+    card.measureNaturalGroupWidth = originalMeasure;
+    window.getComputedStyle = originalGetComputedStyle;
+  }
 });
 
 test('measureAndApplyHeaderWrapState reaches stable compact wrapped and unwrapped states', () => {
