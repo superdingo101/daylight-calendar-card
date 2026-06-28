@@ -105,15 +105,15 @@ const stackedDayBadgeEvents = {
 
 const scheduleSpanEvents = {
   'calendar.family': [
-    { summary: 'Classic Span', start: '2026-03-15', end: '2026-03-18' },
-    { summary: 'Tint Span', start: '2026-03-16', end: '2026-03-19' },
-    { summary: 'Neutral Span', start: '2026-03-17', end: '2026-03-20' },
-    { summary: 'Combined Stripes Span', start: '2026-03-18', end: '2026-03-21' },
-    { summary: 'Combined Bars Span', start: '2026-03-19', end: '2026-03-22' }
+    { summary: 'Classic Multi-Day Family Vacation With A Long Title', start: '2026-03-15', end: '2026-03-19' },
+    { summary: 'Tinted Multi-Day School Break With A Long Title', start: '2026-03-16', end: '2026-03-19' },
+    { summary: 'Neutral Multi-Day Work Travel With A Long Title', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Combined Stripes Multi-Calendar Event With A Long Title', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Multi-Calendar Event With A Long Title', start: '2026-03-19', end: '2026-03-22' }
   ],
   'calendar.work': [
-    { summary: 'Combined Stripes Span', start: '2026-03-18', end: '2026-03-21' },
-    { summary: 'Combined Bars Span', start: '2026-03-19', end: '2026-03-22' }
+    { summary: 'Combined Stripes Multi-Calendar Event With A Long Title', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Multi-Calendar Event With A Long Title', start: '2026-03-19', end: '2026-03-22' }
   ]
 };
 
@@ -235,23 +235,23 @@ const cases = [
       combine_background: '#d7ebff',
       colors: defaultColors,
       event_styles: [
-        { match: { title: 'Tint Span' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
-        { match: { title: 'Neutral Span' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
-        { match: { title: 'Combined Bars Span' }, style: { background_color: '#fef3c7', event_font_color: '#78350f', icon: 'mdi:format-list-bulleted' } }
+        { match: { title: 'Tinted Multi-Day School Break With A Long Title' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
+        { match: { title: 'Neutral Multi-Day Work Travel With A Long Title' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
+        { match: { title: 'Combined Bars Multi-Calendar Event With A Long Title' }, style: { background_color: '#fef3c7', event_font_color: '#78350f', icon: 'mdi:format-list-bulleted' } }
       ]
     },
     darkMode: false,
     events: scheduleSpanEvents,
     viewLabel: 'Schedule',
     assert: async (card) => {
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Classic Span' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Tint Span' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Neutral Span' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Stripes Span' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Bars Span' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Classic Multi-Day Family Vacation With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Tinted Multi-Day School Break With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Neutral Multi-Day Work Travel With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Stripes Multi-Calendar Event With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Bars Multi-Calendar Event With A Long Title' })).toHaveCount(1);
       expect(await card.locator('.all-day-event-span-placeholder').count()).toBeGreaterThan(5);
-      const classicSpanBox = await card.locator('.all-day-event').filter({ hasText: 'Classic Span' }).boundingBox();
-      const finalDayAllDayBox = await card.locator('.week-standard-day-column[data-date^="2026-03-17"] .all-day-events').boundingBox();
+      const classicSpanBox = await card.locator('.all-day-event').filter({ hasText: 'Classic Multi-Day Family Vacation With A Long Title' }).boundingBox();
+      const finalDayAllDayBox = await card.locator('.week-standard-day-column[data-date^="2026-03-18"] .all-day-events').boundingBox();
       expect(classicSpanBox).not.toBeNull();
       expect(finalDayAllDayBox).not.toBeNull();
       expect(Math.abs((classicSpanBox.x + classicSpanBox.width) - (finalDayAllDayBox.x + finalDayAllDayBox.width - 8))).toBeLessThanOrEqual(2);
