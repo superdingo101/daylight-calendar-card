@@ -103,6 +103,20 @@ const stackedDayBadgeEvents = {
   ]
 };
 
+const scheduleSpanEvents = {
+  'calendar.family': [
+    { summary: 'Classic Span', start: '2026-03-15', end: '2026-03-18' },
+    { summary: 'Tint Span', start: '2026-03-16', end: '2026-03-19' },
+    { summary: 'Neutral Span', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Combined Stripes Span', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Span', start: '2026-03-19', end: '2026-03-22' }
+  ],
+  'calendar.work': [
+    { summary: 'Combined Stripes Span', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Span', start: '2026-03-19', end: '2026-03-22' }
+  ]
+};
+
 const stackedDayBadgeConfig = {
   day_badge_layout_week: 'stacked',
   day_badges: [
@@ -212,6 +226,32 @@ const cases = [
     }
   },
   { name: 'event-left-tint-schedule', config: { default_view: 'schedule', event_color_mode: 'left-tint', event_tint_opacity: 100, event_color_bar_width: 18, colors: defaultColors }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
+  {
+    name: 'schedule-all-day-continuous-spans',
+    config: {
+      default_view: 'schedule',
+      combine_calendars: true,
+      combine_style: 'stripes',
+      combine_background: '#d7ebff',
+      colors: defaultColors,
+      event_styles: [
+        { match: { title: 'Tint Span' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
+        { match: { title: 'Neutral Span' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
+        { match: { title: 'Combined Bars Span' }, style: { background_color: '#fef3c7', event_font_color: '#78350f', icon: 'mdi:format-list-bulleted' } }
+      ]
+    },
+    darkMode: false,
+    events: scheduleSpanEvents,
+    viewLabel: 'Schedule',
+    assert: async (card) => {
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Classic Span' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Tint Span' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Neutral Span' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Stripes Span' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Bars Span' })).toHaveCount(1);
+      expect(await card.locator('.all-day-event-span-placeholder').count()).toBeGreaterThan(5);
+    }
+  },
   { name: 'virtual-calendars', config: { default_view: 'schedule', virtual_calendars: [{ name: 'home+work', icon: 'mdi:calendar', entities: ['calendar.family', 'calendar.work'] }] }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
   {
     name: 'styled-events-days',

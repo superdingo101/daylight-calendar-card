@@ -1470,6 +1470,130 @@ test('event color modes normalize widths and tint opacity endpoints', () => {
   assert.match(widthFallback.getEventStyle(event), /--combine-left-offset: 22px/);
 });
 
+function makeAllDayEvent(summary, startDate, endDate, entityId = 'calendar.family', extra = {}) {
+  return {
+    entityId,
+    color: extra.color || '#3366ff',
+    summary,
+    start: { date: startDate },
+    end: { date: endDate },
+    ...extra
+  };
+}
+
+function renderScheduleAllDayHtml(card, weekStartDateKey = '2026-05-03') {
+  const weekStart = new Date(`${weekStartDateKey}T00:00:00`);
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildAllDayLayoutForSchedule(weekDays);
+  return weekDays.map((date) => card.renderAllDayEventsForDay(layout.dayLanesByDateKey.get(card.getDateKey(date)) || [], 28)).join('\n');
+}
+
+function countRenderedAllDayBodies(html) {
+  return (html.match(/class="all-day-event /g) || []).length;
+}
+
+function countAllDayPlaceholders(html) {
+  return (html.match(/all-day-event-span-placeholder/g) || []).length;
+}
+
+test('schedule all-day multi-day events render once as a continuous span across styling modes', () => {
+  for (const event_color_mode of ['classic', 'left-tint', 'left-neutral']) {
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent(`${event_color_mode} trip`, '2026-05-04', '2026-05-07')];
+    const html = renderScheduleAllDayHtml(card);
+
+    assert.equal(countRenderedAllDayBodies(html), 1, `${event_color_mode} should render one visible event body`);
+    assert.equal(countAllDayPlaceholders(html), 2, `${event_color_mode} should reserve continuation lanes`);
+    assert.match(html, /data-all-day-span-days="3"/);
+    assert.match(html, /--all-day-visible-span: 3/);
+    if (event_color_mode === 'classic') {
+      assert.match(html, /background-image: none/);
+    } else {
+      assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+    }
+  }
+});
+
+test('schedule all-day single-day events keep their leading bar in left color modes', () => {
+  for (const event_color_mode of ['left-tint', 'left-neutral']) {
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent('single', '2026-05-04', '2026-05-05')];
+    const html = renderScheduleAllDayHtml(card);
+
+    assert.equal(countRenderedAllDayBodies(html), 1);
+    assert.equal(countAllDayPlaceholders(html), 0);
+    assert.doesNotMatch(html, /data-all-day-span-days=/);
+    assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+  }
+});
+
+test('schedule all-day combined multi-day events render one indicator decoration for bars dots and stripes', () => {
+  for (const combine_style of ['bars', 'dots', 'stripes']) {
+    const card = makeCard({
+      entities: ['calendar.a', 'calendar.b'],
+      combine_calendars: true,
+      combine_style,
+      combine_background: 'neutral',
+      colors: { 'calendar.a': '#ff0000', 'calendar.b': '#00ff00' }
+    });
+    card._events = card.combineDuplicateCalendarEvents([
+      makeAllDayEvent('combined', '2026-05-04', '2026-05-07', 'calendar.a', { color: '#ff0000' }),
+      makeAllDayEvent('combined', '2026-05-04', '2026-05-07', 'calendar.b', { color: '#00ff00' })
+    ]);
+    const html = renderScheduleAllDayHtml(card);
+
+    assert.equal(countRenderedAllDayBodies(html), 1, `${combine_style} should render one visible event body`);
+    assert.equal(countAllDayPlaceholders(html), 2, `${combine_style} should reserve continuation lanes`);
+    assert.match(html, /data-all-day-span-days="3"/);
+    assert.equal((html.match(/background-image:/g) || []).length, 1);
+    assert.match(html, combine_style === 'stripes' ? /linear-gradient\(135deg/ : /background-repeat: no-repeat/);
+  }
+});
+
+test('schedule all-day styled multi-day events keep overrides on the continuous span', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{
+      match: { title_contains: 'styled' },
+      style: {
+        background_color: '#112233',
+        event_font_color: '#ffeecc',
+        opacity: 0.7,
+        filter: 'grayscale(20%)',
+        icon: 'mdi:star',
+        icon_color: '#abcdef',
+        title_prefix: 'emoji'
+      }
+    }]
+  });
+  card._events = [makeAllDayEvent('styled retreat', '2026-05-04', '2026-05-07')];
+  const html = renderScheduleAllDayHtml(card);
+
+  assert.equal(countRenderedAllDayBodies(html), 1);
+  assert.equal(countAllDayPlaceholders(html), 2);
+  assert.match(html, /background-color: #112233/);
+  assert.match(html, /opacity: 0.7/);
+  assert.match(html, /filter: grayscale\(20%\)/);
+  assert.match(html, /mdi:star/);
+});
+
+test('schedule all-day visible range edges and overlapping lanes preserve continuous placeholders', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [
+    makeAllDayEvent('started before', '2026-05-01', '2026-05-05'),
+    makeAllDayEvent('continues after', '2026-05-08', '2026-05-12'),
+    makeAllDayEvent('full visible week', '2026-05-03', '2026-05-10'),
+    makeAllDayEvent('overlap', '2026-05-04', '2026-05-06')
+  ];
+  const html = renderScheduleAllDayHtml(card);
+
+  assert.equal(countRenderedAllDayBodies(html), 4);
+  assert.equal(countAllDayPlaceholders(html), 9);
+  assert.match(html, /continues-prev[\s\S]*started before/);
+  assert.match(html, /continues-next[\s\S]*continues after/);
+  assert.match(html, /data-all-day-span-days="7"/);
+});
+
 test('checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly', async () => {
   const card = makeCard({
     entities: ['calendar.google_home', 'calendar.caldav_work', 'calendar.local_family'],

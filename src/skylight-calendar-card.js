@@ -3425,10 +3425,17 @@ class SkylightCalendarCard extends HTMLElement {
         lanes[span.laneIndex] = {
           event: span.event,
           displayTitle: span.displayTitle,
+          spanStartIndex: span.startIndex,
+          spanEndIndex: span.endIndex,
+          dayIndex,
+          segmentIndexWithinVisibleSpan: dayIndex - span.startIndex,
           continuesFromPreviousDay: dayIndex > span.startIndex || !span.startsOnDayAtStartIndex,
           continuesToNextDay: dayIndex < span.endIndex || !span.endsOnDayAtEndIndex,
+          startsBeforeVisibleSegment: !span.startsOnDayAtStartIndex,
           bridgeFromPreviousDay: dayIndex > span.startIndex,
           bridgeToNextDay: dayIndex < span.endIndex,
+          isFirstVisibleSegment: dayIndex === span.startIndex,
+          isLastVisibleSegment: dayIndex === span.endIndex,
           showTitle: dayIndex === span.startIndex,
           visibleDaySpan: span.endIndex - span.startIndex + 1
         };
@@ -3479,10 +3486,18 @@ class SkylightCalendarCard extends HTMLElement {
             displayTitle,
             visibleDaySpan
           } = lane;
+          if (!lane.isFirstVisibleSegment) {
+            return '<div class="all-day-event-spacer all-day-event-span-placeholder"></div>';
+          }
+
           const eventStyle = this.getEventStyle(event, { withBorderAccent: false });
+          const spanStyle = visibleDaySpan > 1
+            ? ` --all-day-title-span-days: ${visibleDaySpan}; --all-day-title-gap-count: ${Math.max(visibleDaySpan - 1, 0)}; --all-day-visible-span: ${visibleDaySpan};`
+            : '';
+          const spanDataAttribute = visibleDaySpan > 1 ? ` data-all-day-span-days="${visibleDaySpan}"` : '';
           return `
             <div class="all-day-event ${continuesFromPreviousDay ? 'continues-prev' : ''} ${continuesToNextDay ? 'continues-next' : ''} ${bridgeFromPreviousDay ? 'bridge-prev' : ''} ${bridgeToNextDay ? 'bridge-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
-                 style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)}; --all-day-title-span-days: ${visibleDaySpan}; --all-day-title-gap-count: ${Math.max(visibleDaySpan - 1, 0)};"
+                 style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute}
                  data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
               <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent')) : ''}</div>
               ${this.renderEventStyleCornerIcon(event)}

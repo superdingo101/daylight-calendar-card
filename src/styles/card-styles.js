@@ -1559,6 +1559,12 @@ export function getCardStyles() {
         z-index: 2;
       }
 
+      .all-day-event[data-all-day-span-days] {
+        width: calc((100% * var(--all-day-visible-span, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0)));
+        max-width: none;
+        z-index: 2;
+      }
+
       .all-day-event-title {
         font-weight: 600;
         overflow: hidden;
@@ -1572,12 +1578,10 @@ export function getCardStyles() {
       }
 
       .all-day-event-title.spans-multiple-days {
-        position: absolute;
-        top: 50%;
-        left: calc(8px + var(--combine-left-offset, 0px));
-        transform: translateY(-50%);
-        width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
-        max-width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
+        position: static;
+        transform: none;
+        width: auto;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         z-index: 1;
