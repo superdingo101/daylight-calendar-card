@@ -4176,6 +4176,7 @@ function getCardStyles() {
       .week-standard-container {
         --week-standard-column-gap: 12px;
         --week-standard-bridge-overlap: 2px;
+        --all-day-horizontal-padding: 8px;
         display: flex;
         align-items: flex-start;
         background: #f9fafb;
@@ -4298,7 +4299,7 @@ function getCardStyles() {
       }
 
       .all-day-events {
-        padding: 8px;
+        padding: var(--all-day-horizontal-padding);
         background: #f9fafb;
         border-bottom: 2px solid #e5e7eb;
         display: flex;
@@ -4309,7 +4310,7 @@ function getCardStyles() {
       }
 
       .all-day-event {
-        padding: 4px 8px 4px calc(8px + var(--combine-left-offset, 0px));
+        padding: 4px var(--all-day-horizontal-padding) 4px calc(var(--all-day-horizontal-padding) + var(--combine-left-offset, 0px));
         color: var(--event-bubble-text-color, white);
         border-radius: 6px;
         cursor: pointer;
@@ -4336,12 +4337,12 @@ function getCardStyles() {
 
       .all-day-event.bridge-prev {
         margin-left: calc(-1 * (var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)));
-        padding-left: calc(8px + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap) + var(--combine-left-offset, 0px));
+        padding-left: calc(var(--all-day-horizontal-padding) + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap) + var(--combine-left-offset, 0px));
       }
 
       .all-day-event.bridge-next {
         margin-right: calc(-1 * (var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)));
-        padding-right: calc(8px + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap));
+        padding-right: calc(var(--all-day-horizontal-padding) + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap));
       }
 
       .all-day-event-spacer {
@@ -4358,6 +4359,12 @@ function getCardStyles() {
         z-index: 2;
       }
 
+      .all-day-event[data-all-day-span-days] {
+        width: calc((100% * var(--all-day-visible-span, 1)) + ((var(--week-standard-column-gap) + var(--all-day-horizontal-padding) + var(--all-day-horizontal-padding)) * var(--all-day-title-gap-count, 0)));
+        max-width: none;
+        z-index: 2;
+      }
+
       .all-day-event-title {
         font-weight: 600;
         overflow: hidden;
@@ -4371,12 +4378,10 @@ function getCardStyles() {
       }
 
       .all-day-event-title.spans-multiple-days {
-        position: absolute;
-        top: 50%;
-        left: calc(8px + var(--combine-left-offset, 0px));
-        transform: translateY(-50%);
-        width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
-        max-width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
+        position: static;
+        transform: none;
+        width: auto;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         z-index: 1;
@@ -13063,10 +13068,19 @@ class SkylightCalendarCard extends HTMLElement {
         lanes[span.laneIndex] = {
           event: span.event,
           displayTitle: span.displayTitle,
+          spanStartIndex: span.startIndex,
+          spanEndIndex: span.endIndex,
+          dayIndex,
+          segmentIndexWithinVisibleSpan: dayIndex - span.startIndex,
           continuesFromPreviousDay: dayIndex > span.startIndex || !span.startsOnDayAtStartIndex,
           continuesToNextDay: dayIndex < span.endIndex || !span.endsOnDayAtEndIndex,
+          startsBeforeVisibleSegment: !span.startsOnDayAtStartIndex,
+          extendsBeforeVisibleRange: !span.startsOnDayAtStartIndex,
+          extendsAfterVisibleRange: !span.endsOnDayAtEndIndex,
           bridgeFromPreviousDay: dayIndex > span.startIndex,
           bridgeToNextDay: dayIndex < span.endIndex,
+          isFirstVisibleSegment: dayIndex === span.startIndex,
+          isLastVisibleSegment: dayIndex === span.endIndex,
           showTitle: dayIndex === span.startIndex,
           visibleDaySpan: span.endIndex - span.startIndex + 1
         };
@@ -13109,18 +13123,24 @@ class SkylightCalendarCard extends HTMLElement {
 
           const {
             event,
-            continuesFromPreviousDay,
-            continuesToNextDay,
-            bridgeFromPreviousDay,
-            bridgeToNextDay,
+            extendsBeforeVisibleRange,
+            extendsAfterVisibleRange,
             showTitle,
             displayTitle,
             visibleDaySpan
           } = lane;
+          if (!lane.isFirstVisibleSegment) {
+            return '<div class="all-day-event-spacer all-day-event-span-placeholder"></div>';
+          }
+
           const eventStyle = this.getEventStyle(event, { withBorderAccent: false });
+          const spanStyle = visibleDaySpan > 1
+            ? ` --all-day-title-span-days: ${visibleDaySpan}; --all-day-title-gap-count: ${Math.max(visibleDaySpan - 1, 0)}; --all-day-visible-span: ${visibleDaySpan};`
+            : '';
+          const spanDataAttribute = visibleDaySpan > 1 ? ` data-all-day-span-days="${visibleDaySpan}"` : '';
           return `
-            <div class="all-day-event ${continuesFromPreviousDay ? 'continues-prev' : ''} ${continuesToNextDay ? 'continues-next' : ''} ${bridgeFromPreviousDay ? 'bridge-prev' : ''} ${bridgeToNextDay ? 'bridge-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
-                 style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)}; --all-day-title-span-days: ${visibleDaySpan}; --all-day-title-gap-count: ${Math.max(visibleDaySpan - 1, 0)};"
+            <div class="all-day-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
+                 style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute}
                  data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
               <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent')) : ''}</div>
               ${this.renderEventStyleCornerIcon(event)}
