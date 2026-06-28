@@ -106,8 +106,8 @@ const stackedDayBadgeEvents = {
 const scheduleSpanEvents = {
   'calendar.family': [
     { summary: 'Classic Multi-Day Family Vacation With A Long Title', start: '2026-03-15', end: '2026-03-19' },
-    { summary: 'Tinted Multi-Day School Break With A Long Title', start: '2026-03-16', end: '2026-03-19' },
-    { summary: 'Neutral Multi-Day Work Travel With A Long Title', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Custom Blue School Break With A Long Title', start: '2026-03-16', end: '2026-03-19' },
+    { summary: 'Custom Neutral Work Travel With A Long Title', start: '2026-03-17', end: '2026-03-20' },
     { summary: 'Combined Stripes Multi-Calendar Event With A Long Title', start: '2026-03-18', end: '2026-03-21' },
     { summary: 'Combined Bars Multi-Calendar Event With A Long Title', start: '2026-03-19', end: '2026-03-22' }
   ],
@@ -235,8 +235,8 @@ const cases = [
       combine_background: '#d7ebff',
       colors: defaultColors,
       event_styles: [
-        { match: { title: 'Tinted Multi-Day School Break With A Long Title' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
-        { match: { title: 'Neutral Multi-Day Work Travel With A Long Title' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
+        { match: { title: 'Custom Blue School Break With A Long Title' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
+        { match: { title: 'Custom Neutral Work Travel With A Long Title' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
         { match: { title: 'Combined Bars Multi-Calendar Event With A Long Title' }, style: { background_color: '#fef3c7', event_font_color: '#78350f', icon: 'mdi:format-list-bulleted' } }
       ]
     },
@@ -245,8 +245,8 @@ const cases = [
     viewLabel: 'Schedule',
     assert: async (card) => {
       await expect(card.locator('.all-day-event').filter({ hasText: 'Classic Multi-Day Family Vacation With A Long Title' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Tinted Multi-Day School Break With A Long Title' })).toHaveCount(1);
-      await expect(card.locator('.all-day-event').filter({ hasText: 'Neutral Multi-Day Work Travel With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Custom Blue School Break With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Custom Neutral Work Travel With A Long Title' })).toHaveCount(1);
       await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Stripes Multi-Calendar Event With A Long Title' })).toHaveCount(1);
       await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Bars Multi-Calendar Event With A Long Title' })).toHaveCount(1);
       expect(await card.locator('.all-day-event-span-placeholder').count()).toBeGreaterThan(5);
@@ -363,6 +363,66 @@ test.beforeEach(async ({ page }) => {
     }
     window.Date = MockDate;
   }, FIXED_NOW);
+});
+
+async function renderScheduleColorModeSpanCase(page, eventColorMode, title) {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Schedule Color Mode Span Calendar',
+      default_view: 'schedule',
+      event_color_mode: eventColorMode,
+      event_color_bar_width: 18,
+      colors: { 'calendar.family': '#2563eb' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: title, start: '2026-03-15', end: '2026-03-19' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  const event = card.locator('.all-day-event').filter({ hasText: title });
+  await expect(event).toHaveCount(1);
+  await expect(card.locator('.all-day-event-span-placeholder')).toHaveCount(3);
+
+  const finalDayAllDayBox = await card.locator('.week-standard-day-column[data-date^="2026-03-18"] .all-day-events').boundingBox();
+  const eventBox = await event.boundingBox();
+  expect(finalDayAllDayBox).not.toBeNull();
+  expect(eventBox).not.toBeNull();
+  expect(Math.abs((eventBox.x + eventBox.width) - (finalDayAllDayBox.x + finalDayAllDayBox.width - 8))).toBeLessThanOrEqual(2);
+
+  const eventClasses = await event.getAttribute('class');
+  expect(eventClasses || '').not.toContain('continues-next');
+  const borderTopRightRadius = await event.evaluate((element) => getComputedStyle(element).borderTopRightRadius);
+  expect(borderTopRightRadius).not.toBe('0px');
+
+  const backgroundImage = await event.evaluate((element) => getComputedStyle(element).backgroundImage);
+  expect(backgroundImage).toContain('linear-gradient');
+  expect(await card.locator('.all-day-event').evaluateAll((events) =>
+    events.filter((element) => getComputedStyle(element).backgroundImage.includes('linear-gradient')).length
+  )).toBe(1);
+}
+
+test('behavior: schedule left-tint multi-day all-day span renders one continuous left bar', async ({ page }) => {
+  await renderScheduleColorModeSpanCase(
+    page,
+    'left-tint',
+    'Left Tint Multi-Day School Break With A Long Title'
+  );
+});
+
+test('behavior: schedule left-neutral multi-day all-day span renders one continuous left bar', async ({ page }) => {
+  await renderScheduleColorModeSpanCase(
+    page,
+    'left-neutral',
+    'Left Neutral Multi-Day Work Travel With A Long Title'
+  );
 });
 
 
