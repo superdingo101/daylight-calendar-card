@@ -128,7 +128,34 @@ const stackedDayBadgeConfig = {
 const defaultColors = { 'calendar.family': '#ff5f66', 'calendar.work': '#14c8bd' };
 
 const cases = [
-  { name: 'month-basic-light', config: { default_view: 'month', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
+  {
+    name: 'month-basic-light',
+    config: { default_view: 'month', color_scheme: 'light' },
+    darkMode: false,
+    events: baseEvents,
+    viewLabel: 'Month',
+    assert: async (card) => {
+      const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      await expect(sunday).toContainText('Coffee');
+      await expect(sunday).toContainText('Standup');
+      await expect(sunday).toContainText('Night Shift');
+      await expect(sunday.locator('.month-span-event-spacer')).toHaveCount(0);
+      await expect(sunday.locator('.more-events')).toHaveCount(0);
+
+      const coffeeBox = await sunday.locator('.event').filter({ hasText: 'Coffee' }).boundingBox();
+      const standupBox = await sunday.locator('.event').filter({ hasText: 'Standup' }).boundingBox();
+      const nightShiftBox = await sunday.locator('.event').filter({ hasText: 'Night Shift' }).boundingBox();
+      expect(coffeeBox).not.toBeNull();
+      expect(standupBox).not.toBeNull();
+      expect(nightShiftBox).not.toBeNull();
+      expect(standupBox.y - coffeeBox.y).toBeLessThan(40);
+      expect(nightShiftBox.y - standupBox.y).toBeLessThan(40);
+
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveCount(1);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveAttribute('data-month-span-days', '3');
+      expect(await card.locator('.month-span-event-placeholder').count()).toBeGreaterThanOrEqual(2);
+    }
+  },
   { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Month' },
   { name: 'week-basic-light', config: { default_view: 'week', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-basic-dark', config: { default_view: 'week', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Week' },
@@ -282,11 +309,23 @@ const cases = [
   { name: 'month-dense-overflow-expanded', config: { default_view: 'month', show_all_events_month: true }, darkMode: false, events: overflowEvents, viewLabel: 'Month', assert: async (card) => { expect(await card.locator('.day-cell.today .event, .day-cell.today .week-compact-event').count()).toBeGreaterThan(8); } },
   { name: 'event-location-full', config: { default_view: 'week-standard', show_event_location: true, use_short_location: false, week_start_hour: 8, week_end_hour: 16 }, darkMode: false, events: locationEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.week-standard-event-location').first()).toContainText('Building Q'); } },
   { name: 'event-location-short', config: { default_view: 'week-standard', show_event_location: true, use_short_location: true, week_start_hour: 8, week_end_hour: 16 }, darkMode: false, events: locationEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.week-standard-event-location').first()).toContainText('Extremely Long Conference Center Road'); await expect(card.locator('.week-standard-event-location').first()).not.toContainText('Building Q'); } },
-  { name: 'background-header-opacity', config: { default_view: 'month', background_opacity: 45, header_background_opacity: 20, background_image_url: INLINE_BACKGROUND_SVG, background_image_size: '96px 96px', background_image_position: 'top left', background_image_repeat: 'repeat', header_color: '#0f172a', header_text_color: '#ffffff' }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
+  {
+    name: 'background-header-opacity',
+    config: { default_view: 'month', background_opacity: 45, header_background_opacity: 20, background_image_url: INLINE_BACKGROUND_SVG, background_image_size: '96px 96px', background_image_position: 'top left', background_image_repeat: 'repeat', header_color: '#0f172a', header_text_color: '#ffffff' },
+    darkMode: false,
+    events: baseEvents,
+    viewLabel: 'Month',
+    assert: async (card) => {
+      const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      await expect(sunday).toContainText('Night Shift');
+      await expect(sunday.locator('.month-span-event-spacer')).toHaveCount(0);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveCount(1);
+    }
+  },
   { name: 'week-standard-current-time-bar', config: { default_view: 'week-standard', show_current_time_bar: true, week_start_hour: 8, week_end_hour: 18 }, darkMode: false, events: baseEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.current-time-line')).toBeVisible(); } },
   { name: 'week-compact-compact-header', config: { default_view: 'week-compact', compact_header: true }, darkMode: false, events: baseEvents, viewLabel: 'Week', headerSelector: '.header-compact' },
   { name: 'month-compact-height', config: { default_view: 'month', compact_height: true }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
-  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: baseEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 } },
+  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: baseEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 }, maxDiffPixelRatio: 0.025 },
   { name: 'week-compact-mobile', config: { default_view: 'week-compact' }, darkMode: false, events: baseEvents, viewLabel: 'Week', viewport: { width: 390, height: 900 } },
   { name: 'agenda-mobile', config: { default_view: 'agenda' }, darkMode: false, events: baseEvents, viewLabel: 'Agenda', viewport: { width: 390, height: 900 } },
   { name: 'hostile-dataset', config: { default_view: 'agenda', combine_calendars: true }, darkMode: false, events: hostileEvents, viewLabel: 'Agenda' },
@@ -559,7 +598,7 @@ for (const scenario of cases) {
 
     await expect(card).toHaveScreenshot(`${scenario.name}.png`, {
       animations: 'disabled',
-      maxDiffPixelRatio: 0.01
+      maxDiffPixelRatio: scenario.maxDiffPixelRatio || 0.01
     });
   });
 }

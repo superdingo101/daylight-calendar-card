@@ -13836,7 +13836,17 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
+  trimTrailingNullMonthSpanLanes(monthSpanLanes = []) {
+    let lastOccupiedLaneIndex = -1;
+    (monthSpanLanes || []).forEach((lane, index) => {
+      if (lane) lastOccupiedLaneIndex = index;
+    });
+
+    return lastOccupiedLaneIndex >= 0 ? monthSpanLanes.slice(0, lastOccupiedLaneIndex + 1) : [];
+  }
+
   renderDay(dayNum, date, isOtherMonth, monthSpanLanes = []) {
+    monthSpanLanes = this.trimTrailingNullMonthSpanLanes(monthSpanLanes);
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
     const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });

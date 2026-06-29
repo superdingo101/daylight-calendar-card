@@ -1709,26 +1709,40 @@ test('month spans clamp to week rows and split cleanly across row boundaries', (
   assert.doesNotMatch(secondRowClasses, /continues-next/);
 });
 
-test('month span placeholders contribute to overflow counts', () => {
-  const card = makeCard({ entities: ['calendar.family'] });
-  card.getMaxVisibleEventsForMonthDay = () => 4;
+test('month trims trailing span placeholders so earlier normal timed events remain visible', () => {
+  const card = makeCard({ entities: ['calendar.family', 'calendar.work'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
   card._events = [
-    makeAllDayEvent('early week span', '2026-05-04', '2026-05-07'),
-    makeAllDayEvent('second early week span', '2026-05-05', '2026-05-07'),
-    makeTimedEvent('visible timed event', '2026-05-07T10:00:00', '2026-05-07T11:00:00'),
-    makeTimedEvent('hidden timed event', '2026-05-07T12:00:00', '2026-05-07T13:00:00'),
-    makeTimedEvent('second hidden timed event', '2026-05-07T14:00:00', '2026-05-07T15:00:00')
+    makeTimedEvent('Coffee', '2026-03-15T09:00:00Z', '2026-03-15T09:30:00Z', 'calendar.family'),
+    makeTimedEvent('Standup', '2026-03-15T14:00:00Z', '2026-03-15T14:15:00Z', 'calendar.work'),
+    makeTimedEvent('Night Shift', '2026-03-15T23:30:00Z', '2026-03-16T06:30:00Z', 'calendar.family'),
+    makeAllDayEvent('Conference', '2026-03-17', '2026-03-21', 'calendar.family')
   ];
-  const weekStart = new Date('2026-05-03T00:00:00');
+  const weekStart = new Date('2026-03-15T00:00:00');
   const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
   const layout = card.buildMonthSpanLayoutForWeek(weekDays);
-  const thursday = new Date('2026-05-07T00:00:00');
-  const html = card.renderDay(7, thursday, false, layout.dayLanesByDateKey.get(card.getDateKey(thursday)) || []);
+  const sunday = new Date('2026-03-15T00:00:00');
+  const html = card.renderDay(15, sunday, false, layout.dayLanesByDateKey.get(card.getDateKey(sunday)) || []);
 
-  assert.match(html, /visible timed event/);
-  assert.doesNotMatch(html, /hidden timed event/);
-  assert.match(html, /more-events/);
-  assert.match(html, /2 more/);
+  assert.match(html, /Coffee/);
+  assert.match(html, /Standup/);
+  assert.match(html, /Night Shift/);
+  assert.doesNotMatch(html, /month-span-event-spacer/);
+  assert.doesNotMatch(html, /more-events/);
+  assert.doesNotMatch(html, /2 more/);
+});
+
+test('month trailing null span lane trimming keeps only lanes needed for placement', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  const firstLaneSpan = { event: makeAllDayEvent('First Lane Span', '2026-05-04', '2026-05-06'), isFirstVisibleSegment: false };
+  const secondLaneSpan = { event: makeAllDayEvent('Second Lane Span', '2026-05-04', '2026-05-06'), isFirstVisibleSegment: false };
+
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null]), []);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null, null]), []);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan]), [firstLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan, null]), [firstLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null, secondLaneSpan]), [null, secondLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan, null, secondLaneSpan, null]), [firstLaneSpan, null, secondLaneSpan]);
 });
 
 test('month span layout excludes short timed overnight events', () => {
