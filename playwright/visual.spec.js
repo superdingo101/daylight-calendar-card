@@ -24,6 +24,49 @@ const baseEvents = {
   ]
 };
 
+
+const monthVisualEvents = {
+  'calendar.family': [
+    { summary: 'Breakfast Prep', start: '2026-03-01T08:00:00Z', end: '2026-03-01T08:30:00Z' },
+    { summary: 'School Spirit Week With A Long Title', start: '2026-03-02', end: '2026-03-06' },
+    { summary: 'Dentist', start: '2026-03-03T16:00:00Z', end: '2026-03-03T16:30:00Z' },
+    { summary: 'Family Dinner', start: '2026-03-05T18:00:00Z', end: '2026-03-05T19:00:00Z' },
+    { summary: 'Weekend Trip Across Rows With A Long Title', start: '2026-03-07', end: '2026-03-10' },
+    { summary: 'Soccer Practice', start: '2026-03-10T17:00:00Z', end: '2026-03-10T18:00:00Z' },
+    { summary: 'Library Day', start: '2026-03-12T15:30:00Z', end: '2026-03-12T16:30:00Z' },
+    { summary: 'Birthday Party', start: '2026-03-14T13:00:00Z', end: '2026-03-14T15:00:00Z' },
+    { summary: 'Coffee', start: '2026-03-15T09:00:00Z', end: '2026-03-15T09:30:00Z', location: 'Kitchen' },
+    { summary: 'All Day Holiday', start: '2026-03-16', end: '2026-03-17' },
+    { summary: 'Conference With A Long Multi-Day Title', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Night Shift', start: '2026-03-15T23:30:00Z', end: '2026-03-16T06:30:00Z' },
+    { summary: 'Shared Duplicate Demo', start: '2026-03-20T11:00:00Z', end: '2026-03-20T12:00:00Z', location: 'Shared Room' },
+    { summary: 'Spring Break Multi-Day Family Event With A Long Title', start: '2026-03-22', end: '2026-03-26' },
+    { summary: 'Park Meetup', start: '2026-03-23T15:00:00Z', end: '2026-03-23T16:00:00Z' },
+    { summary: 'Overflow One', start: '2026-03-24T08:00:00Z', end: '2026-03-24T08:30:00Z' },
+    { summary: 'Overflow Two', start: '2026-03-24T09:00:00Z', end: '2026-03-24T09:30:00Z' },
+    { summary: 'Overflow Three', start: '2026-03-24T10:00:00Z', end: '2026-03-24T10:30:00Z' },
+    { summary: 'Piano Lesson', start: '2026-03-25T17:30:00Z', end: '2026-03-25T18:00:00Z' },
+    { summary: 'Month End Errand', start: '2026-03-29T11:00:00Z', end: '2026-03-29T12:00:00Z' },
+    { summary: 'Overnight Guests Across Month Boundary', start: '2026-03-30', end: '2026-04-02' },
+    { summary: 'Pay Bills', start: '2026-03-31T09:00:00Z', end: '2026-03-31T09:30:00Z' }
+  ],
+  'calendar.work': [
+    { summary: 'Planning', start: '2026-03-02T13:00:00Z', end: '2026-03-02T14:00:00Z' },
+    { summary: 'Design Review', start: '2026-03-04T10:00:00Z', end: '2026-03-04T11:00:00Z' },
+    { summary: 'Release Window With Long Title', start: '2026-03-06', end: '2026-03-08' },
+    { summary: 'Standup', start: '2026-03-09T14:00:00Z', end: '2026-03-09T14:15:00Z', location: 'Zoom' },
+    { summary: 'Roadmap Review', start: '2026-03-11T16:00:00Z', end: '2026-03-11T17:00:00Z' },
+    { summary: 'Customer Call', start: '2026-03-13T19:00:00Z', end: '2026-03-13T20:00:00Z' },
+    { summary: 'Standup', start: '2026-03-15T14:00:00Z', end: '2026-03-15T14:15:00Z', location: 'Zoom' },
+    { summary: 'Planning', start: '2026-03-18T18:00:00Z', end: '2026-03-18T19:00:00Z' },
+    { summary: 'Shared Duplicate Demo', start: '2026-03-20T11:00:00Z', end: '2026-03-20T12:00:00Z', location: 'Shared Room' },
+    { summary: 'Quarter Planning Multi-Day Work Event With A Long Title', start: '2026-03-24', end: '2026-03-28' },
+    { summary: 'Sprint Demo', start: '2026-03-26T15:00:00Z', end: '2026-03-26T16:00:00Z' },
+    { summary: 'Month End Report', start: '2026-03-30T16:00:00Z', end: '2026-03-30T17:00:00Z' },
+    { summary: 'April Prep', start: '2026-03-31T20:00:00Z', end: '2026-03-31T21:00:00Z' }
+  ]
+};
+
 const duplicateEvents = {
   'calendar.family': [
     { summary: 'Shared Duplicate Demo', start: '2026-03-15T11:00:00Z', end: '2026-03-15T12:00:00Z', location: 'Shared Room' },
@@ -132,9 +175,18 @@ const cases = [
     name: 'month-basic-light',
     config: { default_view: 'month', color_scheme: 'light' },
     darkMode: false,
-    events: baseEvents,
+    events: monthVisualEvents,
     viewLabel: 'Month',
     assert: async (card) => {
+      const firstWeek = card.locator('.day-cell[data-date^="2026-03-03"]').first();
+      const middleWeek = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      const finalWeek = card.locator('.day-cell[data-date^="2026-03-31"]').first();
+      await expect(firstWeek).toContainText('Dentist');
+      await expect(card.locator('.day-cell[data-date^="2026-03-10"]').first()).toContainText('Soccer Practice');
+      await expect(middleWeek).toContainText('Coffee');
+      await expect(card.locator('.day-cell[data-date^="2026-03-24"]').first()).toContainText(/Overflow|more/);
+      await expect(finalWeek).toContainText('Pay Bills');
+
       const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
       await expect(sunday).toContainText('Coffee');
       await expect(sunday).toContainText('Standup');
@@ -151,12 +203,12 @@ const cases = [
       expect(standupBox.y - coffeeBox.y).toBeLessThan(40);
       expect(nightShiftBox.y - standupBox.y).toBeLessThan(40);
 
-      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveCount(1);
-      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveAttribute('data-month-span-days', '3');
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveCount(1);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveAttribute('data-month-span-days', '3');
       expect(await card.locator('.month-span-event-placeholder').count()).toBeGreaterThanOrEqual(2);
     }
   },
-  { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Month' },
+  { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: monthVisualEvents, viewLabel: 'Month' },
   { name: 'week-basic-light', config: { default_view: 'week', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-basic-dark', config: { default_view: 'week', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-compact-basic-light', config: { default_view: 'week-compact', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
@@ -293,12 +345,12 @@ const cases = [
       day_styles: [{ condition: 'day_of_week', day_of_week: ['saturday', 'sunday'], background: '#dcfce7', opacity: 1 }]
     },
     darkMode: false,
-    events: baseEvents,
+    events: monthVisualEvents,
     viewLabel: 'Month',
     assert: async (card) => {
       await expect(card).toContainText('Standup');
-      await expect(card.locator('.event').filter({ hasText: 'Standup' })).toHaveCSS('background-color', 'rgb(248, 215, 218)');
-      await expect(card.locator('.event').filter({ hasText: 'Standup' })).toHaveCSS('color', 'rgb(114, 28, 36)');
+      await expect(card.locator('.event').filter({ hasText: 'Standup' }).first()).toHaveCSS('background-color', 'rgb(248, 215, 218)');
+      await expect(card.locator('.event').filter({ hasText: 'Standup' }).first()).toHaveCSS('color', 'rgb(114, 28, 36)');
       await expect(card.locator('.day-cell[data-date^="2026-03-14"]').first()).toHaveClass(/day-style-has-background/);
       await expect(card.locator('.day-cell[data-date^="2026-03-14"]').first()).toHaveCSS('background-color', 'rgb(220, 252, 231)');
       await expect(card.locator('.day-cell[data-date^="2026-03-15"]').first()).toHaveClass(/day-style-has-background/);
@@ -313,19 +365,19 @@ const cases = [
     name: 'background-header-opacity',
     config: { default_view: 'month', background_opacity: 45, header_background_opacity: 20, background_image_url: INLINE_BACKGROUND_SVG, background_image_size: '96px 96px', background_image_position: 'top left', background_image_repeat: 'repeat', header_color: '#0f172a', header_text_color: '#ffffff' },
     darkMode: false,
-    events: baseEvents,
+    events: monthVisualEvents,
     viewLabel: 'Month',
     assert: async (card) => {
       const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
       await expect(sunday).toContainText('Night Shift');
       await expect(sunday.locator('.month-span-event-spacer')).toHaveCount(0);
-      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference' })).toHaveCount(1);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveCount(1);
     }
   },
   { name: 'week-standard-current-time-bar', config: { default_view: 'week-standard', show_current_time_bar: true, week_start_hour: 8, week_end_hour: 18 }, darkMode: false, events: baseEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.current-time-line')).toBeVisible(); } },
   { name: 'week-compact-compact-header', config: { default_view: 'week-compact', compact_header: true }, darkMode: false, events: baseEvents, viewLabel: 'Week', headerSelector: '.header-compact' },
-  { name: 'month-compact-height', config: { default_view: 'month', compact_height: true }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
-  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: baseEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 }, maxDiffPixelRatio: 0.025 },
+  { name: 'month-compact-height', config: { default_view: 'month', compact_height: true }, darkMode: false, events: monthVisualEvents, viewLabel: 'Month' },
+  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: monthVisualEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 } },
   { name: 'week-compact-mobile', config: { default_view: 'week-compact' }, darkMode: false, events: baseEvents, viewLabel: 'Week', viewport: { width: 390, height: 900 } },
   { name: 'agenda-mobile', config: { default_view: 'agenda' }, darkMode: false, events: baseEvents, viewLabel: 'Agenda', viewport: { width: 390, height: 900 } },
   { name: 'hostile-dataset', config: { default_view: 'agenda', combine_calendars: true }, darkMode: false, events: hostileEvents, viewLabel: 'Agenda' },
