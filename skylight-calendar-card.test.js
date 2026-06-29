@@ -1481,6 +1481,17 @@ function makeAllDayEvent(summary, startDate, endDate, entityId = 'calendar.famil
   };
 }
 
+function makeTimedEvent(summary, startDateTime, endDateTime, entityId = 'calendar.family', extra = {}) {
+  return {
+    entityId,
+    color: extra.color || '#3366ff',
+    summary,
+    start: { dateTime: startDateTime },
+    end: { dateTime: endDateTime },
+    ...extra
+  };
+}
+
 function renderScheduleAllDayHtml(card, weekStartDateKey = '2026-05-03') {
   const weekStart = new Date(`${weekStartDateKey}T00:00:00`);
   const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
@@ -1696,6 +1707,42 @@ test('month spans clamp to week rows and split cleanly across row boundaries', (
   assert.doesNotMatch(firstRowClasses, /continues-prev/);
   assert.match(secondRowClasses, /continues-prev/);
   assert.doesNotMatch(secondRowClasses, /continues-next/);
+});
+
+test('month span placeholders contribute to overflow counts', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 4;
+  card._events = [
+    makeAllDayEvent('early week span', '2026-05-04', '2026-05-07'),
+    makeAllDayEvent('second early week span', '2026-05-05', '2026-05-07'),
+    makeTimedEvent('visible timed event', '2026-05-07T10:00:00', '2026-05-07T11:00:00'),
+    makeTimedEvent('hidden timed event', '2026-05-07T12:00:00', '2026-05-07T13:00:00'),
+    makeTimedEvent('second hidden timed event', '2026-05-07T14:00:00', '2026-05-07T15:00:00')
+  ];
+  const weekStart = new Date('2026-05-03T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const thursday = new Date('2026-05-07T00:00:00');
+  const html = card.renderDay(7, thursday, false, layout.dayLanesByDateKey.get(card.getDateKey(thursday)) || []);
+
+  assert.match(html, /visible timed event/);
+  assert.doesNotMatch(html, /hidden timed event/);
+  assert.match(html, /more-events/);
+  assert.match(html, /2 more/);
+});
+
+test('month span layout excludes short timed overnight events', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [makeTimedEvent('late appointment', '2026-05-04T23:00:00', '2026-05-05T01:00:00')];
+  const weekStart = new Date('2026-05-03T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const monday = new Date('2026-05-04T00:00:00');
+  const html = card.renderDay(4, monday, false, layout.dayLanesByDateKey.get(card.getDateKey(monday)) || []);
+
+  assert.equal(countRenderedMonthSpanBodies(renderMonthWeekSpanHtml(card)), 0);
+  assert.match(html, /late appointment/);
+  assert.match(html, /event-time/);
 });
 
 test('checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly', async () => {

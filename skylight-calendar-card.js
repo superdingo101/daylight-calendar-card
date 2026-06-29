@@ -13166,7 +13166,7 @@ class SkylightCalendarCard extends HTMLElement {
       getEventDaySegment: (event, date) => {
         const daySegment = this.getEventDaySegment(event, date);
         if (!daySegment) return null;
-        return (!daySegment.startsOnDay || !daySegment.endsOnDay) ? daySegment : null;
+        return daySegment.isAllDaySegment && (!daySegment.startsOnDay || !daySegment.endsOnDay) ? daySegment : null;
       },
       getEventKey: this.getScheduleAllDayEventKey.bind(this),
       isEventVisible: (event) => this.getVisibleCalendarColorsForEvent(event).length > 0
@@ -13844,9 +13844,14 @@ class SkylightCalendarCard extends HTMLElement {
     dayEvents = this.sortEventsForDate(dayEvents, date);
 
     const maxVisible = this.getMaxVisibleEventsForMonthDay();
-    const hasOverflow = dayEvents.length > maxVisible;
+    const spannedEventKeys = new Set((monthSpanLanes || [])
+      .filter(Boolean)
+      .map((lane) => this.getScheduleAllDayEventKey(lane.event)));
+    const reservedSpanLaneCount = (monthSpanLanes || []).length;
+    const nonSpannedEventCount = dayEvents.filter((event) => !spannedEventKeys.has(this.getScheduleAllDayEventKey(event))).length;
+    const hasOverflow = nonSpannedEventCount > Math.max(0, maxVisible - reservedSpanLaneCount);
     const visibleEvents = hasOverflow ? Math.max(0, maxVisible - 1) : maxVisible;
-    const hiddenEventCount = Math.max(0, dayEvents.length - visibleEvents);
+    const hiddenEventCount = Math.max(0, nonSpannedEventCount - Math.max(0, visibleEvents - reservedSpanLaneCount));
 
     const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
 
