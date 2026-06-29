@@ -16,11 +16,20 @@ export function renderDayCellEvents({
   date,
   dayEvents,
   hiddenEventCount,
+  monthSpanLanes,
   visibleEvents,
   helpers
 }) {
+  const spannedEventKeys = new Set((monthSpanLanes || []).filter(Boolean).map((lane) => helpers.getEventKey(lane.event)));
+  const spanHtml = (monthSpanLanes || []).map((lane) => helpers.renderMonthSpanLane(lane)).join('');
+  const dayEventHtml = dayEvents
+    .filter((event) => !spannedEventKeys.has(helpers.getEventKey(event)))
+    .slice(0, Math.max(0, visibleEvents - (monthSpanLanes || []).length))
+    .map(event => helpers.renderMonthDayEvent(event, date))
+    .join('');
+
   return `
-        ${dayEvents.slice(0, visibleEvents).map(event => helpers.renderMonthDayEvent(event, date)).join('')}
+        ${spanHtml}${dayEventHtml}
         ${hiddenEventCount > 0 ? `<div class="more-events" data-click-target="more-events">${helpers.t('moreEvents', { count: hiddenEventCount })}</div>` : ''}`;
 }
 
@@ -32,6 +41,7 @@ export function renderDayCell({
   dayStyle,
   hiddenEventCount,
   isOtherMonth,
+  monthSpanLanes,
   isToday,
   visibleEvents,
   helpers
@@ -52,6 +62,7 @@ export function renderDayCell({
         date,
         dayEvents,
         hiddenEventCount,
+        monthSpanLanes,
         visibleEvents,
         helpers
       })}

@@ -149,6 +149,7 @@ import {
   sortEventsByStartDate as sortEventsByStartDateHelper,
   toStableString as toStableStringHelper
 } from './events/event-fetcher.js';
+import { buildContinuousDaySpanLayout } from './events/continuous-day-span-layout.js';
 import { getMonthVisibleDateRange } from './views/month-view-model.js';
 import {
   getRollingDaysForView as getRollingDaysForViewModel,
@@ -3132,7 +3133,9 @@ class SkylightCalendarCard extends HTMLElement {
         helpers: {
           getCompactMonthGridStyle: (weekRows, maxHeight) => this.getCompactMonthGridStyle(weekRows, maxHeight),
           renderCalendarBadges: () => this.renderCalendarBadges(),
-          renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+          getDateKey: (date) => this.getDateKey(date),
+          getMonthSpanLayoutForWeek: (weekDays) => this.buildMonthSpanLayoutForWeek(weekDays),
+          renderDay: (day, date, isOtherMonth, monthSpanLanes) => this.renderDay(day, date, isOtherMonth, monthSpanLanes),
           renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
         }
       });
@@ -3342,111 +3345,33 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   buildAllDayLayoutForSchedule(weekDays) {
-    const allDaySpans = [];
-    const eventSpanMap = new Map();
-
-    weekDays.forEach((date, dayIndex) => {
-      this.getEventsForDay(date).forEach(event => {
-        if (this.getVisibleCalendarColorsForEvent(event).length === 0) {
-          return;
-        }
-
+    return buildContinuousDaySpanLayout(weekDays, {
+      getDateKey: this.getDateKey.bind(this),
+      getEventsForDay: (date) => this.getEventsForDay(date),
+      getEventDaySegment: (event, date) => {
         const daySegment = this.getEventDaySegment(event, date, { useScheduleVisualTreatment: true });
-        if (!daySegment || !daySegment.isAllDaySegment) {
-          return;
-        }
-
-        const eventKey = this.getScheduleAllDayEventKey(event);
-        let span = eventSpanMap.get(eventKey);
-        if (!span) {
-          span = {
-            event,
-            displayTitle: daySegment.displayTitle,
-            startIndex: dayIndex,
-            endIndex: dayIndex,
-            startsOnDayAtStartIndex: daySegment.startsOnDay,
-            endsOnDayAtEndIndex: daySegment.endsOnDay
-          };
-          eventSpanMap.set(eventKey, span);
-          allDaySpans.push(span);
-        } else {
-          if (dayIndex < span.startIndex) {
-            span.startIndex = dayIndex;
-            span.startsOnDayAtStartIndex = daySegment.startsOnDay;
-          }
-          if (dayIndex > span.endIndex) {
-            span.endIndex = dayIndex;
-            span.endsOnDayAtEndIndex = daySegment.endsOnDay;
-          }
-        }
-
-        if (dayIndex === span.startIndex) {
-          span.startsOnDayAtStartIndex = daySegment.startsOnDay;
-        }
-        if (dayIndex === span.endIndex) {
-          span.endsOnDayAtEndIndex = daySegment.endsOnDay;
-        }
-      });
+        return daySegment?.isAllDaySegment ? daySegment : null;
+      },
+      getEventKey: this.getScheduleAllDayEventKey.bind(this),
+      isEventVisible: (event) => this.getVisibleCalendarColorsForEvent(event).length > 0
     });
+  }
 
-    allDaySpans.sort((a, b) => {
-      if (a.startIndex !== b.startIndex) {
-        return a.startIndex - b.startIndex;
-      }
-      const aDuration = a.endIndex - a.startIndex;
-      const bDuration = b.endIndex - b.startIndex;
-      if (aDuration !== bDuration) {
-        return bDuration - aDuration;
-      }
-      return (a.event.summary || '').localeCompare(b.event.summary || '');
+  buildMonthSpanLayoutForWeek(weekDays) {
+    return buildContinuousDaySpanLayout(weekDays, {
+      getDateKey: this.getDateKey.bind(this),
+      getEventsForDay: (date) => this.sortEventsForDate(
+        this.getEventsForDay(date, { includeHiddenStyledEvents: false }).filter((event) => !this.isEventHiddenByStyle(event)),
+        date
+      ),
+      getEventDaySegment: (event, date) => {
+        const daySegment = this.getEventDaySegment(event, date);
+        if (!daySegment) return null;
+        return (!daySegment.startsOnDay || !daySegment.endsOnDay) ? daySegment : null;
+      },
+      getEventKey: this.getScheduleAllDayEventKey.bind(this),
+      isEventVisible: (event) => this.getVisibleCalendarColorsForEvent(event).length > 0
     });
-
-    const laneEndIndexes = [];
-    allDaySpans.forEach(span => {
-      let laneIndex = laneEndIndexes.findIndex(endIndex => endIndex < span.startIndex);
-      if (laneIndex === -1) {
-        laneIndex = laneEndIndexes.length;
-        laneEndIndexes.push(span.endIndex);
-      } else {
-        laneEndIndexes[laneIndex] = span.endIndex;
-      }
-      span.laneIndex = laneIndex;
-    });
-
-    const maxLanes = laneEndIndexes.length;
-    const dayLanesByDateKey = new Map();
-    weekDays.forEach((date, dayIndex) => {
-      const lanes = new Array(maxLanes).fill(null);
-      allDaySpans.forEach(span => {
-        if (dayIndex < span.startIndex || dayIndex > span.endIndex) {
-          return;
-        }
-
-        lanes[span.laneIndex] = {
-          event: span.event,
-          displayTitle: span.displayTitle,
-          spanStartIndex: span.startIndex,
-          spanEndIndex: span.endIndex,
-          dayIndex,
-          segmentIndexWithinVisibleSpan: dayIndex - span.startIndex,
-          continuesFromPreviousDay: dayIndex > span.startIndex || !span.startsOnDayAtStartIndex,
-          continuesToNextDay: dayIndex < span.endIndex || !span.endsOnDayAtEndIndex,
-          startsBeforeVisibleSegment: !span.startsOnDayAtStartIndex,
-          extendsBeforeVisibleRange: !span.startsOnDayAtStartIndex,
-          extendsAfterVisibleRange: !span.endsOnDayAtEndIndex,
-          bridgeFromPreviousDay: dayIndex > span.startIndex,
-          bridgeToNextDay: dayIndex < span.endIndex,
-          isFirstVisibleSegment: dayIndex === span.startIndex,
-          isLastVisibleSegment: dayIndex === span.endIndex,
-          showTitle: dayIndex === span.startIndex,
-          visibleDaySpan: span.endIndex - span.startIndex + 1
-        };
-      });
-
-      dayLanesByDateKey.set(this.getDateKey(date), lanes);
-    });
-
-    return { maxLanes, dayLanesByDateKey };
   }
 
   getScheduleAllDayEventKey(event) {
@@ -4011,7 +3936,9 @@ class SkylightCalendarCard extends HTMLElement {
       viewMode: this._viewMode,
       shouldShowWeekNumbers: this.shouldShowMonthWeekNumbers(),
       helpers: {
-        renderDay: (day, date, isOtherMonth) => this.renderDay(day, date, isOtherMonth),
+        getDateKey: (date) => this.getDateKey(date),
+        getMonthSpanLayoutForWeek: (weekDays) => this.buildMonthSpanLayoutForWeek(weekDays),
+        renderDay: (day, date, isOtherMonth, monthSpanLanes) => this.renderDay(day, date, isOtherMonth, monthSpanLanes),
         renderMonthWeekNumberCell: (rowStartDate) => this.renderMonthWeekNumberCell(rowStartDate)
       }
     });
@@ -4110,7 +4037,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  renderDay(dayNum, date, isOtherMonth) {
+  renderDay(dayNum, date, isOtherMonth, monthSpanLanes = []) {
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
     const dayEventsForMatching = this.getEventsForDay(date, { includeHiddenStyledEvents: true });
@@ -4132,15 +4059,44 @@ class SkylightCalendarCard extends HTMLElement {
       dayStyle,
       hiddenEventCount,
       isOtherMonth,
+      monthSpanLanes,
       isToday,
       visibleEvents,
       helpers: {
         renderDayBadges: this.renderDayBadges.bind(this),
         renderDayForecast: this.renderDayForecast.bind(this),
+        getEventKey: this.getScheduleAllDayEventKey.bind(this),
         renderMonthDayEvent: this.renderMonthDayEvent.bind(this),
+        renderMonthSpanLane: this.renderMonthSpanLane.bind(this),
         t: this.t.bind(this)
       }
     });
+  }
+
+
+  renderMonthSpanLane(lane) {
+    if (!lane) {
+      return '<div class="event month-span-event-spacer"></div>';
+    }
+
+    if (!lane.isFirstVisibleSegment) {
+      return '<div class="event month-span-event-spacer month-span-event-placeholder"></div>';
+    }
+
+    const { event, extendsBeforeVisibleRange, extendsAfterVisibleRange, displayTitle, visibleDaySpan } = lane;
+    const eventStyle = this.getEventStyle(event);
+    const spanStyle = visibleDaySpan > 1
+      ? ` --month-event-visible-span: ${visibleDaySpan}; --month-event-gap-count: ${Math.max(visibleDaySpan - 1, 0)};`
+      : '';
+    const spanDataAttribute = visibleDaySpan > 1 ? ` data-month-span-days="${visibleDaySpan}"` : '';
+
+    return `
+      <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+        ${this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent'))}
+        ${this.renderEventStyleCornerIcon(event)}
+        ${this.renderCombinedCornerBubbles(event)}
+      </div>
+    `;
   }
 
   renderMonthDayEvent(event, date) {

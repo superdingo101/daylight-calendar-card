@@ -1610,6 +1610,94 @@ test('schedule all-day visible range edges and overlapping lanes preserve contin
   assert.match(html, /data-all-day-span-days="7"/);
 });
 
+
+function renderMonthWeekSpanHtml(card, weekStartDateKey = '2026-05-03') {
+  const weekStart = new Date(`${weekStartDateKey}T00:00:00`);
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  return weekDays.map((date) => (layout.dayLanesByDateKey.get(card.getDateKey(date)) || []).map((lane) => card.renderMonthSpanLane(lane)).join('')).join('\n');
+}
+
+function countRenderedMonthSpanBodies(html) {
+  return (html.match(/class="event month-span-event(?: |")/g) || []).length;
+}
+
+function countMonthSpanPlaceholders(html) {
+  return (html.match(/month-span-event-placeholder/g) || []).length;
+}
+
+function getMonthSpanBodyClassForTitle(html, title) {
+  const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return html.match(new RegExp(`<div class="event month-span-event([^"]*)"[^>]*"summary":"${escapedTitle}"`))?.[1] || '';
+}
+
+test('month multi-day events render once per week row as continuous spans across styling modes', () => {
+  for (const event_color_mode of ['classic', 'left-tint', 'left-neutral']) {
+    const title = `${event_color_mode} month trip`;
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent(title, '2026-05-04', '2026-05-08')];
+    const html = renderMonthWeekSpanHtml(card);
+    const eventClasses = getMonthSpanBodyClassForTitle(html, title);
+
+    assert.equal(countRenderedMonthSpanBodies(html), 1, `${event_color_mode} should render one visible event body`);
+    assert.equal(countMonthSpanPlaceholders(html), 3, `${event_color_mode} should reserve continuation lanes`);
+    assert.match(html, /data-month-span-days="4"/);
+    assert.match(html, /--month-event-visible-span: 4/);
+    assert.doesNotMatch(eventClasses, /continues-next/, `${event_color_mode} should keep rounded right edge when ending inside the week row`);
+    if (event_color_mode === 'classic') {
+      assert.match(html, /background-image: none/);
+    } else {
+      assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+    }
+  }
+});
+
+test('month combined and styled multi-day spans render one decoration and keep overrides', () => {
+  for (const combine_style of ['bars', 'dots', 'stripes']) {
+    const card = makeCard({
+      entities: ['calendar.a', 'calendar.b'],
+      combine_calendars: true,
+      combine_style,
+      combine_background: 'neutral',
+      colors: { 'calendar.a': '#ff0000', 'calendar.b': '#00ff00' },
+      event_styles: [{
+        match: { title_contains: 'combined' },
+        style: { background_color: '#112233', event_font_color: '#ffeecc', opacity: 0.7, filter: 'grayscale(20%)', icon: 'mdi:star' }
+      }]
+    });
+    card._events = card.combineDuplicateCalendarEvents([
+      makeAllDayEvent('combined styled', '2026-05-04', '2026-05-08', 'calendar.a', { color: '#ff0000' }),
+      makeAllDayEvent('combined styled', '2026-05-04', '2026-05-08', 'calendar.b', { color: '#00ff00' })
+    ]);
+    const html = renderMonthWeekSpanHtml(card);
+
+    assert.equal(countRenderedMonthSpanBodies(html), 1, `${combine_style} should render one visible event body`);
+    assert.equal(countMonthSpanPlaceholders(html), 3, `${combine_style} should reserve continuation lanes`);
+    assert.equal((html.match(/background-image:/g) || []).length, 1);
+    assert.match(html, /opacity: 0.7/);
+    assert.match(html, /filter: grayscale\(20%\)/);
+    assert.match(html, /mdi:star/);
+  }
+});
+
+test('month spans clamp to week rows and split cleanly across row boundaries', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [makeAllDayEvent('crosses row', '2026-05-08', '2026-05-13')];
+  const firstRowHtml = renderMonthWeekSpanHtml(card, '2026-05-03');
+  const secondRowHtml = renderMonthWeekSpanHtml(card, '2026-05-10');
+  const firstRowClasses = getMonthSpanBodyClassForTitle(firstRowHtml, 'crosses row');
+  const secondRowClasses = getMonthSpanBodyClassForTitle(secondRowHtml, 'crosses row');
+
+  assert.equal(countRenderedMonthSpanBodies(firstRowHtml), 1);
+  assert.equal(countRenderedMonthSpanBodies(secondRowHtml), 1);
+  assert.match(firstRowHtml, /data-month-span-days="2"/);
+  assert.match(secondRowHtml, /data-month-span-days="3"/);
+  assert.match(firstRowClasses, /continues-next/);
+  assert.doesNotMatch(firstRowClasses, /continues-prev/);
+  assert.match(secondRowClasses, /continues-prev/);
+  assert.doesNotMatch(secondRowClasses, /continues-next/);
+});
+
 test('checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly', async () => {
   const card = makeCard({
     entities: ['calendar.google_home', 'calendar.caldav_work', 'calendar.local_family'],

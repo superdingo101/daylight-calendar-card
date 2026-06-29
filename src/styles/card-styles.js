@@ -758,6 +758,27 @@ export function getCardStyles() {
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
+      .event.month-span-event {
+        width: calc((100% * var(--month-event-visible-span, 1)) + ((16px + 1px) * var(--month-event-gap-count, 0)));
+        max-width: none;
+        z-index: 2;
+      }
+
+      .event.month-span-event.continues-prev {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      .event.month-span-event.continues-next {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      .month-span-event-spacer {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
 
       .event-time {
         font-size: var(--event-time-font-size, 9px);
