@@ -1745,6 +1745,24 @@ test('month trailing null span lane trimming keeps only lanes needed for placeme
   assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan, null, secondLaneSpan, null]), [firstLaneSpan, null, secondLaneSpan]);
 });
 
+
+test('month continuation placeholders carry event sizing styles for full row height', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{
+      match: { title: 'Styled Span' },
+      style: { event_font_size: '17px', event_time_font_size: '12px', event_font_color: '#123456' }
+    }]
+  });
+  const event = makeAllDayEvent('Styled Span', '2026-05-04', '2026-05-07');
+  const html = card.renderMonthSpanLane({ event, isFirstVisibleSegment: false });
+
+  assert.match(html, /month-span-event-placeholder/);
+  assert.match(html, /--event-bubble-font-size: 17px/);
+  assert.match(html, /--event-time-font-size: 12px/);
+  assert.match(html, /--event-bubble-text-color: #123456/);
+});
+
 test('month span layout excludes short timed overnight events', () => {
   const card = makeCard({ entities: ['calendar.family'] });
   card._events = [makeTimedEvent('late appointment', '2026-05-04T23:00:00', '2026-05-05T01:00:00')];

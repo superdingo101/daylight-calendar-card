@@ -4095,7 +4095,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
 
     if (!lane.isFirstVisibleSegment) {
-      return '<div class="event month-span-event-spacer month-span-event-placeholder"></div>';
+      return `<div class="event month-span-event-spacer month-span-event-placeholder" style="--event-bubble-font-size: ${this.getEventBubbleFontSize(lane.event)}; --event-time-font-size: ${this.getEventTimeFontSize(lane.event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(lane.event)};"></div>`;
     }
 
     const { event, extendsBeforeVisibleRange, extendsAfterVisibleRange, displayTitle, visibleDaySpan } = lane;

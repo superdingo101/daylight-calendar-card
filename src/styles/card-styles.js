@@ -779,6 +779,10 @@ export function getCardStyles() {
         pointer-events: none;
       }
 
+      .month-span-event-spacer::before {
+        content: "\\00a0";
+      }
+
 
       .event-time {
         font-size: var(--event-time-font-size, 9px);
