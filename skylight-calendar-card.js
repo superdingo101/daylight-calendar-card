@@ -3355,7 +3355,7 @@ function getCardStyles() {
 
       .calendar-grid.compact-month .day-cell {
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
       }
 
       .day-header {

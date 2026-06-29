@@ -564,6 +564,52 @@ test('behavior: month continuation placeholder reserves full event row height', 
   expect(timedEventBox.y).toBeGreaterThanOrEqual(placeholderBox.y + placeholderBox.height - 1);
 });
 
+
+test('behavior: month compact-height continuous span is not clipped after first day', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Compact Month Span Calendar',
+      default_view: 'month',
+      compact_height: true,
+      colors: { 'calendar.family': '#2563eb' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Compact Height Multi-Day Span With A Long Title', start: '2026-03-16', end: '2026-03-19' },
+        { summary: 'Day Two Timed Event', start: '2026-03-17T10:00:00Z', end: '2026-03-17T10:30:00Z' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+
+  const span = card.locator('.day-cell[data-date^="2026-03-16"] .month-span-event').filter({ hasText: 'Compact Height Multi-Day Span' });
+  const firstDay = card.locator('.day-cell[data-date^="2026-03-16"]').first();
+  const finalDay = card.locator('.day-cell[data-date^="2026-03-18"]').first();
+  const timedEvent = card.locator('.day-cell[data-date^="2026-03-17"] .event').filter({ hasText: 'Day Two Timed Event' });
+
+  await expect(span).toHaveCount(1);
+  await expect(timedEvent).toHaveCount(1);
+
+  const spanBox = await span.boundingBox();
+  const firstDayBox = await firstDay.boundingBox();
+  const finalDayBox = await finalDay.boundingBox();
+  const timedEventBox = await timedEvent.boundingBox();
+  expect(spanBox).not.toBeNull();
+  expect(firstDayBox).not.toBeNull();
+  expect(finalDayBox).not.toBeNull();
+  expect(timedEventBox).not.toBeNull();
+
+  expect(spanBox.x + spanBox.width).toBeGreaterThan(finalDayBox.x + finalDayBox.width - 10);
+  expect(spanBox.x + spanBox.width).toBeGreaterThan(firstDayBox.x + firstDayBox.width + 20);
+  expect(timedEventBox.y).toBeGreaterThan(spanBox.y + spanBox.height - 1);
+});
+
 test('behavior: event modal overlays native header at tablet viewport', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
