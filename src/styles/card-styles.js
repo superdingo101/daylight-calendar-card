@@ -669,6 +669,7 @@ export function getCardStyles() {
 
       .day-badge-action {
         border: 0;
+        padding: 0;
         font-family: inherit;
         appearance: none;
         cursor: pointer;

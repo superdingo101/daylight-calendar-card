@@ -3175,6 +3175,61 @@ test('day badge action click listener prevents day modal and create modal confli
   assert.equal(dayModalCalls, 0);
 });
 
+test('day badge actions are treated as interactive swipe targets', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor(matchingSelector) {
+      this.matchingSelector = matchingSelector;
+    }
+    closest(selector) {
+      return selector.split(',').map((part) => part.trim()).includes(this.matchingSelector) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    for (const matchingSelector of ['.day-badge-action', '[data-day-badge-action-id]']) {
+      const card = makeCard({ entities: ['calendar.family'] });
+      const handlers = {};
+      const container = {
+        addEventListener: (eventName, callback) => { handlers[eventName] = callback; }
+      };
+      card._root = {
+        querySelector: (selector) => selector === '.calendar-container' ? container : null
+      };
+      card.shouldEnableSwipeControls = () => true;
+      card.canTriggerSwipePeriodNavigation = () => true;
+      card.canNavigateToPreviousPeriod = () => true;
+      let nextCalls = 0;
+      let previousCalls = 0;
+      card.navigateToNextPeriod = () => { nextCalls += 1; };
+      card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+      card.attachSwipeControls();
+      handlers.touchstart({
+        target: new FakeElement(matchingSelector),
+        touches: [{ clientX: 100, clientY: 20 }]
+      });
+      assert.equal(card._swipeStartedOnInteractive, true);
+
+      handlers.touchend({
+        changedTouches: [{ clientX: 20, clientY: 22 }]
+      });
+
+      assert.equal(nextCalls, 0);
+      assert.equal(previousCalls, 0);
+      assert.equal(card._swipeStartedOnInteractive, false);
+      assert.equal(card._swipeTracking, false);
+    }
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
+
 test('day badge helper module delegates preserve normalization and resolution behavior', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const block = card.normalizeDayBadgeBlock({
