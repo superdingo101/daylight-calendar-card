@@ -118,6 +118,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
+  location_links: 'event location links are opt-in for the details modal',
   use_short_location: 'setConfig applies visual layout and styling options',
   event_font_size: 'event font size wrappers share fallback and override behavior',
   event_time_font_size: 'event font size wrappers share fallback and override behavior',
@@ -287,7 +288,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
     'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
-    'show_current_time_bar', 'show_event_location', 'use_short_location',
+    'show_current_time_bar', 'show_event_location', 'location_links', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
@@ -318,6 +319,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     compact_width: false,
     show_current_time_bar: false,
     show_event_location: false,
+    location_links: false,
     use_short_location: false,
     event_location_font_size: 9,
     background_opacity: 0,
@@ -886,6 +888,138 @@ test('time_zone subtracts all-day modal end dates as configured-zone calendar da
 
   assert.match(content.innerHTML, /Sunday, March 9, 2025 \(All Day\)/);
   assert.doesNotMatch(content.innerHTML, /Saturday, March 8, 2025 \(All Day\)/);
+});
+
+
+function createModalHarness(card) {
+  const handlers = {};
+  const classes = new Set();
+  const content = {
+    innerHTML: '',
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    }
+  };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  card.getRootElementById = (id) => {
+    if (id === 'event-modal') return modal;
+    if (id === 'modal-content') return content;
+    return {
+      addEventListener: (type, handler) => {
+        handlers[id] = handler;
+      }
+    };
+  };
+  return { content, handlers };
+}
+
+const locationEvent = (location = 'Main Field') => ({
+  entityId: 'calendar.family',
+  color: '#3366ff',
+  summary: 'Practice',
+  location,
+  start: { dateTime: '2026-05-01T10:00:00Z' },
+  end: { dateTime: '2026-05-01T11:00:00Z' }
+});
+
+function clickEvent() {
+  return { preventDefault: () => {}, stopPropagation: () => {} };
+}
+
+test('event location links are opt-in for the details modal', () => {
+  const unset = makeCard({ entities: ['calendar.family'] });
+  let harness = createModalHarness(unset);
+  unset.showEventModal(locationEvent('Main Field'));
+  assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+
+  const disabled = makeCard({ entities: ['calendar.family'], location_links: false });
+  harness = createModalHarness(disabled);
+  disabled.showEventModal(locationEvent('Main Field'));
+  assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+});
+
+test('location_links true renders clickable modal location and expands actions without opening a window', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  let opened = false;
+  const originalOpen = window.open;
+  window.open = () => { opened = true; };
+  try {
+    card.showEventModal(locationEvent('Main Field'));
+    assert.match(harness.content.innerHTML, /id="event-location-toggle"/);
+    assert.doesNotMatch(harness.content.innerHTML, /open-location-map-btn/);
+    harness.handlers['event-location-toggle'](clickEvent());
+    assert.equal(opened, false);
+    assert.match(harness.content.innerHTML, /id="open-location-map-btn"/);
+    assert.match(harness.content.innerHTML, /Open in Google Maps/);
+    assert.match(harness.content.innerHTML, /Copy address/);
+  } finally {
+    window.open = originalOpen;
+  }
+});
+
+test('event location map action opens encoded Google Maps URL', () => {
+  const location = "Café A & B, O'Connell Street, München";
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  const opened = [];
+  const originalOpen = window.open;
+  window.open = (...args) => opened.push(args);
+  try {
+    assert.equal(card.getLocationMapUrl(location), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`);
+    card.showEventModal(locationEvent(location), null, { locationActionsExpanded: true });
+    harness.handlers['open-location-map-btn'](clickEvent());
+    assert.deepEqual(opened, [[`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank', 'noopener']]);
+  } finally {
+    window.open = originalOpen;
+  }
+});
+
+test('copy address action uses clipboard when available and fails gracefully otherwise', async () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const originalNavigator = global.navigator;
+  const writes = [];
+  global.navigator = { clipboard: { writeText: async (value) => writes.push(value) } };
+  assert.equal(await card.copyEventLocationAddress('Main Field'), true);
+  assert.deepEqual(writes, ['Main Field']);
+
+  global.navigator = { clipboard: { writeText: async () => { throw new Error('blocked'); } } };
+  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+
+  global.navigator = {};
+  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+
+  if (originalNavigator === undefined) {
+    delete global.navigator;
+  } else {
+    global.navigator = originalNavigator;
+  }
+});
+
+test('missing or empty event locations do not render modal location actions', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  let harness = createModalHarness(card);
+  card.showEventModal(locationEvent(''));
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+
+  harness = createModalHarness(card);
+  const event = locationEvent();
+  delete event.location;
+  card.showEventModal(event);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+});
+
+test('opening a different event resets expanded location actions', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  card.showEventModal(locationEvent('First'), null, { locationActionsExpanded: true });
+  assert.match(harness.content.innerHTML, /open-location-map-btn/);
+  card.showEventModal(locationEvent('Second'));
+  assert.match(harness.content.innerHTML, /id="event-location-toggle"/);
+  assert.doesNotMatch(harness.content.innerHTML, /open-location-map-btn/);
 });
 
 test('default_hidden_calendars initializes hidden calendar badges', () => {

@@ -11,6 +11,9 @@ export function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  locationLinks = false,
+  locationActionsExpanded = false,
+  locationMapUrl = '',
   helpers
 }) {
   const {
@@ -21,6 +24,29 @@ export function renderEventDetailsModal({
     renderEventDescription,
     t
   } = helpers;
+
+  const hasLocation = typeof event.location === 'string' ? event.location.trim() !== '' : !!event.location;
+  const locationHtml = hasLocation && locationLinks
+    ? `
+          <div class="modal-row modal-location-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">
+              <button type="button" class="modal-location-link" id="event-location-toggle" aria-expanded="${locationActionsExpanded ? 'true' : 'false'}">${escapeHtml(event.location)}</button>
+              ${locationActionsExpanded ? `
+                <div class="modal-location-actions" id="event-location-actions">
+                  <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
+                  <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `
+    : (hasLocation ? `
+          <div class="modal-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">${escapeHtml(event.location)}</div>
+          </div>
+        ` : '');
 
   const combinedBadgeHtml = event.isCombinedCalendarEvent
     ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
@@ -53,12 +79,7 @@ export function renderEventDetailsModal({
             <div class="modal-value">${formatDuration(startDate, endDate)}</div>
           </div>
         ` : ''}
-        ${event.location ? `
-          <div class="modal-row">
-            <div class="modal-label">📍 ${t('location')}</div>
-            <div class="modal-value">${escapeHtml(event.location)}</div>
-          </div>
-        ` : ''}
+        ${locationHtml}
         ${event.description ? `
           <div class="modal-row modal-row-description">
             <div class="modal-label">📝 ${t('description')}</div>
