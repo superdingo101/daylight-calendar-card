@@ -902,9 +902,12 @@ function createModalHarness(card) {
     }
   };
   const modal = { classList: { add: () => {}, remove: () => {} } };
+  const alwaysAvailableIds = new Set(['event-modal', 'modal-content', 'close-modal']);
+  const hasRenderedId = (id) => new RegExp(`id=["']${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(content.innerHTML);
   card.getRootElementById = (id) => {
     if (id === 'event-modal') return modal;
     if (id === 'modal-content') return content;
+    if (!alwaysAvailableIds.has(id) && !hasRenderedId(id)) return null;
     return {
       addEventListener: (type, handler) => {
         handlers[id] = handler;
@@ -933,12 +936,14 @@ test('event location links are opt-in for the details modal', () => {
   unset.showEventModal(locationEvent('Main Field'));
   assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
   assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
 
   const disabled = makeCard({ entities: ['calendar.family'], location_links: false });
   harness = createModalHarness(disabled);
   disabled.showEventModal(locationEvent('Main Field'));
   assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
   assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
 });
 
 test('location_links true renders clickable modal location and expands actions without opening a window', () => {
@@ -951,6 +956,7 @@ test('location_links true renders clickable modal location and expands actions w
     card.showEventModal(locationEvent('Main Field'));
     assert.match(harness.content.innerHTML, /id="event-location-toggle"/);
     assert.doesNotMatch(harness.content.innerHTML, /open-location-map-btn/);
+    assert.equal(harness.handlers['open-location-map-btn'], undefined);
     harness.handlers['event-location-toggle'](clickEvent());
     assert.equal(opened, false);
     assert.match(harness.content.innerHTML, /id="open-location-map-btn"/);
@@ -972,7 +978,7 @@ test('event location map action opens encoded Google Maps URL', () => {
     assert.equal(card.getLocationMapUrl(location), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`);
     card.showEventModal(locationEvent(location), null, { locationActionsExpanded: true });
     harness.handlers['open-location-map-btn'](clickEvent());
-    assert.deepEqual(opened, [[`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank', 'noopener']]);
+    assert.deepEqual(opened, [[`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank', 'noopener,noreferrer']]);
   } finally {
     window.open = originalOpen;
   }
@@ -1004,12 +1010,14 @@ test('missing or empty event locations do not render modal location actions', ()
   let harness = createModalHarness(card);
   card.showEventModal(locationEvent(''));
   assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
 
   harness = createModalHarness(card);
   const event = locationEvent();
   delete event.location;
   card.showEventModal(event);
   assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
 });
 
 test('opening a different event resets expanded location actions', () => {

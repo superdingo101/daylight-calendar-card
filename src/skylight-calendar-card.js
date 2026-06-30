@@ -6425,7 +6425,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.getRootElementById('open-location-map-btn')?.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      window.open(this.getLocationMapUrl(event.location), '_blank', 'noopener');
+      window.open(this.getLocationMapUrl(event.location), '_blank', 'noopener,noreferrer');
     });
 
     this.getRootElementById('copy-location-address-btn')?.addEventListener('click', (e) => {
