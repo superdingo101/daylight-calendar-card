@@ -3469,6 +3469,13 @@ function getCardStyles() {
         box-sizing: border-box;
       }
 
+      .day-badge-action {
+        border: 0;
+        font: inherit;
+        appearance: none;
+        cursor: pointer;
+      }
+
       .day-badge.has-text {
         width: auto;
         gap: 4px;
@@ -6570,7 +6577,7 @@ const TRANSLATIONS = {
   }
 };
 
-function renderDayBadge(badge, { escapeHtml }) {
+function renderDayBadge(badge, { escapeHtml, registerDayBadgeAction } = {}) {
   const style = [
     badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
     badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
@@ -6583,15 +6590,21 @@ function renderDayBadge(badge, { escapeHtml }) {
     hasIcon ? `<ha-icon icon="${escapeHtml(badge.icon)}"></ha-icon>` : '',
     hasText ? `<span class="day-badge-text">${escapeHtml(badge.text)}</span>` : ''
   ].join('');
-  const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  const actionId = badge.tap_action && typeof registerDayBadgeAction === 'function'
+    ? registerDayBadgeAction(badge.tap_action)
+    : null;
+  const classes = ['day-badge', actionId ? 'day-badge-action' : '', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  if (actionId) {
+    return `<button type="button" class="${classes}" style="${style}" data-day-badge-action-id="${escapeHtml(actionId)}">${content}</button>`;
+  }
   return `<span class="${classes}" style="${style}">${content}</span>`;
 }
 
-function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges }) {
+function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges, registerDayBadgeAction }) {
   const badges = getDayBadges(date, dayEvents);
   if (!badges.length) return '';
 
-  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml })).join('');
+  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml, registerDayBadgeAction })).join('');
 
   return `<div class="day-badges">${badgesHtml}</div>`;
 }
@@ -6653,6 +6666,31 @@ function normalizeDayBadgeBlock(rule = {}, {
 
   const fontSize = normalizeStyleSizeValue(rule.font_size);
   if (fontSize) normalized.font_size = fontSize;
+
+  const tapAction = normalizeDayBadgeTapAction(rule.tap_action);
+  if (tapAction) normalized.tap_action = tapAction;
+  return normalized;
+}
+
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeDayBadgeTapAction(tapAction) {
+  if (!isPlainObject(tapAction)) return undefined;
+  if (tapAction.action !== 'fire-dom-event') return undefined;
+  const eventType = typeof tapAction.event_type === 'string' ? tapAction.event_type.trim() : '';
+  if (!eventType) return undefined;
+
+  const normalized = {
+    action: 'fire-dom-event',
+    event_type: eventType
+  };
+
+  if (isPlainObject(tapAction.event_data)) {
+    normalized.event_data = { ...tapAction.event_data };
+  }
+
   return normalized;
 }
 
@@ -6736,6 +6774,27 @@ function resolveDayBadgeDisplayValue(value, context) {
   return resolveSafePath(match[1], context);
 }
 
+function resolveDayBadgeTapAction(tapAction, context) {
+  const normalized = normalizeDayBadgeTapAction(tapAction);
+  if (!normalized) return undefined;
+
+  const eventData = {};
+  if (isPlainObject(normalized.event_data)) {
+    Object.entries(normalized.event_data).forEach(([key, value]) => {
+      if (!['string', 'number', 'boolean'].includes(typeof value)) return;
+      const resolvedValue = resolveDayBadgeDisplayValue(value, context);
+      if (!['string', 'number', 'boolean'].includes(typeof resolvedValue)) return;
+      eventData[key] = resolvedValue;
+    });
+  }
+
+  return {
+    action: 'fire-dom-event',
+    event_type: normalized.event_type,
+    event_data: eventData
+  };
+}
+
 function resolveDayBadgeForRender(rule, date, matchedEvent, {
   formatLocalDate,
   normalizeResolvedDayBadgeDisplayColor
@@ -6761,6 +6820,12 @@ function resolveDayBadgeForRender(rule, date, matchedEvent, {
 
     resolved[field] = String(value).trim();
   });
+  const tapAction = resolveDayBadgeTapAction(rule.tap_action, context);
+  if (tapAction) {
+    resolved.tap_action = tapAction;
+  } else {
+    delete resolved.tap_action;
+  }
   return resolved;
 }
 
@@ -10292,6 +10357,8 @@ class SkylightCalendarCard extends HTMLElement {
     this._swipeStartY = null;
     this._swipeTracking = false;
     this._swipeStartedOnInteractive = false;
+    this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = 0;
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
@@ -12698,6 +12765,8 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   render() {
+    this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = 0;
     const shouldRestoreAgendaScrollPosition = this._viewMode === 'agenda' && Number.isFinite(this._agendaPendingScrollTop);
     const agendaScrollTopToRestore = shouldRestoreAgendaScrollPosition ? this._agendaPendingScrollTop : null;
     const today = new Date();
@@ -13929,8 +13998,39 @@ class SkylightCalendarCard extends HTMLElement {
   renderDayBadges(date, dayEvents) {
     return renderDayBadges(date, dayEvents, {
       escapeHtml: this.escapeHtml.bind(this),
-      getDayBadges: this.getDayBadges.bind(this)
+      getDayBadges: this.getDayBadges.bind(this),
+      registerDayBadgeAction: this.registerDayBadgeAction.bind(this)
     });
+  }
+
+  registerDayBadgeAction(tapAction) {
+    if (!tapAction || tapAction.action !== 'fire-dom-event' || typeof tapAction.event_type !== 'string' || !tapAction.event_type.trim()) {
+      return null;
+    }
+    if (!this._dayBadgeActions) this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = (this._dayBadgeActionSequence || 0) + 1;
+    const actionId = `day-badge-action-${this._dayBadgeActionSequence}`;
+    this._dayBadgeActions.set(actionId, {
+      event_type: tapAction.event_type.trim(),
+      event_data: tapAction.event_data && typeof tapAction.event_data === 'object' && !Array.isArray(tapAction.event_data)
+        ? { ...tapAction.event_data }
+        : {}
+    });
+    return actionId;
+  }
+
+  handleDayBadgeActionClick(event, actionEl) {
+    event.preventDefault();
+    event.stopPropagation();
+    const actionId = actionEl?.getAttribute?.('data-day-badge-action-id');
+    const action = actionId ? this._dayBadgeActions?.get(actionId) : null;
+    if (!action?.event_type) return;
+
+    this.dispatchEvent(new CustomEvent(action.event_type, {
+      detail: action.event_data || {},
+      bubbles: true,
+      composed: true
+    }));
   }
 
   trimTrailingNullMonthSpanLanes(monthSpanLanes = []) {
@@ -14716,6 +14816,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.attachSwipeControls();
 
+    this._root.querySelectorAll('.day-badge-action').forEach(actionEl => {
+      actionEl.addEventListener('click', (e) => this.handleDayBadgeActionClick(e, actionEl));
+    });
+
     // Event click handlers for all view modes
     this._root.querySelectorAll('.event, .week-compact-event, .week-standard-event, .all-day-event, .agenda-event').forEach(eventEl => {
       eventEl.addEventListener('click', (e) => {
@@ -14745,7 +14849,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.day-cell').forEach(dayEl => {
       dayEl.addEventListener('click', (e) => {
         // Don't open if clicking on an event
-        if (e.target.classList.contains('event') || e.target.closest('.event')) {
+        if (e.target.classList.contains('event') || e.target.closest('.event') || e.target.closest('.day-badge-action')) {
           return;
         }
 
@@ -14768,11 +14872,11 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.agenda-day-row').forEach(rowEl => {
       rowEl.addEventListener('click', (e) => {
         // Don't open if clicking on an event
-        if (e.target.classList.contains('agenda-event') || e.target.closest('.agenda-event')) {
+        if (e.target.classList.contains('agenda-event') || e.target.closest('.agenda-event') || e.target.closest('.day-badge-action')) {
           return;
         }
 
-        if (!this._config.enable_event_management || this.getWritableCalendars().length === 0) {
+        if (e.target.closest('.day-badge-action') || !this._config.enable_event_management || this.getWritableCalendars().length === 0) {
           return;
         }
 
@@ -15016,7 +15120,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._swipeStartY = touch.clientY;
       this._swipeTracking = true;
       const eventTarget = event.target instanceof Element ? event.target : null;
-      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event');
+      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id]');
     }, { passive: true });
 
     container.addEventListener('touchend', (event) => {

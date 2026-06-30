@@ -397,6 +397,8 @@ class SkylightCalendarCard extends HTMLElement {
     this._swipeStartY = null;
     this._swipeTracking = false;
     this._swipeStartedOnInteractive = false;
+    this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = 0;
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
@@ -2803,6 +2805,8 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   render() {
+    this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = 0;
     const shouldRestoreAgendaScrollPosition = this._viewMode === 'agenda' && Number.isFinite(this._agendaPendingScrollTop);
     const agendaScrollTopToRestore = shouldRestoreAgendaScrollPosition ? this._agendaPendingScrollTop : null;
     const today = new Date();
@@ -4034,8 +4038,39 @@ class SkylightCalendarCard extends HTMLElement {
   renderDayBadges(date, dayEvents) {
     return renderDayBadgesHtml(date, dayEvents, {
       escapeHtml: this.escapeHtml.bind(this),
-      getDayBadges: this.getDayBadges.bind(this)
+      getDayBadges: this.getDayBadges.bind(this),
+      registerDayBadgeAction: this.registerDayBadgeAction.bind(this)
     });
+  }
+
+  registerDayBadgeAction(tapAction) {
+    if (!tapAction || tapAction.action !== 'fire-dom-event' || typeof tapAction.event_type !== 'string' || !tapAction.event_type.trim()) {
+      return null;
+    }
+    if (!this._dayBadgeActions) this._dayBadgeActions = new Map();
+    this._dayBadgeActionSequence = (this._dayBadgeActionSequence || 0) + 1;
+    const actionId = `day-badge-action-${this._dayBadgeActionSequence}`;
+    this._dayBadgeActions.set(actionId, {
+      event_type: tapAction.event_type.trim(),
+      event_data: tapAction.event_data && typeof tapAction.event_data === 'object' && !Array.isArray(tapAction.event_data)
+        ? { ...tapAction.event_data }
+        : {}
+    });
+    return actionId;
+  }
+
+  handleDayBadgeActionClick(event, actionEl) {
+    event.preventDefault();
+    event.stopPropagation();
+    const actionId = actionEl?.getAttribute?.('data-day-badge-action-id');
+    const action = actionId ? this._dayBadgeActions?.get(actionId) : null;
+    if (!action?.event_type) return;
+
+    this.dispatchEvent(new CustomEvent(action.event_type, {
+      detail: action.event_data || {},
+      bubbles: true,
+      composed: true
+    }));
   }
 
   trimTrailingNullMonthSpanLanes(monthSpanLanes = []) {
@@ -4821,6 +4856,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.attachSwipeControls();
 
+    this._root.querySelectorAll('.day-badge-action').forEach(actionEl => {
+      actionEl.addEventListener('click', (e) => this.handleDayBadgeActionClick(e, actionEl));
+    });
+
     // Event click handlers for all view modes
     this._root.querySelectorAll('.event, .week-compact-event, .week-standard-event, .all-day-event, .agenda-event').forEach(eventEl => {
       eventEl.addEventListener('click', (e) => {
@@ -4850,7 +4889,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.day-cell').forEach(dayEl => {
       dayEl.addEventListener('click', (e) => {
         // Don't open if clicking on an event
-        if (e.target.classList.contains('event') || e.target.closest('.event')) {
+        if (e.target.classList.contains('event') || e.target.closest('.event') || e.target.closest('.day-badge-action')) {
           return;
         }
 
@@ -4873,11 +4912,11 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.agenda-day-row').forEach(rowEl => {
       rowEl.addEventListener('click', (e) => {
         // Don't open if clicking on an event
-        if (e.target.classList.contains('agenda-event') || e.target.closest('.agenda-event')) {
+        if (e.target.classList.contains('agenda-event') || e.target.closest('.agenda-event') || e.target.closest('.day-badge-action')) {
           return;
         }
 
-        if (!this._config.enable_event_management || this.getWritableCalendars().length === 0) {
+        if (e.target.closest('.day-badge-action') || !this._config.enable_event_management || this.getWritableCalendars().length === 0) {
           return;
         }
 
@@ -5121,7 +5160,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._swipeStartY = touch.clientY;
       this._swipeTracking = true;
       const eventTarget = event.target instanceof Element ? event.target : null;
-      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event');
+      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id]');
     }, { passive: true });
 
     container.addEventListener('touchend', (event) => {

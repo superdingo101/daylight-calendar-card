@@ -21,6 +21,31 @@ export function normalizeDayBadgeBlock(rule = {}, {
 
   const fontSize = normalizeStyleSizeValue(rule.font_size);
   if (fontSize) normalized.font_size = fontSize;
+
+  const tapAction = normalizeDayBadgeTapAction(rule.tap_action);
+  if (tapAction) normalized.tap_action = tapAction;
+  return normalized;
+}
+
+export function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function normalizeDayBadgeTapAction(tapAction) {
+  if (!isPlainObject(tapAction)) return undefined;
+  if (tapAction.action !== 'fire-dom-event') return undefined;
+  const eventType = typeof tapAction.event_type === 'string' ? tapAction.event_type.trim() : '';
+  if (!eventType) return undefined;
+
+  const normalized = {
+    action: 'fire-dom-event',
+    event_type: eventType
+  };
+
+  if (isPlainObject(tapAction.event_data)) {
+    normalized.event_data = { ...tapAction.event_data };
+  }
+
   return normalized;
 }
 
@@ -104,6 +129,27 @@ export function resolveDayBadgeDisplayValue(value, context) {
   return resolveSafePath(match[1], context);
 }
 
+export function resolveDayBadgeTapAction(tapAction, context) {
+  const normalized = normalizeDayBadgeTapAction(tapAction);
+  if (!normalized) return undefined;
+
+  const eventData = {};
+  if (isPlainObject(normalized.event_data)) {
+    Object.entries(normalized.event_data).forEach(([key, value]) => {
+      if (!['string', 'number', 'boolean'].includes(typeof value)) return;
+      const resolvedValue = resolveDayBadgeDisplayValue(value, context);
+      if (!['string', 'number', 'boolean'].includes(typeof resolvedValue)) return;
+      eventData[key] = resolvedValue;
+    });
+  }
+
+  return {
+    action: 'fire-dom-event',
+    event_type: normalized.event_type,
+    event_data: eventData
+  };
+}
+
 export function resolveDayBadgeForRender(rule, date, matchedEvent, {
   formatLocalDate,
   normalizeResolvedDayBadgeDisplayColor
@@ -129,6 +175,12 @@ export function resolveDayBadgeForRender(rule, date, matchedEvent, {
 
     resolved[field] = String(value).trim();
   });
+  const tapAction = resolveDayBadgeTapAction(rule.tap_action, context);
+  if (tapAction) {
+    resolved.tap_action = tapAction;
+  } else {
+    delete resolved.tap_action;
+  }
   return resolved;
 }
 
