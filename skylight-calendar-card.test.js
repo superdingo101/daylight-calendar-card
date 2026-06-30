@@ -2007,6 +2007,8 @@ test('location action modal CSS keeps buttons in a compact two-column row', () =
 
   assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*display:\s*grid;/);
   assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*margin-top:\s*4px;/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*margin-bottom:\s*4px;/);
   assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*width:\s*100%;/);
   assert.match(styles, /\.modal-location-action\s*\{[\s\S]*min-width:\s*0;/);
   assert.match(styles, /\.modal-location-action\s*\{[\s\S]*white-space:\s*nowrap;/);

@@ -4705,7 +4705,8 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
-        margin-top: 8px;
+        margin-top: 4px;
+        margin-bottom: 4px;
         width: 100%;
       }
 
