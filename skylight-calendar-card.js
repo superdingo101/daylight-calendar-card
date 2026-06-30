@@ -4702,16 +4702,27 @@ function getCardStyles() {
       }
 
       .modal-location-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         margin-top: 8px;
+        width: 100%;
       }
 
       .modal-location-action {
+        min-width: 0;
         min-height: 40px;
+        padding: 8px 10px;
+        font-size: 13px;
+        white-space: nowrap;
       }
 
+      @media (max-width: 480px) {
+        .modal-location-action {
+          padding: 8px 6px;
+          font-size: 12px;
+        }
+      }
 
       .event-description-content {
         line-height: 1.5;

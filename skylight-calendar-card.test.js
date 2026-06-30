@@ -2000,6 +2000,18 @@ test('event modal overlay CSS uses viewport-fixed coverage and high stacking', (
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-body[\s\S]*overflow:\s*visible;/);
 });
 
+test('location action modal CSS keeps buttons in a compact two-column row', () => {
+  const card = makeCard();
+  const styles = card.getStyles();
+
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*display:\s*grid;/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*width:\s*100%;/);
+  assert.match(styles, /\.modal-location-action\s*\{[\s\S]*min-width:\s*0;/);
+  assert.match(styles, /\.modal-location-action\s*\{[\s\S]*white-space:\s*nowrap;/);
+  assert.match(styles, /@media \(max-width:\s*480px\) \{[\s\S]*\.modal-location-action\s*\{[\s\S]*font-size:\s*12px;/);
+});
+
 test('event modal open state toggles a host stacking class', () => {
   const card = makeCard();
   const classes = new Set();
