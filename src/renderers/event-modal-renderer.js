@@ -32,14 +32,14 @@ export function renderEventDetailsModal({
             <div class="modal-label">📍 ${t('location')}</div>
             <div class="modal-value">
               <button type="button" class="modal-location-link" id="event-location-toggle" aria-expanded="${locationActionsExpanded ? 'true' : 'false'}">${escapeHtml(event.location)}</button>
-              ${locationActionsExpanded ? `
-                <div class="modal-location-actions" id="event-location-actions">
-                  <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
-                  <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
-                </div>
-              ` : ''}
             </div>
           </div>
+          ${locationActionsExpanded ? `
+            <div class="modal-location-actions" id="event-location-actions">
+              <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
+              <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
+            </div>
+          ` : ''}
         `
     : (hasLocation ? `
           <div class="modal-row">

@@ -960,7 +960,8 @@ test('location_links true renders clickable modal location and expands actions w
     harness.handlers['event-location-toggle'](clickEvent());
     assert.equal(opened, false);
     assert.match(harness.content.innerHTML, /id="open-location-map-btn"/);
-    assert.match(harness.content.innerHTML, /Google Maps/);
+    assert.match(harness.content.innerHTML, /modal-location-row[\s\S]*<\/div>\s*<div class="modal-location-actions" id="event-location-actions">/);
+    assert.match(harness.content.innerHTML, /Open in Google Maps/);
     assert.match(harness.content.innerHTML, /Copy address/);
   } finally {
     window.open = originalOpen;

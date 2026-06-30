@@ -4712,7 +4712,7 @@ function getCardStyles() {
       .modal-location-action {
         min-width: 0;
         min-height: 40px;
-        padding: 8px 10px;
+        padding: 8px 8px;
         font-size: 13px;
         white-space: nowrap;
       }
@@ -5705,7 +5705,7 @@ const TRANSLATIONS = {
       endDate: 'End Date',
       location: 'Location',
       locationPlaceholder: 'Conference Room A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Open in Google Maps',
       copyAddress: 'Copy address',
       description: 'Description',
       descriptionPlaceholder: 'Event details...',
@@ -5819,7 +5819,7 @@ const TRANSLATIONS = {
       endDate: 'Date de fin',
       location: 'Lieu',
       locationPlaceholder: 'Salle de conférence A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Ouvrir dans Google Maps',
       copyAddress: 'Copier l’adresse',
       description: 'Description',
       descriptionPlaceholder: "Détails de l'événement...",
@@ -5933,7 +5933,7 @@ const TRANSLATIONS = {
       endDate: 'Enddatum',
       location: 'Ort',
       locationPlaceholder: 'Konferenzraum A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'In Google Maps öffnen',
       copyAddress: 'Adresse kopieren',
       description: 'Beschreibung',
       descriptionPlaceholder: 'Ereignisdetails...',
@@ -6047,7 +6047,7 @@ const TRANSLATIONS = {
       endDate: 'Einddatum',
       location: 'Locatie',
       locationPlaceholder: 'Vergaderruimte A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Openen in Google Maps',
       copyAddress: 'Adres kopiëren',
       description: 'Omschrijving',
       descriptionPlaceholder: 'Afspraak details...',
@@ -6160,7 +6160,7 @@ const TRANSLATIONS = {
       endDate: 'Fecha de fin',
       location: 'Ubicación',
       locationPlaceholder: 'Sala de conferencias A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Abrir en Google Maps',
       copyAddress: 'Copiar dirección',
       description: 'Descripción',
       descriptionPlaceholder: 'Detalles del evento...',
@@ -6274,7 +6274,7 @@ const TRANSLATIONS = {
       endDate: 'Data de fi',
       location: 'Ubicació',
       locationPlaceholder: 'Sala de conferències A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Obre a Google Maps',
       copyAddress: 'Copia l\'adreça',
       description: 'Descripció',
       descriptionPlaceholder: "Detalls de l'esdeveniment...",
@@ -6388,7 +6388,7 @@ const TRANSLATIONS = {
       endDate: 'Slutdato',
       location: 'Sted',
       locationPlaceholder: 'Konferencerum A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Åbn i Google Maps',
       copyAddress: 'Kopiér adresse',
       description: 'Beskrivelse',
       descriptionPlaceholder: 'Begivenhedsdetaljer...',
@@ -6502,7 +6502,7 @@ const TRANSLATIONS = {
       endDate: 'Slutdatum',
       location: 'Plats',
       locationPlaceholder: 'Konferensrum A',
-      openInGoogleMaps: 'Google Maps',
+      openInGoogleMaps: 'Öppna i Google Maps',
       copyAddress: 'Kopiera adress',
       description: 'Beskrivning',
       descriptionPlaceholder: 'Händelsebeskrivning...',
@@ -8872,14 +8872,14 @@ function renderEventDetailsModal({
             <div class="modal-label">📍 ${t('location')}</div>
             <div class="modal-value">
               <button type="button" class="modal-location-link" id="event-location-toggle" aria-expanded="${locationActionsExpanded ? 'true' : 'false'}">${escapeHtml(event.location)}</button>
-              ${locationActionsExpanded ? `
-                <div class="modal-location-actions" id="event-location-actions">
-                  <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
-                  <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
-                </div>
-              ` : ''}
             </div>
           </div>
+          ${locationActionsExpanded ? `
+            <div class="modal-location-actions" id="event-location-actions">
+              <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
+              <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
+            </div>
+          ` : ''}
         `
     : (hasLocation ? `
           <div class="modal-row">

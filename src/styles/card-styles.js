@@ -1910,7 +1910,7 @@ export function getCardStyles() {
       .modal-location-action {
         min-width: 0;
         min-height: 40px;
-        padding: 8px 10px;
+        padding: 8px 8px;
         font-size: 13px;
         white-space: nowrap;
       }
