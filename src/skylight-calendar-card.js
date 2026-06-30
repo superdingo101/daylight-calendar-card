@@ -400,6 +400,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
+    this._eventLocationActionsExpanded = false;
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
       getHass: () => this._hass,
@@ -6308,10 +6309,25 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  showEventModal(event, onCloseBack = null) {
+  getLocationMapUrl(location) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || '')}`;
+  }
+
+  async copyEventLocationAddress(location) {
+    try {
+      if (!globalThis.navigator?.clipboard?.writeText) return false;
+      await globalThis.navigator.clipboard.writeText(location || '');
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  showEventModal(event, onCloseBack = null, options = {}) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
+    this._eventLocationActionsExpanded = options.locationActionsExpanded === true;
 
     let startDate, endDate, isAllDay;
 
@@ -6372,6 +6388,9 @@ class SkylightCalendarCard extends HTMLElement {
       canDelete,
       canForward,
       canModify,
+      locationLinks: this._config.location_links === true,
+      locationActionsExpanded: this._eventLocationActionsExpanded,
+      locationMapUrl: this.getLocationMapUrl(event.location),
       helpers: {
         escapeHtml: this.escapeHtml.bind(this),
         formatDate: this.formatDate.bind(this),
@@ -6387,6 +6406,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Close button
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
+      this._eventLocationActionsExpanded = false;
       if (this._activeModalBackHandler) {
         const backHandler = this._activeModalBackHandler;
         this._activeModalBackHandler = null;
@@ -6396,9 +6416,28 @@ class SkylightCalendarCard extends HTMLElement {
       }
     });
 
+    this.getRootElementById('event-location-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.showEventModal(event, onCloseBack, { locationActionsExpanded: !this._eventLocationActionsExpanded });
+    });
+
+    this.getRootElementById('open-location-map-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(this.getLocationMapUrl(event.location), '_blank', 'noopener,noreferrer');
+    });
+
+    this.getRootElementById('copy-location-address-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.copyEventLocationAddress(event.location);
+    });
+
     // Edit button
     this.getRootElementById('edit-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
         this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay);
@@ -6411,6 +6450,7 @@ class SkylightCalendarCard extends HTMLElement {
     // Forward button
     this.getRootElementById('forward-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       this.showForwardEventModal(event, startDate, endDate, isAllDay);
     });
@@ -6418,6 +6458,7 @@ class SkylightCalendarCard extends HTMLElement {
     // Delete button
     this.getRootElementById('delete-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
         this.showCombinedDeleteSelectionModal(event);
@@ -6472,6 +6513,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
     });
 
@@ -6521,6 +6563,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
     });
 

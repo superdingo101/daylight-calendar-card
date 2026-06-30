@@ -1884,6 +1884,44 @@ export function getCardStyles() {
       .modal-row-description {
         align-items: flex-start;
       }
+      .modal-location-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary-color, #3b82f6);
+        font: inherit;
+        text-align: left;
+        text-decoration: underline;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .modal-location-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        width: 100%;
+      }
+
+      .modal-location-action {
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 8px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 480px) {
+        .modal-location-action {
+          padding: 8px 6px;
+          font-size: 12px;
+        }
+      }
 
       .event-description-content {
         line-height: 1.5;

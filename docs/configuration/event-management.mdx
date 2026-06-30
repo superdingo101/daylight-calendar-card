@@ -95,6 +95,16 @@ The **Delete** button only appears for events on calendars that support deletion
   ```
 </ParamField>
 
+<ParamField path="location_links" default="false" type="boolean">
+  Let users click the location in the event detail modal to reveal location actions. This does not change event rows in Month, Week, Schedule, or Agenda views.
+
+  When enabled, clicking a modal location reveals **Open in Google Maps** and **Copy address** actions. Maps open only after the user clicks the action.
+
+  ```yaml
+  location_links: true
+  ```
+</ParamField>
+
 ## Example
 
 ```yaml

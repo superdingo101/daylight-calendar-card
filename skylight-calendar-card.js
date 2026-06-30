@@ -109,6 +109,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,
+  location_links: false,
   event_font_size: 11,
   event_time_font_size: 9,
   event_location_font_size: 9,
@@ -151,6 +152,7 @@ const DEFAULT_STUB_CONFIG = {
   show_current_time_bar: false,
   show_event_location: false,
   use_short_location: false,
+  location_links: false,
   event_location_font_size: 9,
   background_opacity: 0,
   header_background_opacity: 0,
@@ -253,6 +255,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
       { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || DEFAULT_CONFIG_VALUES.use_short_location },
+      { key: 'location_links', defaultValue: ({ rawConfig }) => rawConfig.location_links === true ? true : DEFAULT_CONFIG_VALUES.location_links },
       { key: 'event_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_font_size ?? DEFAULT_CONFIG_VALUES.event_font_size },
       { key: 'event_time_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_time_font_size ?? DEFAULT_CONFIG_VALUES.event_time_font_size },
       { key: 'event_location_font_size', defaultValue: ({ rawConfig }) => rawConfig.event_location_font_size ?? DEFAULT_CONFIG_VALUES.event_location_font_size },
@@ -4683,6 +4686,44 @@ function getCardStyles() {
       .modal-row-description {
         align-items: flex-start;
       }
+      .modal-location-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary-color, #3b82f6);
+        font: inherit;
+        text-align: left;
+        text-decoration: underline;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .modal-location-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        width: 100%;
+      }
+
+      .modal-location-action {
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 8px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 480px) {
+        .modal-location-action {
+          padding: 8px 6px;
+          font-size: 12px;
+        }
+      }
 
       .event-description-content {
         line-height: 1.5;
@@ -5665,6 +5706,8 @@ const TRANSLATIONS = {
       endDate: 'End Date',
       location: 'Location',
       locationPlaceholder: 'Conference Room A',
+      openInGoogleMaps: 'Open in Google Maps',
+      copyAddress: 'Copy address',
       description: 'Description',
       descriptionPlaceholder: 'Event details...',
       cancel: 'Cancel',
@@ -5777,6 +5820,8 @@ const TRANSLATIONS = {
       endDate: 'Date de fin',
       location: 'Lieu',
       locationPlaceholder: 'Salle de conférence A',
+      openInGoogleMaps: 'Ouvrir dans Google Maps',
+      copyAddress: 'Copier l’adresse',
       description: 'Description',
       descriptionPlaceholder: "Détails de l'événement...",
       cancel: 'Annuler',
@@ -5889,6 +5934,8 @@ const TRANSLATIONS = {
       endDate: 'Enddatum',
       location: 'Ort',
       locationPlaceholder: 'Konferenzraum A',
+      openInGoogleMaps: 'In Google Maps öffnen',
+      copyAddress: 'Adresse kopieren',
       description: 'Beschreibung',
       descriptionPlaceholder: 'Ereignisdetails...',
       cancel: 'Abbrechen',
@@ -6001,6 +6048,8 @@ const TRANSLATIONS = {
       endDate: 'Einddatum',
       location: 'Locatie',
       locationPlaceholder: 'Vergaderruimte A',
+      openInGoogleMaps: 'Openen in Google Maps',
+      copyAddress: 'Adres kopiëren',
       description: 'Omschrijving',
       descriptionPlaceholder: 'Afspraak details...',
       cancel: 'Annuleren',
@@ -6112,6 +6161,8 @@ const TRANSLATIONS = {
       endDate: 'Fecha de fin',
       location: 'Ubicación',
       locationPlaceholder: 'Sala de conferencias A',
+      openInGoogleMaps: 'Abrir en Google Maps',
+      copyAddress: 'Copiar dirección',
       description: 'Descripción',
       descriptionPlaceholder: 'Detalles del evento...',
       cancel: 'Cancelar',
@@ -6224,6 +6275,8 @@ const TRANSLATIONS = {
       endDate: 'Data de fi',
       location: 'Ubicació',
       locationPlaceholder: 'Sala de conferències A',
+      openInGoogleMaps: 'Obre a Google Maps',
+      copyAddress: 'Copia l\'adreça',
       description: 'Descripció',
       descriptionPlaceholder: "Detalls de l'esdeveniment...",
       cancel: 'Cancel·lar',
@@ -6336,6 +6389,8 @@ const TRANSLATIONS = {
       endDate: 'Slutdato',
       location: 'Sted',
       locationPlaceholder: 'Konferencerum A',
+      openInGoogleMaps: 'Åbn i Google Maps',
+      copyAddress: 'Kopiér adresse',
       description: 'Beskrivelse',
       descriptionPlaceholder: 'Begivenhedsdetaljer...',
       cancel: 'Annuller',
@@ -6448,6 +6503,8 @@ const TRANSLATIONS = {
       endDate: 'Slutdatum',
       location: 'Plats',
       locationPlaceholder: 'Konferensrum A',
+      openInGoogleMaps: 'Öppna i Google Maps',
+      copyAddress: 'Kopiera adress',
       description: 'Beskrivning',
       descriptionPlaceholder: 'Händelsebeskrivning...',
       cancel: 'Avbryt',
@@ -8795,6 +8852,9 @@ function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  locationLinks = false,
+  locationActionsExpanded = false,
+  locationMapUrl = '',
   helpers
 }) {
   const {
@@ -8805,6 +8865,29 @@ function renderEventDetailsModal({
     renderEventDescription,
     t
   } = helpers;
+
+  const hasLocation = typeof event.location === 'string' ? event.location.trim() !== '' : !!event.location;
+  const locationHtml = hasLocation && locationLinks
+    ? `
+          <div class="modal-row modal-location-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">
+              <button type="button" class="modal-location-link" id="event-location-toggle" aria-expanded="${locationActionsExpanded ? 'true' : 'false'}">${escapeHtml(event.location)}</button>
+            </div>
+          </div>
+          ${locationActionsExpanded ? `
+            <div class="modal-location-actions" id="event-location-actions">
+              <button type="button" class="btn btn-secondary modal-location-action" id="open-location-map-btn" data-map-url="${escapeHtml(locationMapUrl)}">${t('openInGoogleMaps')}</button>
+              <button type="button" class="btn btn-secondary modal-location-action" id="copy-location-address-btn">${t('copyAddress')}</button>
+            </div>
+          ` : ''}
+        `
+    : (hasLocation ? `
+          <div class="modal-row">
+            <div class="modal-label">📍 ${t('location')}</div>
+            <div class="modal-value">${escapeHtml(event.location)}</div>
+          </div>
+        ` : '');
 
   const combinedBadgeHtml = event.isCombinedCalendarEvent
     ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
@@ -8837,12 +8920,7 @@ function renderEventDetailsModal({
             <div class="modal-value">${formatDuration(startDate, endDate)}</div>
           </div>
         ` : ''}
-        ${event.location ? `
-          <div class="modal-row">
-            <div class="modal-label">📍 ${t('location')}</div>
-            <div class="modal-value">${escapeHtml(event.location)}</div>
-          </div>
-        ` : ''}
+        ${locationHtml}
         ${event.description ? `
           <div class="modal-row modal-row-description">
             <div class="modal-label">📝 ${t('description')}</div>
@@ -10217,6 +10295,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
+    this._eventLocationActionsExpanded = false;
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
       getHass: () => this._hass,
@@ -16125,10 +16204,25 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  showEventModal(event, onCloseBack = null) {
+  getLocationMapUrl(location) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location || '')}`;
+  }
+
+  async copyEventLocationAddress(location) {
+    try {
+      if (!globalThis.navigator?.clipboard?.writeText) return false;
+      await globalThis.navigator.clipboard.writeText(location || '');
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  showEventModal(event, onCloseBack = null, options = {}) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
+    this._eventLocationActionsExpanded = options.locationActionsExpanded === true;
 
     let startDate, endDate, isAllDay;
 
@@ -16189,6 +16283,9 @@ class SkylightCalendarCard extends HTMLElement {
       canDelete,
       canForward,
       canModify,
+      locationLinks: this._config.location_links === true,
+      locationActionsExpanded: this._eventLocationActionsExpanded,
+      locationMapUrl: this.getLocationMapUrl(event.location),
       helpers: {
         escapeHtml: this.escapeHtml.bind(this),
         formatDate: this.formatDate.bind(this),
@@ -16204,6 +16301,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Close button
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
+      this._eventLocationActionsExpanded = false;
       if (this._activeModalBackHandler) {
         const backHandler = this._activeModalBackHandler;
         this._activeModalBackHandler = null;
@@ -16213,9 +16311,28 @@ class SkylightCalendarCard extends HTMLElement {
       }
     });
 
+    this.getRootElementById('event-location-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.showEventModal(event, onCloseBack, { locationActionsExpanded: !this._eventLocationActionsExpanded });
+    });
+
+    this.getRootElementById('open-location-map-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(this.getLocationMapUrl(event.location), '_blank', 'noopener,noreferrer');
+    });
+
+    this.getRootElementById('copy-location-address-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.copyEventLocationAddress(event.location);
+    });
+
     // Edit button
     this.getRootElementById('edit-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
         this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay);
@@ -16228,6 +16345,7 @@ class SkylightCalendarCard extends HTMLElement {
     // Forward button
     this.getRootElementById('forward-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       this.showForwardEventModal(event, startDate, endDate, isAllDay);
     });
@@ -16235,6 +16353,7 @@ class SkylightCalendarCard extends HTMLElement {
     // Delete button
     this.getRootElementById('delete-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
         this.showCombinedDeleteSelectionModal(event);
@@ -16289,6 +16408,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
     });
 
@@ -16338,6 +16458,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.getRootElementById('close-modal')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
     });
 
