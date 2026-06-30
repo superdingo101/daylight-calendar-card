@@ -1732,6 +1732,26 @@ test('month trims trailing span placeholders so earlier normal timed events rema
   assert.doesNotMatch(html, /2 more/);
 });
 
+
+test('month fills null span lanes with normal events before lower span lanes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  const date = new Date('2026-03-26T00:00:00');
+  const lowerSpan = makeAllDayEvent('Lower Lane Span', '2026-03-24', '2026-03-28');
+  card._events = [
+    lowerSpan,
+    makeTimedEvent('Sprint Demo', '2026-03-26T15:00:00Z', '2026-03-26T16:00:00Z'),
+    makeTimedEvent('Planning Notes', '2026-03-26T17:00:00Z', '2026-03-26T17:30:00Z')
+  ];
+
+  const html = card.renderDay(26, date, false, [null, { event: lowerSpan, isFirstVisibleSegment: true, visibleSpanDays: 1 }]);
+
+  assert.ok(html.indexOf('Sprint Demo') < html.indexOf('Lower Lane Span'));
+  assert.ok(html.indexOf('Lower Lane Span') < html.indexOf('Planning Notes'));
+  assert.doesNotMatch(html, /month-span-event-spacer/);
+  assert.doesNotMatch(html, /more-events/);
+});
+
 test('month trailing null span lane trimming keeps only lanes needed for placement', () => {
   const card = makeCard({ entities: ['calendar.family'] });
   const firstLaneSpan = { event: makeAllDayEvent('First Lane Span', '2026-05-04', '2026-05-06'), isFirstVisibleSegment: false };

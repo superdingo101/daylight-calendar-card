@@ -206,6 +206,13 @@ const cases = [
       await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveCount(1);
       await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveAttribute('data-month-span-days', '3');
       expect(await card.locator('.month-span-event-placeholder').count()).toBeGreaterThanOrEqual(2);
+
+      const thursday = card.locator('.day-cell[data-date^="2026-03-26"]').first();
+      const sprintDemoBox = await thursday.locator('.event').filter({ hasText: 'Sprint Demo' }).boundingBox();
+      const quarterPlanningPlaceholderBox = await thursday.locator('.month-span-event-placeholder').first().boundingBox();
+      expect(sprintDemoBox).not.toBeNull();
+      expect(quarterPlanningPlaceholderBox).not.toBeNull();
+      expect(sprintDemoBox.y + sprintDemoBox.height).toBeLessThanOrEqual(quarterPlanningPlaceholderBox.y + 1);
     }
   },
   { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: monthVisualEvents, viewLabel: 'Month' },
@@ -608,6 +615,56 @@ test('behavior: month compact-height continuous span is not clipped after first 
   expect(spanBox.x + spanBox.width).toBeGreaterThan(finalDayBox.x + finalDayBox.width - 10);
   expect(spanBox.x + spanBox.width).toBeGreaterThan(firstDayBox.x + firstDayBox.width + 20);
   expect(timedEventBox.y).toBeGreaterThan(spanBox.y + spanBox.height - 1);
+});
+
+
+test('behavior: month null span lane can be filled by a timed event above lower span', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Month Lane Packing Calendar',
+      default_view: 'month',
+      colors: { 'calendar.family': '#dc2626', 'calendar.work': '#0f766e' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Red Early Week Span', start: '2026-03-23', end: '2026-03-26' }
+      ],
+      'calendar.work': [
+        { summary: 'Teal Lower Week Span', start: '2026-03-24', end: '2026-03-28' },
+        { summary: 'Sprint Demo', start: '2026-03-26T15:00:00Z', end: '2026-03-26T16:00:00Z' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+
+  const thursday = card.locator('.day-cell[data-date^="2026-03-26"]').first();
+  const sprintDemo = thursday.locator('.event').filter({ hasText: 'Sprint Demo' });
+  const tealSpan = card.locator('.day-cell[data-date^="2026-03-24"] .month-span-event').filter({ hasText: 'Teal Lower Week Span' });
+  const tealContinuation = thursday.locator('.month-span-event-placeholder').first();
+
+  await expect(sprintDemo).toHaveCount(1);
+  await expect(tealSpan).toHaveCount(1);
+  await expect(tealContinuation).toHaveCount(1);
+  await expect(thursday.locator('.more-events')).toHaveCount(0);
+
+  const sprintBox = await sprintDemo.boundingBox();
+  const tealSpanBox = await tealSpan.boundingBox();
+  const tealContinuationBox = await tealContinuation.boundingBox();
+  const thursdayBox = await thursday.boundingBox();
+  expect(sprintBox).not.toBeNull();
+  expect(tealSpanBox).not.toBeNull();
+  expect(tealContinuationBox).not.toBeNull();
+  expect(thursdayBox).not.toBeNull();
+
+  expect(sprintBox.y + sprintBox.height).toBeLessThanOrEqual(tealContinuationBox.y + 1);
+  expect(Math.abs(tealSpanBox.y - tealContinuationBox.y)).toBeLessThanOrEqual(1);
+  expect(tealSpanBox.x + tealSpanBox.width).toBeGreaterThan(thursdayBox.x + thursdayBox.width - 10);
 });
 
 test('behavior: event modal overlays native header at tablet viewport', async ({ page }) => {

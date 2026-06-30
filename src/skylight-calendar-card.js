@@ -4058,11 +4058,11 @@ class SkylightCalendarCard extends HTMLElement {
     const spannedEventKeys = new Set((monthSpanLanes || [])
       .filter(Boolean)
       .map((lane) => this.getScheduleAllDayEventKey(lane.event)));
-    const reservedSpanLaneCount = (monthSpanLanes || []).length;
+    const occupiedSpanLaneCount = (monthSpanLanes || []).filter(Boolean).length;
     const nonSpannedEventCount = dayEvents.filter((event) => !spannedEventKeys.has(this.getScheduleAllDayEventKey(event))).length;
-    const hasOverflow = nonSpannedEventCount > Math.max(0, maxVisible - reservedSpanLaneCount);
+    const hasOverflow = nonSpannedEventCount > Math.max(0, maxVisible - occupiedSpanLaneCount);
     const visibleEvents = hasOverflow ? Math.max(0, maxVisible - 1) : maxVisible;
-    const hiddenEventCount = Math.max(0, nonSpannedEventCount - Math.max(0, visibleEvents - reservedSpanLaneCount));
+    const hiddenEventCount = Math.max(0, nonSpannedEventCount - Math.max(0, visibleEvents - occupiedSpanLaneCount));
 
     const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
 

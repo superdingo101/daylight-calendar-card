@@ -20,16 +20,30 @@ export function renderDayCellEvents({
   visibleEvents,
   helpers
 }) {
-  const spannedEventKeys = new Set((monthSpanLanes || []).filter(Boolean).map((lane) => helpers.getEventKey(lane.event)));
-  const spanHtml = (monthSpanLanes || []).map((lane) => helpers.renderMonthSpanLane(lane)).join('');
-  const dayEventHtml = dayEvents
+  const lanes = monthSpanLanes || [];
+  const spannedEventKeys = new Set(lanes.filter(Boolean).map((lane) => helpers.getEventKey(lane.event)));
+  const occupiedSpanLaneCount = lanes.filter(Boolean).length;
+  const visibleNonSpannedEvents = dayEvents
     .filter((event) => !spannedEventKeys.has(helpers.getEventKey(event)))
-    .slice(0, Math.max(0, visibleEvents - (monthSpanLanes || []).length))
+    .slice(0, Math.max(0, visibleEvents - occupiedSpanLaneCount));
+
+  let nextVisibleEventIndex = 0;
+  const spanAndFilledLaneHtml = lanes.map((lane) => {
+    if (lane) return helpers.renderMonthSpanLane(lane);
+    const event = visibleNonSpannedEvents[nextVisibleEventIndex];
+    if (event) {
+      nextVisibleEventIndex += 1;
+      return helpers.renderMonthDayEvent(event, date);
+    }
+    return helpers.renderMonthSpanLane(lane);
+  }).join('');
+  const dayEventHtml = visibleNonSpannedEvents
+    .slice(nextVisibleEventIndex)
     .map(event => helpers.renderMonthDayEvent(event, date))
     .join('');
 
   return `
-        ${spanHtml}${dayEventHtml}
+        ${spanAndFilledLaneHtml}${dayEventHtml}
         ${hiddenEventCount > 0 ? `<div class="more-events" data-click-target="more-events">${helpers.t('moreEvents', { count: hiddenEventCount })}</div>` : ''}`;
 }
 
