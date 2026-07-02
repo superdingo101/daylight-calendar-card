@@ -667,6 +667,14 @@ export function getCardStyles() {
         box-sizing: border-box;
       }
 
+      .day-badge-action {
+        border: 0;
+        padding: 0;
+        font-family: inherit;
+        appearance: none;
+        cursor: pointer;
+      }
+
       .day-badge.has-text {
         width: auto;
         gap: 4px;

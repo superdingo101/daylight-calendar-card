@@ -3045,6 +3045,191 @@ test('hidden events do not contribute to month overflow counts', () => {
 
 
 
+
+
+test('day badge tap_action fire-dom-event renders clickable badge and dispatches resolved detail', () => {
+  const card = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{
+      conditions: { calendar: 'calendar.helper_day_types', all_day: true, title: 'Schoolday' },
+      text: '{{ event.description_json.badge_text }}',
+      icon: '{{ event.description_json.icon }}',
+      background_color: '{{ event.description_json.badge_color }}',
+      tap_action: {
+        action: 'fire-dom-event',
+        event_type: 'open-day-detail',
+        event_data: {
+          date: '{{ date }}',
+          calendar: '{{ calendar }}',
+          title: '{{ title }}',
+          icon: '{{ event.description_json.icon }}',
+          count: 2,
+          active: true,
+          unsafe: '{{ event.__proto__.polluted }}',
+          object_value: { skip: true }
+        }
+      }
+    }]
+  });
+  const event = {
+    entityId: 'calendar.helper_day_types',
+    summary: 'Schoolday',
+    description: '{"badge_text":"School","icon":"mdi:school","badge_color":"#EDE7F6"}',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  card._events = [event];
+
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [event]);
+  assert.match(html, /<button type="button" class="day-badge day-badge-action has-icon has-text"/);
+  assert.match(html, /data-day-badge-action-id="day-badge-action-1"/);
+  assert.match(html, /day-badge-text">School</);
+
+  let dispatched;
+  card.dispatchEvent = (customEvent) => { dispatched = customEvent; return true; };
+  const actionEl = { getAttribute: (name) => name === 'data-day-badge-action-id' ? 'day-badge-action-1' : null };
+  let prevented = false;
+  let stopped = false;
+  card.handleDayBadgeActionClick({ preventDefault: () => { prevented = true; }, stopPropagation: () => { stopped = true; } }, actionEl);
+
+  assert.equal(prevented, true);
+  assert.equal(stopped, true);
+  assert.equal(dispatched.type, 'open-day-detail');
+  assert.equal(dispatched.bubbles, true);
+  assert.equal(dispatched.composed, true);
+  assert.deepEqual(dispatched.detail, {
+    date: '2026-05-01',
+    calendar: 'calendar.helper_day_types',
+    title: 'Schoolday',
+    icon: 'mdi:school',
+    count: 2,
+    active: true
+  });
+});
+
+test('day badge without valid tap_action renders normally and unsupported actions are ignored', () => {
+  const baseEvent = {
+    entityId: 'calendar.helper_day_types',
+    summary: 'Schoolday',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  const noActionCard = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{ conditions: { title: 'Schoolday' }, text: 'School' }]
+  });
+  assert.match(noActionCard.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [baseEvent]), /<span class="day-badge has-text"/);
+
+  const unsupportedActionCard = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{
+      conditions: { title: 'Schoolday' },
+      text: 'School',
+      tap_action: { action: 'navigate', navigation_path: '/lovelace' }
+    }]
+  });
+  const html = unsupportedActionCard.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [baseEvent]);
+  assert.match(html, /<span class="day-badge has-text"/);
+  assert.doesNotMatch(html, /day-badge-action/);
+  assert.doesNotMatch(html, /data-day-badge-action-id/);
+});
+
+test('day badge action click listener prevents day modal and create modal conflicts', () => {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  const handlers = {};
+  const actionEl = {
+    addEventListener: (eventName, callback) => { handlers[`action:${eventName}`] = callback; },
+    getAttribute: (name) => name === 'data-day-badge-action-id' ? 'badge-action' : null
+  };
+  const dayEl = {
+    addEventListener: (eventName, callback) => { handlers[`day:${eventName}`] = callback; },
+    getAttribute: () => '2026-05-01'
+  };
+  card._dayBadgeActions = new Map([['badge-action', { event_type: 'open-day-detail', event_data: { title: 'Schoolday' } }]]);
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = {
+    querySelector: () => null,
+    querySelectorAll: (selector) => {
+      if (selector === '.day-badge-action') return [actionEl];
+      if (selector === '.day-cell') return [dayEl];
+      return [];
+    }
+  };
+  let createCalls = 0;
+  let dayModalCalls = 0;
+  let dispatched;
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.showCreateEventModal = () => { createCalls += 1; };
+  card.showDayModal = () => { dayModalCalls += 1; };
+  card.dispatchEvent = (event) => { dispatched = event; return true; };
+
+  card.attachEventListeners();
+  handlers['action:click']({ preventDefault: () => {}, stopPropagation: () => {} });
+  handlers['day:click']({ target: { classList: { contains: () => false }, closest: (selector) => selector === '.day-badge-action' } });
+
+  assert.equal(dispatched.type, 'open-day-detail');
+  assert.deepEqual(dispatched.detail, { title: 'Schoolday' });
+  assert.equal(createCalls, 0);
+  assert.equal(dayModalCalls, 0);
+});
+
+test('day badge actions are treated as interactive swipe targets', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor(matchingSelector) {
+      this.matchingSelector = matchingSelector;
+    }
+    closest(selector) {
+      return selector.split(',').map((part) => part.trim()).includes(this.matchingSelector) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    for (const matchingSelector of ['.day-badge-action', '[data-day-badge-action-id]']) {
+      const card = makeCard({ entities: ['calendar.family'] });
+      const handlers = {};
+      const container = {
+        addEventListener: (eventName, callback) => { handlers[eventName] = callback; }
+      };
+      card._root = {
+        querySelector: (selector) => selector === '.calendar-container' ? container : null
+      };
+      card.shouldEnableSwipeControls = () => true;
+      card.canTriggerSwipePeriodNavigation = () => true;
+      card.canNavigateToPreviousPeriod = () => true;
+      let nextCalls = 0;
+      let previousCalls = 0;
+      card.navigateToNextPeriod = () => { nextCalls += 1; };
+      card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+      card.attachSwipeControls();
+      handlers.touchstart({
+        target: new FakeElement(matchingSelector),
+        touches: [{ clientX: 100, clientY: 20 }]
+      });
+      assert.equal(card._swipeStartedOnInteractive, true);
+
+      handlers.touchend({
+        changedTouches: [{ clientX: 20, clientY: 22 }]
+      });
+
+      assert.equal(nextCalls, 0);
+      assert.equal(previousCalls, 0);
+      assert.equal(card._swipeStartedOnInteractive, false);
+      assert.equal(card._swipeTracking, false);
+    }
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
+
 test('day badge helper module delegates preserve normalization and resolution behavior', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const block = card.normalizeDayBadgeBlock({
@@ -5134,6 +5319,8 @@ test('day badge module preserves normalization, safe resolution, and render prep
     buildDayBadgeResolutionContext,
     resolveSafePath,
     resolveDayBadgeDisplayValue,
+    normalizeDayBadgeTapAction,
+    resolveDayBadgeTapAction,
     resolveDayBadgeForRender,
     normalizeDayBadges
   } = await import('./src/badges/day-badges.js');
@@ -5184,6 +5371,9 @@ test('day badge module preserves normalization, safe resolution, and render prep
   assert.equal(resolveSafePath('event.description_json.nested', context), undefined);
   assert.equal(resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'true');
   assert.equal(resolveDayBadgeDisplayValue('Literal {{ event.description_json.label }}', context), 'Literal {{ event.description_json.label }}');
+  assert.deepEqual(normalizeDayBadgeTapAction({ action: 'fire-dom-event', event_type: ' helper ', event_data: { title: '{{ title }}' } }), { action: 'fire-dom-event', event_type: 'helper', event_data: { title: '{{ title }}' } });
+  assert.equal(normalizeDayBadgeTapAction({ action: 'navigate', event_type: 'helper' }), undefined);
+  assert.deepEqual(resolveDayBadgeTapAction({ action: 'fire-dom-event', event_type: 'helper', event_data: { date: '{{ date }}', calendar: '{{ calendar }}', title: '{{ title }}', label: '{{ event.description_json.label }}', unsafe: '{{ event.__proto__.polluted }}', nested: '{{ event.description_json.nested }}' } }, context), { action: 'fire-dom-event', event_type: 'helper', event_data: { date: '2026-05-01', calendar: 'calendar.helper', title: 'Helper', label: 'Bus' } });
 
   assert.deepEqual(resolveDayBadgeForRender({
     text: '{{ event.description_json.label }}',
