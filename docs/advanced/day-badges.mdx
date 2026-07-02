@@ -199,7 +199,33 @@ Dynamic badge values are intentionally narrow in scope:
 - Missing fields are ignored safely.
 - Values that resolve to objects or arrays are ignored for display fields.
 - Dynamic `background_color` and `color` values must resolve to supported CSS color formats, such as hex, `rgb()`/`rgba()`, `hsl()`/`hsla()`, or a recognized named color. Invalid color values are ignored.
-- Dynamic resolution currently applies only to `day_badges` display fields, not matching, priority, hidden calendar rules, or actions.
+- Dynamic resolution applies only to `day_badges` display fields and `tap_action.event_data`, not matching, priority, or hidden calendar rules.
+
+### Fire a DOM event when tapping a badge
+
+You can make an individual day badge clickable by adding `tap_action`. Currently, day badges support only `action: fire-dom-event`. Other Home Assistant actions such as `navigate`, `url`, `call-service`, `more-info`, `hold_action`, and `double_tap_action` are not supported for day badges.
+
+`tap_action.event_data` supports the same safe full-value templates as dynamic badge text, icon, and color. Values can resolve from `date`, `calendar`, `title`, `event`, and `event.description_json`. Only scalar string, number, and boolean values are included in the dispatched event detail.
+
+```yaml
+day_badges:
+  - conditions:
+      calendar: calendar.helper_day_types
+      all_day: true
+      title: Schoolday
+    icon: "{{ event.description_json.icon }}"
+    text: "{{ event.description_json.badge_text }}"
+    background_color: "{{ event.description_json.badge_color }}"
+    tap_action:
+      action: fire-dom-event
+      event_type: open-day-detail
+      event_data:
+        date: "{{ date }}"
+        calendar: "{{ calendar }}"
+        title: "{{ title }}"
+```
+
+When tapped, the card dispatches a bubbling, composed `CustomEvent` named `open-day-detail`. The event `detail` contains the resolved `event_data` values.
 
 ### Mark all-day event days with an indicator
 
