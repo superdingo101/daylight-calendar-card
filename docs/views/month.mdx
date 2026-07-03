@@ -40,8 +40,13 @@ Users can still switch to other views using the view selector buttons in the car
 <ParamField path="month_day_tap_action" default="create" type="string">
   Used by **Month** only. Controls what happens when you tap an empty part of a day cell (tapping an event chip always opens that event's detail). Accepted values:
 
-  - `create` — tapping a day opens the new-event form prefilled with that date (default).
-  - `day_view` — tapping a day that has events opens a popup listing **all** of that day's events; tap any event there to view or edit it. Empty days still open the new-event form, so blank days stay quick to add to. When event management is enabled, the popup also shows an **Add Event** button for that day.
+  - **`create`** (default) — preserves the existing behavior:
+    - if event management is enabled **and** there is at least one writable calendar → open the new-event form prefilled with that date;
+    - otherwise, tapping a day that has events opens the day-events popup (see below);
+    - otherwise (empty day, or no writable calendars) → nothing happens.
+  - **`show_events`** — tapping a day that **has events** opens a popup listing **all** of that day's events; tap any event there to view or edit it (closing the event returns you to the day list). **Empty days still open the new-event form** (when event management is enabled and a writable calendar exists), so blank days stay quick to add to.
+
+  In the `show_events` popup, an **Add Event** button (prefilled with that date) is shown when **all** of the following are true: event management is enabled, at least one writable calendar exists, and [`hide_add_event_button`](#hide_add_event_button) is `false`.
 
   This is handy on phones, where a busy day's chips can be hard to read in the grid.
 </ParamField>

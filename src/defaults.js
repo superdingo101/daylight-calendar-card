@@ -111,6 +111,7 @@ export const DEFAULT_STUB_CONFIG = {
   disable_swipe_controls: false,
   show_all_events_month: false,
   show_all_details_month: false,
+  month_day_tap_action: 'create',
   hide_empty_days: false,
   agenda_compact_events: false,
   shorten_event_times: false,

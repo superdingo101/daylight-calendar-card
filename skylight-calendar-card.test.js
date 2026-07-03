@@ -88,7 +88,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
-  month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts day_view',
+  month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
   hide_the_past: 'legacy hide_the_past true maps to hiding ended events',
   past_event_mode: 'past_event_mode muted leaves ended events visible and applies muted style',
   hide_empty_days: 'agenda hide_empty_days removes empty day rows',
@@ -229,15 +229,127 @@ function recurrenceCases() {
   ];
 }
 
-test('month_day_tap_action normalizes to create by default and accepts day_view', () => {
+test('month_day_tap_action normalizes to create by default and accepts show_events', () => {
   const defaultCard = makeCard();
   assert.equal(defaultCard._config.month_day_tap_action, 'create');
 
-  const dayViewCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'day_view' });
-  assert.equal(dayViewCard._config.month_day_tap_action, 'day_view');
+  const showEventsCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'show_events' });
+  assert.equal(showEventsCard._config.month_day_tap_action, 'show_events');
 
   const invalidCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'bogus' });
   assert.equal(invalidCard._config.month_day_tap_action, 'create');
+});
+
+// --- month_day_tap_action behavior matrix -------------------------------------
+// Drives the real .day-cell click handler and records which modal it opened.
+function runMonthDayTap({ tap, management, writable, busy }) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, month_day_tap_action: tap });
+  const handlers = {};
+  const dayEl = { addEventListener: (n, cb) => { handlers[n] = cb; }, getAttribute: () => '2026-05-01' };
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = { querySelector: () => null, querySelectorAll: (s) => (s === '.day-cell' ? [dayEl] : []) };
+  const spy = { create: 0, dayModal: 0 };
+  card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
+  card.getEventsForDay = () => (busy ? [{ summary: 'Sample', entityId: 'calendar.family' }] : []);
+  card.showCreateEventModal = () => { spy.create += 1; };
+  card.showDayModal = () => { spy.dayModal += 1; };
+  card.attachEventListeners();
+  handlers.click({ target: { classList: { contains: () => false }, closest: () => null } });
+  return spy;
+}
+
+test('month_day_tap_action=create keeps legacy behavior across day types', () => {
+  // create + writable → create modal regardless of busy/empty
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: true }), { create: 1, dayModal: 0 });
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+  // create fallback: no writable calendars → busy day opens day modal, empty day does nothing
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: false, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: false, writable: false, busy: false }), { create: 0, dayModal: 0 });
+});
+
+test('month_day_tap_action=show_events opens the day list on busy days and create on empty days', () => {
+  // busy day → day modal (whether or not management/writable is available)
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: false, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  // empty day → create only when it can (writable + management); otherwise nothing
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: false, writable: false, busy: false }), { create: 0, dayModal: 0 });
+});
+
+test('month_day_tap_action decides busy vs empty from visible events (getEventsForDay)', () => {
+  // A day whose only events are hidden/past are excluded by getEventsForDay, so the
+  // handler sees an empty day. Simulate that: getEventsForDay returns [] -> create (not day modal).
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+});
+
+// --- showDayModal Add Event button + back-navigation --------------------------
+function renderDayModal({ management = true, writable = true, hideAdd = false } = {}) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, hide_add_event_button: hideAdd });
+  card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
+  // Stub the markup helpers so we don't depend on a fully-normalized event shape.
+  card.applyEventModalSizeClass = () => {};
+  card.sortEventsForDate = (events) => events;
+  card.getEventDaySegment = () => ({ segmentStart: new Date('2026-05-01T09:00:00'), segmentEnd: new Date('2026-05-01T10:00:00'), isAllDaySegment: false });
+  card.getEventStyle = () => '';
+  card.getEventBubbleFontSize = () => 11;
+  card.getEventTimeFontSize = () => 9;
+  card.getEventLocationFontSize = () => 9;
+  card.getEventBubbleFontColor = () => '#000';
+  card.renderEventTitleWithPrefix = (event, title) => title;
+  card.shouldShowEventTime = () => false;
+  card.shouldShowEventLocation = () => false;
+  card.renderEventStyleCornerIcon = () => '';
+  card.renderCombinedCornerBubbles = () => '';
+
+  const event = { summary: 'Sample', entityId: 'calendar.family' };
+  const date = new Date('2026-05-01T00:00:00');
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  const handlers = {};
+  const addBtn = { addEventListener: (n, cb) => { handlers.add = cb; } };
+  const dayEventEl = { addEventListener: (n, cb) => { handlers.dayEvent = cb; }, getAttribute: () => JSON.stringify(event) };
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    if (id === 'close-modal') return { addEventListener: () => {} };
+    if (id === 'day-modal-add-event') return content.innerHTML.includes('day-modal-add-event') ? addBtn : null;
+    return null;
+  };
+  card._root = { querySelectorAll: (s) => (s === '.day-event' ? [dayEventEl] : []) };
+
+  card.showDayModal(date, [event]);
+  return { card, html: content.innerHTML, handlers, date };
+}
+
+test('showDayModal shows the Add Event button only when addable', () => {
+  assert.match(renderDayModal({ management: true, writable: true, hideAdd: false }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: true, writable: true, hideAdd: true }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: false, writable: false, hideAdd: false }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: true, writable: false, hideAdd: false }).html, /day-modal-add-event/);
+});
+
+test('showDayModal Add Event button opens the create form for the selected date', () => {
+  const { card, handlers, date } = renderDayModal({ management: true, writable: true });
+  let created = null;
+  card.showCreateEventModal = (d) => { created = d; };
+  handlers.add();
+  assert.ok(created instanceof Date);
+  assert.equal(created.getTime(), date.getTime());
+});
+
+test('showDayModal event tap returns to the day list on close', () => {
+  const { card, handlers } = renderDayModal({ management: true, writable: true });
+  let backFn = null;
+  card.showEventModal = (evt, onCloseBack) => { backFn = onCloseBack; };
+  handlers.dayEvent();
+  assert.equal(typeof backFn, 'function');
+  let reopened = 0;
+  card.showDayModal = () => { reopened += 1; };
+  backFn();
+  assert.equal(reopened, 1);
 });
 
 test('YAML config coverage inventory tracks every normalized schema option', () => {
@@ -299,7 +411,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
+    'month_day_tap_action', 'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
     'show_current_time_bar', 'show_event_location', 'location_links', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -323,6 +435,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     disable_swipe_controls: false,
     show_all_events_month: false,
     show_all_details_month: false,
+    month_day_tap_action: 'create',
     hide_empty_days: false,
     agenda_compact_events: false,
     shorten_event_times: false,

@@ -144,6 +144,7 @@ const DEFAULT_STUB_CONFIG = {
   disable_swipe_controls: false,
   show_all_events_month: false,
   show_all_details_month: false,
+  month_day_tap_action: 'create',
   hide_empty_days: false,
   agenda_compact_events: false,
   shorten_event_times: false,
@@ -225,7 +226,7 @@ function createConfigNormalizationSchema({
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
-      { key: 'month_day_tap_action', defaultValue: ({ rawConfig }) => rawConfig.month_day_tap_action === 'day_view' ? 'day_view' : DEFAULT_CONFIG_VALUES.month_day_tap_action, normalize: ({ rawConfig }) => rawConfig.month_day_tap_action === 'day_view' ? 'day_view' : DEFAULT_CONFIG_VALUES.month_day_tap_action },
+      { key: 'month_day_tap_action', defaultValue: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action, normalize: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action },
       { key: 'hide_the_past', defaultValue: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past, normalize: ({ rawConfig }) => rawConfig.hide_the_past || DEFAULT_CONFIG_VALUES.hide_the_past },
       { key: 'past_event_mode', defaultValue: ({ derived }) => derived.normalizedPastEventMode, normalize: ({ derived }) => derived.normalizedPastEventMode },
       { key: 'hide_empty_days', defaultValue: ({ rawConfig }) => rawConfig.hide_empty_days || DEFAULT_CONFIG_VALUES.hide_empty_days },
@@ -1700,6 +1701,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
     const eventSection = this.renderSection('Events & schedule', `
       <div class="field-row">
         <div class="field field-inline">
+          <label for="month_day_tap_action">Month view: tapping a day</label>
+          <select id="month_day_tap_action" data-field="month_day_tap_action">
+            <option value="create" ${this._config.month_day_tap_action !== 'show_events' ? 'selected' : ''}>Opens new event (default)</option>
+            <option value="show_events" ${this._config.month_day_tap_action === 'show_events' ? 'selected' : ''}>Shows that day's events</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
           <label for="event_font_size">Event font size</label>
           <input id="event_font_size" data-field="event_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_font_size ?? this.getEditorDefaultValue('event_font_size'))}">
         </div>
@@ -2329,14 +2339,6 @@ class SkylightCalendarCardEditor extends HTMLElement {
             <option value="week-compact" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-compact' ? 'selected' : ''}>Week</option>
             <option value="week-standard" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-standard' ? 'selected' : ''}>Schedule</option>
             <option value="agenda" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'agenda' ? 'selected' : ''}>Agenda</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="month_day_tap_action">Month view: tapping a day</label>
-          <select id="month_day_tap_action" data-field="month_day_tap_action">
-            <option value="create" ${this._config.month_day_tap_action !== 'day_view' ? 'selected' : ''}>Opens new event (default)</option>
-            <option value="day_view" ${this._config.month_day_tap_action === 'day_view' ? 'selected' : ''}>Shows that day's events</option>
           </select>
         </div>
 
@@ -14867,9 +14869,9 @@ class SkylightCalendarCard extends HTMLElement {
         const date = new Date(dayEl.getAttribute('data-date'));
         const canManage = this._config.enable_event_management && this.getWritableCalendars().length > 0;
 
-        // Opt-in 'day_view': tapping a day with events opens the day list;
+        // Opt-in 'show_events': tapping a day with events opens the day list;
         // empty days still go straight to create so blank days stay fast to add to.
-        if (this._config.month_day_tap_action === 'day_view') {
+        if (this._config.month_day_tap_action === 'show_events') {
           const events = this.getEventsForDay(date);
           if (events.length > 0) {
             this.showDayModal(date, events);
@@ -16603,7 +16605,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.day-event').forEach(el => {
       el.addEventListener('click', () => {
         const eventData = JSON.parse(el.getAttribute('data-event'));
-        this.showEventModal(eventData);
+        this.showEventModal(eventData, () => this.showDayModal(date, events));
       });
     });
   }

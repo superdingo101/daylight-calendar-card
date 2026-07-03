@@ -4896,9 +4896,9 @@ class SkylightCalendarCard extends HTMLElement {
         const date = new Date(dayEl.getAttribute('data-date'));
         const canManage = this._config.enable_event_management && this.getWritableCalendars().length > 0;
 
-        // Opt-in 'day_view': tapping a day with events opens the day list;
+        // Opt-in 'show_events': tapping a day with events opens the day list;
         // empty days still go straight to create so blank days stay fast to add to.
-        if (this._config.month_day_tap_action === 'day_view') {
+        if (this._config.month_day_tap_action === 'show_events') {
           const events = this.getEventsForDay(date);
           if (events.length > 0) {
             this.showDayModal(date, events);
@@ -6632,7 +6632,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._root.querySelectorAll('.day-event').forEach(el => {
       el.addEventListener('click', () => {
         const eventData = JSON.parse(el.getAttribute('data-event'));
-        this.showEventModal(eventData);
+        this.showEventModal(eventData, () => this.showDayModal(date, events));
       });
     });
   }

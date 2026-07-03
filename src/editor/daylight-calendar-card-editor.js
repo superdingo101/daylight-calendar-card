@@ -1065,6 +1065,15 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     const eventSection = this.renderSection('Events & schedule', `
       <div class="field-row">
         <div class="field field-inline">
+          <label for="month_day_tap_action">Month view: tapping a day</label>
+          <select id="month_day_tap_action" data-field="month_day_tap_action">
+            <option value="create" ${this._config.month_day_tap_action !== 'show_events' ? 'selected' : ''}>Opens new event (default)</option>
+            <option value="show_events" ${this._config.month_day_tap_action === 'show_events' ? 'selected' : ''}>Shows that day's events</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
           <label for="event_font_size">Event font size</label>
           <input id="event_font_size" data-field="event_font_size" data-type="number" type="number" min="8" max="32" value="${Number(this._config.event_font_size ?? this.getEditorDefaultValue('event_font_size'))}">
         </div>
@@ -1694,14 +1703,6 @@ export class SkylightCalendarCardEditor extends HTMLElement {
             <option value="week-compact" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-compact' ? 'selected' : ''}>Week</option>
             <option value="week-standard" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'week-standard' ? 'selected' : ''}>Schedule</option>
             <option value="agenda" ${this.normalizeDefaultViewForEditor(this._config.default_view) === 'agenda' ? 'selected' : ''}>Agenda</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="month_day_tap_action">Month view: tapping a day</label>
-          <select id="month_day_tap_action" data-field="month_day_tap_action">
-            <option value="create" ${this._config.month_day_tap_action !== 'day_view' ? 'selected' : ''}>Opens new event (default)</option>
-            <option value="day_view" ${this._config.month_day_tap_action === 'day_view' ? 'selected' : ''}>Shows that day's events</option>
           </select>
         </div>
 
