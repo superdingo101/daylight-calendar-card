@@ -4894,9 +4894,22 @@ class SkylightCalendarCard extends HTMLElement {
         }
 
         const date = new Date(dayEl.getAttribute('data-date'));
+        const canManage = this._config.enable_event_management && this.getWritableCalendars().length > 0;
 
-        // If event management is enabled, show create modal
-        if (this._config.enable_event_management && this.getWritableCalendars().length > 0) {
+        // Opt-in 'day_view': tapping a day with events opens the day list;
+        // empty days still go straight to create so blank days stay fast to add to.
+        if (this._config.month_day_tap_action === 'day_view') {
+          const events = this.getEventsForDay(date);
+          if (events.length > 0) {
+            this.showDayModal(date, events);
+          } else if (canManage) {
+            this.showCreateEventModal(date);
+          }
+          return;
+        }
+
+        // Default 'create': if event management is enabled, show create modal
+        if (canManage) {
           this.showCreateEventModal(date);
         } else {
           // Otherwise show events for that day
@@ -6595,6 +6608,12 @@ class SkylightCalendarCard extends HTMLElement {
           `;
         }).join('')}
       </div>
+      ${(this._config.enable_event_management && this.getWritableCalendars().length > 0 && !this._config.hide_add_event_button) ? `
+      <div class="modal-actions">
+        <div class="modal-actions-right">
+          <button class="btn btn-primary" id="day-modal-add-event">${this.t('addEvent')}</button>
+        </div>
+      </div>` : ''}
     `;
 
     modal.classList.add('show');
@@ -6604,6 +6623,10 @@ class SkylightCalendarCard extends HTMLElement {
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
+    });
+
+    this.getRootElementById('day-modal-add-event')?.addEventListener('click', () => {
+      this.showCreateEventModal(date);
     });
 
     this._root.querySelectorAll('.day-event').forEach(el => {

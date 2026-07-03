@@ -1698,6 +1698,14 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
+          <label for="month_day_tap_action">Month view: tapping a day</label>
+          <select id="month_day_tap_action" data-field="month_day_tap_action">
+            <option value="create" ${this._config.month_day_tap_action !== 'day_view' ? 'selected' : ''}>Opens new event (default)</option>
+            <option value="day_view" ${this._config.month_day_tap_action === 'day_view' ? 'selected' : ''}>Shows that day's events</option>
+          </select>
+        </div>
+
+        <div class="field">
           <label>Calendars</label>
           <div class="entity-list" id="entity-list"></div>
           <p class="helper">Select one or more calendar entities to display.</p>

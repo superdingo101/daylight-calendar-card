@@ -52,6 +52,7 @@ export const DEFAULT_CONFIG_VALUES = {
   show_week_numbers_month: false,
   show_all_events_month: false,
   show_all_details_month: false,
+  month_day_tap_action: 'create',
   hide_the_past: false,
   hide_empty_days: false,
   agenda_compact_events: false,

@@ -37,6 +37,15 @@ Users can still switch to other views using the view selector buttons in the car
   Adds an ISO week-number column on the left edge of the grid (e.g., **W 23**). Handy for work or project planning where teams reference week numbers.
 </ParamField>
 
+<ParamField path="month_day_tap_action" default="create" type="string">
+  Used by **Month** only. Controls what happens when you tap an empty part of a day cell (tapping an event chip always opens that event's detail). Accepted values:
+
+  - `create` — tapping a day opens the new-event form prefilled with that date (default).
+  - `day_view` — tapping a day that has events opens a popup listing **all** of that day's events; tap any event there to view or edit it. Empty days still open the new-event form, so blank days stay quick to add to. When event management is enabled, the popup also shows an **Add Event** button for that day.
+
+  This is handy on phones, where a busy day's chips can be hard to read in the grid.
+</ParamField>
+
 <ParamField path="rolling_weeks" default="null" type="number">
   Used by **Month** only.
 

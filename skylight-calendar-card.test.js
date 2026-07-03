@@ -88,6 +88,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
+  month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts day_view',
   hide_the_past: 'legacy hide_the_past true maps to hiding ended events',
   past_event_mode: 'past_event_mode muted leaves ended events visible and applies muted style',
   hide_empty_days: 'agenda hide_empty_days removes empty day rows',
@@ -227,6 +228,17 @@ function recurrenceCases() {
     { name: 'recurring n times', rrule: 'FREQ=WEEKLY;COUNT=5' }
   ];
 }
+
+test('month_day_tap_action normalizes to create by default and accepts day_view', () => {
+  const defaultCard = makeCard();
+  assert.equal(defaultCard._config.month_day_tap_action, 'create');
+
+  const dayViewCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'day_view' });
+  assert.equal(dayViewCard._config.month_day_tap_action, 'day_view');
+
+  const invalidCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'bogus' });
+  assert.equal(invalidCard._config.month_day_tap_action, 'create');
+});
 
 test('YAML config coverage inventory tracks every normalized schema option', () => {
   const card = makeCard();
