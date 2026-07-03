@@ -15526,6 +15526,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
+        if (typeof options?.onSaved === 'function') options.onSaved();
       } catch (error) {
         console.error('Failed to create event:', error);
         this.showFormError(errorDiv, error.message || this.t('failedCreateEvent'));
@@ -15540,7 +15541,7 @@ class SkylightCalendarCard extends HTMLElement {
     }, 100);
   }
 
-  showEditEventModal(event, startDate, endDate, isAllDay, editScope = 'this') {
+  showEditEventModal(event, startDate, endDate, isAllDay, editScope = 'this', onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
@@ -15726,6 +15727,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
+        if (typeof onSaved === 'function') onSaved();
       } catch (error) {
         console.error('Failed to update event:', error);
 
@@ -15738,6 +15740,7 @@ class SkylightCalendarCard extends HTMLElement {
             modal.classList.remove('show');
             this._lastFetch = null;
             await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
+            if (typeof onSaved === 'function') onSaved();
             return;
           } catch (fallbackError) {
             console.error('Safety-net create+delete fallback failed:', fallbackError);
@@ -15991,7 +15994,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  showEditConfirmation(event, startDate, endDate, isAllDay, selectedEvents = null) {
+  showEditConfirmation(event, startDate, endDate, isAllDay, selectedEvents = null, onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
@@ -15999,7 +16002,7 @@ class SkylightCalendarCard extends HTMLElement {
     const isRecurring = event.rrule || event.recurrence_id;
     if (!isRecurring) {
       this._combinedEditTargets = selectedEvents;
-      this.showEditEventModal(event, startDate, endDate, isAllDay, 'this');
+      this.showEditEventModal(event, startDate, endDate, isAllDay, 'this', onSaved);
       return;
     }
 
@@ -16056,12 +16059,12 @@ class SkylightCalendarCard extends HTMLElement {
       const selectedOption = this._root.querySelector('input[name="edit-option"]:checked')?.value || 'this';
       modal.classList.remove('show');
       this._combinedEditTargets = selectedEvents;
-      this.showEditEventModal(event, startDate, endDate, isAllDay, selectedOption);
+      this.showEditEventModal(event, startDate, endDate, isAllDay, selectedOption, onSaved);
     });
   }
 
 
-  showCombinedEditSelectionModal(event, startDate, endDate, isAllDay) {
+  showCombinedEditSelectionModal(event, startDate, endDate, isAllDay, onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
@@ -16110,7 +16113,7 @@ class SkylightCalendarCard extends HTMLElement {
 
       const selectedEvents = selectedIndexes.map(index => sourceEvents[index]);
       modal.classList.remove('show');
-      this.showEditConfirmation(selectedEvents[0], startDate, endDate, isAllDay, selectedEvents);
+      this.showEditConfirmation(selectedEvents[0], startDate, endDate, isAllDay, selectedEvents, onSaved);
     });
   }
 
@@ -16461,14 +16464,15 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Edit button
     this.getRootElementById('edit-event-btn')?.addEventListener('click', () => {
+      const returnToList = this._activeModalBackHandler;
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
-        this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay);
+        this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay, returnToList);
         return;
       }
-      this.showEditConfirmation(event, startDate, endDate, isAllDay);
+      this.showEditConfirmation(event, startDate, endDate, isAllDay, null, returnToList);
     });
 
 
@@ -16599,13 +16603,13 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     this.getRootElementById('day-modal-add-event')?.addEventListener('click', () => {
-      this.showCreateEventModal(date);
+      this.showCreateEventModal(date, null, { onSaved: () => this.showDayModal(date, this.getEventsForDay(date)) });
     });
 
     this._root.querySelectorAll('.day-event').forEach(el => {
       el.addEventListener('click', () => {
         const eventData = JSON.parse(el.getAttribute('data-event'));
-        this.showEventModal(eventData, () => this.showDayModal(date, events));
+        this.showEventModal(eventData, () => this.showDayModal(date, this.getEventsForDay(date)));
       });
     });
   }

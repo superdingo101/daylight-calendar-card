@@ -289,6 +289,7 @@ test('month_day_tap_action decides busy vs empty from visible events (getEventsF
 function renderDayModal({ management = true, writable = true, hideAdd = false } = {}) {
   const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, hide_add_event_button: hideAdd });
   card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
+  card.getEventsForDay = () => [];
   // Stub the markup helpers so we don't depend on a fully-normalized event shape.
   card.applyEventModalSizeClass = () => {};
   card.sortEventsForDate = (events) => events;
@@ -349,6 +350,18 @@ test('showDayModal event tap returns to the day list on close', () => {
   let reopened = 0;
   card.showDayModal = () => { reopened += 1; };
   backFn();
+  assert.equal(reopened, 1);
+});
+
+test('showDayModal Add Event button returns to the day list after saving', () => {
+  const { card, handlers } = renderDayModal({ management: true, writable: true });
+  let opts = null;
+  card.showCreateEventModal = (d, t, o) => { opts = o; };
+  handlers.add();
+  assert.equal(typeof opts?.onSaved, 'function');
+  let reopened = 0;
+  card.showDayModal = () => { reopened += 1; };
+  opts.onSaved();
   assert.equal(reopened, 1);
 });
 
