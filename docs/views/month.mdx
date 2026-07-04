@@ -44,9 +44,11 @@ Users can still switch to other views using the view selector buttons in the car
     - if event management is enabled **and** there is at least one writable calendar → open the new-event form prefilled with that date;
     - otherwise, tapping a day that has events opens the day-events popup (see below);
     - otherwise (empty day, or no writable calendars) → nothing happens.
-  - **`show_events`** — tapping a day that **has events** opens a popup listing **all** of that day's events; tap any event there to view or edit it (closing the event returns you to the day list). **Empty days still open the new-event form** (when event management is enabled and a writable calendar exists), so blank days stay quick to add to.
+  - **`show_events`** — tapping a day that **has events** opens a popup listing **all** of that day's events; tap any event there to view, edit, or delete it. **Empty days still open the new-event form** (when event management is enabled and a writable calendar exists), so blank days stay quick to add to.
 
   In the `show_events` popup, an **Add Event** button (prefilled with that date) is shown when **all** of the following are true: event management is enabled, at least one writable calendar exists, and [`hide_add_event_button`](#hide_add_event_button) is `false`.
+
+  Within the popup, closing an event's details — or adding, editing, or deleting an event — returns you to the day-events list (refreshed), rather than dropping back to the calendar.
 
   This is handy on phones, where a busy day's chips can be hard to read in the grid.
 </ParamField>
