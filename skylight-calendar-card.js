@@ -15526,7 +15526,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
-        if (typeof options?.onSaved === 'function') options.onSaved();
+        this.safeReturnToList(options?.onSaved);
       } catch (error) {
         console.error('Failed to create event:', error);
         this.showFormError(errorDiv, error.message || this.t('failedCreateEvent'));
@@ -15727,7 +15727,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
-        if (typeof onSaved === 'function') onSaved();
+        this.safeReturnToList(onSaved);
       } catch (error) {
         console.error('Failed to update event:', error);
 
@@ -15740,7 +15740,7 @@ class SkylightCalendarCard extends HTMLElement {
             modal.classList.remove('show');
             this._lastFetch = null;
             await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
-            if (typeof onSaved === 'function') onSaved();
+            this.safeReturnToList(onSaved);
             return;
           } catch (fallbackError) {
             console.error('Safety-net create+delete fallback failed:', fallbackError);
@@ -16302,7 +16302,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
-        if (typeof onSaved === 'function') onSaved();
+        this.safeReturnToList(onSaved);
       } catch (error) {
         console.error('Failed to delete event:', error);
         this._combinedDeleteTargets = null;
@@ -16352,11 +16352,26 @@ class SkylightCalendarCard extends HTMLElement {
     }
   }
 
+  // Invoke a post-save return-to-list callback without letting its errors bubble
+  // into the surrounding save try/catch (which would show a misleading save-failed error).
+  safeReturnToList(callback) {
+    if (typeof callback !== 'function') return;
+    try {
+      callback();
+    } catch (error) {
+      console.error('Return-to-list callback failed:', error);
+    }
+  }
+
   showEventModal(event, onCloseBack = null, options = {}) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
     this._eventLocationActionsExpanded = options.locationActionsExpanded === true;
+    // Post-save navigation, kept separate from close/back (_activeModalBackHandler).
+    // Only supplied by showDayModal; the +N compact modal leaves it null so a save
+    // there closes to the calendar rather than reopening a stale captured list.
+    const onSaved = typeof options.onSaved === 'function' ? options.onSaved : null;
 
     let startDate, endDate, isAllDay;
 
@@ -16448,7 +16463,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.getRootElementById('event-location-toggle')?.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.showEventModal(event, onCloseBack, { locationActionsExpanded: !this._eventLocationActionsExpanded });
+      this.showEventModal(event, onCloseBack, { locationActionsExpanded: !this._eventLocationActionsExpanded, onSaved });
     });
 
     this.getRootElementById('open-location-map-btn')?.addEventListener('click', (e) => {
@@ -16465,15 +16480,14 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Edit button
     this.getRootElementById('edit-event-btn')?.addEventListener('click', () => {
-      const returnToList = this._activeModalBackHandler;
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
-        this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay, returnToList);
+        this.showCombinedEditSelectionModal(event, startDate, endDate, isAllDay, onSaved);
         return;
       }
-      this.showEditConfirmation(event, startDate, endDate, isAllDay, null, returnToList);
+      this.showEditConfirmation(event, startDate, endDate, isAllDay, null, onSaved);
     });
 
 
@@ -16487,15 +16501,14 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Delete button
     this.getRootElementById('delete-event-btn')?.addEventListener('click', () => {
-      const returnToList = this._activeModalBackHandler;
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
-        this.showCombinedDeleteSelectionModal(event, returnToList);
+        this.showCombinedDeleteSelectionModal(event, onSaved);
         return;
       }
-      this.showDeleteConfirmation(event, null, returnToList);
+      this.showDeleteConfirmation(event, null, onSaved);
     });
   }
 
@@ -16585,7 +16598,7 @@ class SkylightCalendarCard extends HTMLElement {
               ${this.renderCombinedCornerBubbles(event)}
             </div>
           `;
-        }).join('')}
+        }).join('') || `<div class="empty-state-subtext">${this.t('noEvents')}</div>`}
       </div>
       ${(this._config.enable_event_management && this.getWritableCalendars().length > 0 && !this._config.hide_add_event_button) ? `
       <div class="modal-actions">
@@ -16604,14 +16617,19 @@ class SkylightCalendarCard extends HTMLElement {
       modal.classList.remove('show');
     });
 
+    // Reopen this day's list with freshly-fetched events (used for close/back AND
+    // after a successful add/edit/delete). Always re-reads getEventsForDay so it
+    // never shows a stale captured list.
+    const reopenDayList = () => this.showDayModal(date, this.getEventsForDay(date));
+
     this.getRootElementById('day-modal-add-event')?.addEventListener('click', () => {
-      this.showCreateEventModal(date, null, { onSaved: () => this.showDayModal(date, this.getEventsForDay(date)) });
+      this.showCreateEventModal(date, null, { onSaved: reopenDayList });
     });
 
     this._root.querySelectorAll('.day-event').forEach(el => {
       el.addEventListener('click', () => {
         const eventData = JSON.parse(el.getAttribute('data-event'));
-        this.showEventModal(eventData, () => this.showDayModal(date, this.getEventsForDay(date)));
+        this.showEventModal(eventData, reopenDayList, { onSaved: reopenDayList });
       });
     });
   }
