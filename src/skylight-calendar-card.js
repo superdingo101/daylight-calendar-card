@@ -6145,7 +6145,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
 
-  showCombinedDeleteSelectionModal(event) {
+  showCombinedDeleteSelectionModal(event, onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
@@ -6196,12 +6196,12 @@ class SkylightCalendarCard extends HTMLElement {
       const selectedDeleteTargets = selectedIndexes.map(index => sourceEvents[index]);
       this._combinedDeleteTargets = selectedDeleteTargets;
       modal.classList.remove('show');
-      this.showDeleteConfirmation(selectedDeleteTargets[0], selectedDeleteTargets);
+      this.showDeleteConfirmation(selectedDeleteTargets[0], selectedDeleteTargets, onSaved);
     });
   }
 
 
-  showDeleteConfirmation(event, selectedEvents = null) {
+  showDeleteConfirmation(event, selectedEvents = null, onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
@@ -6329,6 +6329,7 @@ class SkylightCalendarCard extends HTMLElement {
         // Refresh events
         this._lastFetch = null;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
+        if (typeof onSaved === 'function') onSaved();
       } catch (error) {
         console.error('Failed to delete event:', error);
         this._combinedDeleteTargets = null;
@@ -6513,14 +6514,15 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Delete button
     this.getRootElementById('delete-event-btn')?.addEventListener('click', () => {
+      const returnToList = this._activeModalBackHandler;
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
       if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.length > 1) {
-        this.showCombinedDeleteSelectionModal(event);
+        this.showCombinedDeleteSelectionModal(event, returnToList);
         return;
       }
-      this.showDeleteConfirmation(event);
+      this.showDeleteConfirmation(event, null, returnToList);
     });
   }
 
