@@ -22,12 +22,19 @@ export function renderMonthDayHeaders({ weekdayNames, firstDayOfWeek, shouldShow
 
 function renderMonthGridDays({ currentDate, firstDayOfWeek, shouldShowWeekNumbers, helpers }) {
   let html = '';
+  const dayEntries = getMonthGridDates(currentDate, firstDayOfWeek);
+  const weekLayouts = [];
 
-  getMonthGridDates(currentDate, firstDayOfWeek).forEach((dayEntry, dayIndex) => {
+  dayEntries.forEach((dayEntry, dayIndex) => {
     if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
       html += helpers.renderMonthWeekNumberCell(dayEntry.date);
     }
-    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+    const weekIndex = Math.floor(dayIndex / 7);
+    if (!weekLayouts[weekIndex]) {
+      weekLayouts[weekIndex] = helpers.getMonthSpanLayoutForWeek(dayEntries.slice(weekIndex * 7, weekIndex * 7 + 7).map((entry) => entry.date));
+    }
+    const weekLayout = weekLayouts[weekIndex];
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth, weekLayout?.dayLanesByDateKey.get(helpers.getDateKey(dayEntry.date)) || []);
   });
 
   return html;
@@ -35,13 +42,20 @@ function renderMonthGridDays({ currentDate, firstDayOfWeek, shouldShowWeekNumber
 
 function renderRollingWeeks({ currentDate, firstDayOfWeek, rollingWeeks, shouldShowWeekNumbers, helpers }) {
   let html = '';
+  const dayEntries = getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks);
+  const weekLayouts = [];
 
-  getRollingMonthGridDates(currentDate, firstDayOfWeek, rollingWeeks).forEach((dayEntry, dayIndex) => {
+  dayEntries.forEach((dayEntry, dayIndex) => {
     if (shouldShowWeekNumbers && dayIndex % 7 === 0) {
       html += helpers.renderMonthWeekNumberCell(dayEntry.date);
     }
 
-    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth);
+    const weekIndex = Math.floor(dayIndex / 7);
+    if (!weekLayouts[weekIndex]) {
+      weekLayouts[weekIndex] = helpers.getMonthSpanLayoutForWeek(dayEntries.slice(weekIndex * 7, weekIndex * 7 + 7).map((entry) => entry.date));
+    }
+    const weekLayout = weekLayouts[weekIndex];
+    html += helpers.renderDay(dayEntry.day, dayEntry.date, dayEntry.isOtherMonth, weekLayout?.dayLanesByDateKey.get(helpers.getDateKey(dayEntry.date)) || []);
   });
 
   return html;

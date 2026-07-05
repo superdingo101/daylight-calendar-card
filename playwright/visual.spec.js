@@ -24,6 +24,49 @@ const baseEvents = {
   ]
 };
 
+
+const monthVisualEvents = {
+  'calendar.family': [
+    { summary: 'Breakfast Prep', start: '2026-03-01T08:00:00Z', end: '2026-03-01T08:30:00Z' },
+    { summary: 'School Spirit Week With A Long Title', start: '2026-03-02', end: '2026-03-06' },
+    { summary: 'Dentist', start: '2026-03-03T16:00:00Z', end: '2026-03-03T16:30:00Z' },
+    { summary: 'Family Dinner', start: '2026-03-05T18:00:00Z', end: '2026-03-05T19:00:00Z' },
+    { summary: 'Weekend Trip Across Rows With A Long Title', start: '2026-03-07', end: '2026-03-10' },
+    { summary: 'Soccer Practice', start: '2026-03-10T17:00:00Z', end: '2026-03-10T18:00:00Z' },
+    { summary: 'Library Day', start: '2026-03-12T15:30:00Z', end: '2026-03-12T16:30:00Z' },
+    { summary: 'Birthday Party', start: '2026-03-14T13:00:00Z', end: '2026-03-14T15:00:00Z' },
+    { summary: 'Coffee', start: '2026-03-15T09:00:00Z', end: '2026-03-15T09:30:00Z', location: 'Kitchen' },
+    { summary: 'All Day Holiday', start: '2026-03-16', end: '2026-03-17' },
+    { summary: 'Conference With A Long Multi-Day Title', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Night Shift', start: '2026-03-15T23:30:00Z', end: '2026-03-16T06:30:00Z' },
+    { summary: 'Shared Duplicate Demo', start: '2026-03-20T11:00:00Z', end: '2026-03-20T12:00:00Z', location: 'Shared Room' },
+    { summary: 'Spring Break Multi-Day Family Event With A Long Title', start: '2026-03-22', end: '2026-03-26' },
+    { summary: 'Park Meetup', start: '2026-03-23T15:00:00Z', end: '2026-03-23T16:00:00Z' },
+    { summary: 'Overflow One', start: '2026-03-24T08:00:00Z', end: '2026-03-24T08:30:00Z' },
+    { summary: 'Overflow Two', start: '2026-03-24T09:00:00Z', end: '2026-03-24T09:30:00Z' },
+    { summary: 'Overflow Three', start: '2026-03-24T10:00:00Z', end: '2026-03-24T10:30:00Z' },
+    { summary: 'Piano Lesson', start: '2026-03-25T17:30:00Z', end: '2026-03-25T18:00:00Z' },
+    { summary: 'Month End Errand', start: '2026-03-29T11:00:00Z', end: '2026-03-29T12:00:00Z' },
+    { summary: 'Overnight Guests Across Month Boundary', start: '2026-03-30', end: '2026-04-02' },
+    { summary: 'Pay Bills', start: '2026-03-31T09:00:00Z', end: '2026-03-31T09:30:00Z' }
+  ],
+  'calendar.work': [
+    { summary: 'Planning', start: '2026-03-02T13:00:00Z', end: '2026-03-02T14:00:00Z' },
+    { summary: 'Design Review', start: '2026-03-04T10:00:00Z', end: '2026-03-04T11:00:00Z' },
+    { summary: 'Release Window With Long Title', start: '2026-03-06', end: '2026-03-08' },
+    { summary: 'Standup', start: '2026-03-09T14:00:00Z', end: '2026-03-09T14:15:00Z', location: 'Zoom' },
+    { summary: 'Roadmap Review', start: '2026-03-11T16:00:00Z', end: '2026-03-11T17:00:00Z' },
+    { summary: 'Customer Call', start: '2026-03-13T19:00:00Z', end: '2026-03-13T20:00:00Z' },
+    { summary: 'Standup', start: '2026-03-15T14:00:00Z', end: '2026-03-15T14:15:00Z', location: 'Zoom' },
+    { summary: 'Planning', start: '2026-03-18T18:00:00Z', end: '2026-03-18T19:00:00Z' },
+    { summary: 'Shared Duplicate Demo', start: '2026-03-20T11:00:00Z', end: '2026-03-20T12:00:00Z', location: 'Shared Room' },
+    { summary: 'Quarter Planning Multi-Day Work Event With A Long Title', start: '2026-03-24', end: '2026-03-28' },
+    { summary: 'Sprint Demo', start: '2026-03-26T15:00:00Z', end: '2026-03-26T16:00:00Z' },
+    { summary: 'Month End Report', start: '2026-03-30T16:00:00Z', end: '2026-03-30T17:00:00Z' },
+    { summary: 'April Prep', start: '2026-03-31T20:00:00Z', end: '2026-03-31T21:00:00Z' }
+  ]
+};
+
 const duplicateEvents = {
   'calendar.family': [
     { summary: 'Shared Duplicate Demo', start: '2026-03-15T11:00:00Z', end: '2026-03-15T12:00:00Z', location: 'Shared Room' },
@@ -103,6 +146,20 @@ const stackedDayBadgeEvents = {
   ]
 };
 
+const scheduleSpanEvents = {
+  'calendar.family': [
+    { summary: 'Classic Multi-Day Family Vacation With A Long Title', start: '2026-03-15', end: '2026-03-19' },
+    { summary: 'Custom Blue School Break With A Long Title', start: '2026-03-16', end: '2026-03-19' },
+    { summary: 'Custom Neutral Work Travel With A Long Title', start: '2026-03-17', end: '2026-03-20' },
+    { summary: 'Combined Stripes Multi-Calendar Event With A Long Title', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Multi-Calendar Event With A Long Title', start: '2026-03-19', end: '2026-03-22' }
+  ],
+  'calendar.work': [
+    { summary: 'Combined Stripes Multi-Calendar Event With A Long Title', start: '2026-03-18', end: '2026-03-21' },
+    { summary: 'Combined Bars Multi-Calendar Event With A Long Title', start: '2026-03-19', end: '2026-03-22' }
+  ]
+};
+
 const stackedDayBadgeConfig = {
   day_badge_layout_week: 'stacked',
   day_badges: [
@@ -114,8 +171,51 @@ const stackedDayBadgeConfig = {
 const defaultColors = { 'calendar.family': '#ff5f66', 'calendar.work': '#14c8bd' };
 
 const cases = [
-  { name: 'month-basic-light', config: { default_view: 'month', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
-  { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Month' },
+  {
+    name: 'month-basic-light',
+    config: { default_view: 'month', color_scheme: 'light' },
+    darkMode: false,
+    events: monthVisualEvents,
+    viewLabel: 'Month',
+    assert: async (card) => {
+      const firstWeek = card.locator('.day-cell[data-date^="2026-03-03"]').first();
+      const middleWeek = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      const finalWeek = card.locator('.day-cell[data-date^="2026-03-31"]').first();
+      await expect(firstWeek).toContainText('Dentist');
+      await expect(card.locator('.day-cell[data-date^="2026-03-10"]').first()).toContainText('Soccer Practice');
+      await expect(middleWeek).toContainText('Coffee');
+      await expect(card.locator('.day-cell[data-date^="2026-03-24"]').first()).toContainText(/Overflow|more/);
+      await expect(finalWeek).toContainText('Pay Bills');
+
+      const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      await expect(sunday).toContainText('Coffee');
+      await expect(sunday).toContainText('Standup');
+      await expect(sunday).toContainText('Night Shift');
+      await expect(sunday.locator('.month-span-event-spacer')).toHaveCount(0);
+      await expect(sunday.locator('.more-events')).toHaveCount(0);
+
+      const coffeeBox = await sunday.locator('.event').filter({ hasText: 'Coffee' }).boundingBox();
+      const standupBox = await sunday.locator('.event').filter({ hasText: 'Standup' }).boundingBox();
+      const nightShiftBox = await sunday.locator('.event').filter({ hasText: 'Night Shift' }).boundingBox();
+      expect(coffeeBox).not.toBeNull();
+      expect(standupBox).not.toBeNull();
+      expect(nightShiftBox).not.toBeNull();
+      expect(standupBox.y - coffeeBox.y).toBeLessThan(40);
+      expect(nightShiftBox.y - standupBox.y).toBeLessThan(40);
+
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveCount(1);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveAttribute('data-month-span-days', '3');
+      expect(await card.locator('.month-span-event-placeholder').count()).toBeGreaterThanOrEqual(2);
+
+      const thursday = card.locator('.day-cell[data-date^="2026-03-26"]').first();
+      const sprintDemoBox = await thursday.locator('.event').filter({ hasText: 'Sprint Demo' }).boundingBox();
+      const quarterPlanningPlaceholderBox = await thursday.locator('.month-span-event-placeholder').first().boundingBox();
+      expect(sprintDemoBox).not.toBeNull();
+      expect(quarterPlanningPlaceholderBox).not.toBeNull();
+      expect(sprintDemoBox.y + sprintDemoBox.height).toBeLessThanOrEqual(quarterPlanningPlaceholderBox.y + 1);
+    }
+  },
+  { name: 'month-basic-dark', config: { default_view: 'month', color_scheme: 'dark' }, darkMode: true, events: monthVisualEvents, viewLabel: 'Month' },
   { name: 'week-basic-light', config: { default_view: 'week', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-basic-dark', config: { default_view: 'week', color_scheme: 'dark' }, darkMode: true, events: baseEvents, viewLabel: 'Week' },
   { name: 'week-compact-basic-light', config: { default_view: 'week-compact', color_scheme: 'light' }, darkMode: false, events: baseEvents, viewLabel: 'Week' },
@@ -212,6 +312,37 @@ const cases = [
     }
   },
   { name: 'event-left-tint-schedule', config: { default_view: 'schedule', event_color_mode: 'left-tint', event_tint_opacity: 100, event_color_bar_width: 18, colors: defaultColors }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
+  {
+    name: 'schedule-all-day-continuous-spans',
+    config: {
+      default_view: 'schedule',
+      combine_calendars: true,
+      combine_style: 'stripes',
+      combine_background: '#d7ebff',
+      colors: defaultColors,
+      event_styles: [
+        { match: { title: 'Custom Blue School Break With A Long Title' }, style: { background_color: '#e0f2fe', event_font_color: '#075985', icon: 'mdi:water' } },
+        { match: { title: 'Custom Neutral Work Travel With A Long Title' }, style: { background_color: '#f8f3e9', event_font_color: '#7c2d12', icon: 'mdi:minus' } },
+        { match: { title: 'Combined Bars Multi-Calendar Event With A Long Title' }, style: { background_color: '#fef3c7', event_font_color: '#78350f', icon: 'mdi:format-list-bulleted' } }
+      ]
+    },
+    darkMode: false,
+    events: scheduleSpanEvents,
+    viewLabel: 'Schedule',
+    assert: async (card) => {
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Classic Multi-Day Family Vacation With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Custom Blue School Break With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Custom Neutral Work Travel With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Stripes Multi-Calendar Event With A Long Title' })).toHaveCount(1);
+      await expect(card.locator('.all-day-event').filter({ hasText: 'Combined Bars Multi-Calendar Event With A Long Title' })).toHaveCount(1);
+      expect(await card.locator('.all-day-event-span-placeholder').count()).toBeGreaterThan(5);
+      const classicSpanBox = await card.locator('.all-day-event').filter({ hasText: 'Classic Multi-Day Family Vacation With A Long Title' }).boundingBox();
+      const finalDayAllDayBox = await card.locator('.week-standard-day-column[data-date^="2026-03-18"] .all-day-events').boundingBox();
+      expect(classicSpanBox).not.toBeNull();
+      expect(finalDayAllDayBox).not.toBeNull();
+      expect(Math.abs((classicSpanBox.x + classicSpanBox.width) - (finalDayAllDayBox.x + finalDayAllDayBox.width - 8))).toBeLessThanOrEqual(2);
+    }
+  },
   { name: 'virtual-calendars', config: { default_view: 'schedule', virtual_calendars: [{ name: 'home+work', icon: 'mdi:calendar', entities: ['calendar.family', 'calendar.work'] }] }, darkMode: false, events: baseEvents, viewLabel: 'Schedule' },
   {
     name: 'styled-events-days',
@@ -221,12 +352,12 @@ const cases = [
       day_styles: [{ condition: 'day_of_week', day_of_week: ['saturday', 'sunday'], background: '#dcfce7', opacity: 1 }]
     },
     darkMode: false,
-    events: baseEvents,
+    events: monthVisualEvents,
     viewLabel: 'Month',
     assert: async (card) => {
       await expect(card).toContainText('Standup');
-      await expect(card.locator('.event').filter({ hasText: 'Standup' })).toHaveCSS('background-color', 'rgb(248, 215, 218)');
-      await expect(card.locator('.event').filter({ hasText: 'Standup' })).toHaveCSS('color', 'rgb(114, 28, 36)');
+      await expect(card.locator('.event').filter({ hasText: 'Standup' }).first()).toHaveCSS('background-color', 'rgb(248, 215, 218)');
+      await expect(card.locator('.event').filter({ hasText: 'Standup' }).first()).toHaveCSS('color', 'rgb(114, 28, 36)');
       await expect(card.locator('.day-cell[data-date^="2026-03-14"]').first()).toHaveClass(/day-style-has-background/);
       await expect(card.locator('.day-cell[data-date^="2026-03-14"]').first()).toHaveCSS('background-color', 'rgb(220, 252, 231)');
       await expect(card.locator('.day-cell[data-date^="2026-03-15"]').first()).toHaveClass(/day-style-has-background/);
@@ -237,11 +368,23 @@ const cases = [
   { name: 'month-dense-overflow-expanded', config: { default_view: 'month', show_all_events_month: true }, darkMode: false, events: overflowEvents, viewLabel: 'Month', assert: async (card) => { expect(await card.locator('.day-cell.today .event, .day-cell.today .week-compact-event').count()).toBeGreaterThan(8); } },
   { name: 'event-location-full', config: { default_view: 'week-standard', show_event_location: true, use_short_location: false, week_start_hour: 8, week_end_hour: 16 }, darkMode: false, events: locationEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.week-standard-event-location').first()).toContainText('Building Q'); } },
   { name: 'event-location-short', config: { default_view: 'week-standard', show_event_location: true, use_short_location: true, week_start_hour: 8, week_end_hour: 16 }, darkMode: false, events: locationEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.week-standard-event-location').first()).toContainText('Extremely Long Conference Center Road'); await expect(card.locator('.week-standard-event-location').first()).not.toContainText('Building Q'); } },
-  { name: 'background-header-opacity', config: { default_view: 'month', background_opacity: 45, header_background_opacity: 20, background_image_url: INLINE_BACKGROUND_SVG, background_image_size: '96px 96px', background_image_position: 'top left', background_image_repeat: 'repeat', header_color: '#0f172a', header_text_color: '#ffffff' }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
+  {
+    name: 'background-header-opacity',
+    config: { default_view: 'month', background_opacity: 45, header_background_opacity: 20, background_image_url: INLINE_BACKGROUND_SVG, background_image_size: '96px 96px', background_image_position: 'top left', background_image_repeat: 'repeat', header_color: '#0f172a', header_text_color: '#ffffff' },
+    darkMode: false,
+    events: monthVisualEvents,
+    viewLabel: 'Month',
+    assert: async (card) => {
+      const sunday = card.locator('.day-cell[data-date^="2026-03-15"]').first();
+      await expect(sunday).toContainText('Night Shift');
+      await expect(sunday.locator('.month-span-event-spacer')).toHaveCount(0);
+      await expect(card.locator('.month-span-event').filter({ hasText: 'Conference With A Long Multi-Day Title' })).toHaveCount(1);
+    }
+  },
   { name: 'week-standard-current-time-bar', config: { default_view: 'week-standard', show_current_time_bar: true, week_start_hour: 8, week_end_hour: 18 }, darkMode: false, events: baseEvents, viewLabel: 'Schedule', assert: async (card) => { await expect(card.locator('.current-time-line')).toBeVisible(); } },
   { name: 'week-compact-compact-header', config: { default_view: 'week-compact', compact_header: true }, darkMode: false, events: baseEvents, viewLabel: 'Week', headerSelector: '.header-compact' },
-  { name: 'month-compact-height', config: { default_view: 'month', compact_height: true }, darkMode: false, events: baseEvents, viewLabel: 'Month' },
-  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: baseEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 } },
+  { name: 'month-compact-height', config: { default_view: 'month', compact_height: true }, darkMode: false, events: monthVisualEvents, viewLabel: 'Month' },
+  { name: 'month-mobile', config: { default_view: 'month', show_all_events_month: false }, darkMode: false, events: monthVisualEvents, viewLabel: 'Month', viewport: { width: 390, height: 900 } },
   { name: 'week-compact-mobile', config: { default_view: 'week-compact' }, darkMode: false, events: baseEvents, viewLabel: 'Week', viewport: { width: 390, height: 900 } },
   { name: 'agenda-mobile', config: { default_view: 'agenda' }, darkMode: false, events: baseEvents, viewLabel: 'Agenda', viewport: { width: 390, height: 900 } },
   { name: 'hostile-dataset', config: { default_view: 'agenda', combine_calendars: true }, darkMode: false, events: hostileEvents, viewLabel: 'Agenda' },
@@ -320,6 +463,209 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
+async function renderScheduleColorModeSpanCase(page, eventColorMode, title) {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Schedule Color Mode Span Calendar',
+      default_view: 'schedule',
+      event_color_mode: eventColorMode,
+      event_color_bar_width: 18,
+      colors: { 'calendar.family': '#2563eb' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: title, start: '2026-03-15', end: '2026-03-19' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  const event = card.locator('.all-day-event').filter({ hasText: title });
+  await expect(event).toHaveCount(1);
+  await expect(card.locator('.all-day-event-span-placeholder')).toHaveCount(3);
+
+  const finalDayAllDayBox = await card.locator('.week-standard-day-column[data-date^="2026-03-18"] .all-day-events').boundingBox();
+  const eventBox = await event.boundingBox();
+  expect(finalDayAllDayBox).not.toBeNull();
+  expect(eventBox).not.toBeNull();
+  expect(Math.abs((eventBox.x + eventBox.width) - (finalDayAllDayBox.x + finalDayAllDayBox.width - 8))).toBeLessThanOrEqual(2);
+
+  const eventClasses = await event.getAttribute('class');
+  expect(eventClasses || '').not.toContain('continues-next');
+  const borderTopRightRadius = await event.evaluate((element) => getComputedStyle(element).borderTopRightRadius);
+  expect(borderTopRightRadius).not.toBe('0px');
+
+  const backgroundImage = await event.evaluate((element) => getComputedStyle(element).backgroundImage);
+  expect(backgroundImage).toContain('linear-gradient');
+  expect(await card.locator('.all-day-event').evaluateAll((events) =>
+    events.filter((element) => getComputedStyle(element).backgroundImage.includes('linear-gradient')).length
+  )).toBe(1);
+}
+
+test('behavior: schedule left-tint multi-day all-day span renders one continuous left bar', async ({ page }) => {
+  await renderScheduleColorModeSpanCase(
+    page,
+    'left-tint',
+    'Left Tint Multi-Day School Break With A Long Title'
+  );
+});
+
+test('behavior: schedule left-neutral multi-day all-day span renders one continuous left bar', async ({ page }) => {
+  await renderScheduleColorModeSpanCase(
+    page,
+    'left-neutral',
+    'Left Neutral Multi-Day Work Travel With A Long Title'
+  );
+});
+
+
+
+test('behavior: month continuation placeholder reserves full event row height', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Month Span Placeholder Calendar',
+      default_view: 'month',
+      event_color_mode: 'left-tint',
+      colors: { 'calendar.family': '#2563eb' },
+      event_styles: [{
+        match: { title_contains: 'Long Multi-Day' },
+        style: { event_font_size: '15px' }
+      }]
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Long Multi-Day Conference Planning Span With Extra Words', start: '2026-03-16', end: '2026-03-19' },
+        { summary: 'Follow-up Timed Event', start: '2026-03-17T10:00:00Z', end: '2026-03-17T10:30:00Z' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+
+  const visibleSpan = card.locator('.day-cell[data-date^="2026-03-16"] .month-span-event').filter({ hasText: 'Long Multi-Day' });
+  const continuationPlaceholder = card.locator('.day-cell[data-date^="2026-03-17"] .month-span-event-placeholder').first();
+  const timedEvent = card.locator('.day-cell[data-date^="2026-03-17"] .event').filter({ hasText: 'Follow-up Timed Event' });
+
+  await expect(visibleSpan).toHaveCount(1);
+  await expect(continuationPlaceholder).toHaveCount(1);
+  await expect(timedEvent).toHaveCount(1);
+
+  const visibleSpanBox = await visibleSpan.boundingBox();
+  const placeholderBox = await continuationPlaceholder.boundingBox();
+  const timedEventBox = await timedEvent.boundingBox();
+  expect(visibleSpanBox).not.toBeNull();
+  expect(placeholderBox).not.toBeNull();
+  expect(timedEventBox).not.toBeNull();
+
+  expect(Math.abs(placeholderBox.height - visibleSpanBox.height)).toBeLessThanOrEqual(1);
+  expect(timedEventBox.y).toBeGreaterThanOrEqual(placeholderBox.y + placeholderBox.height - 1);
+});
+
+
+test('behavior: month compact-height continuous span is not clipped after first day', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Compact Month Span Calendar',
+      default_view: 'month',
+      compact_height: true,
+      colors: { 'calendar.family': '#2563eb' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Compact Height Multi-Day Span With A Long Title', start: '2026-03-16', end: '2026-03-19' },
+        { summary: 'Day Two Timed Event', start: '2026-03-17T10:00:00Z', end: '2026-03-17T10:30:00Z' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+
+  const span = card.locator('.day-cell[data-date^="2026-03-16"] .month-span-event').filter({ hasText: 'Compact Height Multi-Day Span' });
+  const firstDay = card.locator('.day-cell[data-date^="2026-03-16"]').first();
+  const finalDay = card.locator('.day-cell[data-date^="2026-03-18"]').first();
+  const timedEvent = card.locator('.day-cell[data-date^="2026-03-17"] .event').filter({ hasText: 'Day Two Timed Event' });
+
+  await expect(span).toHaveCount(1);
+  await expect(timedEvent).toHaveCount(1);
+
+  const spanBox = await span.boundingBox();
+  const firstDayBox = await firstDay.boundingBox();
+  const finalDayBox = await finalDay.boundingBox();
+  const timedEventBox = await timedEvent.boundingBox();
+  expect(spanBox).not.toBeNull();
+  expect(firstDayBox).not.toBeNull();
+  expect(finalDayBox).not.toBeNull();
+  expect(timedEventBox).not.toBeNull();
+
+  expect(spanBox.x + spanBox.width).toBeGreaterThan(finalDayBox.x + finalDayBox.width - 10);
+  expect(spanBox.x + spanBox.width).toBeGreaterThan(firstDayBox.x + firstDayBox.width + 20);
+  expect(timedEventBox.y).toBeGreaterThan(spanBox.y + spanBox.height - 1);
+});
+
+
+test('behavior: month null span lane can be filled by a timed event above lower span', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Month Lane Packing Calendar',
+      default_view: 'month',
+      colors: { 'calendar.family': '#dc2626', 'calendar.work': '#0f766e' }
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Red Early Week Span', start: '2026-03-23', end: '2026-03-26' }
+      ],
+      'calendar.work': [
+        { summary: 'Teal Lower Week Span', start: '2026-03-24', end: '2026-03-28' },
+        { summary: 'Sprint Demo', start: '2026-03-26T15:00:00Z', end: '2026-03-26T16:00:00Z' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+
+  const thursday = card.locator('.day-cell[data-date^="2026-03-26"]').first();
+  const sprintDemo = thursday.locator('.event').filter({ hasText: 'Sprint Demo' });
+  const tealSpan = card.locator('.day-cell[data-date^="2026-03-24"] .month-span-event').filter({ hasText: 'Teal Lower Week Span' });
+  const tealContinuation = thursday.locator('.month-span-event-placeholder').first();
+
+  await expect(sprintDemo).toHaveCount(1);
+  await expect(tealSpan).toHaveCount(1);
+  await expect(tealContinuation).toHaveCount(1);
+  await expect(thursday.locator('.more-events')).toHaveCount(0);
+
+  const sprintBox = await sprintDemo.boundingBox();
+  const tealSpanBox = await tealSpan.boundingBox();
+  const tealContinuationBox = await tealContinuation.boundingBox();
+  const thursdayBox = await thursday.boundingBox();
+  expect(sprintBox).not.toBeNull();
+  expect(tealSpanBox).not.toBeNull();
+  expect(tealContinuationBox).not.toBeNull();
+  expect(thursdayBox).not.toBeNull();
+
+  expect(sprintBox.y + sprintBox.height).toBeLessThanOrEqual(tealContinuationBox.y + 1);
+  expect(Math.abs(tealSpanBox.y - tealContinuationBox.y)).toBeLessThanOrEqual(1);
+  expect(tealSpanBox.x + tealSpanBox.width).toBeGreaterThan(thursdayBox.x + thursdayBox.width - 10);
+});
 
 test('behavior: event modal overlays native header at tablet viewport', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
@@ -454,10 +800,36 @@ for (const scenario of cases) {
 
     await expect(card).toHaveScreenshot(`${scenario.name}.png`, {
       animations: 'disabled',
-      maxDiffPixelRatio: 0.01
+      maxDiffPixelRatio: scenario.maxDiffPixelRatio || 0.01
     });
   });
 }
+
+test('regression: month compact-height hides overflowing span lanes in more count', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], title: 'Regression Calendar', default_view: 'month', compact_height: true },
+    events: {
+      'calendar.family': Array.from({ length: 5 }, (_, index) => ({
+        summary: `Overlap Span ${index + 1}`,
+        start: '2026-03-24',
+        end: '2026-03-27'
+      }))
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toContainText('Month');
+  const dayCell = card.locator('.day-cell[data-date^="2026-03-24"]').first();
+  await expect(dayCell).toBeVisible();
+  await expect(dayCell.locator('.month-span-event')).toHaveCount(0);
+  await expect(dayCell).toContainText('5 more');
+  await expect(dayCell).not.toContainText('Overlap Span 1');
+});
 
 test('regression: month compact-height view selector stays clickable without devtools', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });

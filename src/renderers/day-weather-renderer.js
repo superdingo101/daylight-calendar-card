@@ -1,4 +1,4 @@
-export function renderDayBadge(badge, { escapeHtml }) {
+export function renderDayBadge(badge, { escapeHtml, registerDayBadgeAction } = {}) {
   const style = [
     badge.background_color ? `--dcc-day-badge-background: ${badge.background_color};` : '',
     badge.color ? `--dcc-day-badge-color: ${badge.color};` : '',
@@ -11,15 +11,21 @@ export function renderDayBadge(badge, { escapeHtml }) {
     hasIcon ? `<ha-icon icon="${escapeHtml(badge.icon)}"></ha-icon>` : '',
     hasText ? `<span class="day-badge-text">${escapeHtml(badge.text)}</span>` : ''
   ].join('');
-  const classes = ['day-badge', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  const actionId = badge.tap_action && typeof registerDayBadgeAction === 'function'
+    ? registerDayBadgeAction(badge.tap_action)
+    : null;
+  const classes = ['day-badge', actionId ? 'day-badge-action' : '', hasIcon ? 'has-icon' : '', hasText ? 'has-text' : ''].filter(Boolean).join(' ');
+  if (actionId) {
+    return `<button type="button" class="${classes}" style="${style}" data-day-badge-action-id="${escapeHtml(actionId)}">${content}</button>`;
+  }
   return `<span class="${classes}" style="${style}">${content}</span>`;
 }
 
-export function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges }) {
+export function renderDayBadges(date, dayEvents, { escapeHtml, getDayBadges, registerDayBadgeAction }) {
   const badges = getDayBadges(date, dayEvents);
   if (!badges.length) return '';
 
-  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml })).join('');
+  const badgesHtml = badges.map((badge) => renderDayBadge(badge, { escapeHtml, registerDayBadgeAction })).join('');
 
   return `<div class="day-badges">${badgesHtml}</div>`;
 }

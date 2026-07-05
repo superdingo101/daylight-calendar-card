@@ -556,7 +556,7 @@ export function getCardStyles() {
 
       .calendar-grid.compact-month .day-cell {
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
       }
 
       .day-header {
@@ -667,6 +667,14 @@ export function getCardStyles() {
         box-sizing: border-box;
       }
 
+      .day-badge-action {
+        border: 0;
+        padding: 0;
+        font-family: inherit;
+        appearance: none;
+        cursor: pointer;
+      }
+
       .day-badge.has-text {
         width: auto;
         gap: 4px;
@@ -758,6 +766,31 @@ export function getCardStyles() {
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
+      .event.month-span-event {
+        width: calc((100% * var(--month-event-visible-span, 1)) + ((16px + 1px) * var(--month-event-gap-count, 0)));
+        max-width: none;
+        z-index: 2;
+      }
+
+      .event.month-span-event.continues-prev {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      .event.month-span-event.continues-next {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      .month-span-event-spacer {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .month-span-event-spacer::before {
+        content: "\\00a0";
+      }
+
 
       .event-time {
         font-size: var(--event-time-font-size, 9px);
@@ -1377,6 +1410,7 @@ export function getCardStyles() {
       .week-standard-container {
         --week-standard-column-gap: 12px;
         --week-standard-bridge-overlap: 2px;
+        --all-day-horizontal-padding: 8px;
         display: flex;
         align-items: flex-start;
         background: #f9fafb;
@@ -1499,7 +1533,7 @@ export function getCardStyles() {
       }
 
       .all-day-events {
-        padding: 8px;
+        padding: var(--all-day-horizontal-padding);
         background: #f9fafb;
         border-bottom: 2px solid #e5e7eb;
         display: flex;
@@ -1510,7 +1544,7 @@ export function getCardStyles() {
       }
 
       .all-day-event {
-        padding: 4px 8px 4px calc(8px + var(--combine-left-offset, 0px));
+        padding: 4px var(--all-day-horizontal-padding) 4px calc(var(--all-day-horizontal-padding) + var(--combine-left-offset, 0px));
         color: var(--event-bubble-text-color, white);
         border-radius: 6px;
         cursor: pointer;
@@ -1537,12 +1571,12 @@ export function getCardStyles() {
 
       .all-day-event.bridge-prev {
         margin-left: calc(-1 * (var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)));
-        padding-left: calc(8px + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap) + var(--combine-left-offset, 0px));
+        padding-left: calc(var(--all-day-horizontal-padding) + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap) + var(--combine-left-offset, 0px));
       }
 
       .all-day-event.bridge-next {
         margin-right: calc(-1 * (var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)));
-        padding-right: calc(8px + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap));
+        padding-right: calc(var(--all-day-horizontal-padding) + var(--week-standard-column-gap) + var(--week-standard-bridge-overlap));
       }
 
       .all-day-event-spacer {
@@ -1559,6 +1593,12 @@ export function getCardStyles() {
         z-index: 2;
       }
 
+      .all-day-event[data-all-day-span-days] {
+        width: calc((100% * var(--all-day-visible-span, 1)) + ((var(--week-standard-column-gap) + var(--all-day-horizontal-padding) + var(--all-day-horizontal-padding)) * var(--all-day-title-gap-count, 0)));
+        max-width: none;
+        z-index: 2;
+      }
+
       .all-day-event-title {
         font-weight: 600;
         overflow: hidden;
@@ -1572,12 +1612,10 @@ export function getCardStyles() {
       }
 
       .all-day-event-title.spans-multiple-days {
-        position: absolute;
-        top: 50%;
-        left: calc(8px + var(--combine-left-offset, 0px));
-        transform: translateY(-50%);
-        width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
-        max-width: calc(((100% * var(--all-day-title-span-days, 1)) + ((var(--week-standard-column-gap) + var(--week-standard-bridge-overlap)) * var(--all-day-title-gap-count, 0))) - (24px + var(--combine-left-offset, 0px)));
+        position: static;
+        transform: none;
+        width: auto;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         z-index: 1;
@@ -1853,6 +1891,44 @@ export function getCardStyles() {
 
       .modal-row-description {
         align-items: flex-start;
+      }
+      .modal-location-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary-color, #3b82f6);
+        font: inherit;
+        text-align: left;
+        text-decoration: underline;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .modal-location-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        width: 100%;
+      }
+
+      .modal-location-action {
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 8px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 480px) {
+        .modal-location-action {
+          padding: 8px 6px;
+          font-size: 12px;
+        }
       }
 
       .event-description-content {

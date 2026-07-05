@@ -88,6 +88,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
+  month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
   hide_the_past: 'legacy hide_the_past true maps to hiding ended events',
   past_event_mode: 'past_event_mode muted leaves ended events visible and applies muted style',
   hide_empty_days: 'agenda hide_empty_days removes empty day rows',
@@ -118,6 +119,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
+  location_links: 'event location links are opt-in for the details modal',
   use_short_location: 'setConfig applies visual layout and styling options',
   event_font_size: 'event font size wrappers share fallback and override behavior',
   event_time_font_size: 'event font size wrappers share fallback and override behavior',
@@ -227,6 +229,271 @@ function recurrenceCases() {
   ];
 }
 
+test('month_day_tap_action normalizes to create by default and accepts show_events', () => {
+  const defaultCard = makeCard();
+  assert.equal(defaultCard._config.month_day_tap_action, 'create');
+
+  const showEventsCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'show_events' });
+  assert.equal(showEventsCard._config.month_day_tap_action, 'show_events');
+
+  const invalidCard = makeCard({ entities: ['calendar.family'], month_day_tap_action: 'bogus' });
+  assert.equal(invalidCard._config.month_day_tap_action, 'create');
+});
+
+// --- month_day_tap_action behavior matrix -------------------------------------
+// Drives the real .day-cell click handler and records which modal it opened.
+function runMonthDayTap({ tap, management, writable, busy }) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, month_day_tap_action: tap });
+  const handlers = {};
+  const dayEl = { addEventListener: (n, cb) => { handlers[n] = cb; }, getAttribute: () => '2026-05-01' };
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = { querySelector: () => null, querySelectorAll: (s) => (s === '.day-cell' ? [dayEl] : []) };
+  const spy = { create: 0, dayModal: 0 };
+  card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
+  card.getEventsForDay = () => (busy ? [{ summary: 'Sample', entityId: 'calendar.family' }] : []);
+  card.showCreateEventModal = () => { spy.create += 1; };
+  card.showDayModal = () => { spy.dayModal += 1; };
+  card.attachEventListeners();
+  handlers.click({ target: { classList: { contains: () => false }, closest: () => null } });
+  return spy;
+}
+
+test('month_day_tap_action=create keeps legacy behavior across day types', () => {
+  // create + writable → create modal regardless of busy/empty
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: true }), { create: 1, dayModal: 0 });
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+  // create fallback: no writable calendars → busy day opens day modal, empty day does nothing
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: false, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: false, writable: false, busy: false }), { create: 0, dayModal: 0 });
+});
+
+test('month_day_tap_action=show_events opens the day list on busy days and create on empty days', () => {
+  // busy day → day modal (whether or not management/writable is available)
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: false, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: false, busy: true }), { create: 0, dayModal: 1 });
+  // empty day → create only when it can (writable + management); otherwise nothing
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: false, writable: false, busy: false }), { create: 0, dayModal: 0 });
+});
+
+test('month_day_tap_action decides busy vs empty from visible events (getEventsForDay)', () => {
+  // A day whose only events are hidden/past are excluded by getEventsForDay, so the
+  // handler sees an empty day. Simulate that: getEventsForDay returns [] -> create (not day modal).
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
+});
+
+// --- showDayModal Add Event button + back-navigation --------------------------
+function renderDayModal({ management = true, writable = true, hideAdd = false } = {}) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, hide_add_event_button: hideAdd });
+  card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
+  card.getEventsForDay = () => [];
+  // Stub the markup helpers so we don't depend on a fully-normalized event shape.
+  card.applyEventModalSizeClass = () => {};
+  card.sortEventsForDate = (events) => events;
+  card.getEventDaySegment = () => ({ segmentStart: new Date('2026-05-01T09:00:00'), segmentEnd: new Date('2026-05-01T10:00:00'), isAllDaySegment: false });
+  card.getEventStyle = () => '';
+  card.getEventBubbleFontSize = () => 11;
+  card.getEventTimeFontSize = () => 9;
+  card.getEventLocationFontSize = () => 9;
+  card.getEventBubbleFontColor = () => '#000';
+  card.renderEventTitleWithPrefix = (event, title) => title;
+  card.shouldShowEventTime = () => false;
+  card.shouldShowEventLocation = () => false;
+  card.renderEventStyleCornerIcon = () => '';
+  card.renderCombinedCornerBubbles = () => '';
+
+  const event = { summary: 'Sample', entityId: 'calendar.family' };
+  const date = new Date('2026-05-01T00:00:00');
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  const handlers = {};
+  const addBtn = { addEventListener: (n, cb) => { handlers.add = cb; } };
+  const dayEventEl = { addEventListener: (n, cb) => { handlers.dayEvent = cb; }, getAttribute: () => JSON.stringify(event) };
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    if (id === 'close-modal') return { addEventListener: () => {} };
+    if (id === 'day-modal-add-event') return content.innerHTML.includes('day-modal-add-event') ? addBtn : null;
+    return null;
+  };
+  card._root = { querySelectorAll: (s) => (s === '.day-event' ? [dayEventEl] : []) };
+
+  card.showDayModal(date, [event]);
+  return { card, html: content.innerHTML, handlers, date };
+}
+
+test('showDayModal shows the Add Event button only when addable', () => {
+  assert.match(renderDayModal({ management: true, writable: true, hideAdd: false }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: true, writable: true, hideAdd: true }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: false, writable: false, hideAdd: false }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: true, writable: false, hideAdd: false }).html, /day-modal-add-event/);
+});
+
+test('showDayModal Add Event button opens the create form for the selected date', () => {
+  const { card, handlers, date } = renderDayModal({ management: true, writable: true });
+  let created = null;
+  card.showCreateEventModal = (d) => { created = d; };
+  handlers.add();
+  assert.ok(created instanceof Date);
+  assert.equal(created.getTime(), date.getTime());
+});
+
+test('showDayModal event tap returns to the day list on close', () => {
+  const { card, handlers } = renderDayModal({ management: true, writable: true });
+  let backFn = null;
+  card.showEventModal = (evt, onCloseBack) => { backFn = onCloseBack; };
+  handlers.dayEvent();
+  assert.equal(typeof backFn, 'function');
+  let reopened = 0;
+  card.showDayModal = () => { reopened += 1; };
+  backFn();
+  assert.equal(reopened, 1);
+});
+
+test('showDayModal Add Event button returns to the day list after saving', () => {
+  const { card, handlers } = renderDayModal({ management: true, writable: true });
+  let opts = null;
+  card.showCreateEventModal = (d, t, o) => { opts = o; };
+  handlers.add();
+  assert.equal(typeof opts?.onSaved, 'function');
+  let reopened = 0;
+  card.showDayModal = () => { reopened += 1; };
+  opts.onSaved();
+  assert.equal(reopened, 1);
+});
+
+// --- real getEventsForDay filtering drives the busy/empty decision (no stub) ------
+function runMonthDayTapWithEvents({ config = {}, events = [], date }) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true, month_day_tap_action: 'show_events', ...config });
+  card._events = events;
+  const handlers = {};
+  const iso = date.toISOString();
+  const dayEl = { addEventListener: (n, cb) => { handlers[n] = cb; }, getAttribute: () => iso };
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = { querySelector: () => null, querySelectorAll: (s) => (s === '.day-cell' ? [dayEl] : []) };
+  const spy = { create: 0, dayModal: 0 };
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.showCreateEventModal = () => { spy.create += 1; };
+  card.showDayModal = () => { spy.dayModal += 1; };
+  card.attachEventListeners();
+  handlers.click({ target: { classList: { contains: () => false }, closest: () => null } });
+  return spy;
+}
+
+test('show_events: a visible event opens the day modal (real getEventsForDay)', () => {
+  const ev = makeRelativeEvent('Visible', 3600000, 7200000);
+  assert.deepEqual(runMonthDayTapWithEvents({ events: [ev], date: eventDate(ev) }), { create: 0, dayModal: 1 });
+});
+
+test('show_events: a day whose only event is hidden by past_event_mode:hide is treated as empty', () => {
+  const past = makeRelativeEvent('Past', -7200000, -3600000);
+  assert.deepEqual(runMonthDayTapWithEvents({ config: { past_event_mode: 'hide' }, events: [past], date: eventDate(past) }), { create: 1, dayModal: 0 });
+});
+
+test('show_events: a day whose only event is on a hidden calendar is treated as empty', () => {
+  const ev = makeRelativeEvent('Hidden cal', 3600000, 7200000);
+  assert.deepEqual(runMonthDayTapWithEvents({ config: { default_hidden_calendars: ['calendar.family'] }, events: [ev], date: eventDate(ev) }), { create: 1, dayModal: 0 });
+});
+
+test('showDayModal supplies an onSaved callback to showEventModal (fresh reopen)', () => {
+  const { card, handlers } = renderDayModal({ management: true, writable: true });
+  let captured = null;
+  card.showEventModal = (evt, onCloseBack, options) => { captured = { onCloseBack, options }; };
+  handlers.dayEvent();
+  assert.equal(typeof captured.onCloseBack, 'function');
+  assert.equal(typeof captured.options?.onSaved, 'function');
+});
+
+// --- +N compact modal must NOT reuse post-save navigation (regression guard) ------
+function renderDayCompactModal() {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.getEventsForDay = () => [];
+  card.applyEventModalSizeClass = () => {};
+  card.sortEventsForDate = (events) => events;
+  card.getEventDaySegment = () => ({ segmentStart: new Date('2026-05-01T09:00:00'), segmentEnd: new Date('2026-05-01T10:00:00'), isAllDaySegment: false });
+  card.getEventStyle = () => '';
+  card.getEventBubbleFontSize = () => 11;
+  card.getEventTimeFontSize = () => 9;
+  card.getEventLocationFontSize = () => 9;
+  card.getEventBubbleFontColor = () => '#000';
+  card.renderEventTitleWithPrefix = (event, title) => title;
+  card.shouldShowEventTime = () => false;
+  card.shouldShowEventLocation = () => false;
+  card.formatEventTime = () => '';
+  card.renderEventStyleCornerIcon = () => '';
+  card.renderCombinedCornerBubbles = () => '';
+  const event = { summary: 'Sample', entityId: 'calendar.family' };
+  const date = new Date('2026-05-01T00:00:00');
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  const handlers = {};
+  const el = { addEventListener: (n, cb) => { handlers.compactEvent = cb; }, getAttribute: () => JSON.stringify(event) };
+  card.getRootElementById = (id) => (id === 'modal-content' ? content : id === 'event-modal' ? modal : { addEventListener: () => {} });
+  card._root = { querySelectorAll: (s) => (s === '.week-compact-event' ? [el] : []) };
+  card.showDayCompactModal(date, [event]);
+  return { card, handlers };
+}
+
+test('+N compact modal keeps close/back only and does NOT supply onSaved to showEventModal', () => {
+  const { card, handlers } = renderDayCompactModal();
+  let captured = null;
+  card.showEventModal = (evt, onCloseBack, options) => { captured = { onCloseBack, options }; };
+  handlers.compactEvent();
+  assert.equal(typeof captured.onCloseBack, 'function'); // close still returns to the +N list
+  assert.equal(captured.options?.onSaved, undefined);    // but no post-save reopen (avoids stale data)
+});
+
+// showEventModal forwards options.onSaved into the edit/delete flows so a save/delete
+// returns to the day list; without it (e.g. +N or month-grid) those flows get no callback.
+function renderEventModal(onSaved) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.getCalendarName = () => 'Family';
+  card._calendarCapabilities = { 'calendar.family': {} };
+  card.getModalCalendarBadgesForEvent = () => [];
+  card.applyEventModalSizeClass = () => {};
+  card.observeModalVisibility = () => {};
+  const handlers = {};
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    if (id === 'edit-event-btn') return { addEventListener: (n, cb) => { handlers.edit = cb; } };
+    if (id === 'delete-event-btn') return { addEventListener: (n, cb) => { handlers.delete = cb; } };
+    return { addEventListener: () => {} };
+  };
+  const event = { entityId: 'calendar.family', uid: 'evt-1', summary: 'Sample', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  card.showEventModal(event, () => {}, { onSaved });
+  return { card, handlers };
+}
+
+test('showEventModal Edit forwards onSaved to the edit flow', () => {
+  const back = () => {};
+  const { card, handlers } = renderEventModal(back);
+  let confirmArgs = null;
+  card.showEditConfirmation = (...args) => { confirmArgs = args; };
+  handlers.edit();
+  // showEditConfirmation(event, startDate, endDate, isAllDay, selectedEvents, onSaved)
+  assert.equal(confirmArgs[5], back);
+});
+
+test('showEventModal Delete forwards onSaved to the delete flow', () => {
+  const back = () => {};
+  const { card, handlers } = renderEventModal(back);
+  let deleteArgs = null;
+  card.showDeleteConfirmation = (...args) => { deleteArgs = args; };
+  handlers.delete();
+  // showDeleteConfirmation(event, selectedEvents, onSaved)
+  assert.equal(deleteArgs[2], back);
+});
+
 test('YAML config coverage inventory tracks every normalized schema option', () => {
   const card = makeCard();
   const schemaOptions = card.getConfigNormalizationSchema().map((field) => schemaKeyToYamlOption(field.key));
@@ -286,8 +553,8 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
-    'show_current_time_bar', 'show_event_location', 'use_short_location',
+    'month_day_tap_action', 'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
+    'show_current_time_bar', 'show_event_location', 'location_links', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
@@ -310,6 +577,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     disable_swipe_controls: false,
     show_all_events_month: false,
     show_all_details_month: false,
+    month_day_tap_action: 'create',
     hide_empty_days: false,
     agenda_compact_events: false,
     shorten_event_times: false,
@@ -318,6 +586,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     compact_width: false,
     show_current_time_bar: false,
     show_event_location: false,
+    location_links: false,
     use_short_location: false,
     event_location_font_size: 9,
     background_opacity: 0,
@@ -886,6 +1155,147 @@ test('time_zone subtracts all-day modal end dates as configured-zone calendar da
 
   assert.match(content.innerHTML, /Sunday, March 9, 2025 \(All Day\)/);
   assert.doesNotMatch(content.innerHTML, /Saturday, March 8, 2025 \(All Day\)/);
+});
+
+
+function createModalHarness(card) {
+  const handlers = {};
+  const classes = new Set();
+  const content = {
+    innerHTML: '',
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    }
+  };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  const alwaysAvailableIds = new Set(['event-modal', 'modal-content', 'close-modal']);
+  const hasRenderedId = (id) => new RegExp(`id=["']${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(content.innerHTML);
+  card.getRootElementById = (id) => {
+    if (id === 'event-modal') return modal;
+    if (id === 'modal-content') return content;
+    if (!alwaysAvailableIds.has(id) && !hasRenderedId(id)) return null;
+    return {
+      addEventListener: (type, handler) => {
+        handlers[id] = handler;
+      }
+    };
+  };
+  return { content, handlers };
+}
+
+const locationEvent = (location = 'Main Field') => ({
+  entityId: 'calendar.family',
+  color: '#3366ff',
+  summary: 'Practice',
+  location,
+  start: { dateTime: '2026-05-01T10:00:00Z' },
+  end: { dateTime: '2026-05-01T11:00:00Z' }
+});
+
+function clickEvent() {
+  return { preventDefault: () => {}, stopPropagation: () => {} };
+}
+
+test('event location links are opt-in for the details modal', () => {
+  const unset = makeCard({ entities: ['calendar.family'] });
+  let harness = createModalHarness(unset);
+  unset.showEventModal(locationEvent('Main Field'));
+  assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
+
+  const disabled = makeCard({ entities: ['calendar.family'], location_links: false });
+  harness = createModalHarness(disabled);
+  disabled.showEventModal(locationEvent('Main Field'));
+  assert.match(harness.content.innerHTML, /<div class="modal-value">Main Field<\/div>/);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
+});
+
+test('location_links true renders clickable modal location and expands actions without opening a window', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  let opened = false;
+  const originalOpen = window.open;
+  window.open = () => { opened = true; };
+  try {
+    card.showEventModal(locationEvent('Main Field'));
+    assert.match(harness.content.innerHTML, /id="event-location-toggle"/);
+    assert.doesNotMatch(harness.content.innerHTML, /open-location-map-btn/);
+    assert.equal(harness.handlers['open-location-map-btn'], undefined);
+    harness.handlers['event-location-toggle'](clickEvent());
+    assert.equal(opened, false);
+    assert.match(harness.content.innerHTML, /id="open-location-map-btn"/);
+    assert.match(harness.content.innerHTML, /modal-location-row[\s\S]*<\/div>\s*<div class="modal-location-actions" id="event-location-actions">/);
+    assert.match(harness.content.innerHTML, /Open in Google Maps/);
+    assert.match(harness.content.innerHTML, /Copy address/);
+  } finally {
+    window.open = originalOpen;
+  }
+});
+
+test('event location map action opens encoded Google Maps URL', () => {
+  const location = "Café A & B, O'Connell Street, München";
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  const opened = [];
+  const originalOpen = window.open;
+  window.open = (...args) => opened.push(args);
+  try {
+    assert.equal(card.getLocationMapUrl(location), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`);
+    card.showEventModal(locationEvent(location), null, { locationActionsExpanded: true });
+    harness.handlers['open-location-map-btn'](clickEvent());
+    assert.deepEqual(opened, [[`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank', 'noopener,noreferrer']]);
+  } finally {
+    window.open = originalOpen;
+  }
+});
+
+test('copy address action uses clipboard when available and fails gracefully otherwise', async () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const originalNavigator = global.navigator;
+  const writes = [];
+  global.navigator = { clipboard: { writeText: async (value) => writes.push(value) } };
+  assert.equal(await card.copyEventLocationAddress('Main Field'), true);
+  assert.deepEqual(writes, ['Main Field']);
+
+  global.navigator = { clipboard: { writeText: async () => { throw new Error('blocked'); } } };
+  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+
+  global.navigator = {};
+  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+
+  if (originalNavigator === undefined) {
+    delete global.navigator;
+  } else {
+    global.navigator = originalNavigator;
+  }
+});
+
+test('missing or empty event locations do not render modal location actions', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  let harness = createModalHarness(card);
+  card.showEventModal(locationEvent(''));
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
+
+  harness = createModalHarness(card);
+  const event = locationEvent();
+  delete event.location;
+  card.showEventModal(event);
+  assert.doesNotMatch(harness.content.innerHTML, /event-location-toggle|open-location-map-btn|copy-location-address-btn/);
+  assert.equal(harness.handlers['event-location-toggle'], undefined);
+});
+
+test('opening a different event resets expanded location actions', () => {
+  const card = makeCard({ entities: ['calendar.family'], location_links: true });
+  const harness = createModalHarness(card);
+  card.showEventModal(locationEvent('First'), null, { locationActionsExpanded: true });
+  assert.match(harness.content.innerHTML, /open-location-map-btn/);
+  card.showEventModal(locationEvent('Second'));
+  assert.match(harness.content.innerHTML, /id="event-location-toggle"/);
+  assert.doesNotMatch(harness.content.innerHTML, /open-location-map-btn/);
 });
 
 test('default_hidden_calendars initializes hidden calendar badges', () => {
@@ -1470,6 +1880,372 @@ test('event color modes normalize widths and tint opacity endpoints', () => {
   assert.match(widthFallback.getEventStyle(event), /--combine-left-offset: 22px/);
 });
 
+function makeAllDayEvent(summary, startDate, endDate, entityId = 'calendar.family', extra = {}) {
+  return {
+    entityId,
+    color: extra.color || '#3366ff',
+    summary,
+    start: { date: startDate },
+    end: { date: endDate },
+    ...extra
+  };
+}
+
+function makeTimedEvent(summary, startDateTime, endDateTime, entityId = 'calendar.family', extra = {}) {
+  return {
+    entityId,
+    color: extra.color || '#3366ff',
+    summary,
+    start: { dateTime: startDateTime },
+    end: { dateTime: endDateTime },
+    ...extra
+  };
+}
+
+function renderScheduleAllDayHtml(card, weekStartDateKey = '2026-05-03') {
+  const weekStart = new Date(`${weekStartDateKey}T00:00:00`);
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildAllDayLayoutForSchedule(weekDays);
+  return weekDays.map((date) => card.renderAllDayEventsForDay(layout.dayLanesByDateKey.get(card.getDateKey(date)) || [], 28)).join('\n');
+}
+
+function countRenderedAllDayBodies(html) {
+  return (html.match(/class="all-day-event /g) || []).length;
+}
+
+function countAllDayPlaceholders(html) {
+  return (html.match(/all-day-event-span-placeholder/g) || []).length;
+}
+
+function getAllDayBodyClassForTitle(html, title) {
+  const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return html.match(new RegExp(`<div class="all-day-event([^"]*)"[^>]*"summary":"${escapedTitle}"`))?.[1] || '';
+}
+
+test('schedule all-day multi-day events render once as a continuous span across styling modes', () => {
+  for (const event_color_mode of ['classic', 'left-tint', 'left-neutral']) {
+    const title = `${event_color_mode} trip`;
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent(title, '2026-05-04', '2026-05-07')];
+    const html = renderScheduleAllDayHtml(card);
+    const eventClasses = getAllDayBodyClassForTitle(html, title);
+
+    assert.equal(countRenderedAllDayBodies(html), 1, `${event_color_mode} should render one visible event body`);
+    assert.equal(countAllDayPlaceholders(html), 2, `${event_color_mode} should reserve continuation lanes`);
+    assert.match(html, /data-all-day-span-days="3"/);
+    assert.match(html, /--all-day-visible-span: 3/);
+    assert.doesNotMatch(eventClasses, /continues-next/, `${event_color_mode} should keep rounded right edge when ending inside the visible range`);
+    assert.doesNotMatch(eventClasses, /bridge-next/, `${event_color_mode} should not bridge internal visible days when rendered as one body`);
+    if (event_color_mode === 'classic') {
+      assert.match(html, /background-image: none/);
+    } else {
+      assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+    }
+  }
+});
+
+test('schedule all-day single-day events keep their leading bar in left color modes', () => {
+  for (const event_color_mode of ['left-tint', 'left-neutral']) {
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent('single', '2026-05-04', '2026-05-05')];
+    const html = renderScheduleAllDayHtml(card);
+
+    assert.equal(countRenderedAllDayBodies(html), 1);
+    assert.equal(countAllDayPlaceholders(html), 0);
+    assert.doesNotMatch(html, /data-all-day-span-days=/);
+    assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+  }
+});
+
+test('schedule all-day combined multi-day events render one indicator decoration for bars dots and stripes', () => {
+  for (const combine_style of ['bars', 'dots', 'stripes']) {
+    const card = makeCard({
+      entities: ['calendar.a', 'calendar.b'],
+      combine_calendars: true,
+      combine_style,
+      combine_background: 'neutral',
+      colors: { 'calendar.a': '#ff0000', 'calendar.b': '#00ff00' }
+    });
+    card._events = card.combineDuplicateCalendarEvents([
+      makeAllDayEvent('combined', '2026-05-04', '2026-05-07', 'calendar.a', { color: '#ff0000' }),
+      makeAllDayEvent('combined', '2026-05-04', '2026-05-07', 'calendar.b', { color: '#00ff00' })
+    ]);
+    const html = renderScheduleAllDayHtml(card);
+
+    assert.equal(countRenderedAllDayBodies(html), 1, `${combine_style} should render one visible event body`);
+    assert.equal(countAllDayPlaceholders(html), 2, `${combine_style} should reserve continuation lanes`);
+    assert.match(html, /data-all-day-span-days="3"/);
+    assert.equal((html.match(/background-image:/g) || []).length, 1);
+    assert.match(html, combine_style === 'stripes' ? /linear-gradient\(135deg/ : /background-repeat: no-repeat/);
+  }
+});
+
+test('schedule all-day styled multi-day events keep overrides on the continuous span', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{
+      match: { title_contains: 'styled' },
+      style: {
+        background_color: '#112233',
+        event_font_color: '#ffeecc',
+        opacity: 0.7,
+        filter: 'grayscale(20%)',
+        icon: 'mdi:star',
+        icon_color: '#abcdef',
+        title_prefix: 'emoji'
+      }
+    }]
+  });
+  card._events = [makeAllDayEvent('styled retreat', '2026-05-04', '2026-05-07')];
+  const html = renderScheduleAllDayHtml(card);
+
+  assert.equal(countRenderedAllDayBodies(html), 1);
+  assert.equal(countAllDayPlaceholders(html), 2);
+  assert.match(html, /background-color: #112233/);
+  assert.match(html, /opacity: 0.7/);
+  assert.match(html, /filter: grayscale\(20%\)/);
+  assert.match(html, /mdi:star/);
+});
+
+test('schedule all-day visible range edges and overlapping lanes preserve continuous placeholders', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [
+    makeAllDayEvent('started before', '2026-05-01', '2026-05-05'),
+    makeAllDayEvent('continues after', '2026-05-08', '2026-05-12'),
+    makeAllDayEvent('full visible week', '2026-05-03', '2026-05-10'),
+    makeAllDayEvent('overlap', '2026-05-04', '2026-05-06')
+  ];
+  const html = renderScheduleAllDayHtml(card);
+  const startedBeforeClasses = getAllDayBodyClassForTitle(html, 'started before');
+  const continuesAfterClasses = getAllDayBodyClassForTitle(html, 'continues after');
+  const fullVisibleWeekClasses = getAllDayBodyClassForTitle(html, 'full visible week');
+
+  assert.equal(countRenderedAllDayBodies(html), 4);
+  assert.equal(countAllDayPlaceholders(html), 9);
+  assert.match(startedBeforeClasses, /continues-prev/);
+  assert.doesNotMatch(startedBeforeClasses, /continues-next/);
+  assert.match(continuesAfterClasses, /continues-next/);
+  assert.doesNotMatch(continuesAfterClasses, /continues-prev/);
+  assert.doesNotMatch(fullVisibleWeekClasses, /continues-prev/);
+  assert.doesNotMatch(fullVisibleWeekClasses, /continues-next/);
+  assert.match(html, /data-all-day-span-days="7"/);
+});
+
+
+function renderMonthWeekSpanHtml(card, weekStartDateKey = '2026-05-03') {
+  const weekStart = new Date(`${weekStartDateKey}T00:00:00`);
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  return weekDays.map((date) => (layout.dayLanesByDateKey.get(card.getDateKey(date)) || []).map((lane) => card.renderMonthSpanLane(lane)).join('')).join('\n');
+}
+
+function countRenderedMonthSpanBodies(html) {
+  return (html.match(/class="event month-span-event(?: |")/g) || []).length;
+}
+
+function countMonthSpanPlaceholders(html) {
+  return (html.match(/month-span-event-placeholder/g) || []).length;
+}
+
+function getMonthSpanBodyClassForTitle(html, title) {
+  const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return html.match(new RegExp(`<div class="event month-span-event([^"]*)"[^>]*"summary":"${escapedTitle}"`))?.[1] || '';
+}
+
+test('month multi-day events render once per week row as continuous spans across styling modes', () => {
+  for (const event_color_mode of ['classic', 'left-tint', 'left-neutral']) {
+    const title = `${event_color_mode} month trip`;
+    const card = makeCard({ entities: ['calendar.family'], event_color_mode });
+    card._events = [makeAllDayEvent(title, '2026-05-04', '2026-05-08')];
+    const html = renderMonthWeekSpanHtml(card);
+    const eventClasses = getMonthSpanBodyClassForTitle(html, title);
+
+    assert.equal(countRenderedMonthSpanBodies(html), 1, `${event_color_mode} should render one visible event body`);
+    assert.equal(countMonthSpanPlaceholders(html), 3, `${event_color_mode} should reserve continuation lanes`);
+    assert.match(html, /data-month-span-days="4"/);
+    assert.match(html, /--month-event-visible-span: 4/);
+    assert.doesNotMatch(eventClasses, /continues-next/, `${event_color_mode} should keep rounded right edge when ending inside the week row`);
+    if (event_color_mode === 'classic') {
+      assert.match(html, /background-image: none/);
+    } else {
+      assert.equal((html.match(/background-image: linear-gradient\(to right/g) || []).length, 1);
+    }
+  }
+});
+
+test('month combined and styled multi-day spans render one decoration and keep overrides', () => {
+  for (const combine_style of ['bars', 'dots', 'stripes']) {
+    const card = makeCard({
+      entities: ['calendar.a', 'calendar.b'],
+      combine_calendars: true,
+      combine_style,
+      combine_background: 'neutral',
+      colors: { 'calendar.a': '#ff0000', 'calendar.b': '#00ff00' },
+      event_styles: [{
+        match: { title_contains: 'combined' },
+        style: { background_color: '#112233', event_font_color: '#ffeecc', opacity: 0.7, filter: 'grayscale(20%)', icon: 'mdi:star' }
+      }]
+    });
+    card._events = card.combineDuplicateCalendarEvents([
+      makeAllDayEvent('combined styled', '2026-05-04', '2026-05-08', 'calendar.a', { color: '#ff0000' }),
+      makeAllDayEvent('combined styled', '2026-05-04', '2026-05-08', 'calendar.b', { color: '#00ff00' })
+    ]);
+    const html = renderMonthWeekSpanHtml(card);
+
+    assert.equal(countRenderedMonthSpanBodies(html), 1, `${combine_style} should render one visible event body`);
+    assert.equal(countMonthSpanPlaceholders(html), 3, `${combine_style} should reserve continuation lanes`);
+    assert.equal((html.match(/background-image:/g) || []).length, 1);
+    assert.match(html, /opacity: 0.7/);
+    assert.match(html, /filter: grayscale\(20%\)/);
+    assert.match(html, /mdi:star/);
+  }
+});
+
+test('month spans clamp to week rows and split cleanly across row boundaries', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [makeAllDayEvent('crosses row', '2026-05-08', '2026-05-13')];
+  const firstRowHtml = renderMonthWeekSpanHtml(card, '2026-05-03');
+  const secondRowHtml = renderMonthWeekSpanHtml(card, '2026-05-10');
+  const firstRowClasses = getMonthSpanBodyClassForTitle(firstRowHtml, 'crosses row');
+  const secondRowClasses = getMonthSpanBodyClassForTitle(secondRowHtml, 'crosses row');
+
+  assert.equal(countRenderedMonthSpanBodies(firstRowHtml), 1);
+  assert.equal(countRenderedMonthSpanBodies(secondRowHtml), 1);
+  assert.match(firstRowHtml, /data-month-span-days="2"/);
+  assert.match(secondRowHtml, /data-month-span-days="3"/);
+  assert.match(firstRowClasses, /continues-next/);
+  assert.doesNotMatch(firstRowClasses, /continues-prev/);
+  assert.match(secondRowClasses, /continues-prev/);
+  assert.doesNotMatch(secondRowClasses, /continues-next/);
+});
+
+test('month trims trailing span placeholders so earlier normal timed events remain visible', () => {
+  const card = makeCard({ entities: ['calendar.family', 'calendar.work'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  card._events = [
+    makeTimedEvent('Coffee', '2026-03-15T09:00:00Z', '2026-03-15T09:30:00Z', 'calendar.family'),
+    makeTimedEvent('Standup', '2026-03-15T14:00:00Z', '2026-03-15T14:15:00Z', 'calendar.work'),
+    makeTimedEvent('Night Shift', '2026-03-15T23:30:00Z', '2026-03-16T06:30:00Z', 'calendar.family'),
+    makeAllDayEvent('Conference', '2026-03-17', '2026-03-21', 'calendar.family')
+  ];
+  const weekStart = new Date('2026-03-15T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const sunday = new Date('2026-03-15T00:00:00');
+  const html = card.renderDay(15, sunday, false, layout.dayLanesByDateKey.get(card.getDateKey(sunday)) || []);
+
+  assert.match(html, /Coffee/);
+  assert.match(html, /Standup/);
+  assert.match(html, /Night Shift/);
+  assert.doesNotMatch(html, /month-span-event-spacer/);
+  assert.doesNotMatch(html, /more-events/);
+  assert.doesNotMatch(html, /2 more/);
+});
+
+test('month hides span lanes beyond visible capacity and counts them in more indicator', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  card._events = Array.from({ length: 5 }, (_, index) => makeAllDayEvent(`Overlap Span ${index + 1}`, '2026-03-24', '2026-03-27'));
+
+  const weekStart = new Date('2026-03-22T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const date = new Date('2026-03-24T00:00:00');
+  const html = card.renderDay(24, date, false, layout.dayLanesByDateKey.get(card.getDateKey(date)) || []);
+
+  assert.equal(countRenderedMonthSpanBodies(html), 2);
+  assert.match(html, /Overlap Span 1/);
+  assert.match(html, /Overlap Span 2/);
+  assert.doesNotMatch(html, /Overlap Span 3/);
+  assert.doesNotMatch(html, /Overlap Span 4/);
+  assert.doesNotMatch(html, /Overlap Span 5/);
+  assert.match(html, /3 more/);
+});
+
+test('month keeps hidden span lanes out of visible normal event slots', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  const date = new Date('2026-03-26T00:00:00');
+  const visibleSpan = makeAllDayEvent('Visible Span', '2026-03-25', '2026-03-28');
+  const hiddenSpan = makeAllDayEvent('Hidden Span', '2026-03-24', '2026-03-28');
+  card._events = [visibleSpan, hiddenSpan];
+
+  const html = card.renderDay(26, date, false, [
+    null,
+    { event: visibleSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 },
+    null,
+    { event: hiddenSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 }
+  ]);
+
+  assert.match(html, /Visible Span/);
+  assert.doesNotMatch(html, /Hidden Span/);
+  assert.match(html, /1 more/);
+});
+
+test('month fills null span lanes with normal events before lower span lanes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  const date = new Date('2026-03-26T00:00:00');
+  const lowerSpan = makeAllDayEvent('Lower Lane Span', '2026-03-24', '2026-03-28');
+  card._events = [
+    lowerSpan,
+    makeTimedEvent('Sprint Demo', '2026-03-26T15:00:00Z', '2026-03-26T16:00:00Z'),
+    makeTimedEvent('Planning Notes', '2026-03-26T17:00:00Z', '2026-03-26T17:30:00Z')
+  ];
+
+  const html = card.renderDay(26, date, false, [null, { event: lowerSpan, isFirstVisibleSegment: true, visibleSpanDays: 1 }]);
+
+  assert.ok(html.indexOf('Sprint Demo') < html.indexOf('Lower Lane Span'));
+  assert.ok(html.indexOf('Lower Lane Span') < html.indexOf('Planning Notes'));
+  assert.doesNotMatch(html, /month-span-event-spacer/);
+  assert.doesNotMatch(html, /more-events/);
+});
+
+test('month trailing null span lane trimming keeps only lanes needed for placement', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  const firstLaneSpan = { event: makeAllDayEvent('First Lane Span', '2026-05-04', '2026-05-06'), isFirstVisibleSegment: false };
+  const secondLaneSpan = { event: makeAllDayEvent('Second Lane Span', '2026-05-04', '2026-05-06'), isFirstVisibleSegment: false };
+
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null]), []);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null, null]), []);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan]), [firstLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan, null]), [firstLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([null, secondLaneSpan]), [null, secondLaneSpan]);
+  assert.deepEqual(card.trimTrailingNullMonthSpanLanes([firstLaneSpan, null, secondLaneSpan, null]), [firstLaneSpan, null, secondLaneSpan]);
+});
+
+
+test('month continuation placeholders carry event sizing styles for full row height', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{
+      match: { title: 'Styled Span' },
+      style: { event_font_size: '17px', event_time_font_size: '12px', event_font_color: '#123456' }
+    }]
+  });
+  const event = makeAllDayEvent('Styled Span', '2026-05-04', '2026-05-07');
+  const html = card.renderMonthSpanLane({ event, isFirstVisibleSegment: false });
+
+  assert.match(html, /month-span-event-placeholder/);
+  assert.match(html, /--event-bubble-font-size: 17px/);
+  assert.match(html, /--event-time-font-size: 12px/);
+  assert.match(html, /--event-bubble-text-color: #123456/);
+});
+
+test('month span layout excludes short timed overnight events', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._events = [makeTimedEvent('late appointment', '2026-05-04T23:00:00', '2026-05-05T01:00:00')];
+  const weekStart = new Date('2026-05-03T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const monday = new Date('2026-05-04T00:00:00');
+  const html = card.renderDay(4, monday, false, layout.dayLanesByDateKey.get(card.getDateKey(monday)) || []);
+
+  assert.equal(countRenderedMonthSpanBodies(renderMonthWeekSpanHtml(card)), 0);
+  assert.match(html, /late appointment/);
+  assert.match(html, /event-time/);
+});
+
 test('checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly', async () => {
   const card = makeCard({
     entities: ['calendar.google_home', 'calendar.caldav_work', 'calendar.local_family'],
@@ -1529,6 +2305,20 @@ test('event modal overlay CSS uses viewport-fixed coverage and high stacking', (
   assert.match(styles, /daylight-calendar-card\.event-modal-open,[\s\S]*skylight-calendar-card\.event-modal-open[\s\S]*z-index:\s*2147483000;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-container[\s\S]*overflow:\s*visible;/);
   assert.match(styles, /event-modal-open[\s\S]*\.calendar-body[\s\S]*overflow:\s*visible;/);
+});
+
+test('location action modal CSS keeps buttons in a compact two-column row', () => {
+  const card = makeCard();
+  const styles = card.getStyles();
+
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*display:\s*grid;/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*margin-top:\s*4px;/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*margin-bottom:\s*4px;/);
+  assert.match(styles, /\.modal-location-actions\s*\{[\s\S]*width:\s*100%;/);
+  assert.match(styles, /\.modal-location-action\s*\{[\s\S]*min-width:\s*0;/);
+  assert.match(styles, /\.modal-location-action\s*\{[\s\S]*white-space:\s*nowrap;/);
+  assert.match(styles, /@media \(max-width:\s*480px\) \{[\s\S]*\.modal-location-action\s*\{[\s\S]*font-size:\s*12px;/);
 });
 
 test('event modal open state toggles a host stacking class', () => {
@@ -2560,6 +3350,191 @@ test('hidden events do not contribute to month overflow counts', () => {
 });
 
 
+
+
+
+test('day badge tap_action fire-dom-event renders clickable badge and dispatches resolved detail', () => {
+  const card = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{
+      conditions: { calendar: 'calendar.helper_day_types', all_day: true, title: 'Schoolday' },
+      text: '{{ event.description_json.badge_text }}',
+      icon: '{{ event.description_json.icon }}',
+      background_color: '{{ event.description_json.badge_color }}',
+      tap_action: {
+        action: 'fire-dom-event',
+        event_type: 'open-day-detail',
+        event_data: {
+          date: '{{ date }}',
+          calendar: '{{ calendar }}',
+          title: '{{ title }}',
+          icon: '{{ event.description_json.icon }}',
+          count: 2,
+          active: true,
+          unsafe: '{{ event.__proto__.polluted }}',
+          object_value: { skip: true }
+        }
+      }
+    }]
+  });
+  const event = {
+    entityId: 'calendar.helper_day_types',
+    summary: 'Schoolday',
+    description: '{"badge_text":"School","icon":"mdi:school","badge_color":"#EDE7F6"}',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  card._events = [event];
+
+  const html = card.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [event]);
+  assert.match(html, /<button type="button" class="day-badge day-badge-action has-icon has-text"/);
+  assert.match(html, /data-day-badge-action-id="day-badge-action-1"/);
+  assert.match(html, /day-badge-text">School</);
+
+  let dispatched;
+  card.dispatchEvent = (customEvent) => { dispatched = customEvent; return true; };
+  const actionEl = { getAttribute: (name) => name === 'data-day-badge-action-id' ? 'day-badge-action-1' : null };
+  let prevented = false;
+  let stopped = false;
+  card.handleDayBadgeActionClick({ preventDefault: () => { prevented = true; }, stopPropagation: () => { stopped = true; } }, actionEl);
+
+  assert.equal(prevented, true);
+  assert.equal(stopped, true);
+  assert.equal(dispatched.type, 'open-day-detail');
+  assert.equal(dispatched.bubbles, true);
+  assert.equal(dispatched.composed, true);
+  assert.deepEqual(dispatched.detail, {
+    date: '2026-05-01',
+    calendar: 'calendar.helper_day_types',
+    title: 'Schoolday',
+    icon: 'mdi:school',
+    count: 2,
+    active: true
+  });
+});
+
+test('day badge without valid tap_action renders normally and unsupported actions are ignored', () => {
+  const baseEvent = {
+    entityId: 'calendar.helper_day_types',
+    summary: 'Schoolday',
+    start: { date: '2026-05-01' },
+    end: { date: '2026-05-02' }
+  };
+  const noActionCard = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{ conditions: { title: 'Schoolday' }, text: 'School' }]
+  });
+  assert.match(noActionCard.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [baseEvent]), /<span class="day-badge has-text"/);
+
+  const unsupportedActionCard = makeCard({
+    entities: ['calendar.helper_day_types'],
+    day_badges: [{
+      conditions: { title: 'Schoolday' },
+      text: 'School',
+      tap_action: { action: 'navigate', navigation_path: '/lovelace' }
+    }]
+  });
+  const html = unsupportedActionCard.renderDayBadges(new Date('2026-05-01T00:00:00Z'), [baseEvent]);
+  assert.match(html, /<span class="day-badge has-text"/);
+  assert.doesNotMatch(html, /day-badge-action/);
+  assert.doesNotMatch(html, /data-day-badge-action-id/);
+});
+
+test('day badge action click listener prevents day modal and create modal conflicts', () => {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  const handlers = {};
+  const actionEl = {
+    addEventListener: (eventName, callback) => { handlers[`action:${eventName}`] = callback; },
+    getAttribute: (name) => name === 'data-day-badge-action-id' ? 'badge-action' : null
+  };
+  const dayEl = {
+    addEventListener: (eventName, callback) => { handlers[`day:${eventName}`] = callback; },
+    getAttribute: () => '2026-05-01'
+  };
+  card._dayBadgeActions = new Map([['badge-action', { event_type: 'open-day-detail', event_data: { title: 'Schoolday' } }]]);
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = {
+    querySelector: () => null,
+    querySelectorAll: (selector) => {
+      if (selector === '.day-badge-action') return [actionEl];
+      if (selector === '.day-cell') return [dayEl];
+      return [];
+    }
+  };
+  let createCalls = 0;
+  let dayModalCalls = 0;
+  let dispatched;
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.showCreateEventModal = () => { createCalls += 1; };
+  card.showDayModal = () => { dayModalCalls += 1; };
+  card.dispatchEvent = (event) => { dispatched = event; return true; };
+
+  card.attachEventListeners();
+  handlers['action:click']({ preventDefault: () => {}, stopPropagation: () => {} });
+  handlers['day:click']({ target: { classList: { contains: () => false }, closest: (selector) => selector === '.day-badge-action' } });
+
+  assert.equal(dispatched.type, 'open-day-detail');
+  assert.deepEqual(dispatched.detail, { title: 'Schoolday' });
+  assert.equal(createCalls, 0);
+  assert.equal(dayModalCalls, 0);
+});
+
+test('day badge actions are treated as interactive swipe targets', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor(matchingSelector) {
+      this.matchingSelector = matchingSelector;
+    }
+    closest(selector) {
+      return selector.split(',').map((part) => part.trim()).includes(this.matchingSelector) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    for (const matchingSelector of ['.day-badge-action', '[data-day-badge-action-id]']) {
+      const card = makeCard({ entities: ['calendar.family'] });
+      const handlers = {};
+      const container = {
+        addEventListener: (eventName, callback) => { handlers[eventName] = callback; }
+      };
+      card._root = {
+        querySelector: (selector) => selector === '.calendar-container' ? container : null
+      };
+      card.shouldEnableSwipeControls = () => true;
+      card.canTriggerSwipePeriodNavigation = () => true;
+      card.canNavigateToPreviousPeriod = () => true;
+      let nextCalls = 0;
+      let previousCalls = 0;
+      card.navigateToNextPeriod = () => { nextCalls += 1; };
+      card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+      card.attachSwipeControls();
+      handlers.touchstart({
+        target: new FakeElement(matchingSelector),
+        touches: [{ clientX: 100, clientY: 20 }]
+      });
+      assert.equal(card._swipeStartedOnInteractive, true);
+
+      handlers.touchend({
+        changedTouches: [{ clientX: 20, clientY: 22 }]
+      });
+
+      assert.equal(nextCalls, 0);
+      assert.equal(previousCalls, 0);
+      assert.equal(card._swipeStartedOnInteractive, false);
+      assert.equal(card._swipeTracking, false);
+    }
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
 
 test('day badge helper module delegates preserve normalization and resolution behavior', () => {
   const card = makeCard({ entities: ['calendar.a'] });
@@ -4650,6 +5625,8 @@ test('day badge module preserves normalization, safe resolution, and render prep
     buildDayBadgeResolutionContext,
     resolveSafePath,
     resolveDayBadgeDisplayValue,
+    normalizeDayBadgeTapAction,
+    resolveDayBadgeTapAction,
     resolveDayBadgeForRender,
     normalizeDayBadges
   } = await import('./src/badges/day-badges.js');
@@ -4700,6 +5677,9 @@ test('day badge module preserves normalization, safe resolution, and render prep
   assert.equal(resolveSafePath('event.description_json.nested', context), undefined);
   assert.equal(resolveDayBadgeDisplayValue('{{ event.description_json.enabled }}', context), 'true');
   assert.equal(resolveDayBadgeDisplayValue('Literal {{ event.description_json.label }}', context), 'Literal {{ event.description_json.label }}');
+  assert.deepEqual(normalizeDayBadgeTapAction({ action: 'fire-dom-event', event_type: ' helper ', event_data: { title: '{{ title }}' } }), { action: 'fire-dom-event', event_type: 'helper', event_data: { title: '{{ title }}' } });
+  assert.equal(normalizeDayBadgeTapAction({ action: 'navigate', event_type: 'helper' }), undefined);
+  assert.deepEqual(resolveDayBadgeTapAction({ action: 'fire-dom-event', event_type: 'helper', event_data: { date: '{{ date }}', calendar: '{{ calendar }}', title: '{{ title }}', label: '{{ event.description_json.label }}', unsafe: '{{ event.__proto__.polluted }}', nested: '{{ event.description_json.nested }}' } }, context), { action: 'fire-dom-event', event_type: 'helper', event_data: { date: '2026-05-01', calendar: 'calendar.helper', title: 'Helper', label: 'Bus' } });
 
   assert.deepEqual(resolveDayBadgeForRender({
     text: '{{ event.description_json.label }}',
