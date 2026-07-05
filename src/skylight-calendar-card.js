@@ -6566,9 +6566,16 @@ class SkylightCalendarCard extends HTMLElement {
       this._activeModalBackHandler = null;
       this._eventLocationActionsExpanded = false;
       modal.classList.remove('show');
-      if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId)).length > 1) {
-        this.showCombinedCustomColorSelectionModal(event, onCloseBack, onSaved);
-        return;
+      if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents)) {
+        const visibleSourceEvents = this.getVisibleCombinedSourceEvents(event);
+        if (visibleSourceEvents.length > 1) {
+          this.showCombinedCustomColorSelectionModal(event, onCloseBack, onSaved);
+          return;
+        }
+        if (visibleSourceEvents.length === 1) {
+          this.showCustomColorModal(visibleSourceEvents[0], event, onCloseBack, onSaved);
+          return;
+        }
       }
       this.showCustomColorModal(event, event, onCloseBack, onSaved);
     });
@@ -6596,11 +6603,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
 
+  getVisibleCombinedSourceEvents(event) {
+    if (!event?.isCombinedCalendarEvent || !Array.isArray(event.sourceEvents)) return [];
+    return event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
+  }
+
   showCombinedCustomColorSelectionModal(wrapperEvent, onCloseBack = null, onSaved = null) {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
-    const sourceEvents = (wrapperEvent.sourceEvents || []).filter(sourceEvent => !this._hiddenCalendars.has(sourceEvent.entityId));
+    const sourceEvents = this.getVisibleCombinedSourceEvents(wrapperEvent);
     content.innerHTML = `
       <div class="confirm-dialog">
         <h3 class="confirm-title">${this.t('customColor')}</h3>

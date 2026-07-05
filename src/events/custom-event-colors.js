@@ -107,7 +107,7 @@ export function applyCustomEventColor(state, event, scope, color, { getEventIden
     delete next.future[keys.seriesKey];
     Object.keys(next.occurrences).forEach((key) => { if (key.startsWith(`${keys.seriesKey}|occurrence|`)) delete next.occurrences[key]; });
   } else if (scope === 'future' && keys?.seriesKey && keys?.occurrenceToken) {
-    const rules = (next.future[keys.seriesKey] || []).filter((rule) => rule.from !== keys.occurrenceToken);
+    const rules = (next.future[keys.seriesKey] || []).filter((rule) => rule.from < keys.occurrenceToken);
     rules.push({ from: keys.occurrenceToken, color: normalized });
     next.future[keys.seriesKey] = rules.sort((a, b) => a.from.localeCompare(b.from));
   } else if (keys?.occurrenceKey) {

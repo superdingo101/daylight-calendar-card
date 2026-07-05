@@ -6320,6 +6320,9 @@ test('custom event colors resolve exact, recurring, future, reset, and malformed
   assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#445566');
   state = applyCustomEventColor(state, later, 'future', '#778899', { getEventIdentityKey });
   assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#778899');
+  state = applyCustomEventColor(state, occurrence, 'future', '#99AABB', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#99AABB');
+  assert.deepEqual(state.future['calendar.work|series|series-1'], [{ from: '20260101T100000', color: '#99AABB' }]);
   state = applyCustomEventColor(state, later, 'this', null, { getEventIdentityKey });
   assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), null);
 
@@ -6340,6 +6343,21 @@ test('all-series custom color replacement removes conflicting occurrence and fut
   assert.equal(resolveCustomEventColor(later, state), '#333333');
   assert.deepEqual(state.future, {});
   assert.deepEqual(state.occurrences, {});
+});
+
+
+test('combined custom color helpers use only visible source events', () => {
+  const card = new Card();
+  card._hiddenCalendars = new Set(['calendar.hidden']);
+  const hiddenSource = { entityId: 'calendar.hidden', summary: 'Hidden copy' };
+  const visibleSource = { entityId: 'calendar.visible', summary: 'Visible copy' };
+  const wrapperEvent = {
+    isCombinedCalendarEvent: true,
+    entityId: hiddenSource.entityId,
+    sourceEvents: [hiddenSource, visibleSource]
+  };
+
+  assert.deepEqual(card.getVisibleCombinedSourceEvents(wrapperEvent), [visibleSource]);
 });
 
 test('custom colors persist with hidden calendars and reset on unrelated config slots', () => {
