@@ -5703,6 +5703,11 @@ const TRANSLATIONS = {
       allDayEvent: 'All-day event',
       recurring: 'Recurring',
       eventOptions: 'Event Options',
+      customColor: 'Custom Color',
+      useDefault: 'Use Default',
+      applyColor: 'Apply Color',
+      invalidHexColor: 'Enter a valid hex color like #3B82F6.',
+      customColorCombinedPrompt: 'Select which calendar copy to color.',
       recurringEventOptions: 'Recurring options',
       recurrenceFrequency: 'Repeat',
       recurrenceEvery: 'Every',
@@ -8930,6 +8935,7 @@ function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  customColor = null,
   locationLinks = false,
   locationActionsExpanded = false,
   locationMapUrl = '',
@@ -9032,19 +9038,149 @@ function renderEventDetailsModal({
           </div>
         ` : ''}
 
-        ${(canEdit || canDelete || canForward) ? `
-          <div class="modal-actions">
+        <div class="modal-actions">
             <div class="modal-actions-left">
               ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
             </div>
             <div class="modal-actions-right">
+              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
               ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
               ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
             </div>
           </div>
-        ` : ''}
       </div>
     `;
+}
+
+const CUSTOM_EVENT_COLORS_VERSION = 1;
+
+function createEmptyCustomEventColors() {
+  return { version: CUSTOM_EVENT_COLORS_VERSION, occurrences: {}, series: {}, future: {} };
+}
+
+function normalizeHexColor(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  const short = trimmed.match(/^#?([0-9a-fA-F]{3})$/);
+  if (short) return `#${short[1].split('').map((char) => char + char).join('').toUpperCase()}`;
+  const full = trimmed.match(/^#?([0-9a-fA-F]{6})$/);
+  return full ? `#${full[1].toUpperCase()}` : null;
+}
+
+function stablePart(value) {
+  return value === undefined || value === null ? '' : String(value).trim();
+}
+
+function getOccurrenceStartToken(event) {
+  return stablePart(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
+}
+
+function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
+  if (!event) return null;
+  const entityId = stablePart(event.entityId);
+  const uid = stablePart(event.uid) || stablePart(event.ical_uid) || stablePart(event.iCalUID);
+  const recurringId = stablePart(event.recurring_event_id) || stablePart(event.recurringEventId) || stablePart(event.series_uid) || stablePart(event.seriesId);
+  const rrule = stablePart(event.rrule);
+  const isRecurring = !!(event.recurrence_id || recurringId || rrule);
+  const seriesIdentity = recurringId || (isRecurring ? uid : '');
+  const seriesKey = entityId && seriesIdentity ? `${entityId}|series|${seriesIdentity}` : null;
+  const occurrenceToken = stablePart(event.recurrence_id) || getOccurrenceStartToken(event);
+  let occurrenceKey = null;
+  if (seriesKey && occurrenceToken) {
+    occurrenceKey = `${seriesKey}|occurrence|${occurrenceToken}`;
+  } else if (!isRecurring && entityId && uid) {
+    occurrenceKey = `${entityId}|uid|${uid}`;
+  } else {
+    const fallback = getEventIdentityKey?.(entityId, event);
+    occurrenceKey = fallback ? `${entityId}|identity|${fallback}` : null;
+  }
+  return { isRecurring, occurrenceKey, seriesKey, occurrenceToken, supportsSeries: !!seriesKey, supportsFuture: !!(seriesKey && occurrenceToken) };
+}
+
+function normalizeColorOrNull(value, allowNull = false) {
+  if (value === null && allowNull) return null;
+  return normalizeHexColor(value);
+}
+
+function normalizeCustomEventColors(value) {
+  const next = createEmptyCustomEventColors();
+  if (!value || typeof value !== 'object') return next;
+  if (value.version !== CUSTOM_EVENT_COLORS_VERSION) return next;
+  if (value.occurrences && typeof value.occurrences === 'object') {
+    Object.entries(value.occurrences).forEach(([key, color]) => {
+      const normalized = normalizeColorOrNull(color, true);
+      if (key && (normalized || color === null)) next.occurrences[key] = normalized;
+    });
+  }
+  if (value.series && typeof value.series === 'object') {
+    Object.entries(value.series).forEach(([key, color]) => {
+      const normalized = normalizeHexColor(color);
+      if (key && normalized) next.series[key] = normalized;
+    });
+  }
+  if (value.future && typeof value.future === 'object') {
+    Object.entries(value.future).forEach(([key, rules]) => {
+      if (!key || !Array.isArray(rules)) return;
+      const normalizedRules = rules
+        .map((rule) => {
+          if (!rule || typeof rule !== 'object' || !stablePart(rule.from)) return null;
+          const normalized = normalizeColorOrNull(rule.color, true);
+          if (!normalized && rule.color !== null) return null;
+          return { from: stablePart(rule.from), color: normalized };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.from.localeCompare(b.from));
+      if (normalizedRules.length) next.future[key] = normalizedRules;
+    });
+  }
+  return next;
+}
+
+function resolveCustomEventColor(event, state, { getEventIdentityKey } = {}) {
+  const colors = normalizeCustomEventColors(state);
+  const keys = getCustomEventColorKeys(event, { getEventIdentityKey });
+  if (!keys?.occurrenceKey) return null;
+  if (Object.prototype.hasOwnProperty.call(colors.occurrences, keys.occurrenceKey)) {
+    return colors.occurrences[keys.occurrenceKey];
+  }
+  if (keys.seriesKey && keys.occurrenceToken) {
+    const applicable = (colors.future[keys.seriesKey] || []).filter((rule) => rule.from <= keys.occurrenceToken).pop();
+    if (applicable) return applicable.color;
+    if (Object.prototype.hasOwnProperty.call(colors.series, keys.seriesKey)) return colors.series[keys.seriesKey];
+  }
+  return null;
+}
+
+function applyCustomEventColor(state, event, scope, color, { getEventIdentityKey } = {}) {
+  const next = normalizeCustomEventColors(state);
+  const keys = getCustomEventColorKeys(event, { getEventIdentityKey });
+  const normalized = color === null ? null : normalizeHexColor(color);
+  if (color !== null && !normalized) return next;
+  if (scope === 'all' && keys?.seriesKey) {
+    if (normalized === null) delete next.series[keys.seriesKey]; else next.series[keys.seriesKey] = normalized;
+    delete next.future[keys.seriesKey];
+    Object.keys(next.occurrences).forEach((key) => { if (key.startsWith(`${keys.seriesKey}|occurrence|`)) delete next.occurrences[key]; });
+  } else if (scope === 'future' && keys?.seriesKey && keys?.occurrenceToken) {
+    const rules = (next.future[keys.seriesKey] || []).filter((rule) => rule.from !== keys.occurrenceToken);
+    rules.push({ from: keys.occurrenceToken, color: normalized });
+    next.future[keys.seriesKey] = rules.sort((a, b) => a.from.localeCompare(b.from));
+  } else if (keys?.occurrenceKey) {
+    if (normalized === null) next.occurrences[keys.occurrenceKey] = null;
+    else next.occurrences[keys.occurrenceKey] = normalized;
+  }
+  return next;
+}
+
+function removeCustomEventColor(state, event, scope, options = {}) {
+  const keys = getCustomEventColorKeys(event, options);
+  if (scope === 'all' && keys?.seriesKey) return applyCustomEventColor(state, event, 'all', null, options);
+  if (scope === 'future' && keys?.supportsFuture) return applyCustomEventColor(state, event, 'future', null, options);
+  const next = normalizeCustomEventColors(state);
+  if (keys?.occurrenceKey) {
+    if (keys.seriesKey) next.occurrences[keys.occurrenceKey] = null;
+    else delete next.occurrences[keys.occurrenceKey];
+  }
+  return next;
 }
 
 function renderEventIcon(event, {
@@ -10340,6 +10476,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarDataSignatures = {}; // Track per-calendar data for change detection
     this._lastUnchangedDataRender = null; // Throttle unchanged-data UI refreshes
     this._hiddenCalendars = new Set(); // Track which calendars are hidden
+    this._customEventColors = createEmptyCustomEventColors();
     this._calendarCapabilities = {}; // Track calendar capabilities
     this._activeLanguage = DEFAULT_LANGUAGE;
     this._hasCustomTitle = false;
@@ -10378,6 +10515,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
+    this._customColorContext = null;
     this._eventLocationActionsExpanded = false;
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
@@ -10563,6 +10701,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   loadPersistedPreferences() {
+    this._customEventColors = createEmptyCustomEventColors();
     const storageKey = this.getPreferenceStorageKey();
     if (!storageKey) return false;
 
@@ -10575,6 +10714,7 @@ class SkylightCalendarCard extends HTMLElement {
       if (Array.isArray(parsed.hiddenCalendars)) {
         const knownEntities = new Set(this._config.entities || []);
         this._hiddenCalendars = new Set(parsed.hiddenCalendars.filter((entityId) => knownEntities.has(entityId)));
+        this._customEventColors = normalizeCustomEventColors(parsed.customEventColors);
         return true;
       }
     } catch (error) {
@@ -10590,7 +10730,8 @@ class SkylightCalendarCard extends HTMLElement {
 
     try {
       const payload = {
-        hiddenCalendars: Array.from(this._hiddenCalendars)
+        hiddenCalendars: Array.from(this._hiddenCalendars),
+        customEventColors: normalizeCustomEventColors(this._customEventColors)
       };
       window.localStorage?.setItem(storageKey, JSON.stringify(payload));
     } catch (error) {
@@ -10924,6 +11065,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._viewMode = this._config.default_view;
     this.applyThemeMode(this._config.color_scheme);
     this._hiddenCalendars = this.getDefaultHiddenCalendarSet();
+    this._customEventColors = createEmptyCustomEventColors();
     this.loadPersistedPreferences();
     this._loadedEventRange = null;
     this._calendarDataSignatures = {};
@@ -14292,8 +14434,22 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
+
+  getCustomEventColor(event) {
+    return resolveCustomEventColor(event, this._customEventColors, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this)
+    });
+  }
+
+  getCustomEventColorKeys(event) {
+    return getCustomEventColorKeys(event, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this)
+    });
+  }
+
   getVisibleCalendarColorsForEvent(event) {
-    const virtualCalendar = this.getVirtualBadgeForEvent(event);
+    const customColor = this.getCustomEventColor(event);
+    const virtualCalendar = customColor ? null : this.getVirtualBadgeForEvent(event);
     if (virtualCalendar) {
       const virtualSourceEntityIds = (Array.isArray(event?.sourceEntityIds) ? event.sourceEntityIds : [event?.entityId])
         .filter((entityId) => virtualCalendar.entities.includes(entityId));
@@ -14385,7 +14541,7 @@ class SkylightCalendarCard extends HTMLElement {
         .map(({ candidates }) => candidates.background_color?.value)
         .filter((color) => color !== undefined && color !== null && color !== '');
       const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates }) =>
-        candidates.background_color?.value || sourceEvent.color
+        this.getCustomEventColor(sourceEvent) || candidates.background_color?.value || sourceEvent.color
       );
       const uniqueBackgroundCount = new Set(backgroundColors).size;
       const hasDuplicateBackgroundColors = uniqueBackgroundCount !== backgroundColors.length;
@@ -14421,9 +14577,13 @@ class SkylightCalendarCard extends HTMLElement {
       acc[key] = meta.value;
       return acc;
     }, {});
-    overrides.backgroundColors = [overrides.background_color || event.color];
+    const customColor = this.getCustomEventColor(event);
+    if (customColor) {
+      overrides.background_color = customColor;
+    }
+    overrides.backgroundColors = [customColor || overrides.background_color || event.color];
     overrides.hasDuplicateBackgroundColors = false;
-    overrides.hasExplicitBackgroundColor = Object.prototype.hasOwnProperty.call(overrides, 'background_color');
+    overrides.hasExplicitBackgroundColor = !!customColor || Object.prototype.hasOwnProperty.call(overrides, 'background_color');
     return overrides;
   }
 
@@ -16445,6 +16605,7 @@ class SkylightCalendarCard extends HTMLElement {
       canDelete,
       canForward,
       canModify,
+      customColor: this.getCustomEventColor(event),
       locationLinks: this._config.location_links === true,
       locationActionsExpanded: this._eventLocationActionsExpanded,
       locationMapUrl: this.getLocationMapUrl(event.location),
@@ -16504,6 +16665,18 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
 
+    this.getRootElementById('custom-color-btn')?.addEventListener('click', () => {
+      this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
+      modal.classList.remove('show');
+      if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents) && event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId)).length > 1) {
+        this.showCombinedCustomColorSelectionModal(event, onCloseBack, onSaved);
+        return;
+      }
+      this.showCustomColorModal(event, event, onCloseBack, onSaved);
+    });
+
+
     // Forward button
     this.getRootElementById('forward-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
@@ -16524,6 +16697,107 @@ class SkylightCalendarCard extends HTMLElement {
       this.showDeleteConfirmation(event, null, onSaved);
     });
   }
+
+
+  showCombinedCustomColorSelectionModal(wrapperEvent, onCloseBack = null, onSaved = null) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
+    const sourceEvents = (wrapperEvent.sourceEvents || []).filter(sourceEvent => !this._hiddenCalendars.has(sourceEvent.entityId));
+    content.innerHTML = `
+      <div class="confirm-dialog">
+        <h3 class="confirm-title">${this.t('customColor')}</h3>
+        <p class="confirm-message">${this.t('customColorCombinedPrompt')}</p>
+        <div class="recurring-options">
+          ${sourceEvents.map((sourceEvent, index) => `
+            <label class="recurring-option">
+              <input type="radio" name="combined-custom-color-option" data-index="${index}" ${index === 0 ? 'checked' : ''} />
+              <div class="recurring-option-label">
+                <div class="recurring-option-title">${this.escapeHtml(this.getCalendarName(sourceEvent.entityId))}</div>
+                <div class="recurring-option-description">${this.escapeHtml(sourceEvent.summary || this.t('untitledEvent'))}</div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" id="cancel-combined-custom-color-btn">${this.t('cancel')}</button>
+          <button class="btn btn-primary" id="confirm-combined-custom-color-btn">${this.t('continue')}</button>
+        </div>
+      </div>`;
+    modal.classList.add('show');
+    this.getRootElementById('cancel-combined-custom-color-btn')?.addEventListener('click', () => this.showEventModal(wrapperEvent, onCloseBack, { onSaved }));
+    this.getRootElementById('confirm-combined-custom-color-btn')?.addEventListener('click', () => {
+      const selected = this._root.querySelector('input[name="combined-custom-color-option"]:checked');
+      const index = Number.parseInt(selected?.getAttribute('data-index') || '0', 10);
+      this.showCustomColorModal(sourceEvents[index] || sourceEvents[0], wrapperEvent, onCloseBack, onSaved);
+    });
+  }
+
+  getCustomColorScopes(event) {
+    const keys = this.getCustomEventColorKeys(event);
+    return [
+      { value: 'this', label: this.t('deleteThisEventOnly'), show: true },
+      { value: 'future', label: this.t('deleteThisAndFutureEvents'), show: !!keys?.supportsFuture },
+      { value: 'all', label: this.t('deleteAllEvents'), show: !!keys?.supportsSeries }
+    ].filter(scope => scope.show);
+  }
+
+  showCustomColorModal(targetEvent, returnEvent = targetEvent, onCloseBack = null, onSaved = null) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
+    const currentColor = this.getCustomEventColor(targetEvent) || targetEvent.color || '#3B82F6';
+    const presets = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#A855F7'];
+    const scopes = this.getCustomColorScopes(targetEvent);
+    const scopeHtml = scopes.length > 1 ? `
+      <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
+        ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
+      </div></div>` : '';
+    content.innerHTML = `
+      <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
+      <div class="modal-body custom-color-modal">
+        <div class="custom-color-swatches" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:12px;">
+          ${presets.map(color => `<button type="button" class="custom-color-swatch" data-color="${color}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--divider-color,#ddd);background:${color};padding:0;"></button>`).join('')}
+        </div>
+        <div class="modal-row"><div class="modal-label">${this.t('customColor')}</div><div class="modal-value" style="display:flex;align-items:center;gap:8px;"><span id="custom-color-preview" style="width:28px;height:28px;border-radius:8px;background:${currentColor};border:1px solid var(--divider-color,#ddd);"></span><input id="custom-color-picker" type="color" value="${currentColor}"><input id="custom-color-hex" class="form-input" style="max-width:110px" value="${currentColor}"></div></div>
+        <div class="form-error" id="custom-color-error" style="display:none;">${this.t('invalidHexColor')}</div>
+        ${scopeHtml}
+        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
+      </div>`;
+    modal.classList.add('show');
+    const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    const setColor = (value) => {
+      const normalized = normalizeHexColor(value);
+      const error = this.getRootElementById('custom-color-error');
+      if (!normalized) { if (error) error.style.display = 'block'; return false; }
+      if (error) error.style.display = 'none';
+      this.getRootElementById('custom-color-picker').value = normalized;
+      this.getRootElementById('custom-color-hex').value = normalized;
+      this.getRootElementById('custom-color-preview').style.background = normalized;
+      return normalized;
+    };
+    this._root.querySelectorAll('.custom-color-swatch').forEach(btn => btn.addEventListener('click', () => setColor(btn.getAttribute('data-color'))));
+    this.getRootElementById('custom-color-picker')?.addEventListener('input', (e) => setColor(e.target.value));
+    this.getRootElementById('custom-color-hex')?.addEventListener('input', (e) => setColor(e.target.value));
+    this.getRootElementById('close-custom-color-modal')?.addEventListener('click', close);
+    this.getRootElementById('cancel-custom-color-btn')?.addEventListener('click', close);
+    const selectedScope = () => this._root.querySelector('input[name="custom-color-scope"]:checked')?.value || 'this';
+    this.getRootElementById('apply-custom-color-btn')?.addEventListener('click', () => {
+      const normalized = setColor(this.getRootElementById('custom-color-hex')?.value);
+      if (!normalized) return;
+      this._customEventColors = applyCustomEventColor(this._customEventColors, targetEvent, selectedScope(), normalized, { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
+      this.persistPreferences();
+      this.render();
+      this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    });
+    this.getRootElementById('custom-color-default-btn')?.addEventListener('click', () => {
+      this._customEventColors = removeCustomEventColor(this._customEventColors, targetEvent, selectedScope(), { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
+      this.persistPreferences();
+      this.render();
+      this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    });
+  }
+
 
   showDayCompactModal(date, events) {
     const modal = this.getRootElementById('event-modal');

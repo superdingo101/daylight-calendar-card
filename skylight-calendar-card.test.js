@@ -6298,3 +6298,65 @@ test('detectStaleSkylightResource ignores unrelated scripts and links', () => {
   assert.equal(result.detected, false);
   assert.equal(result.staleUrl, null);
 });
+
+test('custom event colors resolve exact, recurring, future, reset, and malformed entries', async () => {
+  const {
+    applyCustomEventColor,
+    createEmptyCustomEventColors,
+    normalizeCustomEventColors,
+    resolveCustomEventColor
+  } = await import('./src/events/custom-event-colors.js');
+  const getEventIdentityKey = (entityId, event) => `${entityId}:${event.summary}:${event.start?.dateTime || event.start?.date}`;
+  const base = { entityId: 'calendar.work', uid: 'uid-1', summary: 'One-off', start: { dateTime: '2026-01-01T10:00:00' } };
+  let state = createEmptyCustomEventColors();
+  state = applyCustomEventColor(state, base, 'this', '#abc', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(base, state, { getEventIdentityKey }), '#AABBCC');
+
+  const occurrence = { entityId: 'calendar.work', uid: 'series-1', recurrence_id: '20260101T100000', start: { dateTime: '2026-01-01T10:00:00' } };
+  const later = { ...occurrence, recurrence_id: '20260108T100000', start: { dateTime: '2026-01-08T10:00:00' } };
+  state = applyCustomEventColor(state, occurrence, 'all', '#112233', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#112233');
+  state = applyCustomEventColor(state, occurrence, 'future', '#445566', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#445566');
+  state = applyCustomEventColor(state, later, 'future', '#778899', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), '#778899');
+  state = applyCustomEventColor(state, later, 'this', null, { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor(later, state, { getEventIdentityKey }), null);
+
+  const cleaned = normalizeCustomEventColors({ version: 1, occurrences: { a: '#badbad', b: 'nope' }, series: { s: '#123456', x: 'wat' }, future: { s: [{ from: '1', color: '#abcdef' }, { from: '', color: '#000000' }, { from: '2', color: 'not-a-color' }] } });
+  assert.deepEqual(cleaned.occurrences, { a: '#BADBAD' });
+  assert.deepEqual(cleaned.series, { s: '#123456' });
+  assert.deepEqual(cleaned.future, { s: [{ from: '1', color: '#ABCDEF' }] });
+});
+
+test('all-series custom color replacement removes conflicting occurrence and future rules', async () => {
+  const { applyCustomEventColor, createEmptyCustomEventColors, resolveCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const event = { entityId: 'calendar.work', uid: 'series-2', recurrence_id: '20260101T100000', start: { dateTime: '2026-01-01T10:00:00' } };
+  const later = { ...event, recurrence_id: '20260108T100000', start: { dateTime: '2026-01-08T10:00:00' } };
+  let state = createEmptyCustomEventColors();
+  state = applyCustomEventColor(state, event, 'future', '#111111');
+  state = applyCustomEventColor(state, later, 'this', '#222222');
+  state = applyCustomEventColor(state, event, 'all', '#333333');
+  assert.equal(resolveCustomEventColor(later, state), '#333333');
+  assert.deepEqual(state.future, {});
+  assert.deepEqual(state.occurrences, {});
+});
+
+test('custom colors persist with hidden calendars and reset on unrelated config slots', () => {
+  const store = new Map();
+  global.window.localStorage = { getItem: (key) => store.get(key) || null, setItem: (key, value) => store.set(key, value) };
+  global.window.location = { pathname: '/lovelace/test' };
+  const card = new Card();
+  card.setConfig({ entities: ['calendar.a'], preference_storage_key: 'one' });
+  card._hiddenCalendars = new Set(['calendar.a']);
+  card._customEventColors.occurrences['calendar.a|uid|1'] = '#123456';
+  card.persistPreferences();
+  const stored = JSON.parse(store.get('skylight-calendar-card:lovelace:one'));
+  assert.deepEqual(stored.hiddenCalendars, ['calendar.a']);
+  assert.equal(stored.customEventColors.occurrences['calendar.a|uid|1'], '#123456');
+
+  card.setConfig({ entities: ['calendar.a'], preference_storage_key: 'two' });
+  assert.deepEqual(card._customEventColors.occurrences, {});
+  assert.deepEqual(Array.from(card._hiddenCalendars), []);
+});
+

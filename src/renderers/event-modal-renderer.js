@@ -11,6 +11,7 @@ export function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  customColor = null,
   locationLinks = false,
   locationActionsExpanded = false,
   locationMapUrl = '',
@@ -113,17 +114,16 @@ export function renderEventDetailsModal({
           </div>
         ` : ''}
 
-        ${(canEdit || canDelete || canForward) ? `
-          <div class="modal-actions">
+        <div class="modal-actions">
             <div class="modal-actions-left">
               ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
             </div>
             <div class="modal-actions-right">
+              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
               ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
               ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
             </div>
           </div>
-        ` : ''}
       </div>
     `;
 }
