@@ -2142,6 +2142,45 @@ test('month trims trailing span placeholders so earlier normal timed events rema
   assert.doesNotMatch(html, /2 more/);
 });
 
+test('month hides span lanes beyond visible capacity and counts them in more indicator', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  card._events = Array.from({ length: 5 }, (_, index) => makeAllDayEvent(`Overlap Span ${index + 1}`, '2026-03-24', '2026-03-27'));
+
+  const weekStart = new Date('2026-03-22T00:00:00');
+  const weekDays = Array.from({ length: 7 }, (_, offset) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offset));
+  const layout = card.buildMonthSpanLayoutForWeek(weekDays);
+  const date = new Date('2026-03-24T00:00:00');
+  const html = card.renderDay(24, date, false, layout.dayLanesByDateKey.get(card.getDateKey(date)) || []);
+
+  assert.equal(countRenderedMonthSpanBodies(html), 2);
+  assert.match(html, /Overlap Span 1/);
+  assert.match(html, /Overlap Span 2/);
+  assert.doesNotMatch(html, /Overlap Span 3/);
+  assert.doesNotMatch(html, /Overlap Span 4/);
+  assert.doesNotMatch(html, /Overlap Span 5/);
+  assert.match(html, /3 more/);
+});
+
+test('month keeps hidden span lanes out of visible normal event slots', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  const date = new Date('2026-03-26T00:00:00');
+  const visibleSpan = makeAllDayEvent('Visible Span', '2026-03-25', '2026-03-28');
+  const hiddenSpan = makeAllDayEvent('Hidden Span', '2026-03-24', '2026-03-28');
+  card._events = [visibleSpan, hiddenSpan];
+
+  const html = card.renderDay(26, date, false, [
+    null,
+    { event: visibleSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 },
+    null,
+    { event: hiddenSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 }
+  ]);
+
+  assert.match(html, /Visible Span/);
+  assert.doesNotMatch(html, /Hidden Span/);
+  assert.match(html, /1 more/);
+});
 
 test('month fills null span lanes with normal events before lower span lanes', () => {
   const card = makeCard({ entities: ['calendar.family'] });

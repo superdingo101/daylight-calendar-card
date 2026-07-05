@@ -17,11 +17,12 @@ export function renderDayCellEvents({
   dayEvents,
   hiddenEventCount,
   monthSpanLanes,
+  monthSpanEventKeys,
   visibleEvents,
   helpers
 }) {
   const lanes = monthSpanLanes || [];
-  const spannedEventKeys = new Set(lanes.filter(Boolean).map((lane) => helpers.getEventKey(lane.event)));
+  const spannedEventKeys = new Set((monthSpanEventKeys || lanes.filter(Boolean).map((lane) => helpers.getEventKey(lane.event))));
   const occupiedSpanLaneCount = lanes.filter(Boolean).length;
   const visibleNonSpannedEvents = dayEvents
     .filter((event) => !spannedEventKeys.has(helpers.getEventKey(event)))
@@ -56,6 +57,7 @@ export function renderDayCell({
   hiddenEventCount,
   isOtherMonth,
   monthSpanLanes,
+  monthSpanEventKeys,
   isToday,
   visibleEvents,
   helpers
@@ -77,6 +79,7 @@ export function renderDayCell({
         dayEvents,
         hiddenEventCount,
         monthSpanLanes,
+        monthSpanEventKeys,
         visibleEvents,
         helpers
       })}
