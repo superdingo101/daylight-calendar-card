@@ -31,6 +31,22 @@ Users can still switch to other views using the view selector buttons in the car
   When `true`, each event chip in the month grid includes the event start time and any additional detail text alongside the event title. This is also the flag that enables `show_event_location` / `use_short_location` rendering in Month — otherwise location is omitted from Month event chips.
 </ParamField>
 
+<ParamField path="month_day_tap_action" default="create" type="string">
+  Used by **Month** only. Controls what happens when you tap an empty part of a day cell (tapping an event chip always opens that event's detail). Accepted values:
+
+  - **`create`** (default) — preserves the existing behavior:
+    - if event management is enabled **and** there is at least one writable calendar → open the new-event form prefilled with that date;
+    - otherwise, if the day has visible events → open the day-events popup (see below);
+    - otherwise (a day with no visible events and no way to create one) → nothing happens.
+  - **`show_events`** — tapping a day that **has visible events** opens a popup listing that day's **visible** events (i.e. after hidden-calendar, hidden-style, and `past_event_mode` filtering); tap any event there to view, edit, or delete it. **Empty days still open the new-event form** (when event management is enabled and a writable calendar exists), so blank days stay quick to add to.
+
+  In the `show_events` popup, an **Add Event** button (prefilled with that date) is shown when **all** of the following are true: event management is enabled, at least one writable calendar exists, and [`hide_add_event_button`](/configuration/event-management) is `false`.
+
+  Within the popup, closing an event's details — or adding, editing, or deleting an event — returns you to the day-events list (refreshed), rather than dropping back to the calendar.
+
+  This is handy on phones, where a busy day's chips can be hard to read in the grid.
+</ParamField>
+
 <ParamField path="show_week_numbers_month" default="false" type="boolean">
   Used by **Month** only.
 
