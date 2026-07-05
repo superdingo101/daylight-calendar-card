@@ -83,7 +83,7 @@ export function normalizeCustomEventColors(value) {
 }
 
 export function resolveCustomEventColor(event, state, { getEventIdentityKey } = {}) {
-  const colors = normalizeCustomEventColors(state);
+  const colors = state || createEmptyCustomEventColors();
   const keys = getCustomEventColorKeys(event, { getEventIdentityKey });
   if (!keys?.occurrenceKey) return null;
   if (Object.prototype.hasOwnProperty.call(colors.occurrences, keys.occurrenceKey)) {

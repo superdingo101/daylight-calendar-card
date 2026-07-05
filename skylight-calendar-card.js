@@ -8929,6 +8929,8 @@ function renderEventDetailsModal({
   isAllDay,
   calendarName,
   visibleBadges,
+  modalBadgeColor = event.color,
+  modalBadgeTextColor = 'white',
   capabilities,
   hasUID,
   canEdit,
@@ -8974,8 +8976,8 @@ function renderEventDetailsModal({
         ` : '');
 
   const combinedBadgeHtml = event.isCombinedCalendarEvent
-    ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: white; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
-    : `<div class="modal-calendar-badge" style="background: ${event.color}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
+    ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: ${calendar.textColor || 'white'}; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
+    : `<div class="modal-calendar-badge" style="background: ${modalBadgeColor}; color: ${modalBadgeTextColor}; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
 
   return `
       <div class="modal-header">
@@ -9137,7 +9139,7 @@ function normalizeCustomEventColors(value) {
 }
 
 function resolveCustomEventColor(event, state, { getEventIdentityKey } = {}) {
-  const colors = normalizeCustomEventColors(state);
+  const colors = state || createEmptyCustomEventColors();
   const keys = getCustomEventColorKeys(event, { getEventIdentityKey });
   if (!keys?.occurrenceKey) return null;
   if (Object.prototype.hasOwnProperty.call(colors.occurrences, keys.occurrenceKey)) {
@@ -10711,12 +10713,17 @@ class SkylightCalendarCard extends HTMLElement {
 
       const parsed = JSON.parse(raw);
 
+      let loaded = false;
       if (Array.isArray(parsed.hiddenCalendars)) {
         const knownEntities = new Set(this._config.entities || []);
         this._hiddenCalendars = new Set(parsed.hiddenCalendars.filter((entityId) => knownEntities.has(entityId)));
-        this._customEventColors = normalizeCustomEventColors(parsed.customEventColors);
-        return true;
+        loaded = true;
       }
+      if (parsed.customEventColors !== undefined) {
+        this._customEventColors = normalizeCustomEventColors(parsed.customEventColors);
+        loaded = true;
+      }
+      if (loaded) return true;
     } catch (error) {
       console.warn('Failed to load persisted calendar preferences:', error);
     }
@@ -14447,9 +14454,21 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
+  getEffectiveEventColor(event, styleCandidates = null) {
+    return this.getCustomEventColor(event) || styleCandidates?.background_color?.value || event?.color || null;
+  }
+
+  getEventAccentColor(event) {
+    return this.getVisibleCalendarColorsForEvent(event)[0] || this.getEventBackgroundColor(event);
+  }
+
   getVisibleCalendarColorsForEvent(event) {
-    const customColor = this.getCustomEventColor(event);
-    const virtualCalendar = customColor ? null : this.getVirtualBadgeForEvent(event);
+    const styleOverrides = this.getEventStyleOverrides(event);
+    if (styleOverrides?.hasExplicitBackgroundColor && styleOverrides.backgroundColors?.length) {
+      return styleOverrides.backgroundColors.filter(Boolean);
+    }
+
+    const virtualCalendar = this.getVirtualBadgeForEvent(event);
     if (virtualCalendar) {
       const virtualSourceEntityIds = (Array.isArray(event?.sourceEntityIds) ? event.sourceEntityIds : [event?.entityId])
         .filter((entityId) => virtualCalendar.entities.includes(entityId));
@@ -14481,11 +14500,6 @@ class SkylightCalendarCard extends HTMLElement {
       }
     } else if (this._hiddenCalendars.has(event.entityId)) {
       return [];
-    }
-
-    const backgroundColors = this.getEventStyleOverrides(event)?.backgroundColors || [];
-    if (backgroundColors.length > 0) {
-      return backgroundColors;
     }
 
     if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
@@ -14531,18 +14545,16 @@ class SkylightCalendarCard extends HTMLElement {
       const visibleSources = event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
       if (visibleSources.length === 0) return null;
 
-      const sourceCandidates = visibleSources.map((sourceEvent, sourceIndex) => ({
-        sourceEvent,
-        sourceIndex,
-        candidates: this.getSingleEventStyleCandidates(sourceEvent)
-      }));
+      const sourceCandidates = visibleSources.map((sourceEvent, sourceIndex) => {
+        const candidates = this.getSingleEventStyleCandidates(sourceEvent);
+        const customColor = this.getCustomEventColor(sourceEvent);
+        return { sourceEvent, sourceIndex, candidates, customColor };
+      });
 
-      const explicitBackgroundColors = sourceCandidates
-        .map(({ candidates }) => candidates.background_color?.value)
-        .filter((color) => color !== undefined && color !== null && color !== '');
-      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates }) =>
-        this.getCustomEventColor(sourceEvent) || candidates.background_color?.value || sourceEvent.color
+      const hasExplicitBackgroundColor = sourceCandidates.some(({ candidates, customColor }) =>
+        !!customColor || (candidates.background_color?.value !== undefined && candidates.background_color?.value !== null && candidates.background_color?.value !== '')
       );
+      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates }) => this.getEffectiveEventColor(sourceEvent, candidates));
       const uniqueBackgroundCount = new Set(backgroundColors).size;
       const hasDuplicateBackgroundColors = uniqueBackgroundCount !== backgroundColors.length;
 
@@ -14568,7 +14580,7 @@ class SkylightCalendarCard extends HTMLElement {
         ...mergedOverrides,
         backgroundColors,
         hasDuplicateBackgroundColors,
-        hasExplicitBackgroundColor: explicitBackgroundColors.length > 0
+        hasExplicitBackgroundColor
       };
     }
 
@@ -14581,7 +14593,7 @@ class SkylightCalendarCard extends HTMLElement {
     if (customColor) {
       overrides.background_color = customColor;
     }
-    overrides.backgroundColors = [customColor || overrides.background_color || event.color];
+    overrides.backgroundColors = [this.getEffectiveEventColor(event, candidates)];
     overrides.hasDuplicateBackgroundColors = false;
     overrides.hasExplicitBackgroundColor = !!customColor || Object.prototype.hasOwnProperty.call(overrides, 'background_color');
     return overrides;
@@ -16572,11 +16584,20 @@ class SkylightCalendarCard extends HTMLElement {
     // Get calendar info and capabilities
     const calendarName = this.getCalendarName(event.entityId);
     const capabilities = this._calendarCapabilities[event.entityId] || {};
+    const visibleSourceEvents = this.getVisibleCombinedSourceEvents(event);
     const visibleBadges = this.getModalCalendarBadgesForEvent(event)
-      .map((calendar) => ({
-        ...calendar,
-        name: this.getCalendarName(calendar.entityId)
-      }));
+      .map((calendar) => {
+        const sourceEvent = visibleSourceEvents.find((candidate) => candidate.entityId === calendar.entityId);
+        const colorEvent = sourceEvent || (calendar.entityId === event.entityId ? event : null);
+        const color = colorEvent ? (this.getEffectiveEventColor(colorEvent) || calendar.color) : calendar.color;
+        return {
+          ...calendar,
+          color,
+          textColor: this.getContractColor(color),
+          name: this.getCalendarName(calendar.entityId)
+        };
+      });
+    const modalBadgeColor = this.getEffectiveEventColor(event) || event.color;
 
     // For edit/delete to work, we need:
     // 1. Event management enabled
@@ -16599,6 +16620,8 @@ class SkylightCalendarCard extends HTMLElement {
       isAllDay,
       calendarName,
       visibleBadges,
+      modalBadgeColor,
+      modalBadgeTextColor: this.getContractColor(modalBadgeColor),
       capabilities,
       hasUID,
       canEdit,
@@ -16758,7 +16781,7 @@ class SkylightCalendarCard extends HTMLElement {
     const modal = this.getRootElementById('event-modal');
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
-    const currentColor = this.getCustomEventColor(targetEvent) || targetEvent.color || '#3B82F6';
+    const currentColor = this.getCustomEventColor(targetEvent) || this.getEventAccentColor(targetEvent) || targetEvent.color || '#3B82F6';
     const presets = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#A855F7'];
     const scopes = this.getCustomColorScopes(targetEvent);
     const scopeHtml = scopes.length > 1 ? `

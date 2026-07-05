@@ -474,6 +474,61 @@ function renderEventModal(onSaved) {
   return { card, handlers };
 }
 
+
+test('event detail modal exposes Custom Color for read-only events and badge uses effective custom color', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  const event = { entityId: 'calendar.family', uid: 'readonly-custom', color: '#ffffff', summary: 'Read only', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, event, 'this', '#000000', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+  card._calendarCapabilities = { 'calendar.family': { isReadonly: true } };
+  card.getCalendarName = () => 'Family';
+  card.applyEventModalSizeClass = () => {};
+  card.observeModalVisibility = () => {};
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    return { addEventListener: () => {} };
+  };
+
+  card.showEventModal(event);
+
+  assert.match(content.innerHTML, /id="custom-color-btn"/);
+  assert.doesNotMatch(content.innerHTML, /id="edit-event-btn"/);
+  assert.doesNotMatch(content.innerHTML, /id="delete-event-btn"/);
+  assert.match(content.innerHTML, /modal-calendar-badge" style="background: #000000; color: white;/);
+});
+
+test('combined event detail modal badges use visible source effective custom colors', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b', 'calendar.hidden'], combine_calendars: true });
+  const sourceA = { entityId: 'calendar.a', uid: 'badge-a', color: '#ffffff', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const sourceB = { entityId: 'calendar.b', uid: 'badge-b', color: '#222222', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const hiddenSource = { entityId: 'calendar.hidden', uid: 'badge-hidden', color: '#333333', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, sourceA, 'this', '#000000', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+  card._customEventColors = applyCustomEventColor(card._customEventColors, sourceB, 'this', '#FFFFFF', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+  card._hiddenCalendars = new Set(['calendar.hidden']);
+  card._calendarCapabilities = { 'calendar.a': {} };
+  card.getCalendarName = (entityId) => entityId;
+  card.applyEventModalSizeClass = () => {};
+  card.observeModalVisibility = () => {};
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    return { addEventListener: () => {} };
+  };
+
+  const combinedEvent = card.combineDuplicateCalendarEvents([sourceA, sourceB, hiddenSource]).find((event) => event.isCombinedCalendarEvent);
+  card.showEventModal(combinedEvent);
+
+  assert.match(content.innerHTML, /background: #000000; color: white;/);
+  assert.match(content.innerHTML, /background: #FFFFFF; color: black;/);
+  assert.doesNotMatch(content.innerHTML, /calendar\.hidden/);
+});
+
 test('showEventModal Edit forwards onSaved to the edit flow', () => {
   const back = () => {};
   const { card, handlers } = renderEventModal(back);
@@ -4991,6 +5046,77 @@ test('virtual_calendars normalize and affect calendar token matching', () => {
 
 
 
+
+test('custom event colors override event_styles backgrounds while preserving other style properties', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({
+    entities: ['calendar.a'],
+    event_styles: [{ match: { title: 'Styled' }, style: { background_color: '#111111', opacity: 0.42, filter: 'grayscale(20%)' } }]
+  });
+  const event = { entityId: 'calendar.a', uid: 'custom-1', color: '#222222', summary: 'Styled Event', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, event, 'this', '#AABBCC', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+
+  const overrides = card.getEventStyleOverrides(event);
+  const style = card.getEventStyle(event);
+  assert.equal(overrides.background_color, '#AABBCC');
+  assert.equal(overrides.opacity, 0.42);
+  assert.equal(overrides.filter, 'grayscale(20%)');
+  assert.match(style, /background-color: #AABBCC/);
+  assert.match(style, /opacity: 0.42/);
+  assert.match(style, /filter: grayscale\(20%\)/);
+});
+
+test('custom event colors drive left accent and tint modes', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const event = { entityId: 'calendar.a', uid: 'custom-2', color: '#222222', summary: 'Accent', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+
+  const neutral = makeCard({ entities: ['calendar.a'], event_color_mode: 'left-neutral', event_neutral_background: '#F7F7F7' });
+  neutral._customEventColors = applyCustomEventColor(neutral._customEventColors, event, 'this', '#AABBCC', { getEventIdentityKey: neutral.getEventIdentityKey.bind(neutral) });
+  const neutralStyle = neutral.getEventStyle(event);
+  assert.match(neutralStyle, /background-color: #F7F7F7/);
+  assert.match(neutralStyle, /linear-gradient\(to right, #AABBCC 0/);
+
+  const tint = makeCard({ entities: ['calendar.a'], event_color_mode: 'left-tint', event_tint_opacity: 80 });
+  tint._customEventColors = applyCustomEventColor(tint._customEventColors, event, 'this', '#AABBCC', { getEventIdentityKey: tint.getEventIdentityKey.bind(tint) });
+  const tintStyle = tint.getEventStyle(event);
+  assert.match(tintStyle, /linear-gradient\(to right, #AABBCC 0/);
+  assert.doesNotMatch(tintStyle, /background-color: #222222/);
+});
+
+test('combined custom event colors resolve per visible source including virtual calendar combinations', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    combine_style: 'bars',
+    combine_background: 'primary',
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.a'], color: '#123123' }]
+  });
+  const sourceA = { entityId: 'calendar.a', uid: 'combined-a', color: '#ff0000', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const sourceB = { entityId: 'calendar.b', uid: 'combined-b', color: '#00ff00', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, sourceA, 'this', '#AABBCC', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+  card._customEventColors = applyCustomEventColor(card._customEventColors, sourceB, 'this', '#DDEEFF', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+
+  const combinedEvent = card.combineDuplicateCalendarEvents([sourceA, sourceB]).find((event) => event.isCombinedCalendarEvent);
+  assert.deepEqual(card.getVisibleCalendarColorsForEvent(combinedEvent), ['#AABBCC', '#DDEEFF']);
+  const style = card.getEventStyle(combinedEvent);
+  assert.match(style, /background-color: #AABBCC/);
+  assert.match(style, /linear-gradient\(to bottom, #DDEEFF 0% 100%\)/);
+});
+
+test('event font color precedence and fallback contrast use final custom backgrounds', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const event = { entityId: 'calendar.a', uid: 'font-1', color: '#ffffff', summary: 'Font', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+
+  const configured = makeCard({ entities: ['calendar.a'], event_font_colors: { 'calendar.a': '#123456' } });
+  configured._customEventColors = applyCustomEventColor(configured._customEventColors, event, 'this', '#000000', { getEventIdentityKey: configured.getEventIdentityKey.bind(configured) });
+  assert.equal(configured.getEventBubbleFontColor(event), '#123456');
+
+  const fallback = makeCard({ entities: ['calendar.a'] });
+  fallback._customEventColors = applyCustomEventColor(fallback._customEventColors, event, 'this', '#000000', { getEventIdentityKey: fallback.getEventIdentityKey.bind(fallback) });
+  assert.equal(fallback.getEventBubbleFontColor(event), 'white');
+});
+
 test('feature order: combine then virtual then event styles influences visible colors/style', () => {
   const card = makeCard({
     entities: ['calendar.a', 'calendar.b'],
@@ -6373,7 +6499,15 @@ test('custom colors persist with hidden calendars and reset on unrelated config 
   assert.deepEqual(stored.hiddenCalendars, ['calendar.a']);
   assert.equal(stored.customEventColors.occurrences['calendar.a|uid|1'], '#123456');
 
+  store.set('skylight-calendar-card:lovelace:two', JSON.stringify({
+    hiddenCalendars: 'not-an-array',
+    customEventColors: { version: 1, occurrences: { 'calendar.a|uid|2': '#abcdef' }, series: {}, future: {} }
+  }));
   card.setConfig({ entities: ['calendar.a'], preference_storage_key: 'two' });
+  assert.equal(card._customEventColors.occurrences['calendar.a|uid|2'], '#ABCDEF');
+  assert.deepEqual(Array.from(card._hiddenCalendars), []);
+
+  card.setConfig({ entities: ['calendar.a'], preference_storage_key: 'three' });
   assert.deepEqual(card._customEventColors.occurrences, {});
   assert.deepEqual(Array.from(card._hiddenCalendars), []);
 });
