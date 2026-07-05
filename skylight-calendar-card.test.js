@@ -2162,6 +2162,26 @@ test('month hides span lanes beyond visible capacity and counts them in more ind
   assert.match(html, /3 more/);
 });
 
+test('month keeps hidden span lanes out of visible normal event slots', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getMaxVisibleEventsForMonthDay = () => 3;
+  const date = new Date('2026-03-26T00:00:00');
+  const visibleSpan = makeAllDayEvent('Visible Span', '2026-03-25', '2026-03-28');
+  const hiddenSpan = makeAllDayEvent('Hidden Span', '2026-03-24', '2026-03-28');
+  card._events = [visibleSpan, hiddenSpan];
+
+  const html = card.renderDay(26, date, false, [
+    null,
+    { event: visibleSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 },
+    null,
+    { event: hiddenSpan, isFirstVisibleSegment: true, visibleDaySpan: 1 }
+  ]);
+
+  assert.match(html, /Visible Span/);
+  assert.doesNotMatch(html, /Hidden Span/);
+  assert.match(html, /1 more/);
+});
+
 test('month fills null span lanes with normal events before lower span lanes', () => {
   const card = makeCard({ entities: ['calendar.family'] });
   card.getMaxVisibleEventsForMonthDay = () => 3;

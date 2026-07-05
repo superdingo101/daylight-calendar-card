@@ -9726,11 +9726,12 @@ function renderDayCellEvents({
   dayEvents,
   hiddenEventCount,
   monthSpanLanes,
+  monthSpanEventKeys,
   visibleEvents,
   helpers
 }) {
   const lanes = monthSpanLanes || [];
-  const spannedEventKeys = new Set(lanes.filter(Boolean).map((lane) => helpers.getEventKey(lane.event)));
+  const spannedEventKeys = new Set((monthSpanEventKeys || lanes.filter(Boolean).map((lane) => helpers.getEventKey(lane.event))));
   const occupiedSpanLaneCount = lanes.filter(Boolean).length;
   const visibleNonSpannedEvents = dayEvents
     .filter((event) => !spannedEventKeys.has(helpers.getEventKey(event)))
@@ -9765,6 +9766,7 @@ function renderDayCell({
   hiddenEventCount,
   isOtherMonth,
   monthSpanLanes,
+  monthSpanEventKeys,
   isToday,
   visibleEvents,
   helpers
@@ -9786,6 +9788,7 @@ function renderDayCell({
         dayEvents,
         hiddenEventCount,
         monthSpanLanes,
+        monthSpanEventKeys,
         visibleEvents,
         helpers
       })}
@@ -14067,7 +14070,8 @@ class SkylightCalendarCard extends HTMLElement {
     const spannedEventKeys = new Set((monthSpanLanes || [])
       .filter(Boolean)
       .map((lane) => this.getScheduleAllDayEventKey(lane.event)));
-    const nonSpannedEventCount = dayEvents.filter((event) => !spannedEventKeys.has(this.getScheduleAllDayEventKey(event))).length;
+    const nonSpannedDayEvents = dayEvents.filter((event) => !spannedEventKeys.has(this.getScheduleAllDayEventKey(event)));
+    const nonSpannedEventCount = nonSpannedDayEvents.length;
     const getHiddenEventCountForVisibleRows = (visibleRows) => {
       const visibleMonthSpanLanes = (monthSpanLanes || []).slice(0, visibleRows);
       const visibleSpanLaneCount = visibleMonthSpanLanes.filter(Boolean).length;
@@ -14085,13 +14089,14 @@ class SkylightCalendarCard extends HTMLElement {
 
     return renderDayCell({
       date,
-      dayEvents,
+      dayEvents: nonSpannedDayEvents,
       dayEventsForMatching,
       dayNum,
       dayStyle,
       hiddenEventCount,
       isOtherMonth,
       monthSpanLanes: visibleMonthSpanLanes,
+      monthSpanEventKeys: [...spannedEventKeys],
       isToday,
       visibleEvents,
       helpers: {
