@@ -4094,11 +4094,19 @@ class SkylightCalendarCard extends HTMLElement {
     const spannedEventKeys = new Set((monthSpanLanes || [])
       .filter(Boolean)
       .map((lane) => this.getScheduleAllDayEventKey(lane.event)));
-    const occupiedSpanLaneCount = (monthSpanLanes || []).filter(Boolean).length;
     const nonSpannedEventCount = dayEvents.filter((event) => !spannedEventKeys.has(this.getScheduleAllDayEventKey(event))).length;
-    const hasOverflow = nonSpannedEventCount > Math.max(0, maxVisible - occupiedSpanLaneCount);
+    const getHiddenEventCountForVisibleRows = (visibleRows) => {
+      const visibleMonthSpanLanes = (monthSpanLanes || []).slice(0, visibleRows);
+      const visibleSpanLaneCount = visibleMonthSpanLanes.filter(Boolean).length;
+      const hiddenSpanLaneCount = (monthSpanLanes || []).slice(visibleRows).filter(Boolean).length;
+      const hiddenNonSpannedEventCount = Math.max(0, nonSpannedEventCount - Math.max(0, visibleRows - visibleSpanLaneCount));
+
+      return hiddenSpanLaneCount + hiddenNonSpannedEventCount;
+    };
+    const hasOverflow = getHiddenEventCountForVisibleRows(maxVisible) > 0;
     const visibleEvents = hasOverflow ? Math.max(0, maxVisible - 1) : maxVisible;
-    const hiddenEventCount = Math.max(0, nonSpannedEventCount - Math.max(0, visibleEvents - occupiedSpanLaneCount));
+    const visibleMonthSpanLanes = (monthSpanLanes || []).slice(0, visibleEvents);
+    const hiddenEventCount = getHiddenEventCountForVisibleRows(visibleEvents);
 
     const dayStyle = this.getDayStyleAttributes(date, dayEventsForMatching, isToday);
 
@@ -4110,7 +4118,7 @@ class SkylightCalendarCard extends HTMLElement {
       dayStyle,
       hiddenEventCount,
       isOtherMonth,
-      monthSpanLanes,
+      monthSpanLanes: visibleMonthSpanLanes,
       isToday,
       visibleEvents,
       helpers: {

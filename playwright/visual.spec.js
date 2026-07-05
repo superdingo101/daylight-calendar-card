@@ -805,6 +805,32 @@ for (const scenario of cases) {
   });
 }
 
+test('regression: month compact-height hides overflowing span lanes in more count', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], title: 'Regression Calendar', default_view: 'month', compact_height: true },
+    events: {
+      'calendar.family': Array.from({ length: 5 }, (_, index) => ({
+        summary: `Overlap Span ${index + 1}`,
+        start: '2026-03-24',
+        end: '2026-03-27'
+      }))
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toContainText('Month');
+  const dayCell = card.locator('.day-cell[data-date^="2026-03-24"]').first();
+  await expect(dayCell).toBeVisible();
+  await expect(dayCell.locator('.month-span-event')).toHaveCount(0);
+  await expect(dayCell).toContainText('5 more');
+  await expect(dayCell).not.toContainText('Overlap Span 1');
+});
+
 test('regression: month compact-height view selector stays clickable without devtools', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
 
