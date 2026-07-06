@@ -4349,15 +4349,42 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
-  getEffectiveEventColor(event, styleCandidates = null) {
-    return this.getCustomEventColor(event) || styleCandidates?.background_color?.value || event?.color || null;
+  getEffectiveEventColor(event, styleCandidates = null, { virtualColor = null } = {}) {
+    return this.getCustomEventColor(event) || styleCandidates?.background_color?.value || virtualColor || event?.color || null;
   }
 
   getEventAccentColor(event) {
     return this.getVisibleCalendarColorsForEvent(event)[0] || this.getEventBackgroundColor(event);
   }
 
+  getVirtualCalendarColor(virtualCalendar, event = null) {
+    if (!virtualCalendar) return null;
+    const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
+    return virtualCalendar.color || fallbackColor;
+  }
+
+  getVisibleSourceEntityIdsForEvent(event) {
+    if (!event) return [];
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents)) {
+      return event.sourceEvents
+        .map((sourceEvent) => sourceEvent?.entityId)
+        .filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)) {
+      return event.sourceEntityIds.filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+      return event.sourceCalendars
+        .map((calendar) => calendar?.entityId)
+        .filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    return event.entityId && !this._hiddenCalendars.has(event.entityId) ? [event.entityId] : [];
+  }
+
   getVisibleCalendarColorsForEvent(event) {
+    const visibleSourceEntityIds = this.getVisibleSourceEntityIdsForEvent(event);
+    if (visibleSourceEntityIds.length === 0) return [];
+
     const styleOverrides = this.getEventStyleOverrides(event);
     if (styleOverrides?.hasExplicitBackgroundColor && styleOverrides.backgroundColors?.length) {
       return styleOverrides.backgroundColors.filter(Boolean);
@@ -4365,13 +4392,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     const virtualCalendar = this.getVirtualBadgeForEvent(event);
     if (virtualCalendar) {
-      const virtualSourceEntityIds = (Array.isArray(event?.sourceEntityIds) ? event.sourceEntityIds : [event?.entityId])
-        .filter((entityId) => virtualCalendar.entities.includes(entityId));
-      const hasVisibleVirtualSource = virtualSourceEntityIds.some((entityId) => !this._hiddenCalendars.has(entityId));
+      const hasVisibleVirtualSource = visibleSourceEntityIds.some((entityId) => virtualCalendar.entities.includes(entityId));
       if (!hasVisibleVirtualSource) return [];
 
-      const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
-      const virtualColor = virtualCalendar.color || fallbackColor;
+      const virtualColor = this.getVirtualCalendarColor(virtualCalendar, event);
 
       if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
         const additionalColors = Array.from(new Set(event.sourceCalendars
@@ -4388,23 +4412,10 @@ class SkylightCalendarCard extends HTMLElement {
       return [virtualColor];
     }
 
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)) {
-      const hasVisibleSourceCalendar = event.sourceEntityIds.some((entityId) => !this._hiddenCalendars.has(entityId));
-      if (!hasVisibleSourceCalendar) {
-        return [];
-      }
-    } else if (this._hiddenCalendars.has(event.entityId)) {
-      return [];
-    }
-
     if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
       return event.sourceCalendars
         .filter(calendar => !this._hiddenCalendars.has(calendar.entityId))
         .map(calendar => calendar.color);
-    }
-
-    if (this._hiddenCalendars.has(event.entityId)) {
-      return [];
     }
 
     return [event.color];
@@ -4443,13 +4454,14 @@ class SkylightCalendarCard extends HTMLElement {
       const sourceCandidates = visibleSources.map((sourceEvent, sourceIndex) => {
         const candidates = this.getSingleEventStyleCandidates(sourceEvent);
         const customColor = this.getCustomEventColor(sourceEvent);
-        return { sourceEvent, sourceIndex, candidates, customColor };
+        const virtualColor = this.getVirtualCalendarColor(this.getVirtualBadgeForEntity(sourceEvent.entityId), sourceEvent);
+        return { sourceEvent, sourceIndex, candidates, customColor, virtualColor };
       });
 
       const hasExplicitBackgroundColor = sourceCandidates.some(({ candidates, customColor }) =>
         !!customColor || (candidates.background_color?.value !== undefined && candidates.background_color?.value !== null && candidates.background_color?.value !== '')
       );
-      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates }) => this.getEffectiveEventColor(sourceEvent, candidates));
+      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates, virtualColor }) => this.getEffectiveEventColor(sourceEvent, candidates, { virtualColor }));
       const uniqueBackgroundCount = new Set(backgroundColors).size;
       const hasDuplicateBackgroundColors = uniqueBackgroundCount !== backgroundColors.length;
 

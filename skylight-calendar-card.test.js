@@ -5047,6 +5047,60 @@ test('virtual_calendars normalize and affect calendar token matching', () => {
 
 
 
+
+test('hidden single events do not expose custom or event-style colors', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const customCard = makeCard({ entities: ['calendar.a'] });
+  const customEvent = { entityId: 'calendar.a', uid: 'hidden-custom', color: '#111111', summary: 'Hidden custom', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  customCard._customEventColors = applyCustomEventColor(customCard._customEventColors, customEvent, 'this', '#AABBCC', { getEventIdentityKey: customCard.getEventIdentityKey.bind(customCard) });
+  customCard._hiddenCalendars = new Set(['calendar.a']);
+  assert.deepEqual(customCard.getVisibleCalendarColorsForEvent(customEvent), []);
+
+  const styledCard = makeCard({
+    entities: ['calendar.a'],
+    event_styles: [{ match: { title: 'Hidden styled' }, style: { background_color: '#DDEEFF' } }]
+  });
+  const styledEvent = { entityId: 'calendar.a', uid: 'hidden-style', color: '#222222', summary: 'Hidden styled', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
+  styledCard._hiddenCalendars = new Set(['calendar.a']);
+  assert.deepEqual(styledCard.getVisibleCalendarColorsForEvent(styledEvent), []);
+});
+
+test('hidden virtual sources do not contribute custom colors to combined visible colors', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.a', 'calendar.b'], color: '#123123' }]
+  });
+  const hiddenSource = { entityId: 'calendar.a', uid: 'hidden-virtual-a', color: '#ff0000', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const visibleSource = { entityId: 'calendar.b', uid: 'hidden-virtual-b', color: '#00ff00', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, hiddenSource, 'this', '#AABBCC', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+  card._hiddenCalendars = new Set(['calendar.a']);
+
+  const combinedEvent = card.combineDuplicateCalendarEvents([hiddenSource, visibleSource]).find((event) => event.isCombinedCalendarEvent);
+  assert.deepEqual(card.getVisibleCalendarColorsForEvent(combinedEvent), ['#123123']);
+});
+
+test('mixed custom and virtual sources keep custom source color and virtual fallback', async () => {
+  const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    combine_style: 'bars',
+    combine_background: 'primary',
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.a', 'calendar.b'], color: '#123123' }]
+  });
+  const customSource = { entityId: 'calendar.a', uid: 'mixed-virtual-a', color: '#ff0000', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const virtualSource = { entityId: 'calendar.b', uid: 'mixed-virtual-b', color: '#00ff00', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  card._customEventColors = applyCustomEventColor(card._customEventColors, customSource, 'this', '#AABBCC', { getEventIdentityKey: card.getEventIdentityKey.bind(card) });
+
+  const combinedEvent = card.combineDuplicateCalendarEvents([customSource, virtualSource]).find((event) => event.isCombinedCalendarEvent);
+  assert.deepEqual(card.getVisibleCalendarColorsForEvent(combinedEvent), ['#AABBCC', '#123123']);
+  const style = card.getEventStyle(combinedEvent);
+  assert.match(style, /background-color: #AABBCC/);
+  assert.match(style, /linear-gradient\(to bottom, #123123 0% 100%\)/);
+});
+
 test('custom event colors override event_styles backgrounds while preserving other style properties', async () => {
   const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
   const card = makeCard({
