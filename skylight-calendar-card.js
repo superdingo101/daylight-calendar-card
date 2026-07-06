@@ -677,6 +677,116 @@ const detectStaleSkylightResource = (documentLike = globalThis.document) => {
   };
 };
 
+const DEFAULT_COLOR_PICKER_PRESETS = ['#ffffff', '#ff0000', '#ffff00', '#00ff00', '#000000', '#00ffff', '#0000ff', '#ff00ff'];
+
+function normalizePickerHexColor(value, fallback = null) {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+  const short = withHash.match(/^#([0-9a-fA-F]{3})$/);
+  if (short) {
+    const [r, g, b] = short[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : fallback;
+}
+
+function hexToHsv(hex) {
+  const normalizedHex = normalizePickerHexColor(hex, '#3f51b5').replace('#', '');
+  const r = parseInt(normalizedHex.slice(0, 2), 16) / 255;
+  const g = parseInt(normalizedHex.slice(2, 4), 16) / 255;
+  const b = parseInt(normalizedHex.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let h = 0;
+  if (delta !== 0) {
+    if (max === r) h = ((g - b) / delta) % 6;
+    else if (max === g) h = (b - r) / delta + 2;
+    else h = (r - g) / delta + 4;
+    h = Math.round(h * 60);
+    if (h < 0) h += 360;
+  }
+  return { h, s: max === 0 ? 0 : delta / max, v: max };
+}
+
+function hsvToHex(h, s, v) {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = Math.max(0, Math.min(1, s));
+  const val = Math.max(0, Math.min(1, v));
+  const c = val * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = val - c;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hue < 60) [r, g, b] = [c, x, 0];
+  else if (hue < 120) [r, g, b] = [x, c, 0];
+  else if (hue < 180) [r, g, b] = [0, c, x];
+  else if (hue < 240) [r, g, b] = [0, x, c];
+  else if (hue < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+class DaylightColorPicker extends HTMLElement {
+  static get observedAttributes() { return ['value', 'title', 'confirm-label', 'cancel-label', 'show-actions']; }
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._value = '#3f51b5';
+    this._h = 0;
+    this._s = 1;
+    this._v = 1;
+    this._presets = DEFAULT_COLOR_PICKER_PRESETS;
+    this._dragging = false;
+  }
+  connectedCallback() { this.value = this.getAttribute('value') || this._value; this.render(); }
+  attributeChangedCallback(name, oldValue, newValue) { if (oldValue !== newValue) { if (name === 'value') this.value = newValue; if (this.isConnected) this.render(); } }
+  get value() { return this._value; }
+  set value(nextValue) { const normalized = normalizePickerHexColor(nextValue, this._value || '#3f51b5'); const hsv = hexToHsv(normalized); this._value = normalized; this._h = hsv.h; this._s = hsv.s; this._v = hsv.v; this.syncUi(); }
+  get presets() { return this._presets; }
+  set presets(values) { this._presets = Array.isArray(values) && values.length ? values.map((color) => normalizePickerHexColor(color)).filter(Boolean) : DEFAULT_COLOR_PICKER_PRESETS; if (this.isConnected) this.render(); }
+  get showActions() { return this.getAttribute('show-actions') !== 'false'; }
+  setColorFromHsv(h, s, v, { emit = true } = {}) { this._h = h; this._s = Math.max(0, Math.min(1, s)); this._v = Math.max(0.05, Math.min(1, v)); this._value = hsvToHex(this._h, this._s, this._v); this.syncUi(); if (emit) this.emitColorChange(); }
+  setColorFromHex(value, { emit = true } = {}) { const normalized = normalizePickerHexColor(value); if (!normalized) return false; const hsv = hexToHsv(normalized); this._value = normalized; this._h = hsv.h; this._s = hsv.s; this._v = hsv.v; this.syncUi(); if (emit) this.emitColorChange(); return true; }
+  emitColorChange() { this.dispatchEvent(new CustomEvent('color-change', { detail: { color: this._value }, bubbles: true, composed: true })); }
+  syncUi() {
+    const root = this.shadowRoot; if (!root) return;
+    const marker = root.querySelector('.color-picker-wheel-marker');
+    const brightnessInput = root.querySelector('#color-picker-brightness');
+    const hexInput = root.querySelector('#color-picker-hex');
+    const preview = root.querySelector('.color-picker-preview');
+    const valueText = root.querySelector('.color-picker-value');
+    if (marker) { const angle = ((this._h - 90) * Math.PI) / 180; marker.style.left = `${50 + Math.cos(angle) * this._s * 50}%`; marker.style.top = `${50 + Math.sin(angle) * this._s * 50}%`; }
+    if (brightnessInput) brightnessInput.value = String(Math.round(this._v * 100));
+    if (hexInput && root.activeElement !== hexInput) hexInput.value = this._value;
+    if (preview) preview.style.background = this._value;
+    if (valueText) valueText.textContent = this._value;
+  }
+  updateFromWheelEvent(event) { const wheel = event.currentTarget; const rect = wheel.getBoundingClientRect(); const x = event.clientX - rect.left - rect.width / 2; const y = event.clientY - rect.top - rect.height / 2; const radius = rect.width / 2; const distance = Math.min(Math.sqrt(x * x + y * y), radius); const saturation = radius > 0 ? distance / radius : 0; const hue = (Math.atan2(y, x) * 180) / Math.PI + 90; this.setColorFromHsv(hue < 0 ? hue + 360 : hue, saturation, this._v); }
+  bindEvents() {
+    const root = this.shadowRoot;
+    const wheel = root.querySelector('#color-picker-wheel');
+    if (wheel) { wheel.addEventListener('pointerdown', (event) => { this._dragging = true; wheel.setPointerCapture?.(event.pointerId); this.updateFromWheelEvent(event); }); wheel.addEventListener('pointermove', (event) => { if (this._dragging) this.updateFromWheelEvent(event); }); const stopDragging = () => { this._dragging = false; }; wheel.addEventListener('pointerup', stopDragging); wheel.addEventListener('pointercancel', stopDragging); wheel.addEventListener('pointerleave', stopDragging); }
+    root.querySelectorAll('[data-color-preset]').forEach((preset) => preset.addEventListener('click', () => this.setColorFromHex(preset.dataset.colorPreset)));
+    root.querySelector('#color-picker-brightness')?.addEventListener('input', (event) => this.setColorFromHsv(this._h, this._s, Number(event.target.value) / 100));
+    const hexInput = root.querySelector('#color-picker-hex');
+    if (hexInput) { const syncHex = () => this.setColorFromHex(hexInput.value); hexInput.addEventListener('input', syncHex); hexInput.addEventListener('change', syncHex); }
+    root.querySelector('[data-color-cancel]')?.addEventListener('click', () => this.dispatchEvent(new CustomEvent('color-cancel', { detail: { color: this._value }, bubbles: true, composed: true })));
+    root.querySelector('[data-color-confirm]')?.addEventListener('click', () => this.dispatchEvent(new CustomEvent('color-confirm', { detail: { color: this._value }, bubbles: true, composed: true })));
+  }
+  render() {
+    if (!this.shadowRoot) return;
+    const title = this.getAttribute('title') || 'Select color'; const confirmLabel = this.getAttribute('confirm-label') || 'Set'; const cancelLabel = this.getAttribute('cancel-label') || 'Cancel';
+    this.shadowRoot.innerHTML = `<style>:host{display:block;color:var(--primary-text-color)}.color-picker-modal{display:grid;gap:12px}.color-picker-title{font-size:1.8rem;font-weight:600}.color-picker-wheel{position:relative;width:min(260px,calc(100vw - 64px));max-width:100%;aspect-ratio:1;border-radius:50%;margin:0 auto;touch-action:none;background:radial-gradient(circle at center,#ffffff 0%,rgba(255,255,255,.85) 16%,rgba(255,255,255,0) 58%),conic-gradient(from 0deg,#ff0000,#ff7f00,#ffff00,#00ff00,#00ffff,#0000ff,#8b00ff,#ff00ff,#ff0000)}.color-picker-wheel-marker{position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.5);transform:translate(-50%,-50%);pointer-events:none}.color-picker-controls{display:grid;gap:6px}.color-picker-controls input[type="text"]{padding:8px;border:1px solid var(--divider-color);border-radius:6px;font:inherit;color:var(--primary-text-color);background:var(--card-background-color);min-width:0}.color-picker-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.color-preset{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(0,0,0,.08);cursor:pointer;min-height:36px}.color-picker-selected-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.color-picker-preview{width:24px;height:24px;border-radius:4px;border:1px solid var(--divider-color)}.color-picker-value{font-family:monospace}.color-picker-actions{display:flex;justify-content:flex-end;gap:10px}.color-picker-actions button{border:1px solid var(--divider-color);background:var(--card-background-color);border-radius:6px;padding:8px 12px;cursor:pointer;color:var(--primary-text-color)}.color-picker-actions button.primary{background:var(--primary-color);color:white;border-color:transparent}</style><div class="color-picker-modal" role="group" aria-label="${title}"><div class="color-picker-title">${title}</div><div class="color-picker-wheel" id="color-picker-wheel"><div class="color-picker-wheel-marker"></div></div><div class="color-picker-controls"><label for="color-picker-brightness">Color brightness</label><input id="color-picker-brightness" type="range" min="5" max="100" step="1"></div><div class="color-picker-controls"><label for="color-picker-hex">Hex color</label><input id="color-picker-hex" type="text" placeholder="#3f51b5"></div><div class="color-picker-presets">${this._presets.map((color) => `<button type="button" class="color-preset" data-color-preset="${color}" style="background:${color}"></button>`).join('')}</div><div class="color-picker-selected-row"><span>Chosen color</span><span class="color-picker-preview"></span><span class="color-picker-value"></span></div>${this.showActions ? `<div class="color-picker-actions"><button type="button" data-color-cancel>${cancelLabel}</button><button type="button" class="primary" data-color-confirm>${confirmLabel}</button></div>` : ''}</div>`;
+    this.bindEvents(); this.syncUi();
+  }
+}
+
+if (!customElements.get('daylight-color-picker')) customElements.define('daylight-color-picker', DaylightColorPicker);
+
 function normalizeDefaultDarkMode(value) {
   if (value === true) return 'dark';
   if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
@@ -718,15 +828,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     this._hass = null;
     this._rendered = false;
     this._lastCalendarEntitiesKey = '';
-    this._colorPickerState = {
-      open: false,
-      field: null,
-      mapKey: null,
-      h: 0,
-      s: 1,
-      v: 1,
-      color: '#3f51b5'
-    };
+    this._colorPickerState = { field: null, mapKey: null, color: '#3f51b5' };
     this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
     this._combineBackgroundHexDraft = '';
     this._openDisclosureKeys = new Set();
@@ -1022,54 +1124,6 @@ class SkylightCalendarCardEditor extends HTMLElement {
     return fallback;
   }
 
-  hexToHsv(hex) {
-    const normalizedHex = this.toColorInputValue(hex).replace('#', '');
-    const r = parseInt(normalizedHex.slice(0, 2), 16) / 255;
-    const g = parseInt(normalizedHex.slice(2, 4), 16) / 255;
-    const b = parseInt(normalizedHex.slice(4, 6), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-
-    let h = 0;
-    if (delta !== 0) {
-      if (max === r) h = ((g - b) / delta) % 6;
-      else if (max === g) h = (b - r) / delta + 2;
-      else h = (r - g) / delta + 4;
-      h = Math.round(h * 60);
-      if (h < 0) h += 360;
-    }
-
-    const s = max === 0 ? 0 : delta / max;
-    const v = max;
-    return { h, s, v };
-  }
-
-  hsvToHex(h, s, v) {
-    const hue = ((h % 360) + 360) % 360;
-    const sat = Math.max(0, Math.min(1, s));
-    const val = Math.max(0, Math.min(1, v));
-
-    const c = val * sat;
-    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-    const m = val - c;
-
-    let r = 0;
-    let g = 0;
-    let b = 0;
-
-    if (hue < 60) [r, g, b] = [c, x, 0];
-    else if (hue < 120) [r, g, b] = [x, c, 0];
-    else if (hue < 180) [r, g, b] = [0, c, x];
-    else if (hue < 240) [r, g, b] = [0, x, c];
-    else if (hue < 300) [r, g, b] = [x, 0, c];
-    else [r, g, b] = [c, 0, x];
-
-    const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  }
-
   getColorValue(field, mapKey = null) {
     if (field === 'virtual_calendar_color') {
       return this.getEditorVirtualCalendarColor(Number(mapKey));
@@ -1093,79 +1147,26 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
   openColorPicker(field, mapKey = null) {
     const initialColor = this.getColorValue(field, mapKey);
-    const hsv = this.hexToHsv(initialColor);
-    this._colorPickerState = {
-      open: true,
-      field,
-      mapKey,
-      h: hsv.h,
-      s: hsv.s,
-      v: hsv.v,
-      color: initialColor
-    };
-
+    this._colorPickerState = { field, mapKey, color: initialColor };
     const dialog = this.querySelector('.color-picker-dialog');
-    if (dialog) {
-      dialog.classList.add('show');
-      this.syncColorPickerUi();
-    }
+    const picker = this.querySelector('daylight-color-picker');
+    if (picker) picker.value = initialColor;
+    if (dialog) dialog.classList.add('show');
   }
 
   closeColorPicker() {
-    this._colorPickerState.open = false;
     const dialog = this.querySelector('.color-picker-dialog');
     if (dialog) dialog.classList.remove('show');
   }
 
-  syncColorPickerUi() {
-    const dialog = this.querySelector('.color-picker-dialog');
-    if (!dialog) return;
-
-    const { h, s, v, color } = this._colorPickerState;
-    const marker = dialog.querySelector('.color-picker-wheel-marker');
-    const brightnessInput = dialog.querySelector('#color-picker-brightness');
-    const hexInput = dialog.querySelector('#color-picker-hex');
-    const preview = dialog.querySelector('.color-picker-preview');
-    const valueText = dialog.querySelector('.color-picker-value');
-
-    if (marker) {
-      const radius = 120;
-      const angle = ((h - 90) * Math.PI) / 180;
-      const markerRadius = s * radius;
-      const x = Math.cos(angle) * markerRadius;
-      const y = Math.sin(angle) * markerRadius;
-      marker.style.left = `calc(50% + ${x}px)`;
-      marker.style.top = `calc(50% + ${y}px)`;
-    }
-
-    if (brightnessInput) brightnessInput.value = String(Math.round(v * 100));
-    if (hexInput && document.activeElement !== hexInput) hexInput.value = color;
-    if (preview) preview.style.background = color;
-    if (valueText) valueText.textContent = color;
-  }
-
-  updateColorPickerFromWheelEvent(event) {
-    const wheel = event.currentTarget;
-    const rect = wheel.getBoundingClientRect();
-    const x = event.clientX - rect.left - rect.width / 2;
-    const y = event.clientY - rect.top - rect.height / 2;
-    const radius = rect.width / 2;
-    const distance = Math.min(Math.sqrt(x * x + y * y), radius);
-    const saturation = distance / radius;
-    const hue = (Math.atan2(y, x) * 180) / Math.PI + 90;
-
-    this._colorPickerState.h = hue < 0 ? hue + 360 : hue;
-    this._colorPickerState.s = saturation;
-    this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-    this.syncColorPickerUi();
-  }
-
-  applyColorPickerColor(hexColor) {
+  applyColorPickerColor(hexColor = null) {
     const { field, mapKey } = this._colorPickerState;
-    if (!field) return;
+    const picker = this.querySelector('daylight-color-picker');
+    const selectedColor = hexColor || picker?.value || this._colorPickerState.color;
+    if (!field || !selectedColor) return;
 
     if (field === 'virtual_calendar_color') {
-      this.updateVirtualCalendar(Number(mapKey), { color: hexColor }, { render: true });
+      this.updateVirtualCalendar(Number(mapKey), { color: selectedColor }, { render: true });
       this.closeColorPicker();
       return;
     }
@@ -1174,10 +1175,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
     if (mapKey) {
       nextConfig[field] = {
         ...this.getMapFieldValue(field),
-        [mapKey]: hexColor
+        [mapKey]: selectedColor
       };
     } else {
-      nextConfig[field] = hexColor;
+      nextConfig[field] = selectedColor;
     }
 
     this.emitConfigChanged(nextConfig);
@@ -1185,44 +1186,12 @@ class SkylightCalendarCardEditor extends HTMLElement {
     this.closeColorPicker();
   }
 
-  normalizeHexColorInput(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return null;
-    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
-    return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : null;
-  }
-
   renderColorPickerDialog() {
     return `
       <div class="color-picker-dialog">
         <div class="color-picker-overlay" data-close-color-picker="true"></div>
         <div class="color-picker-modal" role="dialog" aria-label="Select color">
-          <div class="color-picker-title">Select color</div>
-          <div class="color-picker-wheel" id="color-picker-wheel">
-            <div class="color-picker-wheel-marker"></div>
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-brightness">Color brightness</label>
-            <input id="color-picker-brightness" type="range" min="5" max="100" step="1">
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-hex">Hex color</label>
-            <input id="color-picker-hex" type="text" placeholder="#3f51b5">
-          </div>
-          <div class="color-picker-presets">
-            ${['#ffffff', '#ff0000', '#ffff00', '#00ff00', '#000000', '#00ffff', '#0000ff', '#ff00ff']
-              .map((color) => `<button type="button" class="color-preset" data-color-preset="${color}" style="background:${color}"></button>`)
-              .join('')}
-          </div>
-          <div class="color-picker-selected-row">
-            <span>Chosen color</span>
-            <span class="color-picker-preview"></span>
-            <span class="color-picker-value"></span>
-          </div>
-          <div class="color-picker-actions">
-            <button type="button" data-close-color-picker="true">Cancel</button>
-            <button type="button" class="primary" id="apply-color-picker">Set</button>
-          </div>
+          <daylight-color-picker title="Select color" confirm-label="Set" cancel-label="Cancel"></daylight-color-picker>
         </div>
       </div>
     `;
@@ -2128,99 +2097,6 @@ class SkylightCalendarCardEditor extends HTMLElement {
           gap: 12px;
         }
 
-        .color-picker-title {
-          font-size: 1.8rem;
-          font-weight: 600;
-        }
-
-        .color-picker-wheel {
-          position: relative;
-          width: 260px;
-          height: 260px;
-          border-radius: 50%;
-          margin: 0 auto;
-          background:
-            radial-gradient(circle at center, #ffffff 0%, rgba(255, 255, 255, 0.85) 16%, rgba(255, 255, 255, 0) 58%),
-            conic-gradient(from 0deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff00ff, #ff0000);
-        }
-
-        .color-picker-wheel-marker {
-          position: absolute;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          border: 2px solid white;
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-        }
-
-        .color-picker-controls {
-          display: grid;
-          gap: 6px;
-        }
-
-        .color-picker-controls input[type="text"] {
-          padding: 8px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          font: inherit;
-          color: var(--primary-text-color);
-          background: var(--card-background-color);
-        }
-
-        .color-picker-presets {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-        }
-
-        .color-preset {
-          width: 100%;
-          aspect-ratio: 1;
-          border-radius: 50%;
-          border: 2px solid rgba(0, 0, 0, 0.08);
-          cursor: pointer;
-        }
-
-        .color-picker-selected-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .color-picker-preview {
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-          border: 1px solid var(--divider-color);
-        }
-
-        .color-picker-value {
-          font-family: monospace;
-        }
-
-        .color-picker-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-        }
-
-        .color-picker-actions button {
-          border: 1px solid var(--divider-color);
-          background: var(--card-background-color);
-          border-radius: 6px;
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--primary-text-color);
-        }
-
-        .color-picker-actions button.primary {
-          background: var(--primary-color);
-          color: white;
-          border-color: transparent;
-        }
-
         .map-label {
           font-weight: 500;
           color: var(--primary-text-color);
@@ -2394,67 +2270,18 @@ class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
-    const wheel = this.querySelector('#color-picker-wheel');
-    if (wheel) {
-      let dragging = false;
-      wheel.addEventListener('pointerdown', (event) => {
-        dragging = true;
-        this.updateColorPickerFromWheelEvent(event);
+    const picker = this.querySelector('daylight-color-picker');
+    if (picker) {
+      picker.addEventListener('color-change', (event) => {
+        this._colorPickerState.color = event.detail.color;
       });
-      wheel.addEventListener('pointermove', (event) => {
-        if (dragging) this.updateColorPickerFromWheelEvent(event);
-      });
-      wheel.addEventListener('pointerup', () => { dragging = false; });
-      wheel.addEventListener('pointerleave', () => { dragging = false; });
+      picker.addEventListener('color-cancel', () => this.closeColorPicker());
+      picker.addEventListener('color-confirm', (event) => this.applyColorPickerColor(event.detail.color));
     }
-
-    this.querySelectorAll('[data-color-preset]').forEach((preset) => {
-      preset.addEventListener('click', () => {
-        const hex = preset.dataset.colorPreset;
-        const hsv = this.hexToHsv(hex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = this.hsvToHex(hsv.h, hsv.s, hsv.v);
-        this.syncColorPickerUi();
-      });
-    });
 
     this.querySelectorAll('[data-close-color-picker]').forEach((button) => {
       button.addEventListener('click', () => this.closeColorPicker());
     });
-
-    const brightnessInput = this.querySelector('#color-picker-brightness');
-    if (brightnessInput) {
-      brightnessInput.addEventListener('input', (event) => {
-        this._colorPickerState.v = Number(event.target.value) / 100;
-        this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-        this.syncColorPickerUi();
-      });
-    }
-
-    const hexInput = this.querySelector('#color-picker-hex');
-    if (hexInput) {
-      const syncHexColor = () => {
-        const normalizedHex = this.normalizeHexColorInput(hexInput.value);
-        if (!normalizedHex) return;
-        const hsv = this.hexToHsv(normalizedHex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = normalizedHex;
-        this.syncColorPickerUi();
-      };
-      hexInput.addEventListener('input', syncHexColor);
-      hexInput.addEventListener('change', syncHexColor);
-    }
-
-    const applyBtn = this.querySelector('#apply-color-picker');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        this.applyColorPickerColor(this._colorPickerState.color);
-      });
-    }
 
     this._rendered = true;
   }
@@ -16794,7 +16621,7 @@ class SkylightCalendarCard extends HTMLElement {
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
     const currentColor = this.getCustomEventColor(targetEvent) || this.getEventAccentColor(targetEvent) || targetEvent.color || '#3B82F6';
-    const presets = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#A855F7'];
+    let selectedColor = currentColor;
     const scopes = this.getCustomColorScopes(targetEvent);
     const scopeHtml = scopes.length > 1 ? `
       <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
@@ -16803,34 +16630,19 @@ class SkylightCalendarCard extends HTMLElement {
     content.innerHTML = `
       <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
       <div class="modal-body custom-color-modal">
-        <div class="custom-color-swatches" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:12px;">
-          ${presets.map(color => `<button type="button" class="custom-color-swatch" data-color="${color}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--divider-color,#ddd);background:${color};padding:0;"></button>`).join('')}
-        </div>
-        <div class="modal-row"><div class="modal-label">${this.t('customColor')}</div><div class="modal-value" style="display:flex;align-items:center;gap:8px;"><span id="custom-color-preview" style="width:28px;height:28px;border-radius:8px;background:${currentColor};border:1px solid var(--divider-color,#ddd);"></span><input id="custom-color-picker" type="color" value="${currentColor}"><input id="custom-color-hex" class="form-input" style="max-width:110px" value="${currentColor}"></div></div>
-        <div class="form-error" id="custom-color-error" style="display:none;">${this.t('invalidHexColor')}</div>
+        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
         <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;
     modal.classList.add('show');
     const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });
-    const setColor = (value) => {
-      const normalized = normalizeHexColor(value);
-      const error = this.getRootElementById('custom-color-error');
-      if (!normalized) { if (error) error.style.display = 'block'; return false; }
-      if (error) error.style.display = 'none';
-      this.getRootElementById('custom-color-picker').value = normalized;
-      this.getRootElementById('custom-color-hex').value = normalized;
-      this.getRootElementById('custom-color-preview').style.background = normalized;
-      return normalized;
-    };
-    this._root.querySelectorAll('.custom-color-swatch').forEach(btn => btn.addEventListener('click', () => setColor(btn.getAttribute('data-color'))));
-    this.getRootElementById('custom-color-picker')?.addEventListener('input', (e) => setColor(e.target.value));
-    this.getRootElementById('custom-color-hex')?.addEventListener('input', (e) => setColor(e.target.value));
+    const picker = this.getRootElementById('custom-color-wheel');
+    picker?.addEventListener('color-change', (event) => { selectedColor = event.detail.color; });
     this.getRootElementById('close-custom-color-modal')?.addEventListener('click', close);
     this.getRootElementById('cancel-custom-color-btn')?.addEventListener('click', close);
     const selectedScope = () => this._root.querySelector('input[name="custom-color-scope"]:checked')?.value || 'this';
     this.getRootElementById('apply-custom-color-btn')?.addEventListener('click', () => {
-      const normalized = setColor(this.getRootElementById('custom-color-hex')?.value);
+      const normalized = normalizeHexColor(selectedColor || picker?.value || currentColor);
       if (!normalized) return;
       this._customEventColors = applyCustomEventColor(this._customEventColors, targetEvent, selectedScope(), normalized, { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
       this.persistPreferences();

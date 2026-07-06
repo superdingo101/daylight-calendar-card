@@ -1,5 +1,6 @@
 import { COMMON_NAMED_COLORS } from './constants.js';
 import { registerDaylightCalendarCardEditor } from './editor/daylight-calendar-card-editor.js';
+import './components/daylight-color-picker.js';
 import { getDaylightCalendarCardVersion } from './version.js';
 import { getCardStyles } from './styles/card-styles.js';
 import {
@@ -6689,7 +6690,7 @@ class SkylightCalendarCard extends HTMLElement {
     const content = this.getRootElementById('modal-content');
     this.applyEventModalSizeClass(content);
     const currentColor = this.getCustomEventColor(targetEvent) || this.getEventAccentColor(targetEvent) || targetEvent.color || '#3B82F6';
-    const presets = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#A855F7'];
+    let selectedColor = currentColor;
     const scopes = this.getCustomColorScopes(targetEvent);
     const scopeHtml = scopes.length > 1 ? `
       <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
@@ -6698,34 +6699,19 @@ class SkylightCalendarCard extends HTMLElement {
     content.innerHTML = `
       <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
       <div class="modal-body custom-color-modal">
-        <div class="custom-color-swatches" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:12px;">
-          ${presets.map(color => `<button type="button" class="custom-color-swatch" data-color="${color}" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--divider-color,#ddd);background:${color};padding:0;"></button>`).join('')}
-        </div>
-        <div class="modal-row"><div class="modal-label">${this.t('customColor')}</div><div class="modal-value" style="display:flex;align-items:center;gap:8px;"><span id="custom-color-preview" style="width:28px;height:28px;border-radius:8px;background:${currentColor};border:1px solid var(--divider-color,#ddd);"></span><input id="custom-color-picker" type="color" value="${currentColor}"><input id="custom-color-hex" class="form-input" style="max-width:110px" value="${currentColor}"></div></div>
-        <div class="form-error" id="custom-color-error" style="display:none;">${this.t('invalidHexColor')}</div>
+        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
         <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;
     modal.classList.add('show');
     const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });
-    const setColor = (value) => {
-      const normalized = normalizeCustomEventHexColor(value);
-      const error = this.getRootElementById('custom-color-error');
-      if (!normalized) { if (error) error.style.display = 'block'; return false; }
-      if (error) error.style.display = 'none';
-      this.getRootElementById('custom-color-picker').value = normalized;
-      this.getRootElementById('custom-color-hex').value = normalized;
-      this.getRootElementById('custom-color-preview').style.background = normalized;
-      return normalized;
-    };
-    this._root.querySelectorAll('.custom-color-swatch').forEach(btn => btn.addEventListener('click', () => setColor(btn.getAttribute('data-color'))));
-    this.getRootElementById('custom-color-picker')?.addEventListener('input', (e) => setColor(e.target.value));
-    this.getRootElementById('custom-color-hex')?.addEventListener('input', (e) => setColor(e.target.value));
+    const picker = this.getRootElementById('custom-color-wheel');
+    picker?.addEventListener('color-change', (event) => { selectedColor = event.detail.color; });
     this.getRootElementById('close-custom-color-modal')?.addEventListener('click', close);
     this.getRootElementById('cancel-custom-color-btn')?.addEventListener('click', close);
     const selectedScope = () => this._root.querySelector('input[name="custom-color-scope"]:checked')?.value || 'this';
     this.getRootElementById('apply-custom-color-btn')?.addEventListener('click', () => {
-      const normalized = setColor(this.getRootElementById('custom-color-hex')?.value);
+      const normalized = normalizeCustomEventHexColor(selectedColor || picker?.value || currentColor);
       if (!normalized) return;
       this._customEventColors = applyCustomEventColor(this._customEventColors, targetEvent, selectedScope(), normalized, { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
       this.persistPreferences();

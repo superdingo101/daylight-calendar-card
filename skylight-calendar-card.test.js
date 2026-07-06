@@ -5048,6 +5048,51 @@ test('virtual_calendars normalize and affect calendar token matching', () => {
 
 
 
+
+test('shared daylight color picker initializes and synchronizes color state', async () => {
+  const { DaylightColorPicker, hexToHsv, hsvToHex, normalizePickerHexColor } = await import('./src/components/daylight-color-picker.js');
+  assert.equal(normalizePickerHexColor('#abc'), '#aabbcc');
+  assert.equal(hsvToHex(0, 1, 1), '#ff0000');
+  assert.deepEqual(hexToHsv('#ff0000'), { h: 0, s: 1, v: 1 });
+
+  const picker = new DaylightColorPicker();
+  const marker = { style: {} };
+  const brightness = { value: '' };
+  const hexInput = { value: '' };
+  const preview = { style: {} };
+  const valueText = { textContent: '' };
+  picker.shadowRoot = {
+    activeElement: null,
+    querySelector: (selector) => ({
+      '.color-picker-wheel-marker': marker,
+      '#color-picker-brightness': brightness,
+      '#color-picker-hex': hexInput,
+      '.color-picker-preview': preview,
+      '.color-picker-value': valueText
+    }[selector] || null),
+    querySelectorAll: () => []
+  };
+  const emitted = [];
+  picker.dispatchEvent = (event) => { emitted.push(event); return true; };
+
+  picker.value = '#336699';
+  assert.equal(picker.value, '#336699');
+  assert.equal(hexInput.value, '#336699');
+  assert.equal(preview.style.background, '#336699');
+  assert.equal(valueText.textContent, '#336699');
+
+  assert.equal(picker.setColorFromHex('not-a-color'), false);
+  assert.equal(picker.value, '#336699');
+  assert.equal(picker.setColorFromHex('#ff0000'), true);
+  assert.equal(picker.value, '#ff0000');
+
+  picker.updateFromWheelEvent({ currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) }, clientX: 100, clientY: 0 });
+  assert.equal(picker.value, '#ff0000');
+  picker.setColorFromHsv(0, 1, 0.5);
+  assert.equal(picker.value, '#800000');
+  assert.ok(emitted.some((event) => event.type === 'color-change'));
+});
+
 test('hidden single events do not expose custom or event-style colors', async () => {
   const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
   const customCard = makeCard({ entities: ['calendar.a'] });
@@ -6477,6 +6522,51 @@ test('detectStaleSkylightResource ignores unrelated scripts and links', () => {
 
   assert.equal(result.detected, false);
   assert.equal(result.staleUrl, null);
+});
+
+
+test('event custom color modal uses shared picker for apply, default, and recurring scope', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { entityId: 'calendar.a', uid: 'event-picker', recurrence_id: '20260501T100000', color: '#111111', summary: 'Event Picker', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } };
+  const content = { innerHTML: '' };
+  const modal = { classList: { add: () => {}, remove: () => {} } };
+  const handlers = {};
+  const picker = {
+    value: '#222222',
+    addEventListener: (name, callback) => { handlers[`picker:${name}`] = callback; }
+  };
+  const makeButton = (id) => ({ addEventListener: (name, callback) => { handlers[id] = callback; } });
+  card.applyEventModalSizeClass = () => {};
+  card.getRootElementById = (id) => ({
+    'event-modal': modal,
+    'modal-content': content,
+    'custom-color-wheel': picker,
+    'close-custom-color-modal': makeButton('close'),
+    'cancel-custom-color-btn': makeButton('cancel'),
+    'apply-custom-color-btn': makeButton('apply'),
+    'custom-color-default-btn': makeButton('default')
+  }[id] || null);
+  card._root = { querySelector: () => ({ value: 'future' }) };
+  let persisted = 0;
+  let rendered = 0;
+  let reopened = 0;
+  card.persistPreferences = () => { persisted += 1; };
+  card.render = () => { rendered += 1; };
+  card.showEventModal = () => { reopened += 1; };
+
+  card.showCustomColorModal(event, event);
+  assert.match(content.innerHTML, /<daylight-color-picker/);
+  assert.doesNotMatch(content.innerHTML, /type="color"/);
+  handlers['picker:color-change']({ detail: { color: '#abcdef' } });
+  handlers.apply();
+  assert.equal(card.getCustomEventColor(event), '#ABCDEF');
+  assert.equal(persisted, 1);
+  assert.equal(rendered, 1);
+  assert.equal(reopened, 1);
+
+  card.showCustomColorModal(event, event);
+  handlers.default();
+  assert.equal(card.getCustomEventColor(event), null);
 });
 
 test('custom event colors resolve exact, recurring, future, reset, and malformed entries', async () => {
