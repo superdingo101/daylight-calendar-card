@@ -19,6 +19,10 @@ Each entry in `event_styles` is a rule with the following top-level keys:
   `event_styles`, `day_styles`, and `day_badges` all share the same advanced match schema. Anything you learn here applies to the other two rule types.
 </Tip>
 
+<Tip>
+  For one-off, per-device recoloring — for example, giving a single event a distinctive color on the family dashboard without changing the calendar — use the [Custom Color](/configuration/event-management#custom-event-colors) action in the event detail modal instead of `event_styles`. Modal overrides win over the `color` / `background_color` set here, but do not affect other style properties.
+</Tip>
+
 ## Advanced match schema
 
 The `match` object supports two scopes and the standard logical operators:
