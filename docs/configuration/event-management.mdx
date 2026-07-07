@@ -67,6 +67,44 @@ From the event detail modal, click **Delete**. You will be asked to confirm. For
 
 The **Delete** button only appears for events on calendars that support deletion. See [Support by Calendar Type](#support-by-calendar-type) above.
 
+## Custom Event Colors
+
+You can override the color of any event directly from the event detail modal without changing the event in Home Assistant or the source calendar. Custom colors are stored in the browser and apply only on that device, which makes them ideal for personalizing shared family calendars or highlighting events on a single dashboard.
+
+To set a custom color, click the event in the calendar grid to open the detail modal, then click **Custom Color**. A compact color picker opens with:
+
+- A row of preset color swatches
+- A native color picker (`<input type="color">`)
+- A hex input synced with the picker, validated against `#RRGGBB` format
+- A live preview of the event chip
+- **Apply Color**, **Use Default**, and **Cancel** actions
+
+Click **Apply Color** to save the override, or **Use Default** to remove any existing override and fall back to the calendar's color and any matching [event style rules](/advanced/event-styles).
+
+### Recurring events
+
+When you set a custom color on a recurring event, you're asked how far the override should apply:
+
+| Option | Effect |
+| --- | --- |
+| **This event only** | Colors only the single occurrence you clicked |
+| **This and future events** | Colors this occurrence and every one after it |
+| **All events** | Colors the entire recurring series |
+
+More specific scopes take precedence: a per-occurrence override wins over a future-rule override, which wins over a series-wide override.
+
+### Combined events
+
+If you use [combined calendars](/advanced/combine-calendars), the event may appear on more than one source calendar at once. Selecting **Custom Color** on a combined event first prompts you to choose which calendar copy to color, so you can style each source independently.
+
+### How overrides interact with `event_styles`
+
+A custom color set from the modal overrides the `background_color` (also known as `color`) supplied by any matching [event style rule](/advanced/event-styles). All other style properties from `event_styles` — icons, opacity, filters, font color, and so on — still apply. If you want to revert to the styled or calendar default, open the modal again and click **Use Default**.
+
+<Note>
+  Custom colors are persisted in browser storage under the same key as hidden-calendar preferences. Set a unique [`preference_storage_key`](/configuration/basic#param-preference-storage-key) on each card to keep overrides from bleeding across dashboards. Clearing browser data for Home Assistant, or switching to a different device or user profile, resets the overrides.
+</Note>
+
 ## Configuration Options
 
 <ParamField path="enable_event_management" default="true" type="boolean">
