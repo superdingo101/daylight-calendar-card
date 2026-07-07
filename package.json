@@ -10,8 +10,5 @@
   "devDependencies": {
     "@playwright/test": "^1.54.0",
     "rollup": "^4.62.2"
-  },
-  "dependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.62.2"
   }
 }
