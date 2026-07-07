@@ -1,5 +1,6 @@
 import { COMMON_NAMED_COLORS } from './constants.js';
 import { registerDaylightCalendarCardEditor } from './editor/daylight-calendar-card-editor.js';
+import './components/daylight-color-picker.js';
 import { getDaylightCalendarCardVersion } from './version.js';
 import { getCardStyles } from './styles/card-styles.js';
 import {
@@ -166,6 +167,15 @@ import {
 } from './views/agenda-view-model.js';
 import { renderAgendaView } from './renderers/agenda-renderer.js';
 import { renderEventDetailsModal } from './renderers/event-modal-renderer.js';
+import {
+  applyCustomEventColor,
+  createEmptyCustomEventColors,
+  getCustomEventColorKeys,
+  normalizeCustomEventColors,
+  normalizeHexColor as normalizeCustomEventHexColor,
+  removeCustomEventColor,
+  resolveCustomEventColor
+} from './events/custom-event-colors.js';
 import {
   renderCombinedCornerBubbles as renderCombinedCornerBubblesHtml,
   renderEventIcon as renderEventIconHtml,
@@ -364,6 +374,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarDataSignatures = {}; // Track per-calendar data for change detection
     this._lastUnchangedDataRender = null; // Throttle unchanged-data UI refreshes
     this._hiddenCalendars = new Set(); // Track which calendars are hidden
+    this._customEventColors = createEmptyCustomEventColors();
     this._calendarCapabilities = {}; // Track calendar capabilities
     this._activeLanguage = DEFAULT_LANGUAGE;
     this._hasCustomTitle = false;
@@ -402,6 +413,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._activeModalBackHandler = null;
     this._combinedEditTargets = null;
     this._combinedDeleteTargets = null;
+    this._customColorContext = null;
     this._eventLocationActionsExpanded = false;
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
@@ -587,6 +599,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   loadPersistedPreferences() {
+    this._customEventColors = createEmptyCustomEventColors();
     const storageKey = this.getPreferenceStorageKey();
     if (!storageKey) return false;
 
@@ -596,11 +609,17 @@ class SkylightCalendarCard extends HTMLElement {
 
       const parsed = JSON.parse(raw);
 
+      let loaded = false;
       if (Array.isArray(parsed.hiddenCalendars)) {
         const knownEntities = new Set(this._config.entities || []);
         this._hiddenCalendars = new Set(parsed.hiddenCalendars.filter((entityId) => knownEntities.has(entityId)));
-        return true;
+        loaded = true;
       }
+      if (parsed.customEventColors !== undefined) {
+        this._customEventColors = normalizeCustomEventColors(parsed.customEventColors);
+        loaded = true;
+      }
+      if (loaded) return true;
     } catch (error) {
       console.warn('Failed to load persisted calendar preferences:', error);
     }
@@ -614,7 +633,8 @@ class SkylightCalendarCard extends HTMLElement {
 
     try {
       const payload = {
-        hiddenCalendars: Array.from(this._hiddenCalendars)
+        hiddenCalendars: Array.from(this._hiddenCalendars),
+        customEventColors: normalizeCustomEventColors(this._customEventColors)
       };
       window.localStorage?.setItem(storageKey, JSON.stringify(payload));
     } catch (error) {
@@ -948,6 +968,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._viewMode = this._config.default_view;
     this.applyThemeMode(this._config.color_scheme);
     this._hiddenCalendars = this.getDefaultHiddenCalendarSet();
+    this._customEventColors = createEmptyCustomEventColors();
     this.loadPersistedPreferences();
     this._loadedEventRange = null;
     this._calendarDataSignatures = {};
@@ -4316,16 +4337,66 @@ class SkylightCalendarCard extends HTMLElement {
     });
   }
 
+
+  getCustomEventColor(event) {
+    return resolveCustomEventColor(event, this._customEventColors, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this)
+    });
+  }
+
+  getCustomEventColorKeys(event) {
+    return getCustomEventColorKeys(event, {
+      getEventIdentityKey: this.getEventIdentityKey.bind(this)
+    });
+  }
+
+  getEffectiveEventColor(event, styleCandidates = null, { virtualColor = null } = {}) {
+    return this.getCustomEventColor(event) || styleCandidates?.background_color?.value || virtualColor || event?.color || null;
+  }
+
+  getEventAccentColor(event) {
+    return this.getVisibleCalendarColorsForEvent(event)[0] || this.getEventBackgroundColor(event);
+  }
+
+  getVirtualCalendarColor(virtualCalendar, event = null) {
+    if (!virtualCalendar) return null;
+    const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
+    return virtualCalendar.color || fallbackColor;
+  }
+
+  getVisibleSourceEntityIdsForEvent(event) {
+    if (!event) return [];
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents)) {
+      return event.sourceEvents
+        .map((sourceEvent) => sourceEvent?.entityId)
+        .filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)) {
+      return event.sourceEntityIds.filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
+      return event.sourceCalendars
+        .map((calendar) => calendar?.entityId)
+        .filter((entityId) => entityId && !this._hiddenCalendars.has(entityId));
+    }
+    return event.entityId && !this._hiddenCalendars.has(event.entityId) ? [event.entityId] : [];
+  }
+
   getVisibleCalendarColorsForEvent(event) {
+    const visibleSourceEntityIds = this.getVisibleSourceEntityIdsForEvent(event);
+    if (visibleSourceEntityIds.length === 0) return [];
+
+    const styleOverrides = this.getEventStyleOverrides(event);
+    if (styleOverrides?.hasExplicitBackgroundColor && styleOverrides.backgroundColors?.length) {
+      return styleOverrides.backgroundColors.filter(Boolean);
+    }
+
     const virtualCalendar = this.getVirtualBadgeForEvent(event);
     if (virtualCalendar) {
-      const virtualSourceEntityIds = (Array.isArray(event?.sourceEntityIds) ? event.sourceEntityIds : [event?.entityId])
-        .filter((entityId) => virtualCalendar.entities.includes(entityId));
-      const hasVisibleVirtualSource = virtualSourceEntityIds.some((entityId) => !this._hiddenCalendars.has(entityId));
+      const hasVisibleVirtualSource = visibleSourceEntityIds.some((entityId) => virtualCalendar.entities.includes(entityId));
       if (!hasVisibleVirtualSource) return [];
 
-      const fallbackColor = event?.color || this.normalizeSingleColor(this._config.colors[virtualCalendar.entities[0]]);
-      const virtualColor = virtualCalendar.color || fallbackColor;
+      const virtualColor = this.getVirtualCalendarColor(virtualCalendar, event);
 
       if (event?.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
         const additionalColors = Array.from(new Set(event.sourceCalendars
@@ -4342,28 +4413,10 @@ class SkylightCalendarCard extends HTMLElement {
       return [virtualColor];
     }
 
-    if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEntityIds)) {
-      const hasVisibleSourceCalendar = event.sourceEntityIds.some((entityId) => !this._hiddenCalendars.has(entityId));
-      if (!hasVisibleSourceCalendar) {
-        return [];
-      }
-    } else if (this._hiddenCalendars.has(event.entityId)) {
-      return [];
-    }
-
-    const backgroundColors = this.getEventStyleOverrides(event)?.backgroundColors || [];
-    if (backgroundColors.length > 0) {
-      return backgroundColors;
-    }
-
     if (event.isCombinedCalendarEvent && Array.isArray(event.sourceCalendars)) {
       return event.sourceCalendars
         .filter(calendar => !this._hiddenCalendars.has(calendar.entityId))
         .map(calendar => calendar.color);
-    }
-
-    if (this._hiddenCalendars.has(event.entityId)) {
-      return [];
     }
 
     return [event.color];
@@ -4399,18 +4452,17 @@ class SkylightCalendarCard extends HTMLElement {
       const visibleSources = event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
       if (visibleSources.length === 0) return null;
 
-      const sourceCandidates = visibleSources.map((sourceEvent, sourceIndex) => ({
-        sourceEvent,
-        sourceIndex,
-        candidates: this.getSingleEventStyleCandidates(sourceEvent)
-      }));
+      const sourceCandidates = visibleSources.map((sourceEvent, sourceIndex) => {
+        const candidates = this.getSingleEventStyleCandidates(sourceEvent);
+        const customColor = this.getCustomEventColor(sourceEvent);
+        const virtualColor = this.getVirtualCalendarColor(this.getVirtualBadgeForEntity(sourceEvent.entityId), sourceEvent);
+        return { sourceEvent, sourceIndex, candidates, customColor, virtualColor };
+      });
 
-      const explicitBackgroundColors = sourceCandidates
-        .map(({ candidates }) => candidates.background_color?.value)
-        .filter((color) => color !== undefined && color !== null && color !== '');
-      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates }) =>
-        candidates.background_color?.value || sourceEvent.color
+      const hasExplicitBackgroundColor = sourceCandidates.some(({ candidates, customColor }) =>
+        !!customColor || (candidates.background_color?.value !== undefined && candidates.background_color?.value !== null && candidates.background_color?.value !== '')
       );
+      const backgroundColors = sourceCandidates.map(({ sourceEvent, candidates, virtualColor }) => this.getEffectiveEventColor(sourceEvent, candidates, { virtualColor }));
       const uniqueBackgroundCount = new Set(backgroundColors).size;
       const hasDuplicateBackgroundColors = uniqueBackgroundCount !== backgroundColors.length;
 
@@ -4436,7 +4488,7 @@ class SkylightCalendarCard extends HTMLElement {
         ...mergedOverrides,
         backgroundColors,
         hasDuplicateBackgroundColors,
-        hasExplicitBackgroundColor: explicitBackgroundColors.length > 0
+        hasExplicitBackgroundColor
       };
     }
 
@@ -4445,9 +4497,13 @@ class SkylightCalendarCard extends HTMLElement {
       acc[key] = meta.value;
       return acc;
     }, {});
-    overrides.backgroundColors = [overrides.background_color || event.color];
+    const customColor = this.getCustomEventColor(event);
+    if (customColor) {
+      overrides.background_color = customColor;
+    }
+    overrides.backgroundColors = [this.getEffectiveEventColor(event, candidates)];
     overrides.hasDuplicateBackgroundColors = false;
-    overrides.hasExplicitBackgroundColor = Object.prototype.hasOwnProperty.call(overrides, 'background_color');
+    overrides.hasExplicitBackgroundColor = !!customColor || Object.prototype.hasOwnProperty.call(overrides, 'background_color');
     return overrides;
   }
 
@@ -6436,11 +6492,20 @@ class SkylightCalendarCard extends HTMLElement {
     // Get calendar info and capabilities
     const calendarName = this.getCalendarName(event.entityId);
     const capabilities = this._calendarCapabilities[event.entityId] || {};
+    const visibleSourceEvents = this.getVisibleCombinedSourceEvents(event);
     const visibleBadges = this.getModalCalendarBadgesForEvent(event)
-      .map((calendar) => ({
-        ...calendar,
-        name: this.getCalendarName(calendar.entityId)
-      }));
+      .map((calendar) => {
+        const sourceEvent = visibleSourceEvents.find((candidate) => candidate.entityId === calendar.entityId);
+        const colorEvent = sourceEvent || (calendar.entityId === event.entityId ? event : null);
+        const color = colorEvent ? (this.getEffectiveEventColor(colorEvent) || calendar.color) : calendar.color;
+        return {
+          ...calendar,
+          color,
+          textColor: this.getContractColor(color),
+          name: this.getCalendarName(calendar.entityId)
+        };
+      });
+    const modalBadgeColor = this.getEffectiveEventColor(event) || event.color;
 
     // For edit/delete to work, we need:
     // 1. Event management enabled
@@ -6463,12 +6528,15 @@ class SkylightCalendarCard extends HTMLElement {
       isAllDay,
       calendarName,
       visibleBadges,
+      modalBadgeColor,
+      modalBadgeTextColor: this.getContractColor(modalBadgeColor),
       capabilities,
       hasUID,
       canEdit,
       canDelete,
       canForward,
       canModify,
+      customColor: this.getCustomEventColor(event),
       locationLinks: this._config.location_links === true,
       locationActionsExpanded: this._eventLocationActionsExpanded,
       locationMapUrl: this.getLocationMapUrl(event.location),
@@ -6528,6 +6596,25 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
 
+    this.getRootElementById('custom-color-btn')?.addEventListener('click', () => {
+      this._activeModalBackHandler = null;
+      this._eventLocationActionsExpanded = false;
+      modal.classList.remove('show');
+      if (event.isCombinedCalendarEvent && Array.isArray(event.sourceEvents)) {
+        const visibleSourceEvents = this.getVisibleCombinedSourceEvents(event);
+        if (visibleSourceEvents.length > 1) {
+          this.showCombinedCustomColorSelectionModal(event, onCloseBack, onSaved);
+          return;
+        }
+        if (visibleSourceEvents.length === 1) {
+          this.showCustomColorModal(visibleSourceEvents[0], event, onCloseBack, onSaved);
+          return;
+        }
+      }
+      this.showCustomColorModal(event, event, onCloseBack, onSaved);
+    });
+
+
     // Forward button
     this.getRootElementById('forward-event-btn')?.addEventListener('click', () => {
       this._activeModalBackHandler = null;
@@ -6548,6 +6635,97 @@ class SkylightCalendarCard extends HTMLElement {
       this.showDeleteConfirmation(event, null, onSaved);
     });
   }
+
+
+  getVisibleCombinedSourceEvents(event) {
+    if (!event?.isCombinedCalendarEvent || !Array.isArray(event.sourceEvents)) return [];
+    return event.sourceEvents.filter((sourceEvent) => !this._hiddenCalendars.has(sourceEvent.entityId));
+  }
+
+  showCombinedCustomColorSelectionModal(wrapperEvent, onCloseBack = null, onSaved = null) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
+    const sourceEvents = this.getVisibleCombinedSourceEvents(wrapperEvent);
+    content.innerHTML = `
+      <div class="confirm-dialog">
+        <h3 class="confirm-title">${this.t('customColor')}</h3>
+        <p class="confirm-message">${this.t('customColorCombinedPrompt')}</p>
+        <div class="recurring-options">
+          ${sourceEvents.map((sourceEvent, index) => `
+            <label class="recurring-option">
+              <input type="radio" name="combined-custom-color-option" data-index="${index}" ${index === 0 ? 'checked' : ''} />
+              <div class="recurring-option-label">
+                <div class="recurring-option-title">${this.escapeHtml(this.getCalendarName(sourceEvent.entityId))}</div>
+                <div class="recurring-option-description">${this.escapeHtml(sourceEvent.summary || this.t('untitledEvent'))}</div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" id="cancel-combined-custom-color-btn">${this.t('cancel')}</button>
+          <button class="btn btn-primary" id="confirm-combined-custom-color-btn">${this.t('continue')}</button>
+        </div>
+      </div>`;
+    modal.classList.add('show');
+    this.getRootElementById('cancel-combined-custom-color-btn')?.addEventListener('click', () => this.showEventModal(wrapperEvent, onCloseBack, { onSaved }));
+    this.getRootElementById('confirm-combined-custom-color-btn')?.addEventListener('click', () => {
+      const selected = this._root.querySelector('input[name="combined-custom-color-option"]:checked');
+      const index = Number.parseInt(selected?.getAttribute('data-index') || '0', 10);
+      this.showCustomColorModal(sourceEvents[index] || sourceEvents[0], wrapperEvent, onCloseBack, onSaved);
+    });
+  }
+
+  getCustomColorScopes(event) {
+    const keys = this.getCustomEventColorKeys(event);
+    return [
+      { value: 'this', label: this.t('deleteThisEventOnly'), show: true },
+      { value: 'future', label: this.t('deleteThisAndFutureEvents'), show: !!keys?.supportsFuture },
+      { value: 'all', label: this.t('deleteAllEvents'), show: !!keys?.supportsSeries }
+    ].filter(scope => scope.show);
+  }
+
+  showCustomColorModal(targetEvent, returnEvent = targetEvent, onCloseBack = null, onSaved = null) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    this.applyEventModalSizeClass(content);
+    const currentColor = this.getCustomEventColor(targetEvent) || this.getEventAccentColor(targetEvent) || targetEvent.color || '#3B82F6';
+    let selectedColor = currentColor;
+    const scopes = this.getCustomColorScopes(targetEvent);
+    const scopeHtml = scopes.length > 1 ? `
+      <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
+        ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
+      </div></div>` : '';
+    content.innerHTML = `
+      <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
+      <div class="modal-body custom-color-modal">
+        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
+        ${scopeHtml}
+        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
+      </div>`;
+    modal.classList.add('show');
+    const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    const picker = this.getRootElementById('custom-color-wheel');
+    picker?.addEventListener('color-change', (event) => { selectedColor = event.detail.color; });
+    this.getRootElementById('close-custom-color-modal')?.addEventListener('click', close);
+    this.getRootElementById('cancel-custom-color-btn')?.addEventListener('click', close);
+    const selectedScope = () => this._root.querySelector('input[name="custom-color-scope"]:checked')?.value || 'this';
+    this.getRootElementById('apply-custom-color-btn')?.addEventListener('click', () => {
+      const normalized = normalizeCustomEventHexColor(selectedColor || picker?.value || currentColor);
+      if (!normalized) return;
+      this._customEventColors = applyCustomEventColor(this._customEventColors, targetEvent, selectedScope(), normalized, { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
+      this.persistPreferences();
+      this.render();
+      this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    });
+    this.getRootElementById('custom-color-default-btn')?.addEventListener('click', () => {
+      this._customEventColors = removeCustomEventColor(this._customEventColors, targetEvent, selectedScope(), { getEventIdentityKey: this.getEventIdentityKey.bind(this) });
+      this.persistPreferences();
+      this.render();
+      this.showEventModal(returnEvent, onCloseBack, { onSaved });
+    });
+  }
+
 
   showDayCompactModal(date, events) {
     const modal = this.getRootElementById('event-modal');
