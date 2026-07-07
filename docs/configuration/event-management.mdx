@@ -67,6 +67,51 @@ From the event detail modal, click **Delete**. You will be asked to confirm. For
 
 The **Delete** button only appears for events on calendars that support deletion. See [Support by Calendar Type](#support-by-calendar-type) above.
 
+## Custom Event Colors
+
+You can recolor a single event on your device without changing the underlying calendar or affecting other users. This is useful when you want a particular meeting or appointment to stand out on your own dashboard — the override lives in browser storage on the device where you set it and is invisible to anyone viewing the same calendar elsewhere.
+
+To open the picker, click an event to open its detail modal, then select **Custom Color**. The picker shows:
+
+- A row of preset swatches for quick selection
+- A native color input for picking any color
+- A hex field that stays in sync with the color input
+- A live preview of the event with the chosen color applied
+
+Three actions are available:
+
+| Action | Effect |
+| --- | --- |
+| **Apply** | Save the chosen color as the override for this event on this device |
+| **Use Default** | Remove any existing override and fall back to the calendar or `event_styles` color |
+| **Cancel** | Close the picker without changing anything |
+
+### Recurring events
+
+When you apply or clear a custom color on a recurring event, a follow-up prompt asks how far the change should reach:
+
+| Scope | Effect |
+| --- | --- |
+| **This occurrence** | Only the instance you clicked |
+| **This and future** | The clicked occurrence and every one after it |
+| **Entire series** | Every occurrence of the recurring event |
+
+More specific scopes win over broader ones — an occurrence-level override takes precedence over a "this and future" override, which in turn takes precedence over a series-level override.
+
+### Combined events
+
+If the event you opened is a [combined event](/advanced/combine-calendars) that merges entries from multiple source calendars, the picker first asks which source's color you want to override. Each source keeps its own custom color independently.
+
+### Interaction with `event_styles`
+
+Modal color overrides sit on top of your global styling rules. Precedence, highest to lowest:
+
+1. Custom color set from the event detail modal (per device)
+2. Matching `event_styles` rule with the highest priority for `color` or `background_color`
+3. The calendar entity's own color
+
+Use the modal override for one-off, personal recoloring; use [`event_styles`](/advanced/event-styles) when you want the change to apply for every viewer on every device.
+
 ## Configuration Options
 
 <ParamField path="enable_event_management" default="true" type="boolean">
