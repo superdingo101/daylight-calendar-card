@@ -12191,11 +12191,15 @@ class SkylightCalendarCard extends HTMLElement {
       const fetchResultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
       const nextEventsByCalendar = { ...this._eventsByCalendar };
       let anySuccess = false;
+      let anyFailure = false;
       let anyChanged = false;
 
       this._config.entities.forEach(entityId => {
         const result = fetchResultsByCalendar[entityId];
-        if (!result?.success) return;
+        if (!result?.success) {
+          anyFailure = true;
+          return;
+        }
         anySuccess = true;
         const events = Array.isArray(result.events) ? result.events : [];
         const oldSignature = this._calendarDataSignatures[entityId];
@@ -12214,9 +12218,11 @@ class SkylightCalendarCard extends HTMLElement {
       const now = Date.now();
       const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
         (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
-      this.applyEventsByCalendar(nextEventsByCalendar, { startDate, endDate, lastSuccessfulRefresh: now });
-      this._lastEventRefreshFailed = false;
-      this.persistEventCacheSnapshot();
+      const refreshMetadata = { startDate, endDate };
+      if (!anyFailure) refreshMetadata.lastSuccessfulRefresh = now;
+      this.applyEventsByCalendar(nextEventsByCalendar, refreshMetadata);
+      this._lastEventRefreshFailed = anyFailure;
+      if (!anyFailure) this.persistEventCacheSnapshot();
       if (anyChanged || shouldRenderForUnchangedData) {
         this._lastUnchangedDataRender = now;
         if (preserveScroll) {

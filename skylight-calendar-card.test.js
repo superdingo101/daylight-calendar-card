@@ -6884,13 +6884,43 @@ test('partial calendar refresh preserves failed calendar and successful empty cl
     'calendar.b': [{ entityId: 'calendar.b', summary: 'old b', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }]
   };
   card._events = Object.values(card._eventsByCalendar).flat();
-  card.persistEventCacheSnapshot = () => {};
+  let persisted = false;
+  card.persistEventCacheSnapshot = () => { persisted = true; };
   card.render = () => {};
 
   await card.updateEvents();
   assert.deepEqual(card._eventsByCalendar['calendar.a'], []);
   assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'old b');
   assert.equal(card._events.length, 1);
+  assert.equal(card._lastEventRefreshFailed, true);
+  assert.equal(card._lastSuccessfulEventRefresh, null);
+  assert.equal(persisted, false);
+});
+
+test('partial refresh keeps prior success timestamp stale and skips mixed cache persistence', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = {};
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'new a', start: { date: '2026-01-04' }, end: { date: '2026-01-05' } }] },
+    'calendar.b': { success: false, events: [] }
+  });
+  card._eventsByCalendar = {
+    'calendar.a': [],
+    'calendar.b': [{ entityId: 'calendar.b', summary: 'cached b', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }]
+  };
+  card._lastSuccessfulEventRefresh = Date.parse('2026-01-01T12:00:00Z');
+  let persisted = false;
+  card.persistEventCacheSnapshot = () => { persisted = true; };
+  card.render = () => {};
+
+  await card.updateEvents();
+  assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'new a');
+  assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'cached b');
+  assert.equal(card._lastSuccessfulEventRefresh, Date.parse('2026-01-01T12:00:00Z'));
+  assert.equal(card._lastEventRefreshFailed, true);
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:30:01Z')), true);
+  assert.equal(persisted, false);
 });
 
 test('failed refresh preserves last-known-good events and stale warning timing', async () => {
