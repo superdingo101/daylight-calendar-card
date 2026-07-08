@@ -400,6 +400,54 @@ test('show_events: a day whose only event is on a hidden calendar is treated as 
   assert.deepEqual(runMonthDayTapWithEvents({ config: { default_hidden_calendars: ['calendar.family'] }, events: [ev], date: eventDate(ev) }), { create: 1, dayModal: 0 });
 });
 
+function createClassListHarness(initial = []) {
+  const classes = new Set(initial);
+  return {
+    add: (...names) => names.forEach((name) => classes.add(name)),
+    remove: (...names) => names.forEach((name) => classes.delete(name)),
+    contains: (name) => classes.has(name),
+    has: (name) => classes.has(name)
+  };
+}
+
+function attachListenersModalHarness() {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  const modalHandlers = {};
+  const modalClassList = createClassListHarness(['show']);
+  const modal = {
+    classList: modalClassList,
+    addEventListener: (type, handler) => { modalHandlers[type] = handler; }
+  };
+  card.getRootElementById = (id) => (id === 'event-modal' ? modal : null);
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.attachEventListeners();
+  return { modalHandlers, modalClassList, modal };
+}
+
+test('event modal backdrop click does not close the modal', () => {
+  const { modalHandlers, modalClassList, modal } = attachListenersModalHarness();
+  modalHandlers.click?.({ target: modal });
+  assert.equal(modalClassList.contains('show'), true);
+});
+
+test('event modal inside-to-outside drag release does not close the modal', () => {
+  const { modalHandlers, modalClassList, modal } = attachListenersModalHarness();
+  modalHandlers.pointerdown?.({ target: { id: 'modal-content' } });
+  modalHandlers.pointerup?.({ target: modal });
+  modalHandlers.click?.({ target: modal });
+  assert.equal(modalClassList.contains('show'), true);
+});
+
+test('event modal outside interactions do not close the modal', () => {
+  const { modalHandlers, modalClassList, modal } = attachListenersModalHarness();
+  modalHandlers.pointerdown?.({ target: modal });
+  modalHandlers.pointerup?.({ target: modal });
+  modalHandlers.click?.({ target: modal });
+  assert.equal(modalClassList.contains('show'), true);
+});
+
 test('showDayModal supplies an onSaved callback to showEventModal (fresh reopen)', () => {
   const { card, handlers } = renderDayModal({ management: true, writable: true });
   let captured = null;
@@ -473,6 +521,150 @@ function renderEventModal(onSaved) {
   card.showEventModal(event, () => {}, { onSaved });
   return { card, handlers };
 }
+
+test('event detail X button closes a normal modal', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getCalendarName = () => 'Family';
+  card._calendarCapabilities = { 'calendar.family': {} };
+  card.getModalCalendarBadgesForEvent = () => [];
+  card.applyEventModalSizeClass = () => {};
+  const modalClassList = createClassListHarness();
+  const modal = { classList: modalClassList };
+  const content = { innerHTML: '' };
+  const handlers = {};
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    if (id === 'close-modal') return { addEventListener: (type, handler) => { handlers.close = handler; } };
+    return null;
+  };
+
+  card.showEventModal({
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'Sample',
+    start: { dateTime: '2026-05-01T10:00:00Z' },
+    end: { dateTime: '2026-05-01T11:00:00Z' }
+  });
+
+  assert.equal(modalClassList.contains('show'), true);
+  handlers.close();
+  assert.equal(modalClassList.contains('show'), false);
+});
+
+test('event detail X button preserves active modal back-handler behavior', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card.getCalendarName = () => 'Family';
+  card._calendarCapabilities = { 'calendar.family': {} };
+  card.getModalCalendarBadgesForEvent = () => [];
+  card.applyEventModalSizeClass = () => {};
+  const modalClassList = createClassListHarness();
+  const modal = { classList: modalClassList };
+  const content = { innerHTML: '' };
+  const handlers = {};
+  card.getRootElementById = (id) => {
+    if (id === 'modal-content') return content;
+    if (id === 'event-modal') return modal;
+    if (id === 'close-modal') return { addEventListener: (type, handler) => { handlers.close = handler; } };
+    return null;
+  };
+  let backCalls = 0;
+
+  card.showEventModal({
+    entityId: 'calendar.family',
+    color: '#3366ff',
+    summary: 'Sample',
+    start: { dateTime: '2026-05-01T10:00:00Z' },
+    end: { dateTime: '2026-05-01T11:00:00Z' }
+  }, () => { backCalls += 1; });
+
+  handlers.close();
+  assert.equal(backCalls, 1);
+  assert.equal(modalClassList.contains('show'), true);
+  assert.equal(card._activeModalBackHandler, null);
+});
+
+function createEventFormHarness({ mode = 'create' } = {}) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.getCalendarName = () => 'Family';
+  card.applyEventModalSizeClass = () => {};
+  card.setupStartEndDurationSync = () => {};
+  card.syncRecurrenceEndInputs = () => {};
+  card.updateEvents = async () => {};
+  card.createEvent = async () => {};
+  card.updateEvent = async () => {};
+  const modalClassList = createClassListHarness();
+  const modal = { classList: modalClassList };
+  const content = { innerHTML: '' };
+  const handlers = {};
+  const elements = {
+    'event-modal': modal,
+    'modal-content': content,
+    'close-modal': { addEventListener: (type, handler) => { handlers.close = handler; } },
+    'cancel-btn': { addEventListener: (type, handler) => { handlers.cancel = handler; } },
+    'create-event-form': { addEventListener: (type, handler) => { handlers.submit = handler; } },
+    'edit-event-form': { addEventListener: (type, handler) => { handlers.submit = handler; } },
+    'event-all-day': { checked: false, addEventListener: () => {} },
+    'event-recurring': { checked: false, addEventListener: () => {} },
+    'event-recurrence-frequency': { value: 'DAILY', addEventListener: () => {} },
+    'timed-event-fields': { style: {} },
+    'all-day-event-fields': { style: {} },
+    'recurring-event-fields': { style: {} },
+    'event-recurrence-weekdays-group': { style: {} },
+    'form-error': { textContent: '', style: {} },
+    'event-calendar': { value: 'calendar.family' },
+    'event-title': { value: 'Practice', focus: () => {} },
+    'event-location': { value: '' },
+    'event-description': { value: '' },
+    'event-start-date': { value: '2026-05-01' },
+    'event-end-date': { value: '2026-05-01' },
+    'event-start': { value: '2026-05-01T09:00' },
+    'event-end': { value: '2026-05-01T10:00' },
+    'submit-btn': { disabled: false, textContent: '' }
+  };
+  card.getRootElementById = (id) => elements[id] || null;
+  const checkedCalendar = { value: 'calendar.family' };
+  card._root = {
+    querySelectorAll: (selector) => {
+      if (selector === '.create-event-calendar:checked') return [checkedCalendar];
+      if (selector === 'input[name="event-recurrence-end-mode"]') return [];
+      if (selector === '.event-recurrence-weekday:checked') return [];
+      return [];
+    },
+    querySelector: (selector) => {
+      if (selector === 'input[name="event-recurrence-end-mode"]:checked') return { value: 'never' };
+      return null;
+    }
+  };
+  if (mode === 'edit') {
+    card.showEditEventModal(
+      { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } },
+      new Date('2026-05-01T09:00:00Z'),
+      new Date('2026-05-01T10:00:00Z'),
+      false
+    );
+  } else {
+    card.showCreateEventModal(new Date('2026-05-01T09:00:00Z'), new Date('2026-05-01T09:00:00Z'));
+  }
+  return { handlers, modalClassList, card };
+}
+
+test('Cancel buttons close create and edit workflows', () => {
+  const createHarness = createEventFormHarness();
+  createHarness.handlers.cancel();
+  assert.equal(createHarness.modalClassList.contains('show'), false);
+
+  const editHarness = createEventFormHarness({ mode: 'edit' });
+  editHarness.handlers.cancel();
+  assert.equal(editHarness.modalClassList.contains('show'), false);
+});
+
+test('successful create workflow completion still closes the modal', async () => {
+  const { handlers, modalClassList } = createEventFormHarness();
+  await handlers.submit({ preventDefault: () => {} });
+  assert.equal(modalClassList.contains('show'), false);
+});
 
 
 test('event detail modal exposes Custom Color for read-only events and badge uses effective custom color', async () => {
