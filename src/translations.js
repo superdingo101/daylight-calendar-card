@@ -123,7 +123,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'CW'
+      monthWeekPrefix: 'CW',
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
 

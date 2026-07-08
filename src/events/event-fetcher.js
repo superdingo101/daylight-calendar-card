@@ -10,7 +10,7 @@ export async function fetchEventsByCalendarInRange({
   normalizeCalendarEvent
 }) {
   const chunks = getDateRangeChunks(startDate, endDate, 30);
-  const eventsByCalendar = await Promise.all(
+  const calendarResults = await Promise.all(
     entities.map((entityId, index) => fetchEventsForCalendar({
       hass,
       entityId,
@@ -24,7 +24,7 @@ export async function fetchEventsByCalendarInRange({
   );
 
   return entities.reduce((acc, entityId, index) => {
-    acc[entityId] = eventsByCalendar[index] || [];
+    acc[entityId] = calendarResults[index] || { success: false, events: [] };
     return acc;
   }, {});
 }
@@ -42,13 +42,18 @@ export async function fetchEventsForCalendar({
   const seen = new Set();
   const color = getCalendarColor(entityId, colorIndex);
 
-  const chunkEventLists = await Promise.all(
+  const chunkResults = await Promise.all(
     chunks.map(chunk => fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }))
   );
 
+  const failedChunks = chunkResults.filter(result => !result?.success);
+  if (failedChunks.length > 0) {
+    return { success: false, events: [], failedChunks };
+  }
+
   const mergedEvents = [];
-  chunkEventLists.forEach(events => {
-    if (!events || !Array.isArray(events)) return;
+  chunkResults.forEach(result => {
+    const events = Array.isArray(result?.events) ? result.events : [];
 
     events.forEach(event => {
       const key = getEventIdentityKey(entityId, event);
@@ -59,7 +64,7 @@ export async function fetchEventsForCalendar({
     });
   });
 
-  return mergedEvents;
+  return { success: true, events: mergedEvents };
 }
 
 export async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
@@ -67,15 +72,17 @@ export async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDa
   const chunkEndStr = chunk.endDate.toISOString();
 
   try {
-    return await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
+    const events = await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
+    return { success: true, events: Array.isArray(events) ? events : [] };
   } catch (error) {
     try {
       const startDateOnly = formatLocalDate(chunk.startDate);
       const endDateOnly = formatLocalDate(chunk.endDate);
-      return await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
+      const events = await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
+      return { success: true, events: Array.isArray(events) ? events : [] };
     } catch (error2) {
       console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
-      return [];
+      return { success: false, events: [], error: error2 };
     }
   }
 }

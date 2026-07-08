@@ -1,0 +1,146 @@
+import { toStableString } from './event-fetcher.js';
+
+export const EVENT_CACHE_SCHEMA_VERSION = 1;
+const DB_NAME = 'daylight-calendar-card-events';
+const DB_VERSION = 1;
+const STORE_NAME = 'eventSnapshots';
+const MAX_CACHE_ENTRIES = 12;
+
+const openEventCacheDb = () => new Promise((resolve, reject) => {
+  const indexedDBRef = globalThis.indexedDB;
+  if (!indexedDBRef) {
+    resolve(null);
+    return;
+  }
+  const request = indexedDBRef.open(DB_NAME, DB_VERSION);
+  request.onupgradeneeded = () => {
+    const db = request.result;
+    if (!db.objectStoreNames.contains(STORE_NAME)) {
+      db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+    }
+  };
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error || new Error('Unable to open event cache'));
+});
+
+const transact = async (mode, callback) => {
+  const db = await openEventCacheDb();
+  if (!db) return null;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, mode);
+    const store = tx.objectStore(STORE_NAME);
+    let callbackResult;
+    tx.oncomplete = () => {
+      db.close?.();
+      resolve(callbackResult);
+    };
+    tx.onerror = () => {
+      db.close?.();
+      reject(tx.error || new Error('Event cache transaction failed'));
+    };
+    tx.onabort = tx.onerror;
+    callbackResult = callback(store, (value) => { callbackResult = value; });
+  });
+};
+
+export function buildEventCacheConfigSignature({ entities = [], timeZone = null, colors = {} } = {}) {
+  return toStableString({ entities, timeZone: timeZone || null, colors: colors || {} });
+}
+
+export function buildEventCacheKey(configSignature) {
+  return `events:${configSignature}`;
+}
+
+export function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  if (snapshot.schemaVersion !== EVENT_CACHE_SCHEMA_VERSION) return null;
+  if (configSignature && snapshot.configSignature !== configSignature) return null;
+  if (!snapshot.coveredRange || !snapshot.coveredRange.start || !snapshot.coveredRange.end) return null;
+  if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
+  if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
+
+  const eventsByCalendar = {};
+  Object.entries(snapshot.eventsByCalendar).forEach(([entityId, events]) => {
+    eventsByCalendar[entityId] = Array.isArray(events) ? events.filter((event) => event && typeof event === 'object') : [];
+  });
+
+  return {
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    key: snapshot.key || buildEventCacheKey(snapshot.configSignature),
+    updatedAt: Number(snapshot.updatedAt) || snapshot.lastSuccessfulRefresh,
+    lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
+    coveredRange: {
+      start: snapshot.coveredRange.start,
+      end: snapshot.coveredRange.end
+    },
+    configSignature: snapshot.configSignature,
+    eventsByCalendar
+  };
+}
+
+export function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsByCalendar, lastSuccessfulRefresh = Date.now() }) {
+  return normalizeEventCacheSnapshot({
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    key: buildEventCacheKey(configSignature),
+    updatedAt: Date.now(),
+    lastSuccessfulRefresh,
+    coveredRange: {
+      start: startDate instanceof Date ? startDate.toISOString() : startDate,
+      end: endDate instanceof Date ? endDate.toISOString() : endDate
+    },
+    configSignature,
+    eventsByCalendar
+  }, { configSignature });
+}
+
+export async function readEventCacheSnapshot(configSignature) {
+  try {
+    const key = buildEventCacheKey(configSignature);
+    const snapshot = await transact('readonly', (store, setResult) => {
+      const request = store.get(key);
+      request.onsuccess = () => setResult(request.result || null);
+    });
+    return normalizeEventCacheSnapshot(snapshot, { configSignature });
+  } catch (error) {
+    console.warn('Failed to read Daylight event cache:', error);
+    return null;
+  }
+}
+
+export async function writeEventCacheSnapshot(snapshot) {
+  const normalized = normalizeEventCacheSnapshot(snapshot, { configSignature: snapshot?.configSignature });
+  if (!normalized) return false;
+  try {
+    await transact('readwrite', (store) => {
+      store.put(normalized);
+      const getAllRequest = store.getAll();
+      getAllRequest.onsuccess = () => {
+        const entries = (getAllRequest.result || [])
+          .filter((entry) => entry?.key && String(entry.key).startsWith('events:'))
+          .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+        entries.slice(MAX_CACHE_ENTRIES).forEach((entry) => store.delete(entry.key));
+      };
+    });
+    return true;
+  } catch (error) {
+    console.warn('Failed to write Daylight event cache:', error);
+    return false;
+  }
+}
+
+export async function clearAllEventCacheSnapshots() {
+  try {
+    await transact('readwrite', (store) => {
+      const getAllKeysRequest = store.getAllKeys();
+      getAllKeysRequest.onsuccess = () => {
+        (getAllKeysRequest.result || [])
+          .filter((key) => String(key).startsWith('events:'))
+          .forEach((key) => store.delete(key));
+      };
+    });
+    return true;
+  } catch (error) {
+    console.warn('Failed to clear Daylight event cache:', error);
+    return false;
+  }
+}

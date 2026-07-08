@@ -38,6 +38,7 @@ import {
 } from '../renderers/editor-renderer.js';
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
+import { clearAllEventCacheSnapshots } from '../events/event-cache.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
 import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
 import '../components/daylight-color-picker.js';
@@ -82,6 +83,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     this._config = createDefaultStubConfig();
     this._hass = null;
     this._rendered = false;
+    this._eventCacheFlushStatus = '';
     this._lastCalendarEntitiesKey = '';
     this._colorPickerState = { field: null, mapKey: null, color: '#3f51b5' };
     this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
@@ -1116,6 +1118,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       <p class="helper">Loaded version: ${this.escapeHtml(getDaylightCalendarCardVersion())}</p>
       <p class="helper">Resource file: skylight-calendar-card.js</p>
       <p class="helper">If this version does not match the version shown in HACS, Home Assistant may be loading a cached or stale resource.</p>
+      <div class="diagnostic-action">
+        <button type="button" data-event-cache-action="flush">Flush event cache</button>
+        <p class="helper">Clears persistent Daylight calendar event snapshots only. Hidden calendars and custom event colors are not changed.</p>
+        ${this._eventCacheFlushStatus ? `<p class="helper">${this.escapeHtml(this._eventCacheFlushStatus)}</p>` : ''}
+      </div>
       ${staleResourceDiagnostics}
     `);
 
@@ -1513,6 +1520,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       button.addEventListener('click', (event) => this.handleVirtualCalendarAction(event));
     });
 
+    this.querySelectorAll('[data-event-cache-action="flush"]').forEach((button) => {
+      button.addEventListener('click', () => this.handleFlushEventCache());
+    });
+
     this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
       input.addEventListener('change', (event) => this.handleVirtualCalendarInput(event));
     });
@@ -1539,6 +1550,15 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     });
 
     this._rendered = true;
+  }
+
+  async handleFlushEventCache() {
+    const cleared = await clearAllEventCacheSnapshots();
+    this._eventCacheFlushStatus = cleared
+      ? 'Event cache cleared. The card will load fresh calendar data.'
+      : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
+    window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
   }
 
   refreshCalendarEntities() {

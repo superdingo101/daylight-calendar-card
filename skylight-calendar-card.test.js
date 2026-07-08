@@ -6452,7 +6452,7 @@ test('event fetcher sends WebSocket calendar event payload unchanged', async () 
   assert.deepEqual(result, [{ summary: 'WS event' }]);
 });
 
-test('event fetcher falls back to REST URL and returns empty array after failed fetches', async () => {
+test('event fetcher falls back to REST URL and reports failure after failed fetches', async () => {
   const { fetchEventsForChunk } = await import('./src/events/event-fetcher.js');
   const chunk = {
     startDate: new Date('2026-01-01T12:34:56Z'),
@@ -6476,7 +6476,7 @@ test('event fetcher falls back to REST URL and returns empty array after failed 
       formatLocalDate: date => date.toISOString().slice(0, 10)
     });
 
-    assert.deepEqual(restEvents, [{ summary: 'REST event' }]);
+    assert.deepEqual(restEvents, { success: true, events: [{ summary: 'REST event' }] });
     assert.equal(restUrl, 'calendars/calendar.work?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z');
 
     const failedEvents = await fetchEventsForChunk({
@@ -6489,7 +6489,8 @@ test('event fetcher falls back to REST URL and returns empty array after failed 
       formatLocalDate: date => date.toISOString().slice(0, 10)
     });
 
-    assert.deepEqual(failedEvents, []);
+    assert.equal(failedEvents.success, false);
+    assert.deepEqual(failedEvents.events, []);
   } finally {
     console.error = originalConsoleError;
   }
@@ -6510,7 +6511,7 @@ test('event fetcher normalizes with calendar colors and de-duplicates chunk over
   };
   const normalizedContexts = [];
 
-  const events = await fetchEventsForCalendar({
+  const result = await fetchEventsForCalendar({
     hass,
     entityId: 'calendar.work',
     colorIndex: 3,
@@ -6524,7 +6525,8 @@ test('event fetcher normalizes with calendar colors and de-duplicates chunk over
     }
   });
 
-  assert.deepEqual(events.map(event => event.summary), ['First', 'Second']);
+  assert.equal(result.success, true);
+  assert.deepEqual(result.events.map(event => event.summary), ['First', 'Second']);
   assert.deepEqual(normalizedContexts, [
     { entityId: 'calendar.work', color: 'calendar.work:3:color' },
     { entityId: 'calendar.work', color: 'calendar.work:3:color' }
@@ -6848,3 +6850,65 @@ test('custom colors persist with hidden calendars and reset on unrelated config 
   assert.deepEqual(Array.from(card._hiddenCalendars), []);
 });
 
+
+
+test('event cache signature ignores visual-only settings and changes for fetch-time inputs', async () => {
+  const { buildEventCacheConfigSignature } = await import('./src/events/event-cache.js');
+  const base = buildEventCacheConfigSignature({ entities: ['calendar.a', 'calendar.b'], timeZone: 'UTC', colors: { 'calendar.a': '#fff' } });
+  const same = buildEventCacheConfigSignature({ entities: ['calendar.a', 'calendar.b'], timeZone: 'UTC', colors: { 'calendar.a': '#fff' }, fonts: 'ignored' });
+  const differentOrder = buildEventCacheConfigSignature({ entities: ['calendar.b', 'calendar.a'], timeZone: 'UTC', colors: { 'calendar.a': '#fff' } });
+  const differentColor = buildEventCacheConfigSignature({ entities: ['calendar.a', 'calendar.b'], timeZone: 'UTC', colors: { 'calendar.a': '#000' } });
+  assert.equal(base, same);
+  assert.notEqual(base, differentOrder);
+  assert.notEqual(base, differentColor);
+});
+
+test('event cache ignores corrupt or incompatible snapshots', async () => {
+  const { normalizeEventCacheSnapshot, EVENT_CACHE_SCHEMA_VERSION } = await import('./src/events/event-cache.js');
+  assert.equal(normalizeEventCacheSnapshot(null, { configSignature: 'a' }), null);
+  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: 999 }, { configSignature: 'a' }), null);
+  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'b', coveredRange: { start: 'x', end: 'y' }, lastSuccessfulRefresh: 1, eventsByCalendar: {} }, { configSignature: 'a' }), null);
+  assert.deepEqual(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: 'x', end: 'y' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok' }], bad: 'nope' } }, { configSignature: 'a' }).eventsByCalendar, { 'calendar.a': [{ summary: 'ok' }], bad: [] });
+});
+
+test('partial calendar refresh preserves failed calendar and successful empty clears old events', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = {};
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.a': { success: true, events: [] },
+    'calendar.b': { success: false, events: [] }
+  });
+  card._eventsByCalendar = {
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'old a', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }],
+    'calendar.b': [{ entityId: 'calendar.b', summary: 'old b', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }]
+  };
+  card._events = Object.values(card._eventsByCalendar).flat();
+  card.persistEventCacheSnapshot = () => {};
+  card.render = () => {};
+
+  await card.updateEvents();
+  assert.deepEqual(card._eventsByCalendar['calendar.a'], []);
+  assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'old b');
+  assert.equal(card._events.length, 1);
+});
+
+test('failed refresh preserves last-known-good events and stale warning timing', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = {};
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => ({ 'calendar.a': { success: false, events: [] } });
+  card._eventsByCalendar = { 'calendar.a': [{ entityId: 'calendar.a', summary: 'old', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }] };
+  card._events = card._eventsByCalendar['calendar.a'];
+  card._lastSuccessfulEventRefresh = Date.parse('2026-01-01T12:00:00Z');
+  card.render = () => {};
+
+  await card.updateEvents();
+  assert.equal(card._events[0].summary, 'old');
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:29:59Z')), false);
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:30:01Z')), true);
+
+  card.applyEventsByCalendar({ 'calendar.a': [] }, { startDate: new Date(), endDate: new Date(), lastSuccessfulRefresh: Date.now() });
+  card._lastEventRefreshFailed = false;
+  assert.equal(card.shouldShowEventRefreshWarning(Date.now() + 31 * 60 * 1000), false);
+});
