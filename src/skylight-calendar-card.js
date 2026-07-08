@@ -5037,18 +5037,6 @@ class SkylightCalendarCard extends HTMLElement {
       });
     });
 
-    // Modal close
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        if (this._activeModalBackHandler) {
-          const backHandler = this._activeModalBackHandler;
-          this._activeModalBackHandler = null;
-          backHandler();
-        } else {
-          modal.classList.remove('show');
-        }
-      }
-    });
   }
 
   updateEventModalOpenState(modal = this.getRootElementById('event-modal')) {
