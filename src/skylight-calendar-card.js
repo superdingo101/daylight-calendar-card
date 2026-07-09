@@ -388,6 +388,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._fetching = false;
+    this._activeEventFetchRange = null;
     this._lastFetch = null;
     this._loadedEventRange = null;
     this._calendarDataSignatures = {}; // Track per-calendar data for change detection
@@ -2015,40 +2016,47 @@ class SkylightCalendarCard extends HTMLElement {
     if (!configSignature) return;
     const { available, snapshot } = await readEventCacheSnapshot(configSignature);
     if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
+    const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, requestId);
+    if (hydratable.successfulEntityIds.length === 0) return;
+    this._eventCacheHydrated = true;
+    this.applyEventsByCalendar(hydratable.eventsByCalendar, {
+      startDate: new Date(snapshot.coveredRange.start),
+      endDate: new Date(snapshot.coveredRange.end),
+      lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
+      successfulEntityIds: hydratable.successfulEntityIds,
+      source: 'cache',
+      requestId,
+      perCalendarMetadata: hydratable.perCalendarMetadata
+    });
+    this.render();
+  }
+
+  getHydratableEventCacheSnapshotData(snapshot, requestId = this._eventFetchGeneration) {
     const cacheEventsByCalendar = {};
     const cacheMetadataByCalendar = {};
     const successfulEntityIds = [];
     (this._config.entities || []).forEach((entityId) => {
       const metadata = this._calendarEventMetadata[entityId] || {};
       if (metadata.lastNetworkSuccessRequest && metadata.lastNetworkSuccessRequest > requestId) return;
-      const cachedMetadata = snapshot.perCalendarMetadata?.[entityId] || {};
-      const cachedRange = this.getValidRange(
-        cachedMetadata.range?.startDate || snapshot.coveredRange.start,
-        cachedMetadata.range?.endDate || snapshot.coveredRange.end
-      );
-      const cachedLastSuccessfulRefresh = Number.isFinite(cachedMetadata.lastSuccessfulRefresh)
-        ? cachedMetadata.lastSuccessfulRefresh
-        : snapshot.lastSuccessfulRefresh;
+      if (!Object.prototype.hasOwnProperty.call(snapshot.perCalendarMetadata || {}, entityId)) return;
+      if (!Object.prototype.hasOwnProperty.call(snapshot.eventsByCalendar || {}, entityId)) return;
+      if (!Array.isArray(snapshot.eventsByCalendar[entityId])) return;
+      const cachedMetadata = snapshot.perCalendarMetadata[entityId] || {};
+      const cachedRange = this.getValidRange(cachedMetadata.range?.startDate, cachedMetadata.range?.endDate);
+      const cachedLastSuccessfulRefresh = cachedMetadata.lastSuccessfulRefresh;
       if (!cachedRange || !Number.isFinite(cachedLastSuccessfulRefresh)) return;
-      cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId] || [];
+      cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId];
       cacheMetadataByCalendar[entityId] = {
         range: cachedRange,
         lastSuccessfulRefresh: cachedLastSuccessfulRefresh
       };
       successfulEntityIds.push(entityId);
     });
-    if (successfulEntityIds.length === 0) return;
-    this._eventCacheHydrated = true;
-    this.applyEventsByCalendar(cacheEventsByCalendar, {
-      startDate: new Date(snapshot.coveredRange.start),
-      endDate: new Date(snapshot.coveredRange.end),
-      lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
-      successfulEntityIds,
-      source: 'cache',
-      requestId,
-      perCalendarMetadata: cacheMetadataByCalendar
-    });
-    this.render();
+    return {
+      eventsByCalendar: cacheEventsByCalendar,
+      perCalendarMetadata: cacheMetadataByCalendar,
+      successfulEntityIds
+    };
   }
 
   getEventCacheRetainedRange() {
@@ -2115,11 +2123,17 @@ class SkylightCalendarCard extends HTMLElement {
     const retainedRange = this.getEventCacheRetainedRange();
     const { perCalendarMetadata, coveredRange } = this.getPrunedEventMetadataForCache(retainedRange);
     if (!coveredRange || !Number.isFinite(this._lastSuccessfulEventRefresh)) return false;
+    const persistedEventsByCalendar = {};
+    Object.keys(perCalendarMetadata).forEach((entityId) => {
+      if (Object.prototype.hasOwnProperty.call(this._eventsByCalendar, entityId)) {
+        persistedEventsByCalendar[entityId] = this.getPrunedEventsByCalendarForCache({ [entityId]: this._eventsByCalendar[entityId] }, retainedRange)[entityId] || [];
+      }
+    });
     const snapshot = createEventCacheSnapshot({
       configSignature,
       startDate: coveredRange.startDate,
       endDate: coveredRange.endDate,
-      eventsByCalendar: this.getPrunedEventsByCalendarForCache(this._eventsByCalendar, retainedRange),
+      eventsByCalendar: persistedEventsByCalendar,
       lastSuccessfulRefresh: this._lastSuccessfulEventRefresh,
       perCalendarMetadata
     });
@@ -2200,6 +2214,7 @@ class SkylightCalendarCard extends HTMLElement {
     const { startDate, endDate } = this.getEventFetchRange();
     const generation = ++this._eventFetchGeneration;
     this._fetching = true;
+    this._activeEventFetchRange = { startDate, endDate };
     this._lastFetch = Date.now();
 
     try {
@@ -2265,6 +2280,7 @@ class SkylightCalendarCard extends HTMLElement {
       }
     } finally {
       this._fetching = false;
+      this._activeEventFetchRange = null;
       if (this._pendingEventRefreshAfterCurrentFetch) {
         this._pendingEventRefreshAfterCurrentFetch = false;
         this.ensureEventsForCurrentRange({ force: true });
@@ -2281,6 +2297,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     const generation = ++this._eventFetchGeneration;
     this._fetching = true;
+    this._activeEventFetchRange = { startDate, endDate };
     this._lastFetch = Date.now();
 
     try {
@@ -2335,6 +2352,7 @@ class SkylightCalendarCard extends HTMLElement {
       return failedEntityIds.length === 0;
     } finally {
       this._fetching = false;
+      this._activeEventFetchRange = null;
       if (this._pendingEventRefreshAfterCurrentFetch) {
         this._pendingEventRefreshAfterCurrentFetch = false;
         this.ensureEventsForCurrentRange({ force: true });
@@ -2356,7 +2374,19 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
-    if (this._fetching && !force) return;
+    const { startDate, endDate } = this.getEventFetchRange();
+
+    if (this._fetching) {
+      if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
+        if (renderIfCovered) this.render();
+        return;
+      }
+      const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
+      if (force || !activeRange || !isDateRangeCoveredByLoadedEventsHelper(activeRange, startDate, endDate)) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+      }
+      return;
+    }
 
     if (force || shouldRefreshForAge || !this._loadedEventRange) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
@@ -2375,7 +2405,6 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Once visible range falls outside loaded coverage, fetch around current view
     // (with buffer) and only request missing leading/trailing segments.
-    const { startDate, endDate } = this.getEventFetchRange();
     const missingRanges = [];
 
     if (startDate < this._loadedEventRange.startDate) {

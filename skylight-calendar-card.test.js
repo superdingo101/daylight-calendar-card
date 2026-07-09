@@ -65,6 +65,7 @@ require('./skylight-calendar-card.js');
 const Card = customElements.get('skylight-calendar-card');
 const DaylightCard = customElements.get('daylight-calendar-card');
 const originalCardRender = Card.prototype.render;
+const originalEnsureEventsForCurrentRange = Card.prototype.ensureEventsForCurrentRange;
 Card.prototype.render = function() {};
 Card.prototype.renderPreservingAgendaScroll = function() {};
 Card.prototype.ensureEventsForCurrentRange = function() {};
@@ -6868,9 +6869,9 @@ test('event cache ignores corrupt or incompatible snapshots', async () => {
   assert.equal(normalizeEventCacheSnapshot(null, { configSignature: 'a' }), null);
   assert.equal(normalizeEventCacheSnapshot({ schemaVersion: 999 }, { configSignature: 'a' }), null);
   assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'b', coveredRange: { start: 'x', end: 'y' }, lastSuccessfulRefresh: 1, eventsByCalendar: {} }, { configSignature: 'a' }), null);
-  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: 'x', end: 'y' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok' }] } }, { configSignature: 'a' }), null);
-  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: '2026-02-01T00:00:00Z', end: '2026-01-01T00:00:00Z' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok' }] } }, { configSignature: 'a' }), null);
-  assert.deepEqual(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok' }], bad: 'nope' } }, { configSignature: 'a' }).eventsByCalendar, { 'calendar.a': [{ summary: 'ok' }], bad: [] });
+  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: 'x', end: 'y' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok', start: { date: '2026-01-01' } }] } }, { configSignature: 'a' }), null);
+  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: '2026-02-01T00:00:00Z', end: '2026-01-01T00:00:00Z' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok', start: { date: '2026-01-01' } }] } }, { configSignature: 'a' }), null);
+  assert.deepEqual(normalizeEventCacheSnapshot({ schemaVersion: EVENT_CACHE_SCHEMA_VERSION, configSignature: 'a', coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' }, lastSuccessfulRefresh: 1, eventsByCalendar: { 'calendar.a': [{ summary: 'ok', start: { date: '2026-01-01' } }], bad: 'nope' } }, { configSignature: 'a' }).eventsByCalendar, { 'calendar.a': [{ summary: 'ok', start: { date: '2026-01-01' } }] });
 });
 
 test('partial calendar refresh preserves failed calendar and successful empty clears old events', async () => {
@@ -7324,6 +7325,123 @@ test('mixed partial cache reload keeps successful empty and stale last-known-goo
   assert.equal(reload._calendarEventMetadata['calendar.b'].refreshFailed, false);
 });
 
+test('mixed cache hydration skips calendars without valid per-calendar metadata', async () => {
+  const { createEventCacheSnapshot } = await import('./src/events/event-cache.js');
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  const snapshot = createEventCacheSnapshot({
+    configSignature: 'mixed-authoritative',
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-02-01T00:00:00Z'),
+    lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z'),
+    eventsByCalendar: {
+      'calendar.a': [{ entityId: 'calendar.a', summary: 'new a', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }],
+      'calendar.b': []
+    },
+    perCalendarMetadata: {
+      'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z') }
+    }
+  });
+  const hydratable = card.getHydratableEventCacheSnapshotData(snapshot, 0);
+  assert.deepEqual(hydratable.successfulEntityIds, ['calendar.a']);
+  card.applyEventsByCalendar(hydratable.eventsByCalendar, {
+    startDate: new Date(snapshot.coveredRange.start),
+    endDate: new Date(snapshot.coveredRange.end),
+    lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
+    successfulEntityIds: hydratable.successfulEntityIds,
+    source: 'cache',
+    requestId: 0,
+    perCalendarMetadata: hydratable.perCalendarMetadata
+  });
+  assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'new a');
+  assert.equal(card._eventsByCalendar['calendar.b'], undefined);
+  assert.equal(card._calendarEventMetadata['calendar.b']?.lastSuccessfulRefresh, undefined);
+});
+
+test('mixed cache hydration skips calendars whose LKG metadata was pruned outside retained window', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') });
+  card._eventsByCalendar = {
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'new a', start: { date: '2026-06-10' }, end: { date: '2026-06-11' } }],
+    'calendar.b': [{ entityId: 'calendar.b', summary: 'old b', start: { date: '2024-01-01' }, end: { date: '2024-01-02' } }]
+  };
+  card._calendarEventMetadata = {
+    'calendar.a': { range: { startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-06-01T12:00:00Z') },
+    'calendar.b': { range: { startDate: new Date('2024-01-01T00:00:00Z'), endDate: new Date('2024-01-31T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2024-01-01T12:00:00Z') }
+  };
+  card.recomputeEventState();
+  const retainedRange = card.getEventCacheRetainedRange();
+  const { perCalendarMetadata, coveredRange } = card.getPrunedEventMetadataForCache(retainedRange);
+  const reload = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  const hydratable = reload.getHydratableEventCacheSnapshotData({
+    coveredRange: { start: coveredRange.startDate.toISOString(), end: coveredRange.endDate.toISOString() },
+    lastSuccessfulRefresh: card._lastSuccessfulEventRefresh,
+    eventsByCalendar: card.getPrunedEventsByCalendarForCache(card._eventsByCalendar, retainedRange),
+    perCalendarMetadata
+  }, 0);
+  assert.deepEqual(hydratable.successfulEntityIds, ['calendar.a']);
+  assert.equal(hydratable.perCalendarMetadata['calendar.b'], undefined);
+});
+
+test('genuine persisted empty array with valid metadata hydrates as successful empty', async () => {
+  const { createEventCacheSnapshot } = await import('./src/events/event-cache.js');
+  const card = makeCard({ entities: ['calendar.a'] });
+  const snapshot = createEventCacheSnapshot({
+    configSignature: 'empty-authoritative',
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-02-01T00:00:00Z'),
+    lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z'),
+    eventsByCalendar: { 'calendar.a': [] },
+    perCalendarMetadata: {
+      'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z') }
+    }
+  });
+  const hydratable = card.getHydratableEventCacheSnapshotData(snapshot, 0);
+  assert.deepEqual(hydratable.successfulEntityIds, ['calendar.a']);
+  assert.deepEqual(hydratable.eventsByCalendar['calendar.a'], []);
+});
+
+test('corrupt cached calendar payloads are not treated as successful empty', async () => {
+  const { normalizeEventCacheSnapshot, EVENT_CACHE_SCHEMA_VERSION } = await import('./src/events/event-cache.js');
+  const snapshot = normalizeEventCacheSnapshot({
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    configSignature: 'corrupt-calendar',
+    coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' },
+    lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z'),
+    eventsByCalendar: { 'calendar.a': 'not-array' },
+    perCalendarMetadata: {
+      'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z') }
+    }
+  }, { configSignature: 'corrupt-calendar' });
+  const card = makeCard({ entities: ['calendar.a'] });
+  const hydratable = card.getHydratableEventCacheSnapshotData(snapshot, 0);
+  assert.deepEqual(snapshot.eventsByCalendar, {});
+  assert.deepEqual(hydratable.successfulEntityIds, []);
+});
+
+test('malformed cached events without usable dates are ignored while valid empty survives', async () => {
+  const { normalizeEventCacheSnapshot, EVENT_CACHE_SCHEMA_VERSION } = await import('./src/events/event-cache.js');
+  const snapshot = normalizeEventCacheSnapshot({
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    configSignature: 'malformed-events',
+    coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' },
+    lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z'),
+    eventsByCalendar: {
+      'calendar.a': [{ summary: 'missing dates' }],
+      'calendar.b': []
+    },
+    perCalendarMetadata: {
+      'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z') },
+      'calendar.b': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: Date.parse('2026-01-10T12:00:00Z') }
+    }
+  }, { configSignature: 'malformed-events' });
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  const hydratable = card.getHydratableEventCacheSnapshotData(snapshot, 0);
+  assert.deepEqual(snapshot.eventsByCalendar['calendar.a'], []);
+  assert.deepEqual(hydratable.eventsByCalendar['calendar.b'], []);
+  assert.deepEqual(hydratable.successfulEntityIds, ['calendar.a', 'calendar.b']);
+});
+
 test('mixed partial cache reload keeps newer successful calendar data', async () => {
   const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
   card._hass = { user: { id: 'user-1' } };
@@ -7431,8 +7549,52 @@ test('normal hass update does not queue redundant refresh while forced setConfig
   card._hass = { user: { id: 'user-1' }, states: {} };
   card._fetching = true;
   card._loadedEventRange = null;
+  card._activeEventFetchRange = { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
   card._pendingEventRefreshAfterCurrentFetch = false;
   await card.ensureEventsForCurrentRange();
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, false);
+});
+
+test('active fetch queues follow-up when switched view needs uncovered range', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._fetching = true;
+  card._activeEventFetchRange = { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') };
+  card._loadedEventRange = { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-31T00:00:00Z') };
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+  await card.ensureEventsForCurrentRange({ renderIfCovered: true });
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, true);
+});
+
+test('active fetch queues Today navigation when new range differs from active fetch', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._fetching = true;
+  card._activeEventFetchRange = { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') };
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-07-09T00:00:00Z'), endDate: new Date('2026-07-16T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-15T00:00:00Z') });
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+  await card.ensureEventsForCurrentRange();
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, true);
+});
+
+test('active fetch renders already-covered view without queuing duplicate fetch', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._fetching = true;
+  card._activeEventFetchRange = { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') };
+  card._loadedEventRange = { startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-03-31T00:00:00Z') };
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
+  let rendered = 0;
+  card.render = () => { rendered += 1; };
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+  await card.ensureEventsForCurrentRange({ renderIfCovered: true });
+  assert.equal(rendered, 1);
   assert.equal(card._pendingEventRefreshAfterCurrentFetch, false);
 });
 

@@ -1,6 +1,6 @@
 import { toStableString } from './event-fetcher.js';
 
-export const EVENT_CACHE_SCHEMA_VERSION = 1;
+export const EVENT_CACHE_SCHEMA_VERSION = 2;
 const DB_NAME = 'daylight-calendar-card-events';
 const DB_VERSION = 1;
 const STORE_NAME = 'eventSnapshots';
@@ -79,9 +79,18 @@ export function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) 
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
+  const isValidCachedEvent = (event) => {
+    if (!event || typeof event !== 'object') return false;
+    const rawStart = event?.start?.dateTime || event?.start?.date || event?.start;
+    const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
+    const start = rawStart ? new Date(rawStart) : null;
+    const end = rawEnd ? new Date(rawEnd) : start;
+    return !!start && Number.isFinite(start.getTime()) && (!rawEnd || Number.isFinite(end.getTime()));
+  };
   const eventsByCalendar = {};
   Object.entries(snapshot.eventsByCalendar).forEach(([entityId, events]) => {
-    eventsByCalendar[entityId] = Array.isArray(events) ? events.filter((event) => event && typeof event === 'object') : [];
+    if (!Array.isArray(events)) return;
+    eventsByCalendar[entityId] = events.filter(isValidCachedEvent);
   });
 
   return {
