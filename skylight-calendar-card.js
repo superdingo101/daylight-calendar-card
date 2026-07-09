@@ -12265,8 +12265,7 @@ class SkylightCalendarCard extends HTMLElement {
     if (!event?.uid) return null;
     const recurrenceId = event.recurrence_id || event.recurring_event_id;
     if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
-    if (event.rrule) return null;
-    return `${entityId}|${event.uid}`;
+    return null;
   }
 
   reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {

@@ -7408,10 +7408,11 @@ test('recurrence identity distinguishes occurrences and replaces moved fetched o
   assert.equal(summaries.includes('uid absent fresh'), true);
 });
 
-test('stable identity replaces stale event copies even when old dates are outside fetched range', () => {
+test('UID-only reconciliation preserves outside occurrences and only prunes authoritative overlap', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const reconciled = card.reconcileEventsForFetchedRange([
     { entityId: 'calendar.a', uid: 'moved-uid', summary: 'old outside uid', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'moved-uid', summary: 'absent overlapping uid', start: { dateTime: '2026-01-10T09:00:00Z' }, end: { dateTime: '2026-01-10T09:30:00Z' } },
     { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-08T10:00:00Z', summary: 'old outside occurrence', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } },
     { entityId: 'calendar.a', uid: 'outside-other', summary: 'unrelated outside', start: { dateTime: '2026-01-03T10:00:00Z' }, end: { dateTime: '2026-01-03T11:00:00Z' } },
     { entityId: 'calendar.a', uid: 'exact-boundary-before', summary: 'exact boundary before', start: { dateTime: '2026-01-07T10:00:00Z' }, end: { dateTime: '2026-01-10T00:00:00Z' } }
@@ -7421,7 +7422,8 @@ test('stable identity replaces stale event copies even when old dates are outsid
   ], { startDate: new Date('2026-01-10T00:00:00Z'), endDate: new Date('2026-01-10T23:59:59Z') });
 
   const summaries = reconciled.map(event => event.summary);
-  assert.equal(summaries.includes('old outside uid'), false);
+  assert.equal(summaries.includes('old outside uid'), true);
+  assert.equal(summaries.includes('absent overlapping uid'), false);
   assert.equal(summaries.includes('old outside occurrence'), false);
   assert.equal(summaries.filter(summary => summary === 'fresh renamed uid').length, 1);
   assert.equal(summaries.filter(summary => summary === 'fresh moved occurrence').length, 1);
