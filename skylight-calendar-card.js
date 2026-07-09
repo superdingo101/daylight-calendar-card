@@ -12227,7 +12227,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.scheduleEventRefreshWarningTimer();
   }
 
-  applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null, successfulEntityIds = null, failedEntityIds = [], source = 'network', requestId = null, coverageMode = 'replace' } = {}) {
+  applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null, successfulEntityIds = null, failedEntityIds = [], source = 'network', requestId = null, coverageMode = 'replace', perCalendarMetadata = {} } = {}) {
     const range = this.getValidRange(startDate, endDate);
     const successfulSet = successfulEntityIds ? new Set(successfulEntityIds) : new Set(this._config.entities || []);
     const failedSet = new Set(failedEntityIds || []);
@@ -12250,13 +12250,19 @@ class SkylightCalendarCard extends HTMLElement {
       const events = Array.isArray(eventsByCalendar[entityId]) ? eventsByCalendar[entityId] : [];
       this._eventsByCalendar[entityId] = events;
       this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(events);
+      const cachedMetadata = perCalendarMetadata?.[entityId] || {};
+      const cachedRange = this.getValidRange(cachedMetadata.range?.startDate, cachedMetadata.range?.endDate);
+      const effectiveRange = source === 'cache' && cachedRange ? cachedRange : range;
+      const effectiveLastSuccessfulRefresh = source === 'cache' && Number.isFinite(cachedMetadata.lastSuccessfulRefresh)
+        ? cachedMetadata.lastSuccessfulRefresh
+        : lastSuccessfulRefresh;
       const nextRange = coverageMode === 'union'
-        ? this.unionEventRanges(existingMetadata.range, range)
-        : (range || existingMetadata.range || null);
+        ? this.unionEventRanges(existingMetadata.range, effectiveRange)
+        : (effectiveRange || existingMetadata.range || null);
       this._calendarEventMetadata[entityId] = {
         ...existingMetadata,
         range: nextRange,
-        lastSuccessfulRefresh: Number.isFinite(lastSuccessfulRefresh) ? lastSuccessfulRefresh : existingMetadata.lastSuccessfulRefresh,
+        lastSuccessfulRefresh: Number.isFinite(effectiveLastSuccessfulRefresh) ? effectiveLastSuccessfulRefresh : existingMetadata.lastSuccessfulRefresh,
         refreshFailed: hasNewerNetworkFailure ? existingMetadata.refreshFailed : false,
         firstFailureAt: hasNewerNetworkFailure ? existingMetadata.firstFailureAt : null,
         lastNetworkSuccessRequest: source === 'network' ? requestId : existingMetadata.lastNetworkSuccessRequest
@@ -12273,11 +12279,25 @@ class SkylightCalendarCard extends HTMLElement {
     const { available, snapshot } = await readEventCacheSnapshot(configSignature);
     if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
     const cacheEventsByCalendar = {};
+    const cacheMetadataByCalendar = {};
     const successfulEntityIds = [];
     (this._config.entities || []).forEach((entityId) => {
       const metadata = this._calendarEventMetadata[entityId] || {};
       if (metadata.lastNetworkSuccessRequest && metadata.lastNetworkSuccessRequest > requestId) return;
+      const cachedMetadata = snapshot.perCalendarMetadata?.[entityId] || {};
+      const cachedRange = this.getValidRange(
+        cachedMetadata.range?.startDate || snapshot.coveredRange.start,
+        cachedMetadata.range?.endDate || snapshot.coveredRange.end
+      );
+      const cachedLastSuccessfulRefresh = Number.isFinite(cachedMetadata.lastSuccessfulRefresh)
+        ? cachedMetadata.lastSuccessfulRefresh
+        : snapshot.lastSuccessfulRefresh;
+      if (!cachedRange || !Number.isFinite(cachedLastSuccessfulRefresh)) return;
       cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId] || [];
+      cacheMetadataByCalendar[entityId] = {
+        range: cachedRange,
+        lastSuccessfulRefresh: cachedLastSuccessfulRefresh
+      };
       successfulEntityIds.push(entityId);
     });
     if (successfulEntityIds.length === 0) return;
@@ -12288,18 +12308,26 @@ class SkylightCalendarCard extends HTMLElement {
       lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
       successfulEntityIds,
       source: 'cache',
-      requestId
+      requestId,
+      perCalendarMetadata: cacheMetadataByCalendar
     });
     this.render();
   }
 
-  getPrunedEventsByCalendarForCache(eventsByCalendar = {}, range = this._loadedEventRange) {
-    const validRange = this.getValidRange(range?.startDate, range?.endDate);
-    if (!validRange) return eventsByCalendar;
+  getEventCacheRetainedRange() {
+    const fetchRange = this.getEventFetchRange?.();
+    const validRange = this.getValidRange(fetchRange?.startDate, fetchRange?.endDate) || this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+    if (!validRange) return null;
     const retainedStart = new Date(validRange.startDate);
     retainedStart.setDate(retainedStart.getDate() - 90);
     const retainedEnd = new Date(validRange.endDate);
     retainedEnd.setDate(retainedEnd.getDate() + 90);
+    return { startDate: retainedStart, endDate: retainedEnd };
+  }
+
+  getPrunedEventsByCalendarForCache(eventsByCalendar = {}, range = this.getEventCacheRetainedRange()) {
+    const retainedRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!retainedRange) return eventsByCalendar;
     const pruned = {};
     Object.entries(eventsByCalendar || {}).forEach(([entityId, events]) => {
       pruned[entityId] = (Array.isArray(events) ? events : []).filter((event) => {
@@ -12307,25 +12335,56 @@ class SkylightCalendarCard extends HTMLElement {
         const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
         const eventEnd = rawEnd ? new Date(rawEnd) : eventStart;
         const safeEnd = Number.isFinite(eventEnd.getTime()) ? eventEnd : eventStart;
-        return eventStart <= retainedEnd && safeEnd >= retainedStart;
+        return eventStart <= retainedRange.endDate && safeEnd >= retainedRange.startDate;
       });
     });
     return pruned;
   }
 
+  getPrunedEventMetadataForCache(retainedRange = this.getEventCacheRetainedRange()) {
+    const range = this.getValidRange(retainedRange?.startDate, retainedRange?.endDate);
+    if (!range) return { perCalendarMetadata: {}, coveredRange: null };
+    const perCalendarMetadata = {};
+    let hasRetainedCalendar = false;
+    (this._config.entities || []).forEach((entityId) => {
+      const metadata = this._calendarEventMetadata[entityId] || {};
+      const metadataRange = this.getValidRange(metadata.range?.startDate, metadata.range?.endDate);
+      if (!metadataRange || !Number.isFinite(metadata.lastSuccessfulRefresh)) return;
+      const clippedStart = new Date(Math.max(metadataRange.startDate.getTime(), range.startDate.getTime()));
+      const clippedEnd = new Date(Math.min(metadataRange.endDate.getTime(), range.endDate.getTime()));
+      if (clippedStart > clippedEnd) return;
+      const clippedRange = { startDate: clippedStart, endDate: clippedEnd };
+      perCalendarMetadata[entityId] = {
+        ...metadata,
+        range: clippedRange,
+        lastSuccessfulRefresh: metadata.lastSuccessfulRefresh,
+        refreshFailed: false,
+        firstFailureAt: null
+      };
+      hasRetainedCalendar = true;
+    });
+    if (!hasRetainedCalendar) return { perCalendarMetadata, coveredRange: null };
+    return {
+      perCalendarMetadata,
+      coveredRange: range
+    };
+  }
+
   async persistEventCacheSnapshot({ generation = this._eventWriteGeneration } = {}) {
     if (generation !== this._eventWriteGeneration) return false;
-    if (!this._loadedEventRange || !Number.isFinite(this._lastSuccessfulEventRefresh)) return false;
     const configSignature = this.getEventCacheConfigSignature();
     if (!configSignature) return false;
     const cacheEpoch = getEventCacheMutationEpoch();
+    const retainedRange = this.getEventCacheRetainedRange();
+    const { perCalendarMetadata, coveredRange } = this.getPrunedEventMetadataForCache(retainedRange);
+    if (!coveredRange || !Number.isFinite(this._lastSuccessfulEventRefresh)) return false;
     const snapshot = createEventCacheSnapshot({
       configSignature,
-      startDate: this._loadedEventRange.startDate,
-      endDate: this._loadedEventRange.endDate,
-      eventsByCalendar: this.getPrunedEventsByCalendarForCache(this._eventsByCalendar, this._loadedEventRange),
+      startDate: coveredRange.startDate,
+      endDate: coveredRange.endDate,
+      eventsByCalendar: this.getPrunedEventsByCalendarForCache(this._eventsByCalendar, retainedRange),
       lastSuccessfulRefresh: this._lastSuccessfulEventRefresh,
-      perCalendarMetadata: this._calendarEventMetadata
+      perCalendarMetadata
     });
     if (!snapshot || generation !== this._eventWriteGeneration) return false;
     return writeEventCacheSnapshot(snapshot, { epoch: cacheEpoch });
@@ -12458,7 +12517,7 @@ class SkylightCalendarCard extends HTMLElement {
         requestId: generation
       });
       const warningVisibilityChanged = wasWarningVisible !== this.shouldShowEventRefreshWarning(now);
-      if (failedEntityIds.length === 0) this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
       if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged) {
         this._lastUnchangedDataRender = now;
         if (preserveScroll) {
@@ -12534,7 +12593,7 @@ class SkylightCalendarCard extends HTMLElement {
         requestId: generation,
         coverageMode: 'union'
       });
-      if (failedEntityIds.length === 0) this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
       if ((render || failedEntityIds.length > 0) && (anyChanged || failedEntityIds.length > 0)) this.render();
       return failedEntityIds.length === 0;
     } finally {
@@ -12559,6 +12618,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (this.isEventManagementDialogOpen() && (force || shouldRefreshForAge)) {
       return;
     }
+
+    if (this._fetching && !force) return;
 
     if (force || shouldRefreshForAge || !this._loadedEventRange) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
