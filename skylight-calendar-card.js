@@ -817,14 +817,22 @@ function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) {
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
+  const getSupportedEventDateValue = (value) => {
+    if (typeof value === 'string') return { kind: 'string', value };
+    if (!value || typeof value !== 'object' || value instanceof Date) return null;
+    if (typeof value.dateTime === 'string' && value.date === undefined) return { kind: 'dateTime', value: value.dateTime };
+    if (typeof value.date === 'string' && value.dateTime === undefined) return { kind: 'date', value: value.date };
+    return null;
+  };
   const isValidCachedEvent = (event, entityId) => {
     if (!event || typeof event !== 'object') return false;
     if (event.entityId !== entityId) return false;
-    const rawStart = event?.start?.dateTime || event?.start?.date || event?.start;
-    const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
-    const start = rawStart ? new Date(rawStart) : null;
-    const end = rawEnd ? new Date(rawEnd) : null;
-    return !!start && !!end && Number.isFinite(start.getTime()) && Number.isFinite(end.getTime());
+    const startValue = getSupportedEventDateValue(event.start);
+    const endValue = getSupportedEventDateValue(event.end);
+    if (!startValue || !endValue || startValue.kind !== endValue.kind) return false;
+    const start = new Date(startValue.value);
+    const end = new Date(endValue.value);
+    return Number.isFinite(start.getTime()) && Number.isFinite(end.getTime()) && end >= start;
   };
   const eventsByCalendar = {};
   Object.entries(snapshot.eventsByCalendar).forEach(([entityId, events]) => {
@@ -12339,12 +12347,24 @@ class SkylightCalendarCard extends HTMLElement {
     };
   }
 
-  getEventCacheRetainedRange() {
-    const fetchRange = this.getEventFetchRange?.();
+  getEventCacheRetentionAnchorRange() {
+    if (this._viewMode === 'agenda') {
+      const agendaVisibleRange = this.getValidRange(this._agendaVisibleStartDate, this._agendaVisibleEndDate);
+      if (agendaVisibleRange) return agendaVisibleRange;
+      const fallbackStart = new Date(this._currentDate || Date.now());
+      fallbackStart.setHours(0, 0, 0, 0);
+      const fallbackEnd = new Date(fallbackStart);
+      fallbackEnd.setDate(fallbackEnd.getDate() + 14);
+      fallbackEnd.setHours(23, 59, 59, 999);
+      return this.getValidRange(fallbackStart, fallbackEnd);
+    }
     const visibleRange = this.getVisibleDateRange?.();
-    const validRange = this.getValidRange(fetchRange?.startDate, fetchRange?.endDate) ||
-      this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
+    return this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
       this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+  }
+
+  getEventCacheRetainedRange() {
+    const validRange = this.getEventCacheRetentionAnchorRange();
     if (!validRange) return null;
     const maxSpanMs = MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS * 24 * 60 * 60 * 1000;
     const rangeSpanMs = validRange.endDate.getTime() - validRange.startDate.getTime();
@@ -12670,12 +12690,17 @@ class SkylightCalendarCard extends HTMLElement {
     const { startDate, endDate } = this.getEventFetchRange();
 
     if (this._fetching) {
+      if (force) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+        if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
+        return;
+      }
       if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
         if (renderIfCovered) this.render();
         return;
       }
       const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
-      if (force || !activeRange || !isDateRangeCoveredByLoadedEvents(activeRange, startDate, endDate)) {
+      if (!activeRange || !isDateRangeCoveredByLoadedEvents(activeRange, startDate, endDate)) {
         this._pendingEventRefreshAfterCurrentFetch = true;
         if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
       } else if (renderIfCovered) {

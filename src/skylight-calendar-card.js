@@ -2061,12 +2061,24 @@ class SkylightCalendarCard extends HTMLElement {
     };
   }
 
-  getEventCacheRetainedRange() {
-    const fetchRange = this.getEventFetchRange?.();
+  getEventCacheRetentionAnchorRange() {
+    if (this._viewMode === 'agenda') {
+      const agendaVisibleRange = this.getValidRange(this._agendaVisibleStartDate, this._agendaVisibleEndDate);
+      if (agendaVisibleRange) return agendaVisibleRange;
+      const fallbackStart = new Date(this._currentDate || Date.now());
+      fallbackStart.setHours(0, 0, 0, 0);
+      const fallbackEnd = new Date(fallbackStart);
+      fallbackEnd.setDate(fallbackEnd.getDate() + 14);
+      fallbackEnd.setHours(23, 59, 59, 999);
+      return this.getValidRange(fallbackStart, fallbackEnd);
+    }
     const visibleRange = this.getVisibleDateRange?.();
-    const validRange = this.getValidRange(fetchRange?.startDate, fetchRange?.endDate) ||
-      this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
+    return this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
       this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+  }
+
+  getEventCacheRetainedRange() {
+    const validRange = this.getEventCacheRetentionAnchorRange();
     if (!validRange) return null;
     const maxSpanMs = MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS * 24 * 60 * 60 * 1000;
     const rangeSpanMs = validRange.endDate.getTime() - validRange.startDate.getTime();
@@ -2392,12 +2404,17 @@ class SkylightCalendarCard extends HTMLElement {
     const { startDate, endDate } = this.getEventFetchRange();
 
     if (this._fetching) {
+      if (force) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+        if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
+        return;
+      }
       if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
         if (renderIfCovered) this.render();
         return;
       }
       const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
-      if (force || !activeRange || !isDateRangeCoveredByLoadedEventsHelper(activeRange, startDate, endDate)) {
+      if (!activeRange || !isDateRangeCoveredByLoadedEventsHelper(activeRange, startDate, endDate)) {
         this._pendingEventRefreshAfterCurrentFetch = true;
         if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
       } else if (renderIfCovered) {
