@@ -4900,16 +4900,20 @@ function getCardStyles() {
         gap: 12px;
         justify-content: space-between;
         margin-top: 24px;
-        align-items: center;
+        align-items: flex-start;
       }
 
       .modal-actions-left {
         display: flex;
+        align-items: center;
+        flex-direction: column;
         gap: 12px;
       }
 
       .modal-actions-right {
         display: flex;
+        align-items: center;
+        flex-direction: column;
         gap: 12px;
       }
 
@@ -4946,8 +4950,8 @@ function getCardStyles() {
         background: #f9fafb;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 16px;
+        padding: 6px;
+        margin-bottom: 6px;
       }
 
       .recurring-option {
@@ -5144,7 +5148,7 @@ function getCardStyles() {
         border-bottom-color: transparent;
       }
 
-	  .calendar-container.dark-mode .day-header,
+      .calendar-container.dark-mode .day-header,
       .calendar-container.dark-mode .month-week-number-header,
       .calendar-container.dark-mode .month-week-number-cell {
         background: #353b42;
@@ -8989,11 +8993,11 @@ function renderEventDetailsModal({
         <div class="modal-actions">
             <div class="modal-actions-left">
               ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
             </div>
             <div class="modal-actions-right">
-              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
               ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
             </div>
           </div>
       </div>
@@ -16731,7 +16735,7 @@ class SkylightCalendarCard extends HTMLElement {
     let selectedColor = currentColor;
     const scopes = this.getCustomColorScopes(targetEvent);
     const scopeHtml = scopes.length > 1 ? `
-      <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
+      <div><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
         ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
       </div></div>` : '';
     content.innerHTML = `
@@ -16739,7 +16743,7 @@ class SkylightCalendarCard extends HTMLElement {
       <div class="modal-body custom-color-modal">
         <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
-        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
+        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button></div><div class="modal-actions-right"><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;
     modal.classList.add('show');
     const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });
