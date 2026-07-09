@@ -6681,7 +6681,7 @@ class SkylightCalendarCard extends HTMLElement {
     let selectedColor = currentColor;
     const scopes = this.getCustomColorScopes(targetEvent);
     const scopeHtml = scopes.length > 1 ? `
-      <div class="modal-row"><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
+      <div><div class="modal-label">${this.t('recurringEventOptions')}</div><div class="modal-value recurring-options custom-color-scope-options">
         ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
       </div></div>` : '';
     content.innerHTML = `
@@ -6689,7 +6689,7 @@ class SkylightCalendarCard extends HTMLElement {
       <div class="modal-body custom-color-modal">
         <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
-        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
+        <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button></div><div class="modal-actions-right"><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;
     modal.classList.add('show');
     const close = () => this.showEventModal(returnEvent, onCloseBack, { onSaved });

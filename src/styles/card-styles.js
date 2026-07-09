@@ -2259,16 +2259,20 @@ export function getCardStyles() {
         gap: 12px;
         justify-content: space-between;
         margin-top: 24px;
-        align-items: center;
+        align-items: flex-start;
       }
 
       .modal-actions-left {
         display: flex;
+        align-items: center;
+        flex-direction: column;
         gap: 12px;
       }
 
       .modal-actions-right {
         display: flex;
+        align-items: center;
+        flex-direction: column;
         gap: 12px;
       }
 
@@ -2503,7 +2507,7 @@ export function getCardStyles() {
         border-bottom-color: transparent;
       }
 
-	  .calendar-container.dark-mode .day-header,
+      .calendar-container.dark-mode .day-header,
       .calendar-container.dark-mode .month-week-number-header,
       .calendar-container.dark-mode .month-week-number-cell {
         background: #353b42;
