@@ -79,18 +79,24 @@ export function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) 
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
-  const isValidCachedEvent = (event) => {
+  const isValidCachedEvent = (event, entityId) => {
     if (!event || typeof event !== 'object') return false;
+    if (event.entityId !== entityId) return false;
     const rawStart = event?.start?.dateTime || event?.start?.date || event?.start;
     const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
     const start = rawStart ? new Date(rawStart) : null;
-    const end = rawEnd ? new Date(rawEnd) : start;
-    return !!start && Number.isFinite(start.getTime()) && (!rawEnd || Number.isFinite(end.getTime()));
+    const end = rawEnd ? new Date(rawEnd) : null;
+    return !!start && !!end && Number.isFinite(start.getTime()) && Number.isFinite(end.getTime());
   };
   const eventsByCalendar = {};
   Object.entries(snapshot.eventsByCalendar).forEach(([entityId, events]) => {
     if (!Array.isArray(events)) return;
-    eventsByCalendar[entityId] = events.filter(isValidCachedEvent);
+    if (events.length === 0) {
+      eventsByCalendar[entityId] = [];
+      return;
+    }
+    if (!events.every(event => isValidCachedEvent(event, entityId))) return;
+    eventsByCalendar[entityId] = events;
   });
 
   return {

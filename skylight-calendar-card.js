@@ -817,18 +817,24 @@ function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) {
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
-  const isValidCachedEvent = (event) => {
+  const isValidCachedEvent = (event, entityId) => {
     if (!event || typeof event !== 'object') return false;
+    if (event.entityId !== entityId) return false;
     const rawStart = event?.start?.dateTime || event?.start?.date || event?.start;
     const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
     const start = rawStart ? new Date(rawStart) : null;
-    const end = rawEnd ? new Date(rawEnd) : start;
-    return !!start && Number.isFinite(start.getTime()) && (!rawEnd || Number.isFinite(end.getTime()));
+    const end = rawEnd ? new Date(rawEnd) : null;
+    return !!start && !!end && Number.isFinite(start.getTime()) && Number.isFinite(end.getTime());
   };
   const eventsByCalendar = {};
   Object.entries(snapshot.eventsByCalendar).forEach(([entityId, events]) => {
     if (!Array.isArray(events)) return;
-    eventsByCalendar[entityId] = events.filter(isValidCachedEvent);
+    if (events.length === 0) {
+      eventsByCalendar[entityId] = [];
+      return;
+    }
+    if (!events.every(event => isValidCachedEvent(event, entityId))) return;
+    eventsByCalendar[entityId] = events;
   });
 
   return {
@@ -10527,7 +10533,7 @@ const translate = (language, key, params = {}) => {
   return interpolate(strings[key] || fallback, params);
 };
 
-
+const MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS = 210;
 const STALE_RESOURCE_BANNER_ID = 'daylight-calendar-card-stale-resource-warning';
 let staleResourceWarningHandled = false;
 
@@ -10651,6 +10657,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration = 0;
     this._eventWriteGeneration = 0;
     this._pendingEventRefreshAfterCurrentFetch = false;
+    this._pendingEventRenderAfterCurrentFetch = false;
     this._eventRefreshWarningTimer = null;
     this._eventCacheHydrated = false;
     this._lastSuccessfulEventRefresh = null;
@@ -11269,6 +11276,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration += 1;
     this._eventWriteGeneration += 1;
     this._pendingEventRefreshAfterCurrentFetch = false;
+    this._pendingEventRenderAfterCurrentFetch = false;
     this._eventCacheHydrated = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
@@ -12333,12 +12341,16 @@ class SkylightCalendarCard extends HTMLElement {
 
   getEventCacheRetainedRange() {
     const fetchRange = this.getEventFetchRange?.();
-    const validRange = this.getValidRange(fetchRange?.startDate, fetchRange?.endDate) || this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+    const visibleRange = this.getVisibleDateRange?.();
+    const validRange = this.getValidRange(fetchRange?.startDate, fetchRange?.endDate) ||
+      this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
+      this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
     if (!validRange) return null;
-    const retainedStart = new Date(validRange.startDate);
-    retainedStart.setDate(retainedStart.getDate() - 90);
-    const retainedEnd = new Date(validRange.endDate);
-    retainedEnd.setDate(retainedEnd.getDate() + 90);
+    const maxSpanMs = MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS * 24 * 60 * 60 * 1000;
+    const rangeSpanMs = validRange.endDate.getTime() - validRange.startDate.getTime();
+    const center = validRange.startDate.getTime() + Math.max(0, rangeSpanMs) / 2;
+    const retainedStart = new Date(center - maxSpanMs / 2);
+    const retainedEnd = new Date(center + maxSpanMs / 2);
     return { startDate: retainedStart, endDate: retainedEnd };
   }
 
@@ -12417,6 +12429,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventCacheGeneration += 1;
     this._eventFetchGeneration += 1;
     this._eventWriteGeneration += 1;
+    this._pendingEventRenderAfterCurrentFetch = false;
     const clearEpoch = beginEventCacheFlush();
     const cleared = await clearAllEventCacheSnapshots({ epoch: clearEpoch });
     this._eventCacheGeneration += 1;
@@ -12476,7 +12489,7 @@ class SkylightCalendarCard extends HTMLElement {
     return `<div class="event-refresh-warning" role="status">${this.t('eventRefreshStaleWarning', { time: this.formatTime(new Date(oldestFailedRefresh)) })}</div>`;
   }
 
-  async updateEvents({ preserveScroll = false } = {}) {
+  async updateEvents({ preserveScroll = false, renderAfterFetch = false } = {}) {
     if (!this._hass) return;
     if (this._fetching) {
       this._pendingEventRefreshAfterCurrentFetch = true;
@@ -12542,7 +12555,7 @@ class SkylightCalendarCard extends HTMLElement {
       });
       const warningVisibilityChanged = wasWarningVisible !== this.shouldShowEventRefreshWarning(now);
       this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
-      if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged) {
+      if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged || renderAfterFetch) {
         this._lastUnchangedDataRender = now;
         if (preserveScroll) {
           this.renderPreservingAgendaScroll();
@@ -12553,9 +12566,13 @@ class SkylightCalendarCard extends HTMLElement {
     } finally {
       this._fetching = false;
       this._activeEventFetchRange = null;
+      const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
         this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true });
+        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+      } else if (shouldRenderAfterFetch) {
+        this.render();
       }
     }
   }
@@ -12625,9 +12642,13 @@ class SkylightCalendarCard extends HTMLElement {
     } finally {
       this._fetching = false;
       this._activeEventFetchRange = null;
+      const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
         this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true });
+        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+      } else if (shouldRenderAfterFetch) {
+        this.render();
       }
     }
   }
@@ -12656,13 +12677,16 @@ class SkylightCalendarCard extends HTMLElement {
       const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
       if (force || !activeRange || !isDateRangeCoveredByLoadedEvents(activeRange, startDate, endDate)) {
         this._pendingEventRefreshAfterCurrentFetch = true;
+        if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
+      } else if (renderIfCovered) {
+        this._pendingEventRenderAfterCurrentFetch = true;
       }
       return;
     }
 
     if (force || shouldRefreshForAge || !this._loadedEventRange) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
-      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh });
+      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh, renderAfterFetch: renderIfCovered });
       return;
     }
 
