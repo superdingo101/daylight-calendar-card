@@ -630,7 +630,7 @@ async function fetchEventsForCalendar({
   normalizeCalendarEvent,
   fetchedRange = null
 }) {
-  const seen = new Set();
+  const mergedRawEventsByKey = new Map();
   const color = getCalendarColor(entityId, colorIndex);
 
   const chunkResults = await Promise.all(
@@ -642,20 +642,20 @@ async function fetchEventsForCalendar({
     return { success: false, events: [], failedChunks, fetchedRange };
   }
 
-  const mergedEvents = [];
   chunkResults.forEach(result => {
     const events = Array.isArray(result?.events) ? result.events : [];
 
     events.forEach(event => {
       const key = getEventIdentityKey(entityId, event);
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      mergedEvents.push(normalizeCalendarEvent(event, { entityId, color }));
+      mergedRawEventsByKey.set(key, event);
     });
   });
 
-  return { success: true, events: mergedEvents, fetchedRange };
+  return {
+    success: true,
+    events: Array.from(mergedRawEventsByKey.values()).map(event => normalizeCalendarEvent(event, { entityId, color })),
+    fetchedRange
+  };
 }
 
 async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
@@ -7535,7 +7535,9 @@ const getEventIdentityKey = (entityId, event) => {
   const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
   const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
-  if (uid) return `${entityId}|${uid}|${start}|${end}`;
+  if (uid && event?.rrule) return `${entityId}|${uid}|${start}|${end}`;
+  // Non-recurring UID events are intentionally keyed by UID so later chunks/merges deterministically replace earlier copies.
+  if (uid) return `${entityId}|${uid}`;
   return `${entityId}|${recurrenceId || ''}|${start}|${end}|${event?.summary || ''}`;
 };
 

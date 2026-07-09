@@ -5967,7 +5967,7 @@ test('event normalizer module preserves identity, all-day detection, and start d
 
   assert.equal(
     getEventIdentityKey('calendar.work', rawEvent),
-    'calendar.work|abc|2026-06-23|2026-06-24'
+    'calendar.work|abc'
   );
   assert.deepEqual(normalizeCalendarEvent(rawEvent, { entityId: 'calendar.work', color: '#123456' }), {
     ...rawEvent,
@@ -6527,7 +6527,7 @@ test('event fetcher normalizes with calendar colors and de-duplicates chunk over
   });
 
   assert.equal(result.success, true);
-  assert.deepEqual(result.events.map(event => event.summary), ['First', 'Second']);
+  assert.deepEqual(result.events.map(event => event.summary), ['First duplicate', 'Second']);
   assert.deepEqual(normalizedContexts, [
     { entityId: 'calendar.work', color: 'calendar.work:3:color' },
     { entityId: 'calendar.work', color: 'calendar.work:3:color' }
@@ -7535,6 +7535,52 @@ test('event identity is HA recurrence-aware across merge and chunk deduplication
   });
   assert.equal(result.success, true);
   assert.deepEqual(result.events.map(event => event.summary), ['first', 'second']);
+});
+
+test('non-recurring UID identity collapses moved conflicts consistently across fetch and merge', async () => {
+  const { fetchEventsForCalendar, mergeEvents } = await import('./src/events/event-fetcher.js');
+  const { getEventIdentityKey, normalizeCalendarEvent } = await import('./src/events/event-normalizer.js');
+  const oldCopy = { uid: 'single-event', summary: 'old copy', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } };
+  const movedCopy = { uid: 'single-event', summary: 'moved copy', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } };
+
+  const result = await fetchEventsForCalendar({
+    hass: {
+      callWS: async ({ start_date_time }) => start_date_time === '2026-01-01T00:00:00.000Z'
+        ? [oldCopy]
+        : [movedCopy],
+      callApi: async () => []
+    },
+    entityId: 'calendar.a',
+    chunks: [
+      { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-01T23:59:59.999Z') },
+      { startDate: new Date('2026-01-02T00:00:00Z'), endDate: new Date('2026-01-02T23:59:59.999Z') }
+    ],
+    formatLocalDate: date => date.toISOString().slice(0, 10),
+    getCalendarColor: () => '#123456',
+    getEventIdentityKey,
+    normalizeCalendarEvent,
+    fetchedRange: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-02T23:59:59.999Z') }
+  });
+  assert.equal(result.success, true);
+  assert.deepEqual(result.events.map(event => event.summary), ['moved copy']);
+
+  const merged = mergeEvents([
+    { ...oldCopy, entityId: 'calendar.a' }
+  ], [
+    { ...movedCopy, entityId: 'calendar.a' }
+  ], {
+    getEventIdentityKey,
+    getEventStartDate: event => new Date(event.start.dateTime)
+  });
+  assert.deepEqual(merged.map(event => event.summary), ['moved copy']);
+
+  const card = makeCard({ entities: ['calendar.a'] });
+  const reconciled = card.reconcileEventsForFetchedRange([
+    { ...oldCopy, entityId: 'calendar.a' }
+  ], [
+    { ...movedCopy, entityId: 'calendar.a' }
+  ], { startDate: new Date('2026-01-02T00:00:00Z'), endDate: new Date('2026-01-02T23:59:59.999Z') });
+  assert.deepEqual(reconciled.map(event => event.summary), ['moved copy']);
 });
 
 test('range union remains conservative when an extension leaves an unfetched gap', () => {

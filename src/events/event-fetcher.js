@@ -44,7 +44,7 @@ export async function fetchEventsForCalendar({
   normalizeCalendarEvent,
   fetchedRange = null
 }) {
-  const seen = new Set();
+  const mergedRawEventsByKey = new Map();
   const color = getCalendarColor(entityId, colorIndex);
 
   const chunkResults = await Promise.all(
@@ -56,20 +56,20 @@ export async function fetchEventsForCalendar({
     return { success: false, events: [], failedChunks, fetchedRange };
   }
 
-  const mergedEvents = [];
   chunkResults.forEach(result => {
     const events = Array.isArray(result?.events) ? result.events : [];
 
     events.forEach(event => {
       const key = getEventIdentityKey(entityId, event);
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      mergedEvents.push(normalizeCalendarEvent(event, { entityId, color }));
+      mergedRawEventsByKey.set(key, event);
     });
   });
 
-  return { success: true, events: mergedEvents, fetchedRange };
+  return {
+    success: true,
+    events: Array.from(mergedRawEventsByKey.values()).map(event => normalizeCalendarEvent(event, { entityId, color })),
+    fetchedRange
+  };
 }
 
 export async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
