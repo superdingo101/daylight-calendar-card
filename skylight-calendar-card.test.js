@@ -5967,7 +5967,7 @@ test('event normalizer module preserves identity, all-day detection, and start d
 
   assert.equal(
     getEventIdentityKey('calendar.work', rawEvent),
-    'calendar.work|abc'
+    'calendar.work|abc|2026-06-23|2026-06-24'
   );
   assert.deepEqual(normalizeCalendarEvent(rawEvent, { entityId: 'calendar.work', color: '#123456' }), {
     ...rawEvent,
@@ -6506,8 +6506,11 @@ test('event fetcher normalizes with calendar colors and de-duplicates chunk over
   const hass = {
     callWS: ({ start_date_time }) => Promise.resolve(
       start_date_time === '2026-01-01T00:00:00.000Z'
-        ? [{ uid: '1', summary: 'First' }, { uid: '2', summary: 'Second' }]
-        : [{ uid: '1', summary: 'First duplicate' }]
+        ? [
+            { uid: '1', summary: 'First', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } },
+            { uid: '2', summary: 'Second', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } }
+          ]
+        : [{ uid: '1', summary: 'First duplicate', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } }]
     )
   };
   const normalizedContexts = [];
@@ -7537,17 +7540,18 @@ test('event identity is HA recurrence-aware across merge and chunk deduplication
   assert.deepEqual(result.events.map(event => event.summary), ['first', 'second']);
 });
 
-test('non-recurring UID identity collapses moved conflicts consistently across fetch and merge', async () => {
+test('UID-only occurrences use start and end for fetch and merge identity', async () => {
   const { fetchEventsForCalendar, mergeEvents } = await import('./src/events/event-fetcher.js');
   const { getEventIdentityKey, normalizeCalendarEvent } = await import('./src/events/event-normalizer.js');
-  const oldCopy = { uid: 'single-event', summary: 'old copy', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } };
-  const movedCopy = { uid: 'single-event', summary: 'moved copy', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } };
+  const first = { uid: 'same-uid', summary: 'first occurrence', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } };
+  const second = { uid: 'same-uid', summary: 'second occurrence', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } };
+  const duplicateSecond = { ...second, summary: 'second duplicate' };
 
   const result = await fetchEventsForCalendar({
     hass: {
       callWS: async ({ start_date_time }) => start_date_time === '2026-01-01T00:00:00.000Z'
-        ? [oldCopy]
-        : [movedCopy],
+        ? [first, second]
+        : [duplicateSecond],
       callApi: async () => []
     },
     entityId: 'calendar.a',
@@ -7562,25 +7566,18 @@ test('non-recurring UID identity collapses moved conflicts consistently across f
     fetchedRange: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-02T23:59:59.999Z') }
   });
   assert.equal(result.success, true);
-  assert.deepEqual(result.events.map(event => event.summary), ['moved copy']);
+  assert.deepEqual(result.events.map(event => event.summary), ['first occurrence', 'second duplicate']);
 
   const merged = mergeEvents([
-    { ...oldCopy, entityId: 'calendar.a' }
+    { ...first, entityId: 'calendar.a' },
+    { ...second, entityId: 'calendar.a' }
   ], [
-    { ...movedCopy, entityId: 'calendar.a' }
+    { ...duplicateSecond, entityId: 'calendar.a' }
   ], {
     getEventIdentityKey,
     getEventStartDate: event => new Date(event.start.dateTime)
   });
-  assert.deepEqual(merged.map(event => event.summary), ['moved copy']);
-
-  const card = makeCard({ entities: ['calendar.a'] });
-  const reconciled = card.reconcileEventsForFetchedRange([
-    { ...oldCopy, entityId: 'calendar.a' }
-  ], [
-    { ...movedCopy, entityId: 'calendar.a' }
-  ], { startDate: new Date('2026-01-02T00:00:00Z'), endDate: new Date('2026-01-02T23:59:59.999Z') });
-  assert.deepEqual(reconciled.map(event => event.summary), ['moved copy']);
+  assert.deepEqual(merged.map(event => event.summary), ['first occurrence', 'second duplicate']);
 });
 
 test('range union remains conservative when an extension leaves an unfetched gap', () => {

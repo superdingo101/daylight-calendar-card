@@ -4,9 +4,7 @@ export const getEventIdentityKey = (entityId, event) => {
   const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
   const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
-  if (uid && event?.rrule) return `${entityId}|${uid}|${start}|${end}`;
-  // Non-recurring UID events are intentionally keyed by UID so later chunks/merges deterministically replace earlier copies.
-  if (uid) return `${entityId}|${uid}`;
+  if (uid) return `${entityId}|${uid}|${start}|${end}`;
   return `${entityId}|${recurrenceId || ''}|${start}|${end}|${event?.summary || ''}`;
 };
 
