@@ -5967,7 +5967,7 @@ test('event normalizer module preserves identity, all-day detection, and start d
 
   assert.equal(
     getEventIdentityKey('calendar.work', rawEvent),
-    'calendar.work|abc||2026-06-23|2026-06-24|Holiday'
+    'calendar.work|abc'
   );
   assert.deepEqual(normalizeCalendarEvent(rawEvent, { entityId: 'calendar.work', color: '#123456' }), {
     ...rawEvent,
@@ -7386,7 +7386,7 @@ test('recurrence identity distinguishes occurrences and replaces moved fetched o
     card.getEventLogicalIdentityKey('calendar.a', { uid: 'series', recurrence_id: '2026-01-01T10:00:00Z' }),
     card.getEventLogicalIdentityKey('calendar.a', { uid: 'series', recurrence_id: '2026-01-02T10:00:00Z' })
   );
-  assert.equal(card.getEventLogicalIdentityKey('calendar.a', { recurrence_id: '2026-01-03T10:00:00Z' }), 'calendar.a|recurrence|2026-01-03T10:00:00Z');
+  assert.equal(card.getEventLogicalIdentityKey('calendar.a', { recurrence_id: '2026-01-03T10:00:00Z', summary: 'No UID', start: { dateTime: '2026-01-03T10:00:00Z' }, end: { dateTime: '2026-01-03T11:00:00Z' } }), 'calendar.a|2026-01-03T10:00:00Z|2026-01-03T10:00:00Z|2026-01-03T11:00:00Z|No UID');
 
   const reconciled = card.reconcileEventsForFetchedRange([
     { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-01T10:00:00Z', summary: 'stale moved', start: { dateTime: '2026-01-10T10:00:00Z' }, end: { dateTime: '2026-01-10T11:00:00Z' } },
@@ -7403,6 +7403,75 @@ test('recurrence identity distinguishes occurrences and replaces moved fetched o
   assert.equal(summaries.includes('other occurrence'), true);
   assert.equal(summaries.includes('uid absent stale'), false);
   assert.equal(summaries.includes('uid absent fresh'), true);
+});
+
+test('stable identity replaces stale event copies even when old dates are outside fetched range', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const reconciled = card.reconcileEventsForFetchedRange([
+    { entityId: 'calendar.a', uid: 'moved-uid', summary: 'old outside uid', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-08T10:00:00Z', summary: 'old outside occurrence', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'outside-other', summary: 'unrelated outside', start: { dateTime: '2026-01-03T10:00:00Z' }, end: { dateTime: '2026-01-03T11:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'cross-boundary-other', summary: 'legit cross-boundary', start: { dateTime: '2026-01-07T10:00:00Z' }, end: { dateTime: '2026-01-10T11:00:00Z' } }
+  ], [
+    { entityId: 'calendar.a', uid: 'moved-uid', summary: 'fresh renamed uid', start: { dateTime: '2026-01-10T10:00:00Z' }, end: { dateTime: '2026-01-10T12:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-08T10:00:00Z', summary: 'fresh moved occurrence', start: { dateTime: '2026-01-10T13:00:00Z' }, end: { dateTime: '2026-01-10T14:00:00Z' } }
+  ], { startDate: new Date('2026-01-10T00:00:00Z'), endDate: new Date('2026-01-10T23:59:59Z') });
+
+  const summaries = reconciled.map(event => event.summary);
+  assert.equal(summaries.includes('old outside uid'), false);
+  assert.equal(summaries.includes('old outside occurrence'), false);
+  assert.equal(summaries.filter(summary => summary === 'fresh renamed uid').length, 1);
+  assert.equal(summaries.filter(summary => summary === 'fresh moved occurrence').length, 1);
+  assert.equal(summaries.includes('unrelated outside'), true);
+  assert.equal(summaries.includes('legit cross-boundary'), true);
+});
+
+test('event identity is HA recurrence-aware across merge and chunk deduplication paths', async () => {
+  const { fetchEventsForCalendar, mergeEvents } = await import('./src/events/event-fetcher.js');
+  const { getEventIdentityKey, normalizeCalendarEvent } = await import('./src/events/event-normalizer.js');
+  const occurrenceA = { uid: 'series', recurrence_id: '2026-01-01T10:00:00Z', summary: 'first', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } };
+  const occurrenceB = { uid: 'series', recurrence_id: '2026-01-08T10:00:00Z', summary: 'second', start: { dateTime: '2026-01-08T10:00:00Z' }, end: { dateTime: '2026-01-08T11:00:00Z' } };
+  const uidlessA = { recurrence_id: 'same-rid', summary: 'uidless a', start: { dateTime: '2026-01-02T10:00:00Z' }, end: { dateTime: '2026-01-02T11:00:00Z' } };
+  const uidlessB = { recurrence_id: 'same-rid', summary: 'uidless b', start: { dateTime: '2026-01-03T10:00:00Z' }, end: { dateTime: '2026-01-03T11:00:00Z' } };
+  const legacy = { uid: 'legacy-series', recurring_event_id: 'legacy-rid', summary: 'legacy', start: { dateTime: '2026-01-04T10:00:00Z' }, end: { dateTime: '2026-01-04T11:00:00Z' } };
+
+  assert.notEqual(getEventIdentityKey('calendar.a', occurrenceA), getEventIdentityKey('calendar.a', occurrenceB));
+  assert.notEqual(getEventIdentityKey('calendar.a', uidlessA), getEventIdentityKey('calendar.a', uidlessB));
+  assert.equal(getEventIdentityKey('calendar.a', legacy), 'calendar.a|legacy-series|legacy-rid');
+
+  const merged = mergeEvents([
+    { ...occurrenceA, entityId: 'calendar.a', summary: 'stale first' },
+    { ...uidlessA, entityId: 'calendar.a' }
+  ], [
+    { ...occurrenceA, entityId: 'calendar.a', summary: 'fresh first' },
+    { ...occurrenceB, entityId: 'calendar.a' },
+    { ...uidlessB, entityId: 'calendar.a' }
+  ], {
+    getEventIdentityKey,
+    getEventStartDate: event => new Date(event.start.dateTime)
+  });
+  assert.deepEqual(merged.map(event => event.summary), ['fresh first', 'uidless a', 'uidless b', 'second']);
+
+  const result = await fetchEventsForCalendar({
+    hass: {
+      callWS: async ({ start_date_time }) => start_date_time === '2026-01-01T00:00:00.000Z'
+        ? [occurrenceA, occurrenceB, occurrenceA]
+        : [occurrenceB],
+      callApi: async () => []
+    },
+    entityId: 'calendar.a',
+    chunks: [
+      { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-15T23:59:59.999Z') },
+      { startDate: new Date('2026-01-15T00:00:00Z'), endDate: new Date('2026-01-31T23:59:59.999Z') }
+    ],
+    formatLocalDate: date => date.toISOString().slice(0, 10),
+    getCalendarColor: () => '#123456',
+    getEventIdentityKey,
+    normalizeCalendarEvent,
+    fetchedRange: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-31T23:59:59.999Z') }
+  });
+  assert.equal(result.success, true);
+  assert.deepEqual(result.events.map(event => event.summary), ['first', 'second']);
 });
 
 test('range union remains conservative when an extension leaves an unfetched gap', () => {

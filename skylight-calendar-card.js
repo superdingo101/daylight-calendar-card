@@ -7529,7 +7529,13 @@ function escapeHtmlAttribute(text) {
   return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
 }
 
-const getEventIdentityKey = (entityId, event) => `${entityId}|${event.uid || ''}|${event.recurring_event_id || ''}|${event.start?.dateTime || event.start?.date || event.start || ''}|${event.end?.dateTime || event.end?.date || event.end || ''}|${event.summary || ''}`;
+const getEventIdentityKey = (entityId, event) => {
+  const uid = event?.uid;
+  const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+  if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
+  if (uid) return `${entityId}|${uid}`;
+  return `${entityId}|${recurrenceId || ''}|${event?.start?.dateTime || event?.start?.date || event?.start || ''}|${event?.end?.dateTime || event?.end?.date || event?.end || ''}|${event?.summary || ''}`;
+};
 
 const normalizeCalendarEvent = (event, { entityId, color }) => ({
   ...event,
@@ -12250,12 +12256,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getEventLogicalIdentityKey(entityId, event) {
-    const uid = event?.uid;
-    const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
-    if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
-    if (uid) return `${entityId}|${uid}`;
-    if (recurrenceId) return `${entityId}|recurrence|${recurrenceId}`;
     return this.getEventIdentityKey(entityId, event);
+  }
+
+  getStableEventIdentityKey(entityId, event) {
+    return event?.uid ? this.getEventIdentityKey(entityId, event) : null;
   }
 
   reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {
@@ -12264,7 +12269,14 @@ class SkylightCalendarCard extends HTMLElement {
     const incomingLogicalKeys = new Set(
       (incomingEvents || []).map(event => this.getEventLogicalIdentityKey(event.entityId, event))
     );
+    const incomingStableKeys = new Set(
+      (incomingEvents || [])
+        .map(event => this.getStableEventIdentityKey(event.entityId, event))
+        .filter(Boolean)
+    );
     const retainedExisting = (existingEvents || []).filter((event) => {
+      const stableKey = this.getStableEventIdentityKey(event.entityId, event);
+      if (stableKey && incomingStableKeys.has(stableKey)) return false;
       const containedInAuthoritativeRange = this.isEventContainedInRange(event, range);
       if (containedInAuthoritativeRange) return false;
       const logicalKey = this.getEventLogicalIdentityKey(event.entityId, event);
