@@ -7532,9 +7532,11 @@ function escapeHtmlAttribute(text) {
 const getEventIdentityKey = (entityId, event) => {
   const uid = event?.uid;
   const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+  const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
+  const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
-  if (uid) return `${entityId}|${uid}`;
-  return `${entityId}|${recurrenceId || ''}|${event?.start?.dateTime || event?.start?.date || event?.start || ''}|${event?.end?.dateTime || event?.end?.date || event?.end || ''}|${event?.summary || ''}`;
+  if (uid) return `${entityId}|${uid}|${start}|${end}`;
+  return `${entityId}|${recurrenceId || ''}|${start}|${end}|${event?.summary || ''}`;
 };
 
 const normalizeCalendarEvent = (event, { entityId, color }) => ({
@@ -12243,7 +12245,7 @@ class SkylightCalendarCard extends HTMLElement {
     const eventStart = this.getEventStartDate(event);
     const eventEnd = this.getEventEndDate(event);
     if (!Number.isFinite(eventStart.getTime()) || !Number.isFinite(eventEnd.getTime())) return false;
-    return eventStart <= validRange.endDate && eventEnd >= validRange.startDate;
+    return eventEnd > validRange.startDate && eventStart < validRange.endDate;
   }
 
   isEventContainedInRange(event, range) {
@@ -12260,15 +12262,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getStableEventIdentityKey(entityId, event) {
-    return event?.uid ? this.getEventIdentityKey(entityId, event) : null;
+    if (!event?.uid) return null;
+    const recurrenceId = event.recurrence_id || event.recurring_event_id;
+    if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
+    if (event.rrule) return null;
+    return `${entityId}|${event.uid}`;
   }
 
   reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {
     const range = this.getValidRange(fetchedRange?.startDate, fetchedRange?.endDate);
     if (!range) return this.mergeEvents(existingEvents, incomingEvents);
-    const incomingLogicalKeys = new Set(
-      (incomingEvents || []).map(event => this.getEventLogicalIdentityKey(event.entityId, event))
-    );
     const incomingStableKeys = new Set(
       (incomingEvents || [])
         .map(event => this.getStableEventIdentityKey(event.entityId, event))
@@ -12277,10 +12280,7 @@ class SkylightCalendarCard extends HTMLElement {
     const retainedExisting = (existingEvents || []).filter((event) => {
       const stableKey = this.getStableEventIdentityKey(event.entityId, event);
       if (stableKey && incomingStableKeys.has(stableKey)) return false;
-      const containedInAuthoritativeRange = this.isEventContainedInRange(event, range);
-      if (containedInAuthoritativeRange) return false;
-      const logicalKey = this.getEventLogicalIdentityKey(event.entityId, event);
-      return !(incomingLogicalKeys.has(logicalKey) && this.doEventRangesOverlap(event, range));
+      return !this.doEventRangesOverlap(event, range);
     });
     return this.mergeEvents(retainedExisting, incomingEvents);
   }

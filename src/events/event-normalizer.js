@@ -1,9 +1,11 @@
 export const getEventIdentityKey = (entityId, event) => {
   const uid = event?.uid;
   const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+  const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
+  const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
-  if (uid) return `${entityId}|${uid}`;
-  return `${entityId}|${recurrenceId || ''}|${event?.start?.dateTime || event?.start?.date || event?.start || ''}|${event?.end?.dateTime || event?.end?.date || event?.end || ''}|${event?.summary || ''}`;
+  if (uid) return `${entityId}|${uid}|${start}|${end}`;
+  return `${entityId}|${recurrenceId || ''}|${start}|${end}|${event?.summary || ''}`;
 };
 
 export const normalizeCalendarEvent = (event, { entityId, color }) => ({
