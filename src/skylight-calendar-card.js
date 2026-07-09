@@ -1923,11 +1923,14 @@ class SkylightCalendarCard extends HTMLElement {
 
   unionEventRanges(existingRange, incomingRange) {
     const existing = this.getValidRange(existingRange?.startDate, existingRange?.endDate);
-    if (!existing) return incomingRange;
-    if (!incomingRange) return existing;
+    const incoming = this.getValidRange(incomingRange?.startDate, incomingRange?.endDate);
+    if (!existing) return incoming;
+    if (!incoming) return existing;
+    if (incoming.endDate < existing.startDate) return incoming;
+    if (incoming.startDate > existing.endDate) return incoming;
     return {
-      startDate: new Date(Math.min(existing.startDate.getTime(), incomingRange.startDate.getTime())),
-      endDate: new Date(Math.max(existing.endDate.getTime(), incomingRange.endDate.getTime()))
+      startDate: new Date(Math.min(existing.startDate.getTime(), incoming.startDate.getTime())),
+      endDate: new Date(Math.max(existing.endDate.getTime(), incoming.endDate.getTime()))
     };
   }
 
@@ -2095,8 +2098,7 @@ class SkylightCalendarCard extends HTMLElement {
     Object.entries(eventsByCalendar || {}).forEach(([entityId, events]) => {
       pruned[entityId] = (Array.isArray(events) ? events : []).filter((event) => {
         const eventStart = this.getEventStartDate(event);
-        const rawEnd = event?.end?.dateTime || event?.end?.date || event?.end;
-        const eventEnd = rawEnd ? new Date(rawEnd) : eventStart;
+        const eventEnd = this.getEventEndDate(event);
         const safeEnd = Number.isFinite(eventEnd.getTime()) ? eventEnd : eventStart;
         return eventStart <= retainedRange.endDate && safeEnd >= retainedRange.startDate;
       });
@@ -2311,11 +2313,14 @@ class SkylightCalendarCard extends HTMLElement {
     }
   }
 
-  async extendEventsForRange(startDate, endDate, { render = true } = {}) {
-    if (!this._hass) return;
+  async extendEventsForRange(startDate, endDate, { render = true, returnDetails = false } = {}) {
+    const toResult = (complete, dataChanged = false, stateChanged = false) => (
+      returnDetails ? { complete, dataChanged, stateChanged, applied: dataChanged || stateChanged } : complete
+    );
+    if (!this._hass) return toResult(false);
     if (this._fetching) {
       this._pendingEventRefreshAfterCurrentFetch = true;
-      return false;
+      return toResult(false);
     }
 
     const generation = ++this._eventFetchGeneration;
@@ -2330,6 +2335,11 @@ class SkylightCalendarCard extends HTMLElement {
       const successfulEntityIds = [];
       const failedEntityIds = [];
       let anyChanged = false;
+      const stateSignatureBefore = this.toStableString((this._config.entities || []).map(entityId => ({
+        entityId,
+        refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+        firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+      })));
 
       this._config.entities.forEach(entityId => {
         const result = fetchResultsByCalendar[entityId];
@@ -2357,7 +2367,14 @@ class SkylightCalendarCard extends HTMLElement {
           };
         });
         this.recomputeEventState();
-        return false;
+        const stateSignatureAfter = this.toStableString((this._config.entities || []).map(entityId => ({
+          entityId,
+          refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+          firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+        })));
+        const stateChanged = stateSignatureBefore !== stateSignatureAfter;
+        if (!returnDetails && (render || stateChanged) && stateChanged) this.render();
+        return toResult(false, false, stateChanged);
       }
 
       this.applyEventsByCalendar(nextEventsByCalendar, {
@@ -2371,8 +2388,14 @@ class SkylightCalendarCard extends HTMLElement {
         coverageMode: 'union'
       });
       this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
-      if ((render || failedEntityIds.length > 0) && (anyChanged || failedEntityIds.length > 0)) this.render();
-      return failedEntityIds.length === 0;
+      const stateSignatureAfter = this.toStableString((this._config.entities || []).map(entityId => ({
+        entityId,
+        refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+        firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+      })));
+      const stateChanged = stateSignatureBefore !== stateSignatureAfter;
+      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.render();
+      return toResult(failedEntityIds.length === 0, anyChanged, stateChanged);
     } finally {
       this._fetching = false;
       this._activeEventFetchRange = null;
@@ -2444,25 +2467,23 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (startDate < this._loadedEventRange.startDate) {
       const missingStartEnd = new Date(this._loadedEventRange.startDate);
-      missingStartEnd.setDate(missingStartEnd.getDate() - 1);
-      missingStartEnd.setHours(23, 59, 59, 999);
       missingRanges.push({ startDate, endDate: missingStartEnd });
     }
 
     if (endDate > this._loadedEventRange.endDate) {
       const missingEndStart = new Date(this._loadedEventRange.endDate);
-      missingEndStart.setDate(missingEndStart.getDate() + 1);
-      missingEndStart.setHours(0, 0, 0, 0);
       missingRanges.push({ startDate: missingEndStart, endDate });
     }
 
     let allExtended = true;
+    let shouldRenderAfterExtensions = false;
     for (const range of missingRanges) {
-      const extended = await this.extendEventsForRange(range.startDate, range.endDate, { render: false });
-      if (extended === false) allExtended = false;
+      const extended = await this.extendEventsForRange(range.startDate, range.endDate, { render: false, returnDetails: true });
+      if (!extended?.complete) allExtended = false;
+      if (extended?.dataChanged || extended?.stateChanged) shouldRenderAfterExtensions = true;
     }
 
-    if (allExtended) this.render();
+    if (allExtended || shouldRenderAfterExtensions) this.render();
   }
 
   getEventFetchRange() {
@@ -2498,6 +2519,12 @@ class SkylightCalendarCard extends HTMLElement {
 
   getEventStartDate(event) {
     return getNormalizedEventStartDate(event, { parseLocalDate: this.parseLocalDate.bind(this) });
+  }
+
+  getEventEndDate(event) {
+    if (event?.end?.dateTime) return new Date(event.end.dateTime);
+    if (event?.end?.date) return this.parseLocalDate(event.end.date);
+    return new Date(event?.end);
   }
 
   parseLocalDate(dateStr) {
