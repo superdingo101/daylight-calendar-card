@@ -1926,12 +1926,58 @@ class SkylightCalendarCard extends HTMLElement {
     const incoming = this.getValidRange(incomingRange?.startDate, incomingRange?.endDate);
     if (!existing) return incoming;
     if (!incoming) return existing;
-    if (incoming.endDate < existing.startDate) return incoming;
-    if (incoming.startDate > existing.endDate) return incoming;
+    if (incoming.endDate < existing.startDate || incoming.startDate > existing.endDate) {
+      const disjointRanges = [
+        ...(Array.isArray(existingRange?.disjointRanges) ? existingRange.disjointRanges : [existing]),
+        incoming
+      ].map(range => ({
+        startDate: new Date(range.startDate),
+        endDate: new Date(range.endDate)
+      }));
+      return { ...existing, disjointRanges };
+    }
     return {
       startDate: new Date(Math.min(existing.startDate.getTime(), incoming.startDate.getTime())),
       endDate: new Date(Math.max(existing.endDate.getTime(), incoming.endDate.getTime()))
     };
+  }
+
+  doEventRangesOverlap(event, range) {
+    const validRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!validRange) return false;
+    const eventStart = this.getEventStartDate(event);
+    const eventEnd = this.getEventEndDate(event);
+    if (!Number.isFinite(eventStart.getTime()) || !Number.isFinite(eventEnd.getTime())) return false;
+    return eventStart <= validRange.endDate && eventEnd >= validRange.startDate;
+  }
+
+  isEventContainedInRange(event, range) {
+    const validRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!validRange) return false;
+    const eventStart = this.getEventStartDate(event);
+    const eventEnd = this.getEventEndDate(event);
+    if (!Number.isFinite(eventStart.getTime()) || !Number.isFinite(eventEnd.getTime())) return false;
+    return eventStart >= validRange.startDate && eventEnd <= validRange.endDate;
+  }
+
+  getEventLogicalIdentityKey(entityId, event) {
+    const stableId = event?.uid || event?.recurring_event_id;
+    return stableId ? `${entityId}|${stableId}` : this.getEventIdentityKey(entityId, event);
+  }
+
+  reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {
+    const range = this.getValidRange(fetchedRange?.startDate, fetchedRange?.endDate);
+    if (!range) return this.mergeEvents(existingEvents, incomingEvents);
+    const incomingLogicalKeys = new Set(
+      (incomingEvents || []).map(event => this.getEventLogicalIdentityKey(event.entityId, event))
+    );
+    const retainedExisting = (existingEvents || []).filter((event) => {
+      const containedInAuthoritativeRange = this.isEventContainedInRange(event, range);
+      if (containedInAuthoritativeRange) return false;
+      const logicalKey = this.getEventLogicalIdentityKey(event.entityId, event);
+      return !(incomingLogicalKeys.has(logicalKey) && this.doEventRangesOverlap(event, range));
+    });
+    return this.mergeEvents(retainedExisting, incomingEvents);
   }
 
   recomputeLoadedEventRange() {
@@ -2067,7 +2113,9 @@ class SkylightCalendarCard extends HTMLElement {
   getEventCacheRetentionAnchorRange() {
     if (this._viewMode === 'agenda') {
       const agendaVisibleRange = this.getValidRange(this._agendaVisibleStartDate, this._agendaVisibleEndDate);
-      if (agendaVisibleRange) return agendaVisibleRange;
+      if (agendaVisibleRange && this.isAgendaRangeWithinCurrentWindow(agendaVisibleRange)) return agendaVisibleRange;
+      const agendaWindowRange = this.getValidRange(this._agendaStartDate, this._agendaEndDate);
+      if (agendaWindowRange) return agendaWindowRange;
       const fallbackStart = new Date(this._currentDate || Date.now());
       fallbackStart.setHours(0, 0, 0, 0);
       const fallbackEnd = new Date(fallbackStart);
@@ -2348,7 +2396,8 @@ class SkylightCalendarCard extends HTMLElement {
           return;
         }
         successfulEntityIds.push(entityId);
-        const mergedEvents = this.mergeEvents(this._eventsByCalendar[entityId] || [], result.events || []);
+        const fetchedRange = this.getValidRange(result.fetchedRange?.startDate, result.fetchedRange?.endDate) || { startDate, endDate };
+        const mergedEvents = this.reconcileEventsForFetchedRange(this._eventsByCalendar[entityId] || [], result.events || [], fetchedRange);
         const oldSignature = this._calendarDataSignatures[entityId];
         const newSignature = this.getCalendarDataSignature(mergedEvents);
         if (oldSignature !== newSignature) anyChanged = true;
@@ -2377,9 +2426,13 @@ class SkylightCalendarCard extends HTMLElement {
         return toResult(false, false, stateChanged);
       }
 
+      const successfulFetchedRange = successfulEntityIds
+        .map(entityId => fetchResultsByCalendar[entityId]?.fetchedRange)
+        .map(range => this.getValidRange(range?.startDate, range?.endDate))
+        .find(Boolean) || { startDate, endDate };
       this.applyEventsByCalendar(nextEventsByCalendar, {
-        startDate,
-        endDate,
+        startDate: successfulFetchedRange.startDate,
+        endDate: successfulFetchedRange.endDate,
         lastSuccessfulRefresh: Date.now(),
         successfulEntityIds,
         failedEntityIds,
@@ -5591,6 +5644,9 @@ class SkylightCalendarCard extends HTMLElement {
       this._agendaStartDate.setHours(0, 0, 0, 0);
       this._agendaEndDate.setDate(this._agendaEndDate.getDate() - backwardDays);
       this._agendaEndDate.setHours(23, 59, 59, 999);
+      this._currentDate = new Date(this._agendaStartDate);
+      this._agendaVisibleStartDate = new Date(this._agendaStartDate);
+      this._agendaVisibleEndDate = new Date(this._agendaEndDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go back by the number of weeks shown
@@ -5656,6 +5712,9 @@ class SkylightCalendarCard extends HTMLElement {
 
       this._agendaStartDate = targetStart;
       this._agendaEndDate = targetEnd;
+      this._currentDate = new Date(this._agendaStartDate);
+      this._agendaVisibleStartDate = new Date(this._agendaStartDate);
+      this._agendaVisibleEndDate = new Date(this._agendaEndDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go forward by the number of weeks shown

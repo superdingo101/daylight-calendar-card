@@ -10,6 +10,9 @@ export async function fetchEventsByCalendarInRange({
   normalizeCalendarEvent
 }) {
   const chunks = getDateRangeChunks(startDate, endDate, 30);
+  const fetchedRange = chunks.length > 0
+    ? { startDate: chunks[0].startDate, endDate: chunks[chunks.length - 1].endDate }
+    : { startDate, endDate };
   const calendarResults = await Promise.all(
     entities.map((entityId, index) => fetchEventsForCalendar({
       hass,
@@ -19,7 +22,8 @@ export async function fetchEventsByCalendarInRange({
       formatLocalDate,
       getCalendarColor,
       getEventIdentityKey,
-      normalizeCalendarEvent
+      normalizeCalendarEvent,
+      fetchedRange
     }))
   );
 
@@ -37,7 +41,8 @@ export async function fetchEventsForCalendar({
   formatLocalDate,
   getCalendarColor,
   getEventIdentityKey,
-  normalizeCalendarEvent
+  normalizeCalendarEvent,
+  fetchedRange = null
 }) {
   const seen = new Set();
   const color = getCalendarColor(entityId, colorIndex);
@@ -48,7 +53,7 @@ export async function fetchEventsForCalendar({
 
   const failedChunks = chunkResults.filter(result => !result?.success);
   if (failedChunks.length > 0) {
-    return { success: false, events: [], failedChunks };
+    return { success: false, events: [], failedChunks, fetchedRange };
   }
 
   const mergedEvents = [];
@@ -64,7 +69,7 @@ export async function fetchEventsForCalendar({
     });
   });
 
-  return { success: true, events: mergedEvents };
+  return { success: true, events: mergedEvents, fetchedRange };
 }
 
 export async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
