@@ -659,13 +659,15 @@ async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDate }) {
 
   try {
     const events = await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
-    return { success: true, events: Array.isArray(events) ? events : [] };
+    if (!Array.isArray(events)) throw new Error('Calendar WebSocket response was not an array');
+    return { success: true, events };
   } catch (error) {
     try {
       const startDateOnly = formatLocalDate(chunk.startDate);
       const endDateOnly = formatLocalDate(chunk.endDate);
       const events = await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
-      return { success: true, events: Array.isArray(events) ? events : [] };
+      if (!Array.isArray(events)) throw new Error('Calendar REST response was not an array');
+      return { success: true, events };
     } catch (error2) {
       console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
       return { success: false, events: [], error: error2 };
@@ -761,14 +763,14 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
 
 const transact = async (mode, callback) => {
   const db = await openEventCacheDb();
-  if (!db) return null;
+  if (!db) return { available: false, value: null };
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, mode);
     const store = tx.objectStore(STORE_NAME);
     let callbackResult;
     tx.oncomplete = () => {
       db.close?.();
-      resolve(callbackResult);
+      resolve({ available: true, value: callbackResult });
     };
     tx.onerror = () => {
       db.close?.();
@@ -779,8 +781,8 @@ const transact = async (mode, callback) => {
   });
 };
 
-function buildEventCacheConfigSignature({ entities = [], timeZone = null, colors = {} } = {}) {
-  return toStableString({ entities, timeZone: timeZone || null, colors: colors || {} });
+function buildEventCacheConfigSignature({ entities = [], timeZone = null, colors = {}, userScope = null } = {}) {
+  return toStableString({ entities, timeZone: timeZone || null, colors: colors || {}, userScope: userScope || null });
 }
 
 function buildEventCacheKey(configSignature) {
@@ -792,6 +794,9 @@ function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) {
   if (snapshot.schemaVersion !== EVENT_CACHE_SCHEMA_VERSION) return null;
   if (configSignature && snapshot.configSignature !== configSignature) return null;
   if (!snapshot.coveredRange || !snapshot.coveredRange.start || !snapshot.coveredRange.end) return null;
+  const coveredStart = new Date(snapshot.coveredRange.start);
+  const coveredEnd = new Date(snapshot.coveredRange.end);
+  if (!Number.isFinite(coveredStart.getTime()) || !Number.isFinite(coveredEnd.getTime()) || coveredStart > coveredEnd) return null;
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
@@ -806,15 +811,16 @@ function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) {
     updatedAt: Number(snapshot.updatedAt) || snapshot.lastSuccessfulRefresh,
     lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
     coveredRange: {
-      start: snapshot.coveredRange.start,
-      end: snapshot.coveredRange.end
+      start: coveredStart.toISOString(),
+      end: coveredEnd.toISOString()
     },
     configSignature: snapshot.configSignature,
-    eventsByCalendar
+    eventsByCalendar,
+    perCalendarMetadata: snapshot.perCalendarMetadata && typeof snapshot.perCalendarMetadata === 'object' ? snapshot.perCalendarMetadata : {}
   };
 }
 
-function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsByCalendar, lastSuccessfulRefresh = Date.now() }) {
+function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsByCalendar, lastSuccessfulRefresh = Date.now(), perCalendarMetadata = {} }) {
   return normalizeEventCacheSnapshot({
     schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
     key: buildEventCacheKey(configSignature),
@@ -825,21 +831,23 @@ function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsB
       end: endDate instanceof Date ? endDate.toISOString() : endDate
     },
     configSignature,
-    eventsByCalendar
+    eventsByCalendar,
+    perCalendarMetadata
   }, { configSignature });
 }
 
 async function readEventCacheSnapshot(configSignature) {
   try {
     const key = buildEventCacheKey(configSignature);
-    const snapshot = await transact('readonly', (store, setResult) => {
+    const result = await transact('readonly', (store, setResult) => {
       const request = store.get(key);
       request.onsuccess = () => setResult(request.result || null);
     });
-    return normalizeEventCacheSnapshot(snapshot, { configSignature });
+    if (!result.available) return { available: false, snapshot: null };
+    return { available: true, snapshot: normalizeEventCacheSnapshot(result.value, { configSignature }) };
   } catch (error) {
     console.warn('Failed to read Daylight event cache:', error);
-    return null;
+    return { available: false, snapshot: null, error };
   }
 }
 
@@ -847,7 +855,7 @@ async function writeEventCacheSnapshot(snapshot) {
   const normalized = normalizeEventCacheSnapshot(snapshot, { configSignature: snapshot?.configSignature });
   if (!normalized) return false;
   try {
-    await transact('readwrite', (store) => {
+    const result = await transact('readwrite', (store) => {
       store.put(normalized);
       const getAllRequest = store.getAll();
       getAllRequest.onsuccess = () => {
@@ -857,7 +865,7 @@ async function writeEventCacheSnapshot(snapshot) {
         entries.slice(MAX_CACHE_ENTRIES).forEach((entry) => store.delete(entry.key));
       };
     });
-    return true;
+    return !!result.available;
   } catch (error) {
     console.warn('Failed to write Daylight event cache:', error);
     return false;
@@ -866,7 +874,7 @@ async function writeEventCacheSnapshot(snapshot) {
 
 async function clearAllEventCacheSnapshots() {
   try {
-    await transact('readwrite', (store) => {
+    const result = await transact('readwrite', (store) => {
       const getAllKeysRequest = store.getAllKeys();
       getAllKeysRequest.onsuccess = () => {
         (getAllKeysRequest.result || [])
@@ -874,7 +882,7 @@ async function clearAllEventCacheSnapshots() {
           .forEach((key) => store.delete(key));
       };
     });
-    return true;
+    return !!result.available;
   } catch (error) {
     console.warn('Failed to clear Daylight event cache:', error);
     return false;
@@ -6068,7 +6076,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem'
+      monthWeekPrefix: 'Sem',
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
 
@@ -6182,7 +6191,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} Minuten',
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
 
@@ -6296,7 +6306,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
   es: {
@@ -6409,7 +6420,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minutos',
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem.'
+      monthWeekPrefix: 'Sem.',
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
     }
   },
   
@@ -6528,7 +6540,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minutit',
       moreEvents: '+{count} veel',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Nädal'
+      monthWeekPrefix: 'Nädal',
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
 
@@ -6642,7 +6655,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minuts',
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Set.'
+      monthWeekPrefix: 'Set.',
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
 
@@ -6756,7 +6770,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minutter',
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Uge'
+      monthWeekPrefix: 'Uge',
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
 
@@ -6864,7 +6879,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minuter',
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'v.'
+      monthWeekPrefix: 'v.',
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }
 };
@@ -10600,9 +10616,14 @@ class SkylightCalendarCard extends HTMLElement {
     this._events = [];
     this._eventsByCalendar = {};
     this._eventCacheGeneration = 0;
+    this._eventFetchGeneration = 0;
+    this._eventWriteGeneration = 0;
+    this._pendingEventRefreshAfterCurrentFetch = false;
+    this._eventRefreshWarningTimer = null;
     this._eventCacheHydrated = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
+    this._calendarEventMetadata = {};
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
@@ -11212,9 +11233,14 @@ class SkylightCalendarCard extends HTMLElement {
     this._loadedEventRange = null;
     this._eventsByCalendar = {};
     this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this._eventWriteGeneration += 1;
+    this._pendingEventRefreshAfterCurrentFetch = false;
     this._eventCacheHydrated = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
+    this._calendarEventMetadata = {};
+    this.clearEventRefreshWarningTimer();
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
     this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
@@ -11290,6 +11316,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Refresh only when stale or when current view needs dates outside loaded range.
     if (!oldHass) {
+      this.loadEventCacheForCurrentConfig();
       this.ensureEventsForCurrentRange({ force: true });
     } else {
       this.ensureEventsForCurrentRange();
@@ -12107,55 +12134,142 @@ class SkylightCalendarCard extends HTMLElement {
     return getCalendarDataSignature(events);
   }
 
+  getEventCacheUserScope() {
+    return this._hass?.user?.id || this._hass?.user?.name || this._hass?.auth?.data?.user?.id || null;
+  }
+
   getEventCacheConfigSignature() {
+    const userScope = this.getEventCacheUserScope();
+    if (!userScope) return null;
     return buildEventCacheConfigSignature({
       entities: this._config?.entities || [],
       timeZone: this.getConfiguredTimeZone(),
-      colors: this._config?.colors || {}
+      colors: this._config?.colors || {},
+      userScope
     });
   }
 
-  applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null } = {}) {
-    const normalizedByCalendar = {};
-    (this._config.entities || []).forEach((entityId) => {
-      normalizedByCalendar[entityId] = Array.isArray(eventsByCalendar[entityId]) ? eventsByCalendar[entityId] : [];
-      this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(normalizedByCalendar[entityId]);
+  getValidRange(startDate, endDate) {
+    const start = startDate instanceof Date ? startDate : new Date(startDate);
+    const end = endDate instanceof Date ? endDate : new Date(endDate);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return null;
+    return { startDate: start, endDate: end };
+  }
+
+  recomputeLoadedEventRange() {
+    const ranges = (this._config.entities || []).map((entityId) => {
+      const range = this._calendarEventMetadata[entityId]?.range;
+      return this.getValidRange(range?.startDate, range?.endDate);
     });
-    this._eventsByCalendar = normalizedByCalendar;
-    this._events = sortEventsByStartDate(Object.values(normalizedByCalendar).flat(), {
+    if (ranges.length === 0 || ranges.some(range => !range)) {
+      this._loadedEventRange = null;
+      return;
+    }
+    const startDate = new Date(Math.max(...ranges.map(range => range.startDate.getTime())));
+    const endDate = new Date(Math.min(...ranges.map(range => range.endDate.getTime())));
+    this._loadedEventRange = startDate <= endDate ? { startDate, endDate } : null;
+  }
+
+  recomputeLastSuccessfulEventRefresh() {
+    const refreshTimes = (this._config.entities || [])
+      .map(entityId => this._calendarEventMetadata[entityId]?.lastSuccessfulRefresh)
+      .filter(Number.isFinite);
+    this._lastSuccessfulEventRefresh = refreshTimes.length ? Math.min(...refreshTimes) : null;
+  }
+
+  recomputeEventRefreshFailure() {
+    this._lastEventRefreshFailed = (this._config.entities || [])
+      .some(entityId => this._calendarEventMetadata[entityId]?.refreshFailed);
+  }
+
+  recomputeEventState() {
+    this._events = sortEventsByStartDate(Object.values(this._eventsByCalendar).flat(), {
       getEventStartDate: this.getEventStartDate.bind(this)
     });
-    if (startDate && endDate) this._loadedEventRange = { startDate, endDate };
-    if (Number.isFinite(lastSuccessfulRefresh)) this._lastSuccessfulEventRefresh = lastSuccessfulRefresh;
+    this.recomputeLoadedEventRange();
+    this.recomputeLastSuccessfulEventRefresh();
+    this.recomputeEventRefreshFailure();
+    this.scheduleEventRefreshWarningTimer();
+  }
+
+  applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null, successfulEntityIds = null, failedEntityIds = [], source = 'network', requestId = null } = {}) {
+    const range = this.getValidRange(startDate, endDate);
+    const successfulSet = successfulEntityIds ? new Set(successfulEntityIds) : new Set(this._config.entities || []);
+    const failedSet = new Set(failedEntityIds || []);
+    (this._config.entities || []).forEach((entityId) => {
+      const existingMetadata = this._calendarEventMetadata[entityId] || {};
+      if (!successfulSet.has(entityId)) {
+        this._calendarEventMetadata[entityId] = {
+          ...existingMetadata,
+          lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh ?? this._lastSuccessfulEventRefresh,
+          refreshFailed: failedSet.has(entityId) || existingMetadata.refreshFailed
+        };
+        return;
+      }
+      if (source === 'cache' && existingMetadata.lastNetworkSuccessRequest && existingMetadata.lastNetworkSuccessRequest > requestId) return;
+      const events = Array.isArray(eventsByCalendar[entityId]) ? eventsByCalendar[entityId] : [];
+      this._eventsByCalendar[entityId] = events;
+      this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(events);
+      this._calendarEventMetadata[entityId] = {
+        ...existingMetadata,
+        range: range || existingMetadata.range || null,
+        lastSuccessfulRefresh: Number.isFinite(lastSuccessfulRefresh) ? lastSuccessfulRefresh : existingMetadata.lastSuccessfulRefresh,
+        refreshFailed: false,
+        lastNetworkSuccessRequest: source === 'network' ? requestId : existingMetadata.lastNetworkSuccessRequest
+      };
+    });
+    this.recomputeEventState();
   }
 
   async loadEventCacheForCurrentConfig() {
     const generation = ++this._eventCacheGeneration;
+    const requestId = this._eventFetchGeneration;
     const configSignature = this.getEventCacheConfigSignature();
-    const snapshot = await readEventCacheSnapshot(configSignature);
-    if (generation !== this._eventCacheGeneration || !snapshot || this._lastSuccessfulEventRefresh) return;
+    if (!configSignature) return;
+    const { available, snapshot } = await readEventCacheSnapshot(configSignature);
+    if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
+    const cacheEventsByCalendar = {};
+    const successfulEntityIds = [];
+    (this._config.entities || []).forEach((entityId) => {
+      const metadata = this._calendarEventMetadata[entityId] || {};
+      if (metadata.lastNetworkSuccessRequest && metadata.lastNetworkSuccessRequest > requestId) return;
+      cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId] || [];
+      successfulEntityIds.push(entityId);
+    });
+    if (successfulEntityIds.length === 0) return;
     this._eventCacheHydrated = true;
-    this.applyEventsByCalendar(snapshot.eventsByCalendar, {
+    this.applyEventsByCalendar(cacheEventsByCalendar, {
       startDate: new Date(snapshot.coveredRange.start),
       endDate: new Date(snapshot.coveredRange.end),
-      lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh
+      lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
+      successfulEntityIds,
+      source: 'cache',
+      requestId
     });
     this.render();
   }
 
-  persistEventCacheSnapshot() {
-    if (!this._loadedEventRange) return;
+  async persistEventCacheSnapshot({ generation = this._eventWriteGeneration } = {}) {
+    if (!this._loadedEventRange || !Number.isFinite(this._lastSuccessfulEventRefresh)) return false;
+    const configSignature = this.getEventCacheConfigSignature();
+    if (!configSignature) return false;
     const snapshot = createEventCacheSnapshot({
-      configSignature: this.getEventCacheConfigSignature(),
+      configSignature,
       startDate: this._loadedEventRange.startDate,
       endDate: this._loadedEventRange.endDate,
       eventsByCalendar: this._eventsByCalendar,
-      lastSuccessfulRefresh: this._lastSuccessfulEventRefresh || Date.now()
+      lastSuccessfulRefresh: this._lastSuccessfulEventRefresh,
+      perCalendarMetadata: this._calendarEventMetadata
     });
-    writeEventCacheSnapshot(snapshot);
+    if (!snapshot) return false;
+    const persisted = await writeEventCacheSnapshot(snapshot);
+    return generation === this._eventWriteGeneration && persisted;
   }
 
   async flushEventCache({ refresh = true } = {}) {
+    this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this._eventWriteGeneration += 1;
     const cleared = await clearAllEventCacheSnapshots();
     this._eventCacheGeneration += 1;
     this._eventCacheHydrated = false;
@@ -12163,54 +12277,100 @@ class SkylightCalendarCard extends HTMLElement {
     this._events = [];
     this._loadedEventRange = null;
     this._calendarDataSignatures = {};
+    this._calendarEventMetadata = {};
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
+    this.clearEventRefreshWarningTimer();
     this.render();
-    if (refresh && this._hass) this.ensureEventsForCurrentRange({ force: true });
+    if (refresh && this._hass) {
+      if (this._fetching) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+      } else {
+        await this.ensureEventsForCurrentRange({ force: true });
+      }
+    }
     return cleared;
   }
 
+  getOldestFailedEventRefreshTime() {
+    const failedTimes = (this._config.entities || [])
+      .map(entityId => this._calendarEventMetadata[entityId])
+      .filter(metadata => metadata?.refreshFailed && Number.isFinite(metadata.lastSuccessfulRefresh))
+      .map(metadata => metadata.lastSuccessfulRefresh);
+    return failedTimes.length ? Math.min(...failedTimes) : null;
+  }
+
+  clearEventRefreshWarningTimer() {
+    if (this._eventRefreshWarningTimer) clearTimeout(this._eventRefreshWarningTimer);
+    this._eventRefreshWarningTimer = null;
+  }
+
+  scheduleEventRefreshWarningTimer() {
+    this.clearEventRefreshWarningTimer();
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    if (!Number.isFinite(oldestFailedRefresh)) return;
+    const delay = Math.max(0, oldestFailedRefresh + 30 * 60 * 1000 - Date.now());
+    this._eventRefreshWarningTimer = setTimeout(() => {
+      this._eventRefreshWarningTimer = null;
+      this.render();
+    }, delay);
+  }
+
   shouldShowEventRefreshWarning(now = Date.now()) {
-    return !!this._lastEventRefreshFailed && Number.isFinite(this._lastSuccessfulEventRefresh) &&
-      (now - this._lastSuccessfulEventRefresh) > 30 * 60 * 1000;
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    return Number.isFinite(oldestFailedRefresh) && (now - oldestFailedRefresh) > 30 * 60 * 1000;
   }
 
   renderEventRefreshWarning() {
     if (!this.shouldShowEventRefreshWarning()) return '';
-    return `<div class="event-refresh-warning" role="status">${this.t('eventRefreshStaleWarning', { time: this.formatTime(new Date(this._lastSuccessfulEventRefresh)) })}</div>`;
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    return `<div class="event-refresh-warning" role="status">${this.t('eventRefreshStaleWarning', { time: this.formatTime(new Date(oldestFailedRefresh)) })}</div>`;
   }
 
   async updateEvents({ preserveScroll = false } = {}) {
-    if (!this._hass || this._fetching) return;
+    if (!this._hass) return;
+    if (this._fetching) {
+      this._pendingEventRefreshAfterCurrentFetch = true;
+      return;
+    }
 
     const { startDate, endDate } = this.getEventFetchRange();
+    const generation = ++this._eventFetchGeneration;
     this._fetching = true;
     this._lastFetch = Date.now();
 
     try {
       const fetchResultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+      if (generation !== this._eventFetchGeneration) return;
       const nextEventsByCalendar = { ...this._eventsByCalendar };
-      let anySuccess = false;
-      let anyFailure = false;
+      const successfulEntityIds = [];
+      const failedEntityIds = [];
       let anyChanged = false;
 
       this._config.entities.forEach(entityId => {
         const result = fetchResultsByCalendar[entityId];
         if (!result?.success) {
-          anyFailure = true;
+          failedEntityIds.push(entityId);
           return;
         }
-        anySuccess = true;
+        successfulEntityIds.push(entityId);
         const events = Array.isArray(result.events) ? result.events : [];
         const oldSignature = this._calendarDataSignatures[entityId];
         const newSignature = this.getCalendarDataSignature(events);
         if (oldSignature !== newSignature) anyChanged = true;
         nextEventsByCalendar[entityId] = events;
-        this._calendarDataSignatures[entityId] = newSignature;
       });
 
-      if (!anySuccess) {
-        this._lastEventRefreshFailed = true;
+      if (successfulEntityIds.length === 0) {
+        failedEntityIds.forEach((entityId) => {
+          const existingMetadata = this._calendarEventMetadata[entityId] || {};
+          this._calendarEventMetadata[entityId] = {
+            ...existingMetadata,
+            lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh ?? this._lastSuccessfulEventRefresh,
+            refreshFailed: true
+          };
+        });
+        this.recomputeEventState();
         this.render();
         return;
       }
@@ -12218,12 +12378,17 @@ class SkylightCalendarCard extends HTMLElement {
       const now = Date.now();
       const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
         (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
-      const refreshMetadata = { startDate, endDate };
-      if (!anyFailure) refreshMetadata.lastSuccessfulRefresh = now;
-      this.applyEventsByCalendar(nextEventsByCalendar, refreshMetadata);
-      this._lastEventRefreshFailed = anyFailure;
-      if (!anyFailure) this.persistEventCacheSnapshot();
-      if (anyChanged || shouldRenderForUnchangedData) {
+      this.applyEventsByCalendar(nextEventsByCalendar, {
+        startDate,
+        endDate,
+        lastSuccessfulRefresh: now,
+        successfulEntityIds,
+        failedEntityIds,
+        source: 'network',
+        requestId: generation
+      });
+      if (failedEntityIds.length === 0) this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0) {
         this._lastUnchangedDataRender = now;
         if (preserveScroll) {
           this.renderPreservingAgendaScroll();
@@ -12233,28 +12398,77 @@ class SkylightCalendarCard extends HTMLElement {
       }
     } finally {
       this._fetching = false;
+      if (this._pendingEventRefreshAfterCurrentFetch) {
+        this._pendingEventRefreshAfterCurrentFetch = false;
+        this.ensureEventsForCurrentRange({ force: true });
+      }
     }
   }
 
   async extendEventsForRange(startDate, endDate, { render = true } = {}) {
-    if (!this._hass || this._fetching) return;
+    if (!this._hass) return;
+    if (this._fetching) {
+      this._pendingEventRefreshAfterCurrentFetch = true;
+      return false;
+    }
 
+    const generation = ++this._eventFetchGeneration;
     this._fetching = true;
     this._lastFetch = Date.now();
 
     try {
-      const additionalEvents = await this.fetchEventsInRange(startDate, endDate);
-      if (!additionalEvents) {
-        this._lastEventRefreshFailed = true;
+      const fetchResultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+      if (generation !== this._eventFetchGeneration) return false;
+      const nextEventsByCalendar = { ...this._eventsByCalendar };
+      const successfulEntityIds = [];
+      const failedEntityIds = [];
+      let anyChanged = false;
+
+      this._config.entities.forEach(entityId => {
+        const result = fetchResultsByCalendar[entityId];
+        if (!result?.success) {
+          failedEntityIds.push(entityId);
+          return;
+        }
+        successfulEntityIds.push(entityId);
+        const mergedEvents = this.mergeEvents(this._eventsByCalendar[entityId] || [], result.events || []);
+        const oldSignature = this._calendarDataSignatures[entityId];
+        const newSignature = this.getCalendarDataSignature(mergedEvents);
+        if (oldSignature !== newSignature) anyChanged = true;
+        nextEventsByCalendar[entityId] = mergedEvents;
+      });
+
+      if (successfulEntityIds.length === 0) {
+        failedEntityIds.forEach((entityId) => {
+          const existingMetadata = this._calendarEventMetadata[entityId] || {};
+          this._calendarEventMetadata[entityId] = {
+            ...existingMetadata,
+            lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh ?? this._lastSuccessfulEventRefresh,
+            refreshFailed: true
+          };
+        });
+        this.recomputeEventState();
         return false;
       }
-      this._lastEventRefreshFailed = false;
-      this._events = this.mergeEvents(this._events, additionalEvents);
-      if (render) {
-        this.render();
-      }
+
+      this.applyEventsByCalendar(nextEventsByCalendar, {
+        startDate,
+        endDate,
+        lastSuccessfulRefresh: Date.now(),
+        successfulEntityIds,
+        failedEntityIds,
+        source: 'network',
+        requestId: generation
+      });
+      if (failedEntityIds.length === 0) this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      if (render && (anyChanged || failedEntityIds.length > 0)) this.render();
+      return failedEntityIds.length === 0;
     } finally {
       this._fetching = false;
+      if (this._pendingEventRefreshAfterCurrentFetch) {
+        this._pendingEventRefreshAfterCurrentFetch = false;
+        this.ensureEventsForCurrentRange({ force: true });
+      }
     }
   }
 
@@ -12306,17 +12520,13 @@ class SkylightCalendarCard extends HTMLElement {
       missingRanges.push({ startDate: missingEndStart, endDate });
     }
 
+    let allExtended = true;
     for (const range of missingRanges) {
       const extended = await this.extendEventsForRange(range.startDate, range.endDate, { render: false });
-      if (extended === false) return;
+      if (extended === false) allExtended = false;
     }
 
-    this._loadedEventRange = {
-      startDate: new Date(Math.min(this._loadedEventRange.startDate.getTime(), startDate.getTime())),
-      endDate: new Date(Math.max(this._loadedEventRange.endDate.getTime(), endDate.getTime()))
-    };
-
-    this.render();
+    if (allExtended) this.render();
   }
 
   getEventFetchRange() {
@@ -12476,6 +12686,9 @@ class SkylightCalendarCard extends HTMLElement {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this.clearEventRefreshWarningTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();

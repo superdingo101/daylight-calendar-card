@@ -73,13 +73,15 @@ export async function fetchEventsForChunk({ hass, entityId, chunk, formatLocalDa
 
   try {
     const events = await fetchEventsViaWebSocket({ hass, entityId, chunkStartStr, chunkEndStr });
-    return { success: true, events: Array.isArray(events) ? events : [] };
+    if (!Array.isArray(events)) throw new Error('Calendar WebSocket response was not an array');
+    return { success: true, events };
   } catch (error) {
     try {
       const startDateOnly = formatLocalDate(chunk.startDate);
       const endDateOnly = formatLocalDate(chunk.endDate);
       const events = await hass.callApi('GET', `calendars/${entityId}?start=${startDateOnly}T00:00:00Z&end=${endDateOnly}T23:59:59Z`);
-      return { success: true, events: Array.isArray(events) ? events : [] };
+      if (!Array.isArray(events)) throw new Error('Calendar REST response was not an array');
+      return { success: true, events };
     } catch (error2) {
       console.error(`Failed to fetch events for ${entityId}:`, error2.message || error2);
       return { success: false, events: [], error: error2 };

@@ -25,14 +25,14 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
 
 const transact = async (mode, callback) => {
   const db = await openEventCacheDb();
-  if (!db) return null;
+  if (!db) return { available: false, value: null };
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, mode);
     const store = tx.objectStore(STORE_NAME);
     let callbackResult;
     tx.oncomplete = () => {
       db.close?.();
-      resolve(callbackResult);
+      resolve({ available: true, value: callbackResult });
     };
     tx.onerror = () => {
       db.close?.();
@@ -43,8 +43,8 @@ const transact = async (mode, callback) => {
   });
 };
 
-export function buildEventCacheConfigSignature({ entities = [], timeZone = null, colors = {} } = {}) {
-  return toStableString({ entities, timeZone: timeZone || null, colors: colors || {} });
+export function buildEventCacheConfigSignature({ entities = [], timeZone = null, colors = {}, userScope = null } = {}) {
+  return toStableString({ entities, timeZone: timeZone || null, colors: colors || {}, userScope: userScope || null });
 }
 
 export function buildEventCacheKey(configSignature) {
@@ -56,6 +56,9 @@ export function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) 
   if (snapshot.schemaVersion !== EVENT_CACHE_SCHEMA_VERSION) return null;
   if (configSignature && snapshot.configSignature !== configSignature) return null;
   if (!snapshot.coveredRange || !snapshot.coveredRange.start || !snapshot.coveredRange.end) return null;
+  const coveredStart = new Date(snapshot.coveredRange.start);
+  const coveredEnd = new Date(snapshot.coveredRange.end);
+  if (!Number.isFinite(coveredStart.getTime()) || !Number.isFinite(coveredEnd.getTime()) || coveredStart > coveredEnd) return null;
   if (!Number.isFinite(snapshot.lastSuccessfulRefresh)) return null;
   if (!snapshot.eventsByCalendar || typeof snapshot.eventsByCalendar !== 'object') return null;
 
@@ -70,15 +73,16 @@ export function normalizeEventCacheSnapshot(snapshot, { configSignature } = {}) 
     updatedAt: Number(snapshot.updatedAt) || snapshot.lastSuccessfulRefresh,
     lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
     coveredRange: {
-      start: snapshot.coveredRange.start,
-      end: snapshot.coveredRange.end
+      start: coveredStart.toISOString(),
+      end: coveredEnd.toISOString()
     },
     configSignature: snapshot.configSignature,
-    eventsByCalendar
+    eventsByCalendar,
+    perCalendarMetadata: snapshot.perCalendarMetadata && typeof snapshot.perCalendarMetadata === 'object' ? snapshot.perCalendarMetadata : {}
   };
 }
 
-export function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsByCalendar, lastSuccessfulRefresh = Date.now() }) {
+export function createEventCacheSnapshot({ configSignature, startDate, endDate, eventsByCalendar, lastSuccessfulRefresh = Date.now(), perCalendarMetadata = {} }) {
   return normalizeEventCacheSnapshot({
     schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
     key: buildEventCacheKey(configSignature),
@@ -89,21 +93,23 @@ export function createEventCacheSnapshot({ configSignature, startDate, endDate, 
       end: endDate instanceof Date ? endDate.toISOString() : endDate
     },
     configSignature,
-    eventsByCalendar
+    eventsByCalendar,
+    perCalendarMetadata
   }, { configSignature });
 }
 
 export async function readEventCacheSnapshot(configSignature) {
   try {
     const key = buildEventCacheKey(configSignature);
-    const snapshot = await transact('readonly', (store, setResult) => {
+    const result = await transact('readonly', (store, setResult) => {
       const request = store.get(key);
       request.onsuccess = () => setResult(request.result || null);
     });
-    return normalizeEventCacheSnapshot(snapshot, { configSignature });
+    if (!result.available) return { available: false, snapshot: null };
+    return { available: true, snapshot: normalizeEventCacheSnapshot(result.value, { configSignature }) };
   } catch (error) {
     console.warn('Failed to read Daylight event cache:', error);
-    return null;
+    return { available: false, snapshot: null, error };
   }
 }
 
@@ -111,7 +117,7 @@ export async function writeEventCacheSnapshot(snapshot) {
   const normalized = normalizeEventCacheSnapshot(snapshot, { configSignature: snapshot?.configSignature });
   if (!normalized) return false;
   try {
-    await transact('readwrite', (store) => {
+    const result = await transact('readwrite', (store) => {
       store.put(normalized);
       const getAllRequest = store.getAll();
       getAllRequest.onsuccess = () => {
@@ -121,7 +127,7 @@ export async function writeEventCacheSnapshot(snapshot) {
         entries.slice(MAX_CACHE_ENTRIES).forEach((entry) => store.delete(entry.key));
       };
     });
-    return true;
+    return !!result.available;
   } catch (error) {
     console.warn('Failed to write Daylight event cache:', error);
     return false;
@@ -130,7 +136,7 @@ export async function writeEventCacheSnapshot(snapshot) {
 
 export async function clearAllEventCacheSnapshots() {
   try {
-    await transact('readwrite', (store) => {
+    const result = await transact('readwrite', (store) => {
       const getAllKeysRequest = store.getAllKeys();
       getAllKeysRequest.onsuccess = () => {
         (getAllKeysRequest.result || [])
@@ -138,7 +144,7 @@ export async function clearAllEventCacheSnapshots() {
           .forEach((key) => store.delete(key));
       };
     });
-    return true;
+    return !!result.available;
   } catch (error) {
     console.warn('Failed to clear Daylight event cache:', error);
     return false;
