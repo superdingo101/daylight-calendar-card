@@ -6478,7 +6478,7 @@ test('event fetcher falls back to REST URL and reports failure after failed fetc
     });
 
     assert.deepEqual(restEvents, { success: true, events: [{ summary: 'REST event' }] });
-    assert.equal(restUrl, 'calendars/calendar.work?start=2026-01-01T00:00:00Z&end=2026-01-31T23:59:59Z');
+    assert.equal(restUrl, 'calendars/calendar.work?start=2026-01-01T12%3A34%3A56.000Z&end=2026-01-31T12%3A34%3A56.000Z');
 
     const failedEvents = await fetchEventsForChunk({
       hass: {
@@ -7295,6 +7295,116 @@ test('trailing boundary overlap deletes stale cached events through chunking wit
   assert.equal(card._calendarEventMetadata['calendar.a'].range.endDate.toISOString(), '2026-01-25T23:59:59.999Z');
 });
 
+test('REST fallback uses exact leading chunk interval for overlap reconciliation', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const cachedStart = new Date('2026-01-10T12:00:00Z');
+  const cachedEnd = new Date('2026-01-20T12:00:00Z');
+  const restUrls = [];
+  card._hass = {
+    user: { id: 'user-1' },
+    states: {},
+    callWS: async () => { throw new Error('websocket unavailable'); },
+    callApi: async (method, url) => {
+      assert.equal(method, 'GET');
+      restUrls.push(url);
+      return [];
+    }
+  };
+  card.formatLocalDate = () => '1999-12-31';
+  card._eventsByCalendar = {
+    'calendar.a': [
+      { entityId: 'calendar.a', uid: 'inside-leading', summary: 'inside leading', start: { dateTime: '2026-01-10T10:00:00Z' }, end: { dateTime: '2026-01-10T11:00:00Z' } },
+      { entityId: 'calendar.a', uid: 'outside-leading', summary: 'outside leading', start: { dateTime: '2026-01-11T10:00:00Z' }, end: { dateTime: '2026-01-11T11:00:00Z' } }
+    ]
+  };
+  card._calendarEventMetadata = {
+    'calendar.a': { range: { startDate: cachedStart, endDate: cachedEnd }, lastSuccessfulRefresh: 1 }
+  };
+  card.recomputeEventState();
+  card._lastFetch = Date.now();
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-01-09T00:00:00Z'), endDate: new Date('2026-01-10T18:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T12:00:00Z'), endDate: cachedEnd });
+  card.persistEventCacheSnapshot = () => {};
+  card.render = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  await card.ensureEventsForCurrentRange();
+
+  assert.equal(restUrls.length, 1);
+  assert.equal(restUrls[0], 'calendars/calendar.a?start=2026-01-01T00%3A00%3A00.000Z&end=2026-01-10T23%3A59%3A59.999Z');
+  const summaries = card._eventsByCalendar['calendar.a'].map(event => event.summary);
+  assert.equal(summaries.includes('inside leading'), false);
+  assert.equal(summaries.includes('outside leading'), true);
+});
+
+test('REST fallback uses exact trailing chunk interval for overlap reconciliation', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const cachedStart = new Date('2026-01-10T12:00:00Z');
+  const cachedEnd = new Date('2026-01-20T12:00:00Z');
+  const restUrls = [];
+  card._hass = {
+    user: { id: 'user-1' },
+    states: {},
+    callWS: async () => { throw new Error('websocket unavailable'); },
+    callApi: async (method, url) => {
+      assert.equal(method, 'GET');
+      restUrls.push(url);
+      return [];
+    }
+  };
+  card.formatLocalDate = () => '1999-12-31';
+  card._eventsByCalendar = {
+    'calendar.a': [
+      { entityId: 'calendar.a', uid: 'outside-trailing', summary: 'outside trailing', start: { dateTime: '2026-01-19T10:00:00Z' }, end: { dateTime: '2026-01-19T11:00:00Z' } },
+      { entityId: 'calendar.a', uid: 'inside-trailing', summary: 'inside trailing', start: { dateTime: '2026-01-20T18:00:00Z' }, end: { dateTime: '2026-01-20T19:00:00Z' } }
+    ]
+  };
+  card._calendarEventMetadata = {
+    'calendar.a': { range: { startDate: cachedStart, endDate: cachedEnd }, lastSuccessfulRefresh: 1 }
+  };
+  card.recomputeEventState();
+  card._lastFetch = Date.now();
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-01-20T08:00:00Z'), endDate: new Date('2026-01-21T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: cachedStart, endDate: new Date('2026-01-25T12:00:00Z') });
+  card.persistEventCacheSnapshot = () => {};
+  card.render = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  await card.ensureEventsForCurrentRange();
+
+  assert.equal(restUrls.length, 1);
+  assert.equal(restUrls[0], 'calendars/calendar.a?start=2026-01-20T00%3A00%3A00.000Z&end=2026-01-25T23%3A59%3A59.999Z');
+  const summaries = card._eventsByCalendar['calendar.a'].map(event => event.summary);
+  assert.equal(summaries.includes('outside trailing'), true);
+  assert.equal(summaries.includes('inside trailing'), false);
+});
+
+test('recurrence identity distinguishes occurrences and replaces moved fetched occurrences', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  assert.equal(card.getEventLogicalIdentityKey('calendar.a', { uid: 'series', recurrence_id: '2026-01-01T10:00:00Z' }), 'calendar.a|series|2026-01-01T10:00:00Z');
+  assert.notEqual(
+    card.getEventLogicalIdentityKey('calendar.a', { uid: 'series', recurrence_id: '2026-01-01T10:00:00Z' }),
+    card.getEventLogicalIdentityKey('calendar.a', { uid: 'series', recurrence_id: '2026-01-02T10:00:00Z' })
+  );
+  assert.equal(card.getEventLogicalIdentityKey('calendar.a', { recurrence_id: '2026-01-03T10:00:00Z' }), 'calendar.a|recurrence|2026-01-03T10:00:00Z');
+
+  const reconciled = card.reconcileEventsForFetchedRange([
+    { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-01T10:00:00Z', summary: 'stale moved', start: { dateTime: '2026-01-10T10:00:00Z' }, end: { dateTime: '2026-01-10T11:00:00Z' } },
+    { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-02T10:00:00Z', summary: 'other occurrence', start: { dateTime: '2026-01-12T12:00:00Z' }, end: { dateTime: '2026-01-12T13:00:00Z' } },
+    { entityId: 'calendar.a', recurrence_id: '2026-01-03T10:00:00Z', summary: 'uid absent stale', start: { dateTime: '2026-01-10T14:00:00Z' }, end: { dateTime: '2026-01-10T15:00:00Z' } }
+  ], [
+    { entityId: 'calendar.a', uid: 'series', recurrence_id: '2026-01-01T10:00:00Z', summary: 'moved fresh', start: { dateTime: '2026-01-11T10:00:00Z' }, end: { dateTime: '2026-01-11T11:00:00Z' } },
+    { entityId: 'calendar.a', recurrence_id: '2026-01-03T10:00:00Z', summary: 'uid absent fresh', start: { dateTime: '2026-01-11T14:00:00Z' }, end: { dateTime: '2026-01-11T15:00:00Z' } }
+  ], { startDate: new Date('2026-01-10T00:00:00Z'), endDate: new Date('2026-01-11T23:59:59Z') });
+
+  const summaries = reconciled.map(event => event.summary);
+  assert.equal(summaries.includes('stale moved'), false);
+  assert.equal(summaries.includes('moved fresh'), true);
+  assert.equal(summaries.includes('other occurrence'), true);
+  assert.equal(summaries.includes('uid absent stale'), false);
+  assert.equal(summaries.includes('uid absent fresh'), true);
+});
+
 test('range union remains conservative when an extension leaves an unfetched gap', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const existing = { startDate: new Date('2026-01-10T12:00:00Z'), endDate: new Date('2026-01-20T12:00:00Z') };
@@ -7999,15 +8109,15 @@ test('next agenda navigation invalidates stale visible anchor before successful 
   const card = makeCard({ entities: ['calendar.a'], default_view: 'agenda' });
   card._hass = { user: { id: 'user-1' }, states: {} };
   card._viewMode = 'agenda';
-  card._agendaStartDate = new Date('2026-10-01T00:00:00Z');
-  card._agendaEndDate = new Date('2026-10-14T23:59:59Z');
-  card._agendaVisibleStartDate = new Date('2026-01-01T00:00:00Z');
-  card._agendaVisibleEndDate = new Date('2026-01-14T23:59:59Z');
-  card._currentDate = new Date('2026-01-01T00:00:00Z');
-  card.getAgendaViewportDayCapacity = () => 13;
+  card._agendaStartDate = new Date('2026-01-01T00:00:00Z');
+  card._agendaEndDate = new Date('2028-12-31T23:59:59Z');
+  card._agendaVisibleStartDate = new Date('2028-05-01T00:00:00Z');
+  card._agendaVisibleEndDate = new Date('2028-05-14T23:59:59Z');
+  card._currentDate = new Date('2028-05-01T00:00:00Z');
+  card.getAgendaViewportDayCapacity = () => 14;
   card.getAgendaVisibleDateRangeFromDom = () => null;
   card.fetchEventsByCalendarInRange = async () => ({
-    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'next target', start: { date: '2026-10-15' }, end: { date: '2026-10-16' } }] }
+    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'next target', start: { date: '2028-05-15' }, end: { date: '2028-05-16' } }] }
   });
   let renderCount = 0;
   let persistedRange = null;
@@ -8023,9 +8133,11 @@ test('next agenda navigation invalidates stale visible anchor before successful 
   await new Promise(resolve => setTimeout(resolve, 0));
 
   assert.ok(persistedRange);
-  assert.equal(persistedRange.startDate <= card._agendaStartDate, true);
-  assert.equal(persistedRange.endDate >= card._agendaEndDate, true);
-  assert.equal(persistedRange.startDate > new Date('2026-06-01T00:00:00Z'), true);
+  const spanDays = (persistedRange.endDate - persistedRange.startDate) / (24 * 60 * 60 * 1000);
+  assert.equal(spanDays <= 210, true);
+  assert.equal(persistedRange.startDate <= card._agendaVisibleStartDate, true);
+  assert.equal(persistedRange.endDate >= card._agendaVisibleEndDate, true);
+  assert.equal(persistedRange.startDate > new Date('2028-01-01T00:00:00Z'), true);
   assert.equal(card._currentDate.toISOString(), card._agendaStartDate.toISOString());
 });
 
@@ -8033,14 +8145,14 @@ test('previous agenda navigation invalidates stale visible anchor before success
   const card = makeCard({ entities: ['calendar.a'], default_view: 'agenda' });
   card._hass = { user: { id: 'user-1' }, states: {} };
   card._viewMode = 'agenda';
-  card._agendaStartDate = new Date('2026-10-01T00:00:00Z');
-  card._agendaEndDate = new Date('2026-10-14T23:59:59Z');
-  card._agendaVisibleStartDate = new Date('2026-01-01T00:00:00Z');
-  card._agendaVisibleEndDate = new Date('2026-01-14T23:59:59Z');
-  card._currentDate = new Date('2026-01-01T00:00:00Z');
+  card._agendaStartDate = new Date('2026-01-01T00:00:00Z');
+  card._agendaEndDate = new Date('2028-12-31T23:59:59Z');
+  card._agendaVisibleStartDate = new Date('2028-05-01T00:00:00Z');
+  card._agendaVisibleEndDate = new Date('2028-05-14T23:59:59Z');
+  card._currentDate = new Date('2028-05-01T00:00:00Z');
   card.getAgendaViewportDayCapacity = () => 14;
   card.fetchEventsByCalendarInRange = async () => ({
-    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'previous target', start: { date: '2026-09-17' }, end: { date: '2026-09-18' } }] }
+    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'previous target', start: { date: '2025-12-18' }, end: { date: '2025-12-19' } }] }
   });
   let renderCount = 0;
   let persistedRange = null;
@@ -8056,9 +8168,11 @@ test('previous agenda navigation invalidates stale visible anchor before success
   await new Promise(resolve => setTimeout(resolve, 0));
 
   assert.ok(persistedRange);
-  assert.equal(persistedRange.startDate <= card._agendaStartDate, true);
-  assert.equal(persistedRange.endDate >= card._agendaEndDate, true);
-  assert.equal(persistedRange.startDate > new Date('2026-06-01T00:00:00Z'), true);
+  const spanDays = (persistedRange.endDate - persistedRange.startDate) / (24 * 60 * 60 * 1000);
+  assert.equal(spanDays <= 210, true);
+  assert.equal(persistedRange.startDate <= card._agendaVisibleStartDate, true);
+  assert.equal(persistedRange.endDate >= card._agendaVisibleEndDate, true);
+  assert.equal(persistedRange.endDate < new Date('2026-06-01T00:00:00Z'), true);
   assert.equal(card._currentDate.toISOString(), card._agendaStartDate.toISOString());
 });
 

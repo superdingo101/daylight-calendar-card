@@ -1961,8 +1961,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getEventLogicalIdentityKey(entityId, event) {
-    const stableId = event?.uid || event?.recurring_event_id;
-    return stableId ? `${entityId}|${stableId}` : this.getEventIdentityKey(entityId, event);
+    const uid = event?.uid;
+    const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+    if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
+    if (uid) return `${entityId}|${uid}`;
+    if (recurrenceId) return `${entityId}|recurrence|${recurrenceId}`;
+    return this.getEventIdentityKey(entityId, event);
   }
 
   reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {
@@ -2126,6 +2130,25 @@ class SkylightCalendarCard extends HTMLElement {
     const visibleRange = this.getVisibleDateRange?.();
     return this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
       this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+  }
+
+  setAgendaNavigationViewportAnchor(startDate = this._agendaStartDate) {
+    const agendaWindowRange = this.getValidRange(this._agendaStartDate, this._agendaEndDate);
+    const anchorStart = new Date(startDate || this._agendaStartDate || Date.now());
+    anchorStart.setHours(0, 0, 0, 0);
+    const viewportDays = Math.max(1, Number(this.getAgendaViewportDayCapacity?.() || 14));
+    const anchorEnd = new Date(anchorStart);
+    anchorEnd.setDate(anchorEnd.getDate() + viewportDays);
+    anchorEnd.setHours(23, 59, 59, 999);
+    if (agendaWindowRange) {
+      const clampedStart = new Date(Math.max(anchorStart.getTime(), agendaWindowRange.startDate.getTime()));
+      const clampedEnd = new Date(Math.min(anchorEnd.getTime(), agendaWindowRange.endDate.getTime()));
+      this._agendaVisibleStartDate = clampedStart;
+      this._agendaVisibleEndDate = clampedEnd >= clampedStart ? clampedEnd : new Date(clampedStart);
+      return;
+    }
+    this._agendaVisibleStartDate = anchorStart;
+    this._agendaVisibleEndDate = anchorEnd;
   }
 
   getEventCacheRetainedRange() {
@@ -5645,8 +5668,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._agendaEndDate.setDate(this._agendaEndDate.getDate() - backwardDays);
       this._agendaEndDate.setHours(23, 59, 59, 999);
       this._currentDate = new Date(this._agendaStartDate);
-      this._agendaVisibleStartDate = new Date(this._agendaStartDate);
-      this._agendaVisibleEndDate = new Date(this._agendaEndDate);
+      this.setAgendaNavigationViewportAnchor(this._agendaStartDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go back by the number of weeks shown
@@ -5713,8 +5735,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._agendaStartDate = targetStart;
       this._agendaEndDate = targetEnd;
       this._currentDate = new Date(this._agendaStartDate);
-      this._agendaVisibleStartDate = new Date(this._agendaStartDate);
-      this._agendaVisibleEndDate = new Date(this._agendaEndDate);
+      this.setAgendaNavigationViewportAnchor(this._agendaStartDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go forward by the number of weeks shown
