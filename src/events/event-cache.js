@@ -5,6 +5,23 @@ const DB_NAME = 'daylight-calendar-card-events';
 const DB_VERSION = 1;
 const STORE_NAME = 'eventSnapshots';
 const MAX_CACHE_ENTRIES = 12;
+let eventCacheMutationQueue = Promise.resolve();
+let eventCacheMutationEpoch = 0;
+
+export function getEventCacheMutationEpoch() {
+  return eventCacheMutationEpoch;
+}
+
+export function beginEventCacheFlush() {
+  eventCacheMutationEpoch += 1;
+  return eventCacheMutationEpoch;
+}
+
+const queueEventCacheMutation = (callback) => {
+  const run = eventCacheMutationQueue.then(callback, callback);
+  eventCacheMutationQueue = run.catch(() => {});
+  return run;
+};
 
 const openEventCacheDb = () => new Promise((resolve, reject) => {
   const indexedDBRef = globalThis.indexedDB;
@@ -113,40 +130,46 @@ export async function readEventCacheSnapshot(configSignature) {
   }
 }
 
-export async function writeEventCacheSnapshot(snapshot) {
+export async function writeEventCacheSnapshot(snapshot, { epoch = getEventCacheMutationEpoch() } = {}) {
   const normalized = normalizeEventCacheSnapshot(snapshot, { configSignature: snapshot?.configSignature });
   if (!normalized) return false;
-  try {
-    const result = await transact('readwrite', (store) => {
-      store.put(normalized);
-      const getAllRequest = store.getAll();
-      getAllRequest.onsuccess = () => {
-        const entries = (getAllRequest.result || [])
-          .filter((entry) => entry?.key && String(entry.key).startsWith('events:'))
-          .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
-        entries.slice(MAX_CACHE_ENTRIES).forEach((entry) => store.delete(entry.key));
-      };
-    });
-    return !!result.available;
-  } catch (error) {
-    console.warn('Failed to write Daylight event cache:', error);
-    return false;
-  }
+  return queueEventCacheMutation(async () => {
+    if (epoch !== eventCacheMutationEpoch) return false;
+    try {
+      const result = await transact('readwrite', (store) => {
+        store.put(normalized);
+        const getAllRequest = store.getAll();
+        getAllRequest.onsuccess = () => {
+          const entries = (getAllRequest.result || [])
+            .filter((entry) => entry?.key && String(entry.key).startsWith('events:'))
+            .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+          entries.slice(MAX_CACHE_ENTRIES).forEach((entry) => store.delete(entry.key));
+        };
+      });
+      return epoch === eventCacheMutationEpoch && !!result.available;
+    } catch (error) {
+      console.warn('Failed to write Daylight event cache:', error);
+      return false;
+    }
+  });
 }
 
-export async function clearAllEventCacheSnapshots() {
-  try {
-    const result = await transact('readwrite', (store) => {
-      const getAllKeysRequest = store.getAllKeys();
-      getAllKeysRequest.onsuccess = () => {
-        (getAllKeysRequest.result || [])
-          .filter((key) => String(key).startsWith('events:'))
-          .forEach((key) => store.delete(key));
-      };
-    });
-    return !!result.available;
-  } catch (error) {
-    console.warn('Failed to clear Daylight event cache:', error);
-    return false;
-  }
+export async function clearAllEventCacheSnapshots({ epoch = beginEventCacheFlush() } = {}) {
+  return queueEventCacheMutation(async () => {
+    if (epoch !== eventCacheMutationEpoch) return false;
+    try {
+      const result = await transact('readwrite', (store) => {
+        const getAllKeysRequest = store.getAllKeys();
+        getAllKeysRequest.onsuccess = () => {
+          (getAllKeysRequest.result || [])
+            .filter((key) => String(key).startsWith('events:'))
+            .forEach((key) => store.delete(key));
+        };
+      });
+      return epoch === eventCacheMutationEpoch && !!result.available;
+    } catch (error) {
+      console.warn('Failed to clear Daylight event cache:', error);
+      return false;
+    }
+  });
 }
