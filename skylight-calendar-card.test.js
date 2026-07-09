@@ -7060,6 +7060,160 @@ test('stale refresh warning schedules the threshold render and clears after succ
   }
 });
 
+
+test('late cache hydration preserves newer network failure state while filling failed calendar events', () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.applyEventsByCalendar({
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'network a', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }]
+  }, {
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-02-01T00:00:00Z'),
+    lastSuccessfulRefresh: Date.parse('2026-01-01T12:05:00Z'),
+    successfulEntityIds: ['calendar.a'],
+    failedEntityIds: ['calendar.b'],
+    source: 'network',
+    requestId: 5
+  });
+
+  card.applyEventsByCalendar({
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'cache a', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } }],
+    'calendar.b': [{ entityId: 'calendar.b', summary: 'cache b', start: { date: '2026-01-04' }, end: { date: '2026-01-05' } }]
+  }, {
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-02-01T00:00:00Z'),
+    lastSuccessfulRefresh: Date.parse('2026-01-01T12:00:00Z'),
+    successfulEntityIds: ['calendar.a', 'calendar.b'],
+    source: 'cache',
+    requestId: 4
+  });
+
+  assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'network a');
+  assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'cache b');
+  assert.equal(card._calendarEventMetadata['calendar.b'].refreshFailed, true);
+  assert.equal(card._calendarEventMetadata['calendar.b'].lastNetworkFailureRequest, 5);
+});
+
+test('range extensions union trailing and leading successful calendar coverage', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' } };
+  card._eventsByCalendar = { 'calendar.a': [], 'calendar.b': [] };
+  card._calendarEventMetadata = {
+    'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: 1 },
+    'calendar.b': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: 1 }
+  };
+  card.recomputeEventState();
+  card.fetchEventsByCalendarInRange = async (startDate) => ({
+    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: `a ${startDate.toISOString()}`, start: { date: '2026-01-01' }, end: { date: '2026-01-02' } }] },
+    'calendar.b': { success: true, events: [] }
+  });
+  card.render = () => {};
+  card.persistEventCacheSnapshot = () => {};
+
+  await card.extendEventsForRange(new Date('2026-02-01T00:00:00Z'), new Date('2026-03-01T00:00:00Z'), { render: false });
+  assert.equal(card._calendarEventMetadata['calendar.a'].range.startDate.toISOString(), '2026-01-01T00:00:00.000Z');
+  assert.equal(card._calendarEventMetadata['calendar.a'].range.endDate.toISOString(), '2026-03-01T00:00:00.000Z');
+  assert.equal(card._loadedEventRange.startDate.toISOString(), '2026-01-01T00:00:00.000Z');
+  assert.equal(card._loadedEventRange.endDate.toISOString(), '2026-03-01T00:00:00.000Z');
+
+  await card.extendEventsForRange(new Date('2025-12-01T00:00:00Z'), new Date('2026-01-01T00:00:00Z'), { render: false });
+  assert.equal(card._calendarEventMetadata['calendar.a'].range.startDate.toISOString(), '2025-12-01T00:00:00.000Z');
+  assert.equal(card._calendarEventMetadata['calendar.a'].range.endDate.toISOString(), '2026-03-01T00:00:00.000Z');
+  assert.equal(card._loadedEventRange.startDate.toISOString(), '2025-12-01T00:00:00.000Z');
+  assert.equal(card._loadedEventRange.endDate.toISOString(), '2026-03-01T00:00:00.000Z');
+});
+
+test('partial range extension renders applied success even when completeness is false', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'extended a', start: { date: '2026-02-02' }, end: { date: '2026-02-03' } }] },
+    'calendar.b': { success: false, events: [] }
+  });
+  card._eventsByCalendar = { 'calendar.a': [], 'calendar.b': [] };
+  card._calendarEventMetadata = {
+    'calendar.a': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: 1 },
+    'calendar.b': { range: { startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') }, lastSuccessfulRefresh: 1 }
+  };
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+
+  const complete = await card.extendEventsForRange(new Date('2026-02-01T00:00:00Z'), new Date('2026-03-01T00:00:00Z'), { render: false });
+  assert.equal(complete, false);
+  assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'extended a');
+  assert.equal(renderCount, 1);
+});
+
+test('visible stale warning clears immediately after unchanged successful refresh', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const event = { entityId: 'calendar.a', summary: 'same', start: { date: '2026-01-02' }, end: { date: '2026-01-03' } };
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => ({ 'calendar.a': { success: true, events: [event] } });
+  card._eventsByCalendar = { 'calendar.a': [event] };
+  card._calendarDataSignatures['calendar.a'] = card.getCalendarDataSignature([event]);
+  card._calendarEventMetadata = {
+    'calendar.a': {
+      range: card.getEventFetchRange(),
+      lastSuccessfulRefresh: Date.parse('2026-01-01T12:00:00Z'),
+      refreshFailed: true
+    }
+  };
+  card._lastUnchangedDataRender = Date.parse('2026-01-01T12:30:30Z');
+  card.recomputeEventState();
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:31:00Z')), true);
+  const originalNow = Date.now;
+  Date.now = () => Date.parse('2026-01-01T12:31:00Z');
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.persistEventCacheSnapshot = () => {};
+  try {
+    await card.updateEvents();
+  } finally {
+    Date.now = originalNow;
+  }
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T13:02:00Z')), false);
+  assert.equal(renderCount, 1);
+});
+
+test('flush barrier rejects queued stale persistent writes before they open storage', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.applyEventsByCalendar({ 'calendar.a': [] }, {
+    startDate: new Date('2026-01-01T00:00:00Z'),
+    endDate: new Date('2026-02-01T00:00:00Z'),
+    lastSuccessfulRefresh: Date.parse('2026-01-01T12:00:00Z'),
+    successfulEntityIds: ['calendar.a'],
+    source: 'network',
+    requestId: 1
+  });
+  let releaseQueue;
+  card._eventCacheMutationQueue = new Promise(resolve => { releaseQueue = resolve; });
+  const staleWrite = card.persistEventCacheSnapshot({ generation: card._eventWriteGeneration });
+  const flush = card.flushEventCache({ refresh: false });
+  releaseQueue();
+  assert.equal(await staleWrite, false);
+  assert.equal(await flush, false);
+  assert.deepEqual(card._eventsByCalendar, {});
+});
+
+test('prolonged initial calendar failure without prior success shows stale warning', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-02-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => ({ 'calendar.a': { success: false, events: [] } });
+  const originalNow = Date.now;
+  Date.now = () => Date.parse('2026-01-01T12:00:00Z');
+  card.render = () => {};
+  try {
+    await card.updateEvents();
+  } finally {
+    Date.now = originalNow;
+  }
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:29:59Z')), false);
+  assert.equal(card.shouldShowEventRefreshWarning(Date.parse('2026-01-01T12:30:01Z')), true);
+});
+
 test('failed refresh preserves last-known-good events and stale warning timing', async () => {
   const card = makeCard({ entities: ['calendar.a'] });
   card._hass = {};
