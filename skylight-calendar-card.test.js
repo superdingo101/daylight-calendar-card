@@ -2727,7 +2727,7 @@ test('header_items render icons entity values fallbacks and escaped text', () =>
   const card = makeCard({
     entities: ['calendar.family'],
     header_items: [
-      { icon: 'mdi:test"bad', entity: 'sensor.temp' },
+      { icon: "mdi:test\"bad'attr", entity: 'sensor.temp' },
       { icon: 'mdi:bad', entity: 'sensor.missing', text: '<Family>' },
       { icon: 'mdi:hidden', entity: 'sensor.hidden' }
     ]
@@ -2738,7 +2738,7 @@ test('header_items render icons entity values fallbacks and escaped text', () =>
   } };
 
   const html = card.renderHeaderTitle();
-  assert.match(html, /<span class="header-item"><ha-icon icon="mdi:test&quot;bad"><\/ha-icon><span class="header-item-value">72 °F<\/span><\/span>/);
+  assert.match(html, /<span class="header-item"><ha-icon icon="mdi:test&quot;bad&#39;attr"><\/ha-icon><span class="header-item-value">72 °F<\/span><\/span>/);
   assert.match(html, /<span class="header-item"><ha-icon icon="mdi:bad"><\/ha-icon><span class="header-item-value">&lt;Family&gt;<\/span><\/span>/);
   assert.doesNotMatch(html, /mdi:hidden/);
   assert.doesNotMatch(html, /<Family>/);
@@ -2773,6 +2773,25 @@ test('header_items resolves attribute and auto date timestamp unit and raw value
     'Attribute <value>',
     'plain'
   ]);
+});
+
+
+test('header_items date-only device_class values parse as local dates before generic time parsing', async () => {
+  const { resolveHeaderItems } = await import('./src/header/header-items.js');
+  const hass = { states: { 'sensor.day': { state: '2026-07-10', attributes: { device_class: 'date' } } } };
+  let parseTimeCalls = 0;
+  const formatters = {
+    parseTimeValue: (value) => {
+      parseTimeCalls += 1;
+      return new Date(value);
+    },
+    formatDate: (date) => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  };
+
+  assert.deepEqual(resolveHeaderItems([
+    { entity: 'sensor.day' }
+  ], hass, formatters).map((item) => item.value), ['2026-7-10']);
+  assert.equal(parseTimeCalls, 0);
 });
 
 test('header_items explicit time date and datetime formats use supplied formatters', async () => {

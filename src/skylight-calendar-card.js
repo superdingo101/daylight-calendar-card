@@ -3551,6 +3551,7 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderRenderHelpers() {
     return {
       escapeHtml: (value) => this.escapeHtml(value),
+      escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
       getPeriodLabel: () => this.getPeriodLabel(),
       renderCalendarBadgesInline: () => this.renderCalendarBadgesInline(),
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
