@@ -151,6 +151,15 @@ import {
   toStableString as toStableStringHelper
 } from './events/event-fetcher.js';
 import { buildContinuousDaySpanLayout } from './events/continuous-day-span-layout.js';
+import {
+  beginEventCacheFlush,
+  buildEventCacheConfigSignature,
+  clearAllEventCacheSnapshots,
+  createEventCacheSnapshot,
+  getEventCacheMutationEpoch,
+  readEventCacheSnapshot,
+  writeEventCacheSnapshot
+} from './events/event-cache.js';
 import { getMonthVisibleDateRange } from './views/month-view-model.js';
 import {
   getRollingDaysForView as getRollingDaysForViewModel,
@@ -246,7 +255,7 @@ const translate = (language, key, params = {}) => {
   return interpolate(strings[key] || fallback, params);
 };
 
-
+const MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS = 210;
 const STALE_RESOURCE_BANNER_ID = 'daylight-calendar-card-stale-resource-warning';
 let staleResourceWarningHandled = false;
 
@@ -365,10 +374,22 @@ class SkylightCalendarCard extends HTMLElement {
     this._root = this;
     this._config = {};
     this._events = [];
+    this._eventsByCalendar = {};
+    this._eventCacheGeneration = 0;
+    this._eventFetchGeneration = 0;
+    this._eventWriteGeneration = 0;
+    this._pendingEventRefreshAfterCurrentFetch = false;
+    this._pendingEventRenderAfterCurrentFetch = false;
+    this._eventRefreshWarningTimer = null;
+    this._eventCacheHydrated = false;
+    this._lastSuccessfulEventRefresh = null;
+    this._lastEventRefreshFailed = false;
+    this._calendarEventMetadata = {};
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._fetching = false;
+    this._activeEventFetchRange = null;
     this._lastFetch = null;
     this._loadedEventRange = null;
     this._calendarDataSignatures = {}; // Track per-calendar data for change detection
@@ -442,6 +463,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._lastObservedHostSize = null;
     this._monthCompactMeasurementDirty = true;
     this._lastCompactMonthViewportHeight = null;
+    this._handleEventCacheFlush = () => this.flushEventCache({ refresh: true });
     this._handleViewportResize = () => {
       if (this.isEventManagementDialogOpen()) {
         return;
@@ -971,14 +993,28 @@ class SkylightCalendarCard extends HTMLElement {
     this._customEventColors = createEmptyCustomEventColors();
     this.loadPersistedPreferences();
     this._loadedEventRange = null;
+    this._eventsByCalendar = {};
+    this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this._eventWriteGeneration += 1;
+    this._pendingEventRefreshAfterCurrentFetch = false;
+    this._pendingEventRenderAfterCurrentFetch = false;
+    this._eventCacheHydrated = false;
+    this._lastSuccessfulEventRefresh = null;
+    this._lastEventRefreshFailed = false;
+    this._calendarEventMetadata = {};
+    this.clearEventRefreshWarningTimer();
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
+    this._lastFetch = null;
     this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
     this.render();
     this._activeLanguage = language;
+    this.loadEventCacheForCurrentConfig();
+    if (this._hass) this.ensureEventsForCurrentRange({ force: true });
   }
 
   set hass(hass) {
@@ -1045,6 +1081,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Refresh only when stale or when current view needs dates outside loaded range.
     if (!oldHass) {
+      this.loadEventCacheForCurrentConfig();
       this.ensureEventsForCurrentRange({ force: true });
     } else {
       this.ensureEventsForCurrentRange();
@@ -1789,8 +1826,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   async fetchEventsInRange(startDate, endDate) {
-    const eventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
-    return Object.values(eventsByCalendar).flat();
+    const resultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+    if (Object.values(resultsByCalendar).some(result => !result?.success)) return null;
+    return Object.values(resultsByCalendar).flatMap(result => result.events || []);
   }
 
   async fetchEventsByCalendarInRange(startDate, endDate) {
@@ -1861,80 +1899,593 @@ class SkylightCalendarCard extends HTMLElement {
     return getCalendarDataSignatureHelper(events);
   }
 
-  async updateEvents({ preserveScroll = false } = {}) {
-    if (!this._hass || this._fetching) return;
+  getEventCacheUserScope() {
+    return this._hass?.user?.id || this._hass?.user?.name || this._hass?.auth?.data?.user?.id || null;
+  }
+
+  getEventCacheConfigSignature() {
+    const userScope = this.getEventCacheUserScope();
+    if (!userScope) return null;
+    return buildEventCacheConfigSignature({
+      entities: this._config?.entities || [],
+      timeZone: this.getConfiguredTimeZone(),
+      colors: this._config?.colors || {},
+      userScope
+    });
+  }
+
+  getValidRange(startDate, endDate) {
+    const start = startDate instanceof Date ? startDate : new Date(startDate);
+    const end = endDate instanceof Date ? endDate : new Date(endDate);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return null;
+    return { startDate: start, endDate: end };
+  }
+
+  unionEventRanges(existingRange, incomingRange) {
+    const existing = this.getValidRange(existingRange?.startDate, existingRange?.endDate);
+    const incoming = this.getValidRange(incomingRange?.startDate, incomingRange?.endDate);
+    if (!existing) return incoming;
+    if (!incoming) return existing;
+    if (incoming.endDate < existing.startDate || incoming.startDate > existing.endDate) {
+      const disjointRanges = [
+        ...(Array.isArray(existingRange?.disjointRanges) ? existingRange.disjointRanges : [existing]),
+        incoming
+      ].map(range => ({
+        startDate: new Date(range.startDate),
+        endDate: new Date(range.endDate)
+      }));
+      return { ...existing, disjointRanges };
+    }
+    return {
+      startDate: new Date(Math.min(existing.startDate.getTime(), incoming.startDate.getTime())),
+      endDate: new Date(Math.max(existing.endDate.getTime(), incoming.endDate.getTime()))
+    };
+  }
+
+  doEventRangesOverlap(event, range) {
+    const validRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!validRange) return false;
+    const eventStart = this.getEventStartDate(event);
+    const eventEnd = this.getEventEndDate(event);
+    if (!Number.isFinite(eventStart.getTime()) || !Number.isFinite(eventEnd.getTime())) return false;
+    return eventEnd > validRange.startDate && eventStart < validRange.endDate;
+  }
+
+  isEventContainedInRange(event, range) {
+    const validRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!validRange) return false;
+    const eventStart = this.getEventStartDate(event);
+    const eventEnd = this.getEventEndDate(event);
+    if (!Number.isFinite(eventStart.getTime()) || !Number.isFinite(eventEnd.getTime())) return false;
+    return eventStart >= validRange.startDate && eventEnd <= validRange.endDate;
+  }
+
+  getEventLogicalIdentityKey(entityId, event) {
+    return this.getEventIdentityKey(entityId, event);
+  }
+
+  getStableEventIdentityKey(entityId, event) {
+    if (!event?.uid) return null;
+    const recurrenceId = event.recurrence_id || event.recurring_event_id;
+    if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
+    return null;
+  }
+
+  reconcileEventsForFetchedRange(existingEvents = [], incomingEvents = [], fetchedRange = null) {
+    const range = this.getValidRange(fetchedRange?.startDate, fetchedRange?.endDate);
+    if (!range) return this.mergeEvents(existingEvents, incomingEvents);
+    const incomingStableKeys = new Set(
+      (incomingEvents || [])
+        .map(event => this.getStableEventIdentityKey(event.entityId, event))
+        .filter(Boolean)
+    );
+    const retainedExisting = (existingEvents || []).filter((event) => {
+      const stableKey = this.getStableEventIdentityKey(event.entityId, event);
+      if (stableKey && incomingStableKeys.has(stableKey)) return false;
+      return !this.doEventRangesOverlap(event, range);
+    });
+    return this.mergeEvents(retainedExisting, incomingEvents);
+  }
+
+  recomputeLoadedEventRange() {
+    const ranges = (this._config.entities || []).map((entityId) => {
+      const range = this._calendarEventMetadata[entityId]?.range;
+      return this.getValidRange(range?.startDate, range?.endDate);
+    });
+    if (ranges.length === 0 || ranges.some(range => !range)) {
+      this._loadedEventRange = null;
+      return;
+    }
+    const startDate = new Date(Math.max(...ranges.map(range => range.startDate.getTime())));
+    const endDate = new Date(Math.min(...ranges.map(range => range.endDate.getTime())));
+    this._loadedEventRange = startDate <= endDate ? { startDate, endDate } : null;
+  }
+
+  recomputeLastSuccessfulEventRefresh() {
+    const refreshTimes = (this._config.entities || [])
+      .map(entityId => this._calendarEventMetadata[entityId]?.lastSuccessfulRefresh)
+      .filter(Number.isFinite);
+    this._lastSuccessfulEventRefresh = refreshTimes.length ? Math.min(...refreshTimes) : null;
+  }
+
+  recomputeEventRefreshFailure() {
+    this._lastEventRefreshFailed = (this._config.entities || [])
+      .some(entityId => this._calendarEventMetadata[entityId]?.refreshFailed);
+  }
+
+  recomputeEventState() {
+    this._events = sortEventsByStartDateHelper(Object.values(this._eventsByCalendar).flat(), {
+      getEventStartDate: this.getEventStartDate.bind(this)
+    });
+    this.recomputeLoadedEventRange();
+    this.recomputeLastSuccessfulEventRefresh();
+    this.recomputeEventRefreshFailure();
+    this.scheduleEventRefreshWarningTimer();
+  }
+
+  applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null, successfulEntityIds = null, failedEntityIds = [], source = 'network', requestId = null, coverageMode = 'replace', perCalendarMetadata = {} } = {}) {
+    const range = this.getValidRange(startDate, endDate);
+    const successfulSet = successfulEntityIds ? new Set(successfulEntityIds) : new Set(this._config.entities || []);
+    const failedSet = new Set(failedEntityIds || []);
+    (this._config.entities || []).forEach((entityId) => {
+      const existingMetadata = this._calendarEventMetadata[entityId] || {};
+      if (!successfulSet.has(entityId)) {
+        const isFailure = failedSet.has(entityId);
+        this._calendarEventMetadata[entityId] = {
+          ...existingMetadata,
+          lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh,
+          refreshFailed: isFailure || existingMetadata.refreshFailed,
+          firstFailureAt: isFailure ? (existingMetadata.firstFailureAt ?? Date.now()) : existingMetadata.firstFailureAt,
+          lastNetworkFailureRequest: isFailure && source === 'network' ? requestId : existingMetadata.lastNetworkFailureRequest
+        };
+        return;
+      }
+      const hasNewerNetworkSuccess = existingMetadata.lastNetworkSuccessRequest && existingMetadata.lastNetworkSuccessRequest > requestId;
+      if (source === 'cache' && hasNewerNetworkSuccess) return;
+      const hasNewerNetworkFailure = source === 'cache' && existingMetadata.lastNetworkFailureRequest && existingMetadata.lastNetworkFailureRequest > requestId;
+      const events = Array.isArray(eventsByCalendar[entityId]) ? eventsByCalendar[entityId] : [];
+      this._eventsByCalendar[entityId] = events;
+      this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(events);
+      const cachedMetadata = perCalendarMetadata?.[entityId] || {};
+      const cachedRange = this.getValidRange(cachedMetadata.range?.startDate, cachedMetadata.range?.endDate);
+      const effectiveRange = source === 'cache' && cachedRange ? cachedRange : range;
+      const effectiveLastSuccessfulRefresh = source === 'cache' && Number.isFinite(cachedMetadata.lastSuccessfulRefresh)
+        ? cachedMetadata.lastSuccessfulRefresh
+        : lastSuccessfulRefresh;
+      const nextRange = coverageMode === 'union'
+        ? this.unionEventRanges(existingMetadata.range, effectiveRange)
+        : (effectiveRange || existingMetadata.range || null);
+      this._calendarEventMetadata[entityId] = {
+        ...existingMetadata,
+        range: nextRange,
+        lastSuccessfulRefresh: Number.isFinite(effectiveLastSuccessfulRefresh) ? effectiveLastSuccessfulRefresh : existingMetadata.lastSuccessfulRefresh,
+        refreshFailed: hasNewerNetworkFailure ? existingMetadata.refreshFailed : false,
+        firstFailureAt: hasNewerNetworkFailure ? existingMetadata.firstFailureAt : null,
+        lastNetworkSuccessRequest: source === 'network' ? requestId : existingMetadata.lastNetworkSuccessRequest
+      };
+    });
+    this.recomputeEventState();
+  }
+
+  async loadEventCacheForCurrentConfig() {
+    const generation = ++this._eventCacheGeneration;
+    const requestId = this._eventFetchGeneration;
+    const configSignature = this.getEventCacheConfigSignature();
+    if (!configSignature) return;
+    const { available, snapshot } = await readEventCacheSnapshot(configSignature);
+    if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
+    const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, requestId);
+    if (hydratable.successfulEntityIds.length === 0) return;
+    this._eventCacheHydrated = true;
+    this.applyEventsByCalendar(hydratable.eventsByCalendar, {
+      startDate: new Date(snapshot.coveredRange.start),
+      endDate: new Date(snapshot.coveredRange.end),
+      lastSuccessfulRefresh: snapshot.lastSuccessfulRefresh,
+      successfulEntityIds: hydratable.successfulEntityIds,
+      source: 'cache',
+      requestId,
+      perCalendarMetadata: hydratable.perCalendarMetadata
+    });
+    this.render();
+  }
+
+  getHydratableEventCacheSnapshotData(snapshot, requestId = this._eventFetchGeneration) {
+    const cacheEventsByCalendar = {};
+    const cacheMetadataByCalendar = {};
+    const successfulEntityIds = [];
+    (this._config.entities || []).forEach((entityId) => {
+      const metadata = this._calendarEventMetadata[entityId] || {};
+      if (metadata.lastNetworkSuccessRequest && metadata.lastNetworkSuccessRequest > requestId) return;
+      if (!Object.prototype.hasOwnProperty.call(snapshot.perCalendarMetadata || {}, entityId)) return;
+      if (!Object.prototype.hasOwnProperty.call(snapshot.eventsByCalendar || {}, entityId)) return;
+      if (!Array.isArray(snapshot.eventsByCalendar[entityId])) return;
+      const cachedMetadata = snapshot.perCalendarMetadata[entityId] || {};
+      const cachedRange = this.getValidRange(cachedMetadata.range?.startDate, cachedMetadata.range?.endDate);
+      const cachedLastSuccessfulRefresh = cachedMetadata.lastSuccessfulRefresh;
+      if (!cachedRange || !Number.isFinite(cachedLastSuccessfulRefresh)) return;
+      cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId];
+      cacheMetadataByCalendar[entityId] = {
+        range: cachedRange,
+        lastSuccessfulRefresh: cachedLastSuccessfulRefresh
+      };
+      successfulEntityIds.push(entityId);
+    });
+    return {
+      eventsByCalendar: cacheEventsByCalendar,
+      perCalendarMetadata: cacheMetadataByCalendar,
+      successfulEntityIds
+    };
+  }
+
+  getEventCacheRetentionAnchorRange() {
+    if (this._viewMode === 'agenda') {
+      const agendaVisibleRange = this.getValidRange(this._agendaVisibleStartDate, this._agendaVisibleEndDate);
+      if (agendaVisibleRange && this.isAgendaRangeWithinCurrentWindow(agendaVisibleRange)) return agendaVisibleRange;
+      const agendaWindowRange = this.getValidRange(this._agendaStartDate, this._agendaEndDate);
+      if (agendaWindowRange) return agendaWindowRange;
+      const fallbackStart = new Date(this._currentDate || Date.now());
+      fallbackStart.setHours(0, 0, 0, 0);
+      const fallbackEnd = new Date(fallbackStart);
+      fallbackEnd.setDate(fallbackEnd.getDate() + 14);
+      fallbackEnd.setHours(23, 59, 59, 999);
+      return this.getValidRange(fallbackStart, fallbackEnd);
+    }
+    const visibleRange = this.getVisibleDateRange?.();
+    return this.getValidRange(visibleRange?.startDate, visibleRange?.endDate) ||
+      this.getValidRange(this._loadedEventRange?.startDate, this._loadedEventRange?.endDate);
+  }
+
+  setAgendaNavigationViewportAnchor(startDate = this._agendaStartDate) {
+    const agendaWindowRange = this.getValidRange(this._agendaStartDate, this._agendaEndDate);
+    const anchorStart = new Date(startDate || this._agendaStartDate || Date.now());
+    anchorStart.setHours(0, 0, 0, 0);
+    const viewportDays = Math.max(1, Number(this.getAgendaViewportDayCapacity?.() || 14));
+    const anchorEnd = new Date(anchorStart);
+    anchorEnd.setDate(anchorEnd.getDate() + viewportDays);
+    anchorEnd.setHours(23, 59, 59, 999);
+    if (agendaWindowRange) {
+      const clampedStart = new Date(Math.max(anchorStart.getTime(), agendaWindowRange.startDate.getTime()));
+      const clampedEnd = new Date(Math.min(anchorEnd.getTime(), agendaWindowRange.endDate.getTime()));
+      this._agendaVisibleStartDate = clampedStart;
+      this._agendaVisibleEndDate = clampedEnd >= clampedStart ? clampedEnd : new Date(clampedStart);
+      return;
+    }
+    this._agendaVisibleStartDate = anchorStart;
+    this._agendaVisibleEndDate = anchorEnd;
+  }
+
+  getEventCacheRetainedRange() {
+    const validRange = this.getEventCacheRetentionAnchorRange();
+    if (!validRange) return null;
+    const maxSpanMs = MAX_PERSISTED_EVENT_CACHE_SPAN_DAYS * 24 * 60 * 60 * 1000;
+    const rangeSpanMs = validRange.endDate.getTime() - validRange.startDate.getTime();
+    const center = validRange.startDate.getTime() + Math.max(0, rangeSpanMs) / 2;
+    const retainedStart = new Date(center - maxSpanMs / 2);
+    const retainedEnd = new Date(center + maxSpanMs / 2);
+    return { startDate: retainedStart, endDate: retainedEnd };
+  }
+
+  getPrunedEventsByCalendarForCache(eventsByCalendar = {}, range = this.getEventCacheRetainedRange()) {
+    const retainedRange = this.getValidRange(range?.startDate, range?.endDate);
+    if (!retainedRange) return eventsByCalendar;
+    const pruned = {};
+    Object.entries(eventsByCalendar || {}).forEach(([entityId, events]) => {
+      pruned[entityId] = (Array.isArray(events) ? events : []).filter((event) => {
+        const eventStart = this.getEventStartDate(event);
+        const eventEnd = this.getEventEndDate(event);
+        const safeEnd = Number.isFinite(eventEnd.getTime()) ? eventEnd : eventStart;
+        return eventStart <= retainedRange.endDate && safeEnd >= retainedRange.startDate;
+      });
+    });
+    return pruned;
+  }
+
+  getPrunedEventMetadataForCache(retainedRange = this.getEventCacheRetainedRange()) {
+    const range = this.getValidRange(retainedRange?.startDate, retainedRange?.endDate);
+    if (!range) return { perCalendarMetadata: {}, coveredRange: null };
+    const perCalendarMetadata = {};
+    let hasRetainedCalendar = false;
+    (this._config.entities || []).forEach((entityId) => {
+      const metadata = this._calendarEventMetadata[entityId] || {};
+      const metadataRange = this.getValidRange(metadata.range?.startDate, metadata.range?.endDate);
+      if (!metadataRange || !Number.isFinite(metadata.lastSuccessfulRefresh)) return;
+      const clippedStart = new Date(Math.max(metadataRange.startDate.getTime(), range.startDate.getTime()));
+      const clippedEnd = new Date(Math.min(metadataRange.endDate.getTime(), range.endDate.getTime()));
+      if (clippedStart > clippedEnd) return;
+      const clippedRange = { startDate: clippedStart, endDate: clippedEnd };
+      perCalendarMetadata[entityId] = {
+        ...metadata,
+        range: clippedRange,
+        lastSuccessfulRefresh: metadata.lastSuccessfulRefresh,
+        refreshFailed: false,
+        firstFailureAt: null
+      };
+      hasRetainedCalendar = true;
+    });
+    if (!hasRetainedCalendar) return { perCalendarMetadata, coveredRange: null };
+    return {
+      perCalendarMetadata,
+      coveredRange: range
+    };
+  }
+
+  async persistEventCacheSnapshot({ generation = this._eventWriteGeneration } = {}) {
+    if (generation !== this._eventWriteGeneration) return false;
+    const configSignature = this.getEventCacheConfigSignature();
+    if (!configSignature) return false;
+    const cacheEpoch = getEventCacheMutationEpoch();
+    const retainedRange = this.getEventCacheRetainedRange();
+    const { perCalendarMetadata, coveredRange } = this.getPrunedEventMetadataForCache(retainedRange);
+    if (!coveredRange || !Number.isFinite(this._lastSuccessfulEventRefresh)) return false;
+    const persistedEventsByCalendar = {};
+    Object.keys(perCalendarMetadata).forEach((entityId) => {
+      if (Object.prototype.hasOwnProperty.call(this._eventsByCalendar, entityId)) {
+        persistedEventsByCalendar[entityId] = this.getPrunedEventsByCalendarForCache({ [entityId]: this._eventsByCalendar[entityId] }, retainedRange)[entityId] || [];
+      }
+    });
+    const snapshot = createEventCacheSnapshot({
+      configSignature,
+      startDate: coveredRange.startDate,
+      endDate: coveredRange.endDate,
+      eventsByCalendar: persistedEventsByCalendar,
+      lastSuccessfulRefresh: this._lastSuccessfulEventRefresh,
+      perCalendarMetadata
+    });
+    if (!snapshot || generation !== this._eventWriteGeneration) return false;
+    return writeEventCacheSnapshot(snapshot, { epoch: cacheEpoch });
+  }
+
+  async flushEventCache({ refresh = true } = {}) {
+    this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this._eventWriteGeneration += 1;
+    this._pendingEventRenderAfterCurrentFetch = false;
+    const clearEpoch = beginEventCacheFlush();
+    const cleared = await clearAllEventCacheSnapshots({ epoch: clearEpoch });
+    this._eventCacheGeneration += 1;
+    this._eventCacheHydrated = false;
+    this._eventsByCalendar = {};
+    this._events = [];
+    this._loadedEventRange = null;
+    this._calendarDataSignatures = {};
+    this._calendarEventMetadata = {};
+    this._lastSuccessfulEventRefresh = null;
+    this._lastEventRefreshFailed = false;
+    this.clearEventRefreshWarningTimer();
+    this.render();
+    if (refresh && this._hass) {
+      if (this._fetching) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+      } else {
+        await this.ensureEventsForCurrentRange({ force: true });
+      }
+    }
+    return cleared;
+  }
+
+  getOldestFailedEventRefreshTime() {
+    const failedTimes = (this._config.entities || [])
+      .map(entityId => this._calendarEventMetadata[entityId])
+      .filter(metadata => metadata?.refreshFailed && (Number.isFinite(metadata.lastSuccessfulRefresh) || Number.isFinite(metadata.firstFailureAt)))
+      .map(metadata => Number.isFinite(metadata.lastSuccessfulRefresh) ? metadata.lastSuccessfulRefresh : metadata.firstFailureAt);
+    return failedTimes.length ? Math.min(...failedTimes) : null;
+  }
+
+  clearEventRefreshWarningTimer() {
+    if (this._eventRefreshWarningTimer) clearTimeout(this._eventRefreshWarningTimer);
+    this._eventRefreshWarningTimer = null;
+  }
+
+  scheduleEventRefreshWarningTimer() {
+    this.clearEventRefreshWarningTimer();
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    if (!Number.isFinite(oldestFailedRefresh)) return;
+    const delay = Math.max(0, oldestFailedRefresh + 30 * 60 * 1000 - Date.now());
+    this._eventRefreshWarningTimer = setTimeout(() => {
+      this._eventRefreshWarningTimer = null;
+      this.render();
+    }, delay);
+    this._eventRefreshWarningTimer?.unref?.();
+  }
+
+  shouldShowEventRefreshWarning(now = Date.now()) {
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    return Number.isFinite(oldestFailedRefresh) && (now - oldestFailedRefresh) >= 30 * 60 * 1000;
+  }
+
+  renderEventRefreshWarning() {
+    if (!this.shouldShowEventRefreshWarning()) return '';
+    const oldestFailedRefresh = this.getOldestFailedEventRefreshTime();
+    return `<div class="event-refresh-warning" role="status">${this.t('eventRefreshStaleWarning', { time: this.formatTime(new Date(oldestFailedRefresh)) })}</div>`;
+  }
+
+  async updateEvents({ preserveScroll = false, renderAfterFetch = false } = {}) {
+    if (!this._hass) return;
+    if (this._fetching) {
+      this._pendingEventRefreshAfterCurrentFetch = true;
+      return;
+    }
 
     const { startDate, endDate } = this.getEventFetchRange();
+    const generation = ++this._eventFetchGeneration;
     this._fetching = true;
+    this._activeEventFetchRange = { startDate, endDate };
     this._lastFetch = Date.now();
 
     try {
-      const newEventsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
-      const changedCalendars = this._config.entities.filter(entityId => {
-        const hasOldSignature = Object.prototype.hasOwnProperty.call(this._calendarDataSignatures, entityId);
-        if (!hasOldSignature) {
-          return true;
-        }
+      const fetchResultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+      if (generation !== this._eventFetchGeneration) return;
+      const nextEventsByCalendar = { ...this._eventsByCalendar };
+      const successfulEntityIds = [];
+      const failedEntityIds = [];
+      let anyChanged = false;
 
+      this._config.entities.forEach(entityId => {
+        const result = fetchResultsByCalendar[entityId];
+        if (!result?.success) {
+          failedEntityIds.push(entityId);
+          return;
+        }
+        successfulEntityIds.push(entityId);
+        const events = Array.isArray(result.events) ? result.events : [];
         const oldSignature = this._calendarDataSignatures[entityId];
-        const newSignature = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
-        return oldSignature !== newSignature;
+        const newSignature = this.getCalendarDataSignature(events);
+        if (oldSignature !== newSignature) anyChanged = true;
+        nextEventsByCalendar[entityId] = events;
       });
 
-      if (changedCalendars.length === 0) {
-        this._loadedEventRange = { startDate, endDate };
-
-        const now = Date.now();
-        const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
-          (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
-
-        if (shouldRenderForUnchangedData) {
-          this._lastUnchangedDataRender = now;
-          if (preserveScroll) {
-            this.renderPreservingAgendaScroll();
-          } else {
-            this.render();
-          }
-        }
-
+      if (successfulEntityIds.length === 0) {
+        failedEntityIds.forEach((entityId) => {
+          const existingMetadata = this._calendarEventMetadata[entityId] || {};
+          this._calendarEventMetadata[entityId] = {
+            ...existingMetadata,
+            lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh,
+            refreshFailed: true,
+            firstFailureAt: existingMetadata.firstFailureAt ?? Date.now(),
+            lastNetworkFailureRequest: generation
+          };
+        });
+        this.recomputeEventState();
+        this.render();
         return;
       }
 
-      this._config.entities.forEach(entityId => {
-        this._calendarDataSignatures[entityId] = this.getCalendarDataSignature(newEventsByCalendar[entityId]);
+      const now = Date.now();
+      const wasWarningVisible = this.shouldShowEventRefreshWarning(now);
+      const shouldRenderForUnchangedData = !this._lastUnchangedDataRender ||
+        (now - this._lastUnchangedDataRender >= 15 * 60 * 1000);
+      this.applyEventsByCalendar(nextEventsByCalendar, {
+        startDate,
+        endDate,
+        lastSuccessfulRefresh: now,
+        successfulEntityIds,
+        failedEntityIds,
+        source: 'network',
+        requestId: generation
       });
-
-      const mergedEvents = sortEventsByStartDateHelper(Object.values(newEventsByCalendar).flat(), {
-        getEventStartDate: this.getEventStartDate.bind(this)
-      });
-
-      this._events = mergedEvents;
-      this._loadedEventRange = { startDate, endDate };
-      this._lastUnchangedDataRender = Date.now();
-      if (preserveScroll) {
-        this.renderPreservingAgendaScroll();
-      } else {
-        this.render();
+      const warningVisibilityChanged = wasWarningVisible !== this.shouldShowEventRefreshWarning(now);
+      this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged || renderAfterFetch) {
+        this._lastUnchangedDataRender = now;
+        if (preserveScroll) {
+          this.renderPreservingAgendaScroll();
+        } else {
+          this.render();
+        }
       }
     } finally {
       this._fetching = false;
+      this._activeEventFetchRange = null;
+      const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRenderAfterCurrentFetch = false;
+      if (this._pendingEventRefreshAfterCurrentFetch) {
+        this._pendingEventRefreshAfterCurrentFetch = false;
+        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+      } else if (shouldRenderAfterFetch) {
+        this.render();
+      }
     }
   }
 
-  async extendEventsForRange(startDate, endDate, { render = true } = {}) {
-    if (!this._hass || this._fetching) return;
+  async extendEventsForRange(startDate, endDate, { render = true, returnDetails = false } = {}) {
+    const toResult = (complete, dataChanged = false, stateChanged = false) => (
+      returnDetails ? { complete, dataChanged, stateChanged, applied: dataChanged || stateChanged } : complete
+    );
+    if (!this._hass) return toResult(false);
+    if (this._fetching) {
+      this._pendingEventRefreshAfterCurrentFetch = true;
+      return toResult(false);
+    }
 
+    const generation = ++this._eventFetchGeneration;
     this._fetching = true;
+    this._activeEventFetchRange = { startDate, endDate };
     this._lastFetch = Date.now();
 
     try {
-      const additionalEvents = await this.fetchEventsInRange(startDate, endDate);
-      this._events = this.mergeEvents(this._events, additionalEvents);
-      if (render) {
-        this.render();
+      const fetchResultsByCalendar = await this.fetchEventsByCalendarInRange(startDate, endDate);
+      if (generation !== this._eventFetchGeneration) return false;
+      const nextEventsByCalendar = { ...this._eventsByCalendar };
+      const successfulEntityIds = [];
+      const failedEntityIds = [];
+      let anyChanged = false;
+      const stateSignatureBefore = this.toStableString((this._config.entities || []).map(entityId => ({
+        entityId,
+        refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+        firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+      })));
+
+      this._config.entities.forEach(entityId => {
+        const result = fetchResultsByCalendar[entityId];
+        if (!result?.success) {
+          failedEntityIds.push(entityId);
+          return;
+        }
+        successfulEntityIds.push(entityId);
+        const fetchedRange = this.getValidRange(result.fetchedRange?.startDate, result.fetchedRange?.endDate) || { startDate, endDate };
+        const mergedEvents = this.reconcileEventsForFetchedRange(this._eventsByCalendar[entityId] || [], result.events || [], fetchedRange);
+        const oldSignature = this._calendarDataSignatures[entityId];
+        const newSignature = this.getCalendarDataSignature(mergedEvents);
+        if (oldSignature !== newSignature) anyChanged = true;
+        nextEventsByCalendar[entityId] = mergedEvents;
+      });
+
+      if (successfulEntityIds.length === 0) {
+        failedEntityIds.forEach((entityId) => {
+          const existingMetadata = this._calendarEventMetadata[entityId] || {};
+          this._calendarEventMetadata[entityId] = {
+            ...existingMetadata,
+            lastSuccessfulRefresh: existingMetadata.lastSuccessfulRefresh,
+            refreshFailed: true,
+            firstFailureAt: existingMetadata.firstFailureAt ?? Date.now(),
+            lastNetworkFailureRequest: generation
+          };
+        });
+        this.recomputeEventState();
+        const stateSignatureAfter = this.toStableString((this._config.entities || []).map(entityId => ({
+          entityId,
+          refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+          firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+        })));
+        const stateChanged = stateSignatureBefore !== stateSignatureAfter;
+        if (!returnDetails && (render || stateChanged) && stateChanged) this.render();
+        return toResult(false, false, stateChanged);
       }
+
+      const successfulFetchedRange = successfulEntityIds
+        .map(entityId => fetchResultsByCalendar[entityId]?.fetchedRange)
+        .map(range => this.getValidRange(range?.startDate, range?.endDate))
+        .find(Boolean) || { startDate, endDate };
+      this.applyEventsByCalendar(nextEventsByCalendar, {
+        startDate: successfulFetchedRange.startDate,
+        endDate: successfulFetchedRange.endDate,
+        lastSuccessfulRefresh: Date.now(),
+        successfulEntityIds,
+        failedEntityIds,
+        source: 'network',
+        requestId: generation,
+        coverageMode: 'union'
+      });
+      this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
+      const stateSignatureAfter = this.toStableString((this._config.entities || []).map(entityId => ({
+        entityId,
+        refreshFailed: !!this._calendarEventMetadata[entityId]?.refreshFailed,
+        firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
+      })));
+      const stateChanged = stateSignatureBefore !== stateSignatureAfter;
+      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.render();
+      return toResult(failedEntityIds.length === 0, anyChanged, stateChanged);
     } finally {
       this._fetching = false;
+      this._activeEventFetchRange = null;
+      const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRenderAfterCurrentFetch = false;
+      if (this._pendingEventRefreshAfterCurrentFetch) {
+        this._pendingEventRefreshAfterCurrentFetch = false;
+        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+      } else if (shouldRenderAfterFetch) {
+        this.render();
+      }
     }
   }
 
@@ -1952,9 +2503,31 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
+    const { startDate, endDate } = this.getEventFetchRange();
+
+    if (this._fetching) {
+      if (force) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+        if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
+        return;
+      }
+      if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
+        if (renderIfCovered) this.render();
+        return;
+      }
+      const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
+      if (!activeRange || !isDateRangeCoveredByLoadedEventsHelper(activeRange, startDate, endDate)) {
+        this._pendingEventRefreshAfterCurrentFetch = true;
+        if (renderIfCovered) this._pendingEventRenderAfterCurrentFetch = true;
+      } else if (renderIfCovered) {
+        this._pendingEventRenderAfterCurrentFetch = true;
+      }
+      return;
+    }
+
     if (force || shouldRefreshForAge || !this._loadedEventRange) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
-      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh });
+      await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh, renderAfterFetch: renderIfCovered });
       return;
     }
 
@@ -1969,33 +2542,27 @@ class SkylightCalendarCard extends HTMLElement {
 
     // Once visible range falls outside loaded coverage, fetch around current view
     // (with buffer) and only request missing leading/trailing segments.
-    const { startDate, endDate } = this.getEventFetchRange();
     const missingRanges = [];
 
     if (startDate < this._loadedEventRange.startDate) {
       const missingStartEnd = new Date(this._loadedEventRange.startDate);
-      missingStartEnd.setDate(missingStartEnd.getDate() - 1);
-      missingStartEnd.setHours(23, 59, 59, 999);
       missingRanges.push({ startDate, endDate: missingStartEnd });
     }
 
     if (endDate > this._loadedEventRange.endDate) {
       const missingEndStart = new Date(this._loadedEventRange.endDate);
-      missingEndStart.setDate(missingEndStart.getDate() + 1);
-      missingEndStart.setHours(0, 0, 0, 0);
       missingRanges.push({ startDate: missingEndStart, endDate });
     }
 
+    let allExtended = true;
+    let shouldRenderAfterExtensions = false;
     for (const range of missingRanges) {
-      await this.extendEventsForRange(range.startDate, range.endDate, { render: false });
+      const extended = await this.extendEventsForRange(range.startDate, range.endDate, { render: false, returnDetails: true });
+      if (!extended?.complete) allExtended = false;
+      if (extended?.dataChanged || extended?.stateChanged) shouldRenderAfterExtensions = true;
     }
 
-    this._loadedEventRange = {
-      startDate: new Date(Math.min(this._loadedEventRange.startDate.getTime(), startDate.getTime())),
-      endDate: new Date(Math.max(this._loadedEventRange.endDate.getTime(), endDate.getTime()))
-    };
-
-    this.render();
+    if (allExtended || shouldRenderAfterExtensions) this.render();
   }
 
   getEventFetchRange() {
@@ -2031,6 +2598,12 @@ class SkylightCalendarCard extends HTMLElement {
 
   getEventStartDate(event) {
     return getNormalizedEventStartDate(event, { parseLocalDate: this.parseLocalDate.bind(this) });
+  }
+
+  getEventEndDate(event) {
+    if (event?.end?.dateTime) return new Date(event.end.dateTime);
+    if (event?.end?.date) return this.parseLocalDate(event.end.date);
+    return new Date(event?.end);
   }
 
   parseLocalDate(dateStr) {
@@ -2144,6 +2717,7 @@ class SkylightCalendarCard extends HTMLElement {
   connectedCallback() {
     checkAndShowStaleResourceWarning();
     window.addEventListener('resize', this._handleViewportResize);
+    window.addEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
@@ -2152,7 +2726,11 @@ class SkylightCalendarCard extends HTMLElement {
 
   disconnectedCallback() {
     window.removeEventListener('resize', this._handleViewportResize);
+    window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    this._eventCacheGeneration += 1;
+    this._eventFetchGeneration += 1;
+    this.clearEventRefreshWarningTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();
@@ -2918,6 +3496,7 @@ class SkylightCalendarCard extends HTMLElement {
 
       <div class="calendar-container ${this._isDarkMode ? 'dark-mode' : ''} ${hasCustomBackground ? 'custom-background' : ''} ${this._config.hide_year ? 'hide-year' : ''} ${this._config.agenda_compact_events ? 'agenda-compact-events' : ''}" style="${containerStyle}">
         ${this._config.hide_header ? '' : (this._config.compact_header ? this.renderCompactHeader() : this.renderStandardHeader())}
+        ${this.renderEventRefreshWarning()}
         <div class="calendar-body">
           ${this.renderCalendarView()}
         </div>
@@ -5091,6 +5670,8 @@ class SkylightCalendarCard extends HTMLElement {
       this._agendaStartDate.setHours(0, 0, 0, 0);
       this._agendaEndDate.setDate(this._agendaEndDate.getDate() - backwardDays);
       this._agendaEndDate.setHours(23, 59, 59, 999);
+      this._currentDate = new Date(this._agendaStartDate);
+      this.setAgendaNavigationViewportAnchor(this._agendaStartDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go back by the number of weeks shown
@@ -5156,6 +5737,8 @@ class SkylightCalendarCard extends HTMLElement {
 
       this._agendaStartDate = targetStart;
       this._agendaEndDate = targetEnd;
+      this._currentDate = new Date(this._agendaStartDate);
+      this.setAgendaNavigationViewportAnchor(this._agendaStartDate);
     } else if (this._viewMode === 'month') {
       if (this._config.rolling_weeks !== null) {
         // In rolling weeks mode, go forward by the number of weeks shown

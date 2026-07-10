@@ -123,7 +123,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'CW'
+      monthWeekPrefix: 'CW',
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
 
@@ -237,7 +238,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem'
+      monthWeekPrefix: 'Sem',
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
 
@@ -351,7 +353,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} Minuten',
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
 
@@ -465,7 +468,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
   es: {
@@ -578,7 +582,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutos',
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem.'
+      monthWeekPrefix: 'Sem.',
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
     }
   },
   
@@ -697,7 +702,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutit',
       moreEvents: '+{count} veel',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Nädal'
+      monthWeekPrefix: 'Nädal',
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
 
@@ -811,7 +817,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuts',
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Set.'
+      monthWeekPrefix: 'Set.',
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
 
@@ -925,7 +932,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutter',
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Uge'
+      monthWeekPrefix: 'Uge',
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
 
@@ -1033,7 +1041,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuter',
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'v.'
+      monthWeekPrefix: 'v.',
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }
 };

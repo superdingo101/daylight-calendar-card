@@ -102,6 +102,17 @@ export function getCardStyles() {
         padding: 16px 24px;
       }
 
+      .event-refresh-warning {
+        margin: 8px 12px 0;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(251, 191, 36, 0.18);
+        border: 1px solid rgba(245, 158, 11, 0.55);
+        color: var(--warning-color, #92400e);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
       .calendar-body {
         position: relative;
         z-index: 1;
