@@ -38,8 +38,10 @@ import {
 } from '../renderers/editor-renderer.js';
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
+import { clearAllEventCacheSnapshots } from '../events/event-cache.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
 import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
+import '../components/daylight-color-picker.js';
 
 function normalizeDefaultDarkMode(value) {
   if (value === true) return 'dark';
@@ -81,16 +83,9 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     this._config = createDefaultStubConfig();
     this._hass = null;
     this._rendered = false;
+    this._eventCacheFlushStatus = '';
     this._lastCalendarEntitiesKey = '';
-    this._colorPickerState = {
-      open: false,
-      field: null,
-      mapKey: null,
-      h: 0,
-      s: 1,
-      v: 1,
-      color: '#3f51b5'
-    };
+    this._colorPickerState = { field: null, mapKey: null, color: '#3f51b5' };
     this._combineBackgroundMode = DEFAULT_COMBINE_BACKGROUND;
     this._combineBackgroundHexDraft = '';
     this._openDisclosureKeys = new Set();
@@ -386,54 +381,6 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     return fallback;
   }
 
-  hexToHsv(hex) {
-    const normalizedHex = this.toColorInputValue(hex).replace('#', '');
-    const r = parseInt(normalizedHex.slice(0, 2), 16) / 255;
-    const g = parseInt(normalizedHex.slice(2, 4), 16) / 255;
-    const b = parseInt(normalizedHex.slice(4, 6), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-
-    let h = 0;
-    if (delta !== 0) {
-      if (max === r) h = ((g - b) / delta) % 6;
-      else if (max === g) h = (b - r) / delta + 2;
-      else h = (r - g) / delta + 4;
-      h = Math.round(h * 60);
-      if (h < 0) h += 360;
-    }
-
-    const s = max === 0 ? 0 : delta / max;
-    const v = max;
-    return { h, s, v };
-  }
-
-  hsvToHex(h, s, v) {
-    const hue = ((h % 360) + 360) % 360;
-    const sat = Math.max(0, Math.min(1, s));
-    const val = Math.max(0, Math.min(1, v));
-
-    const c = val * sat;
-    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-    const m = val - c;
-
-    let r = 0;
-    let g = 0;
-    let b = 0;
-
-    if (hue < 60) [r, g, b] = [c, x, 0];
-    else if (hue < 120) [r, g, b] = [x, c, 0];
-    else if (hue < 180) [r, g, b] = [0, c, x];
-    else if (hue < 240) [r, g, b] = [0, x, c];
-    else if (hue < 300) [r, g, b] = [x, 0, c];
-    else [r, g, b] = [c, 0, x];
-
-    const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  }
-
   getColorValue(field, mapKey = null) {
     if (field === 'virtual_calendar_color') {
       return this.getEditorVirtualCalendarColor(Number(mapKey));
@@ -457,79 +404,26 @@ export class SkylightCalendarCardEditor extends HTMLElement {
 
   openColorPicker(field, mapKey = null) {
     const initialColor = this.getColorValue(field, mapKey);
-    const hsv = this.hexToHsv(initialColor);
-    this._colorPickerState = {
-      open: true,
-      field,
-      mapKey,
-      h: hsv.h,
-      s: hsv.s,
-      v: hsv.v,
-      color: initialColor
-    };
-
+    this._colorPickerState = { field, mapKey, color: initialColor };
     const dialog = this.querySelector('.color-picker-dialog');
-    if (dialog) {
-      dialog.classList.add('show');
-      this.syncColorPickerUi();
-    }
+    const picker = this.querySelector('daylight-color-picker');
+    if (picker) picker.value = initialColor;
+    if (dialog) dialog.classList.add('show');
   }
 
   closeColorPicker() {
-    this._colorPickerState.open = false;
     const dialog = this.querySelector('.color-picker-dialog');
     if (dialog) dialog.classList.remove('show');
   }
 
-  syncColorPickerUi() {
-    const dialog = this.querySelector('.color-picker-dialog');
-    if (!dialog) return;
-
-    const { h, s, v, color } = this._colorPickerState;
-    const marker = dialog.querySelector('.color-picker-wheel-marker');
-    const brightnessInput = dialog.querySelector('#color-picker-brightness');
-    const hexInput = dialog.querySelector('#color-picker-hex');
-    const preview = dialog.querySelector('.color-picker-preview');
-    const valueText = dialog.querySelector('.color-picker-value');
-
-    if (marker) {
-      const radius = 120;
-      const angle = ((h - 90) * Math.PI) / 180;
-      const markerRadius = s * radius;
-      const x = Math.cos(angle) * markerRadius;
-      const y = Math.sin(angle) * markerRadius;
-      marker.style.left = `calc(50% + ${x}px)`;
-      marker.style.top = `calc(50% + ${y}px)`;
-    }
-
-    if (brightnessInput) brightnessInput.value = String(Math.round(v * 100));
-    if (hexInput && document.activeElement !== hexInput) hexInput.value = color;
-    if (preview) preview.style.background = color;
-    if (valueText) valueText.textContent = color;
-  }
-
-  updateColorPickerFromWheelEvent(event) {
-    const wheel = event.currentTarget;
-    const rect = wheel.getBoundingClientRect();
-    const x = event.clientX - rect.left - rect.width / 2;
-    const y = event.clientY - rect.top - rect.height / 2;
-    const radius = rect.width / 2;
-    const distance = Math.min(Math.sqrt(x * x + y * y), radius);
-    const saturation = distance / radius;
-    const hue = (Math.atan2(y, x) * 180) / Math.PI + 90;
-
-    this._colorPickerState.h = hue < 0 ? hue + 360 : hue;
-    this._colorPickerState.s = saturation;
-    this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-    this.syncColorPickerUi();
-  }
-
-  applyColorPickerColor(hexColor) {
+  applyColorPickerColor(hexColor = null) {
     const { field, mapKey } = this._colorPickerState;
-    if (!field) return;
+    const picker = this.querySelector('daylight-color-picker');
+    const selectedColor = hexColor || picker?.value || this._colorPickerState.color;
+    if (!field || !selectedColor) return;
 
     if (field === 'virtual_calendar_color') {
-      this.updateVirtualCalendar(Number(mapKey), { color: hexColor }, { render: true });
+      this.updateVirtualCalendar(Number(mapKey), { color: selectedColor }, { render: true });
       this.closeColorPicker();
       return;
     }
@@ -538,10 +432,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     if (mapKey) {
       nextConfig[field] = {
         ...this.getMapFieldValue(field),
-        [mapKey]: hexColor
+        [mapKey]: selectedColor
       };
     } else {
-      nextConfig[field] = hexColor;
+      nextConfig[field] = selectedColor;
     }
 
     this.emitConfigChanged(nextConfig);
@@ -549,44 +443,12 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     this.closeColorPicker();
   }
 
-  normalizeHexColorInput(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return null;
-    const withHash = raw.startsWith('#') ? raw : `#${raw}`;
-    return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : null;
-  }
-
   renderColorPickerDialog() {
     return `
       <div class="color-picker-dialog">
         <div class="color-picker-overlay" data-close-color-picker="true"></div>
         <div class="color-picker-modal" role="dialog" aria-label="Select color">
-          <div class="color-picker-title">Select color</div>
-          <div class="color-picker-wheel" id="color-picker-wheel">
-            <div class="color-picker-wheel-marker"></div>
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-brightness">Color brightness</label>
-            <input id="color-picker-brightness" type="range" min="5" max="100" step="1">
-          </div>
-          <div class="color-picker-controls">
-            <label for="color-picker-hex">Hex color</label>
-            <input id="color-picker-hex" type="text" placeholder="#3f51b5">
-          </div>
-          <div class="color-picker-presets">
-            ${['#ffffff', '#ff0000', '#ffff00', '#00ff00', '#000000', '#00ffff', '#0000ff', '#ff00ff']
-              .map((color) => `<button type="button" class="color-preset" data-color-preset="${color}" style="background:${color}"></button>`)
-              .join('')}
-          </div>
-          <div class="color-picker-selected-row">
-            <span>Chosen color</span>
-            <span class="color-picker-preview"></span>
-            <span class="color-picker-value"></span>
-          </div>
-          <div class="color-picker-actions">
-            <button type="button" data-close-color-picker="true">Cancel</button>
-            <button type="button" class="primary" id="apply-color-picker">Set</button>
-          </div>
+          <daylight-color-picker title="Select color" confirm-label="Set" cancel-label="Cancel"></daylight-color-picker>
         </div>
       </div>
     `;
@@ -1256,6 +1118,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       <p class="helper">Loaded version: ${this.escapeHtml(getDaylightCalendarCardVersion())}</p>
       <p class="helper">Resource file: skylight-calendar-card.js</p>
       <p class="helper">If this version does not match the version shown in HACS, Home Assistant may be loading a cached or stale resource.</p>
+      <div class="diagnostic-action">
+        <button type="button" data-event-cache-action="flush">Flush event cache</button>
+        <p class="helper">Clears persistent Daylight calendar event snapshots only. Hidden calendars and custom event colors are not changed.</p>
+        ${this._eventCacheFlushStatus ? `<p class="helper">${this.escapeHtml(this._eventCacheFlushStatus)}</p>` : ''}
+      </div>
       ${staleResourceDiagnostics}
     `);
 
@@ -1492,99 +1359,6 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           gap: 12px;
         }
 
-        .color-picker-title {
-          font-size: 1.8rem;
-          font-weight: 600;
-        }
-
-        .color-picker-wheel {
-          position: relative;
-          width: 260px;
-          height: 260px;
-          border-radius: 50%;
-          margin: 0 auto;
-          background:
-            radial-gradient(circle at center, #ffffff 0%, rgba(255, 255, 255, 0.85) 16%, rgba(255, 255, 255, 0) 58%),
-            conic-gradient(from 0deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff00ff, #ff0000);
-        }
-
-        .color-picker-wheel-marker {
-          position: absolute;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          border: 2px solid white;
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-        }
-
-        .color-picker-controls {
-          display: grid;
-          gap: 6px;
-        }
-
-        .color-picker-controls input[type="text"] {
-          padding: 8px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          font: inherit;
-          color: var(--primary-text-color);
-          background: var(--card-background-color);
-        }
-
-        .color-picker-presets {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-        }
-
-        .color-preset {
-          width: 100%;
-          aspect-ratio: 1;
-          border-radius: 50%;
-          border: 2px solid rgba(0, 0, 0, 0.08);
-          cursor: pointer;
-        }
-
-        .color-picker-selected-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .color-picker-preview {
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-          border: 1px solid var(--divider-color);
-        }
-
-        .color-picker-value {
-          font-family: monospace;
-        }
-
-        .color-picker-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-        }
-
-        .color-picker-actions button {
-          border: 1px solid var(--divider-color);
-          background: var(--card-background-color);
-          border-radius: 6px;
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--primary-text-color);
-        }
-
-        .color-picker-actions button.primary {
-          background: var(--primary-color);
-          color: white;
-          border-color: transparent;
-        }
-
         .map-label {
           font-weight: 500;
           color: var(--primary-text-color);
@@ -1746,6 +1520,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       button.addEventListener('click', (event) => this.handleVirtualCalendarAction(event));
     });
 
+    this.querySelectorAll('[data-event-cache-action="flush"]').forEach((button) => {
+      button.addEventListener('click', () => this.handleFlushEventCache());
+    });
+
     this.querySelectorAll('[data-virtual-calendar-field]').forEach((input) => {
       input.addEventListener('change', (event) => this.handleVirtualCalendarInput(event));
     });
@@ -1758,69 +1536,29 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
-    const wheel = this.querySelector('#color-picker-wheel');
-    if (wheel) {
-      let dragging = false;
-      wheel.addEventListener('pointerdown', (event) => {
-        dragging = true;
-        this.updateColorPickerFromWheelEvent(event);
+    const picker = this.querySelector('daylight-color-picker');
+    if (picker) {
+      picker.addEventListener('color-change', (event) => {
+        this._colorPickerState.color = event.detail.color;
       });
-      wheel.addEventListener('pointermove', (event) => {
-        if (dragging) this.updateColorPickerFromWheelEvent(event);
-      });
-      wheel.addEventListener('pointerup', () => { dragging = false; });
-      wheel.addEventListener('pointerleave', () => { dragging = false; });
+      picker.addEventListener('color-cancel', () => this.closeColorPicker());
+      picker.addEventListener('color-confirm', (event) => this.applyColorPickerColor(event.detail.color));
     }
-
-    this.querySelectorAll('[data-color-preset]').forEach((preset) => {
-      preset.addEventListener('click', () => {
-        const hex = preset.dataset.colorPreset;
-        const hsv = this.hexToHsv(hex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = this.hsvToHex(hsv.h, hsv.s, hsv.v);
-        this.syncColorPickerUi();
-      });
-    });
 
     this.querySelectorAll('[data-close-color-picker]').forEach((button) => {
       button.addEventListener('click', () => this.closeColorPicker());
     });
 
-    const brightnessInput = this.querySelector('#color-picker-brightness');
-    if (brightnessInput) {
-      brightnessInput.addEventListener('input', (event) => {
-        this._colorPickerState.v = Number(event.target.value) / 100;
-        this._colorPickerState.color = this.hsvToHex(this._colorPickerState.h, this._colorPickerState.s, this._colorPickerState.v);
-        this.syncColorPickerUi();
-      });
-    }
-
-    const hexInput = this.querySelector('#color-picker-hex');
-    if (hexInput) {
-      const syncHexColor = () => {
-        const normalizedHex = this.normalizeHexColorInput(hexInput.value);
-        if (!normalizedHex) return;
-        const hsv = this.hexToHsv(normalizedHex);
-        this._colorPickerState.h = hsv.h;
-        this._colorPickerState.s = hsv.s;
-        this._colorPickerState.v = hsv.v;
-        this._colorPickerState.color = normalizedHex;
-        this.syncColorPickerUi();
-      };
-      hexInput.addEventListener('input', syncHexColor);
-      hexInput.addEventListener('change', syncHexColor);
-    }
-
-    const applyBtn = this.querySelector('#apply-color-picker');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        this.applyColorPickerColor(this._colorPickerState.color);
-      });
-    }
-
     this._rendered = true;
+  }
+
+  async handleFlushEventCache() {
+    const cleared = await clearAllEventCacheSnapshots();
+    this._eventCacheFlushStatus = cleared
+      ? 'Event cache cleared. The card will load fresh calendar data.'
+      : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
+    window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
   }
 
   refreshCalendarEntities() {

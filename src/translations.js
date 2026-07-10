@@ -27,6 +27,11 @@ export const TRANSLATIONS = {
       allDayEvent: 'All-day event',
       recurring: 'Recurring',
       eventOptions: 'Event Options',
+      customColor: 'Custom Color',
+      useDefault: 'Use Default',
+      applyColor: 'Apply Color',
+      invalidHexColor: 'Enter a valid hex color like #3B82F6.',
+      customColorCombinedPrompt: 'Select which calendar copy to color.',
       recurringEventOptions: 'Recurring options',
       recurrenceFrequency: 'Repeat',
       recurrenceEvery: 'Every',
@@ -118,7 +123,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'CW'
+      monthWeekPrefix: 'CW',
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
 
@@ -232,7 +238,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem'
+      monthWeekPrefix: 'Sem',
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
 
@@ -346,7 +353,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} Minuten',
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
 
@@ -460,7 +468,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW'
+      monthWeekPrefix: 'KW',
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
   es: {
@@ -573,7 +582,128 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutos',
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Sem.'
+      monthWeekPrefix: 'Sem.',
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
+    }
+  },
+  
+  et: {
+    locale: 'et-EE',
+    strings: {
+      defaultTitle: 'Perekalender',
+      addEvent: 'Lisa sündmus',
+      today: 'Täna',
+      month: 'Kuu',
+      week: 'Nädal',
+      schedule: 'Ajakava',
+      agenda: 'Päevakava',
+      resetAgenda: 'Hüppa tänasele päevale',
+      openDashboard: 'Ava juhtpaneel',
+      calendars: 'Kalendrid',
+      calendar: 'Kalender',
+      eventTitle: 'Sündmuse pealkiri',
+      eventTitlePlaceholder: 'Koosolek',
+      allDayEvent: 'Kogu päeva sündmus',
+      recurring: 'Korduv',
+      eventOptions: 'Sündmuse valikud',
+      customColor: 'Kohandatud värv',
+      useDefault: 'Kasuta vaikimisi värvi',
+      applyColor: 'Rakenda värv',
+      invalidHexColor: 'Sisesta korrektne hex värvikood, näiteks #3B82F6.',
+      customColorCombinedPrompt: 'Vali kalendrikoopia, millele värv rakendada.',
+      recurringEventOptions: 'Korduvuse valikud',
+      recurrenceFrequency: 'Kordus',
+      recurrenceEvery: 'Iga',
+      recurrenceIntervalSuffix: 'intervalliga',
+      recurrenceEndsOn: 'Lõpeb',
+      recurrenceCount: 'Korduste arv (COUNT)',
+      recurrenceWeekdays: 'Nädalapäevad',
+      recurrenceNoEndDate: 'Lõppkuupäev puudub (valikuline)',
+      recurrenceDaily: 'Iga päev',
+      recurrenceWeekly: 'Iga nädal',
+      recurrenceMonthly: 'Iga kuu',
+      recurrenceYearly: 'Iga aasta',
+      recurrenceNever: 'Mitte kunagi',
+      recurrenceOn: 'Kuupäeval',
+      recurrenceAfter: 'Pärast',
+      recurrenceOccurrences: 'kordust',
+      recurrenceSelectWeekday: 'Vali iganädalase korduse jaoks vähemalt üks nädalapäev',
+      start: 'Algus',
+      end: 'Lõpp',
+      startDate: 'Alguskuupäev',
+      endDate: 'Lõppkuupäev',
+      location: 'Asukoht',
+      locationPlaceholder: 'Konverentsiruum A',
+      openInGoogleMaps: 'Ava Google Mapsis',
+      copyAddress: 'Kopeeri aadress',
+      description: 'Kirjeldus',
+      descriptionPlaceholder: 'Sündmuse üksikasjad...',
+      cancel: 'Tühista',
+      createEvent: 'Loo sündmus',
+      creating: 'Loomine...',
+      forwardEvent: 'Edasta sündmus',
+      forwardEventTitle: 'Sündmuse edastamine',
+      forwardEventPrompt: 'Vali üks või mitu uut kalendrit, kuhu see sündmus edastada.',
+      forwardEventAlreadyExists: 'Sündmus on juba olemas',
+      forwardEventNoNewCalendars: 'Vali vähemalt üks uus kalender, kuhu sündmus edastada.',
+      continue: 'Jätka',
+      editEvent: 'Muuda sündmust',
+      saveChanges: 'Salvesta muudatused',
+      saving: 'Salvestamine...',
+      delete: 'Kustuta',
+      deleting: 'Kustutamine...',
+      deleteEventTitle: 'Kustuta sündmus',
+      deleteRecurringEventTitle: 'Kustuta korduv sündmus',
+      deleteEventConfirm: 'Kas oled kindel, et soovid kustutada "{title}"? Seda ei saa tagasi võtta.',
+      deleteRecurringPrompt: '"{title}" on korduv sündmus. Kuidas soovid kustutada?',
+      editRecurringEventTitle: 'Muuda korduvat sündmust',
+      editRecurringPrompt: '"{title}" on korduv sündmus. Kuidas soovid muuta?',
+      editThisOccurrence: 'Muuda ainult seda kordust',
+      editThisOccurrenceAndFuture: 'Muuda seda ja kõiki tulevasi kordusi',
+      editEntireSeries: 'Muuda kogu seeriat',
+      deleteThisEventOnly: 'Ainult see sündmus',
+      deleteThisOccurrence: 'Kustuta ainult see kordus',
+      deleteThisAndFutureEvents: 'See ja tulevased sündmused',
+      deleteThisOccurrenceAndFuture: 'Kustuta see ja kõik tulevased kordused',
+      deleteAllEvents: 'Kõik sündmused',
+      deleteEntireSeries: 'Kustuta kogu seeria',
+      noEvents: 'Sündmusi pole',
+      allDay: 'Kogu päev',
+      at: 'kell',
+      duration: 'Kestus',
+      attendees: 'Osalejad',
+      recurrence: 'Kordus',
+      recurringEvent: 'Korduv sündmus',
+      unknownAttendee: 'Tundmatu',
+      googleCalendarLimitationTitle: 'ℹ️ Google Calendari piirang:',
+      googleCalendarLimitationBody: 'Sündmuste muutmine ei ole Home Assistanti kaudu Google Calendaris toetatud. Saad neid kustutada, kuid muutmiseks kasuta Google Calendari rakendust või veebilehte.',
+      cannotModifyTitle: 'ℹ️ Ei saa muuta:',
+      cannotModifyBody: 'Sellel sündmusel puudub vajalik info (UID) muutmiseks või kustutamiseks. Võib-olla pead selle uuesti looma.',
+      untitledEvent: 'Pealkirjata sündmus',
+      noWritableCalendars: 'Pole ühtegi kirjutatavat kalendrit',
+      eventTitleRequired: 'Sündmuse pealkiri on kohustuslik',
+      startEndDatesRequired: 'Algus- ja lõppkuupäev on kohustuslikud',
+      endDateBeforeStart: 'Lõppkuupäev ei saa olla enne algust',
+      startEndTimesRequired: 'Algus- ja lõppaeg on kohustuslikud',
+      endTimeBeforeStart: 'Lõppaeg peab olema hilisem kui algusaeg',
+      failedCreateEvent: 'Sündmuse loomine ebaõnnestus. Proovi uuesti.',
+      failedUpdateEvent: 'Sündmuse muutmine ebaõnnestus. Proovi uuesti.',
+      failedDeleteEvent: 'Sündmuse kustutamine ebaõnnestus. Proovi uuesti.',
+      homeAssistantUnavailable: 'Home Assistant ei ole saadaval',
+      googleCalendarEditError: 'Google Calendar ei toeta Home Assistanti kaudu muutmist. Kasuta Google Calendari rakendust või veebilehte.',
+      missingUidError: 'Sellel sündmusel puudub vajalik info (UID) ja seda ei saa muuta.',
+      calendarNoModifyError: 'See kalender ei toeta sündmuste muutmist. Proovi luua uus sündmus.',
+      createEventServiceError: 'Sündmuse loomine ebaõnnestus',
+      deleteEventServiceError: 'Sündmuse kustutamine ebaõnnestus',
+      updateEventServiceError: 'Sündmuse muutmine ebaõnnestus. Kalender ei pruugi muutmist toetada.',
+      durationHour: '{count} tund',
+      durationHours: '{count} tundi',
+      durationMinute: '{count} minut',
+      durationMinutes: '{count} minutit',
+      moreEvents: '+{count} veel',
+      eventTitleWithStartTime: '{title}, {time}',
+      monthWeekPrefix: 'Nädal',
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
 
@@ -687,7 +817,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuts',
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Set.'
+      monthWeekPrefix: 'Set.',
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
 
@@ -801,7 +932,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minutter',
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'Uge'
+      monthWeekPrefix: 'Uge',
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
 
@@ -909,7 +1041,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuter',
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'v.'
+      monthWeekPrefix: 'v.',
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }
 };
