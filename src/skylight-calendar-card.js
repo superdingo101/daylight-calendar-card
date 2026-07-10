@@ -7220,7 +7220,7 @@ class SkylightCalendarCard extends HTMLElement {
     const sourceEvents = this.getVisibleCombinedSourceEvents(wrapperEvent);
     content.innerHTML = `
       <div class="confirm-dialog">
-        <h3 class="confirm-title">${this.t('customColor')}</h3>
+        <h3 class="confirm-title">${this.t('customColorTitle')}</h3>
         <p class="confirm-message">${this.t('customColorCombinedPrompt')}</p>
         <div class="recurring-options">
           ${sourceEvents.map((sourceEvent, index) => `
@@ -7268,9 +7268,9 @@ class SkylightCalendarCard extends HTMLElement {
         ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
       </div></div>` : '';
     content.innerHTML = `
-      <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
+      <div class="modal-header"><h3 class="modal-title">${this.t('customColorTitle')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
       <div class="modal-body custom-color-modal">
-        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
+        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColorTitle')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
         <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;
