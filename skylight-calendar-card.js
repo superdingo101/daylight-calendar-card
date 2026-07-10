@@ -5915,6 +5915,7 @@ const TRANSLATIONS = {
       recurring: 'Recurring',
       eventOptions: 'Event Options',
       customColor: 'Color',
+      customColorTitle: 'Custom Color',
       useDefault: 'Use Default',
       applyColor: 'Apply Color',
       invalidHexColor: 'Enter a valid hex color like #3B82F6.',
@@ -6035,6 +6036,7 @@ const TRANSLATIONS = {
       recurring: 'Récurrent',
       eventOptions: "Options de l'événement",
       customColor: 'Couleur',
+      customColorTitle: 'Couleur personnalisée',
       useDefault: 'Utiliser la valeur par défaut',
       applyColor: 'Appliquer la couleur',
       invalidHexColor: 'Saisissez une couleur hexadécimale valide comme #3B82F6.',
@@ -6155,6 +6157,7 @@ const TRANSLATIONS = {
       recurring: 'Wiederkehrend',
       eventOptions: 'Terminoptionen',
       customColor: 'Farbe',
+      customColorTitle: 'Benutzerdefinierte Farbe',
       useDefault: 'Standard verwenden',
       applyColor: 'Farbe anwenden',
       invalidHexColor: 'Geben Sie eine gültige Hex-Farbe wie #3B82F6 ein.',
@@ -6275,6 +6278,7 @@ const TRANSLATIONS = {
       recurring: 'Terugkerend',
       eventOptions: 'Afspraakopties',
       customColor: 'Kleur',
+      customColorTitle: 'Aangepaste kleur',
       useDefault: 'Standaard gebruiken',
       applyColor: 'Kleur toepassen',
       invalidHexColor: 'Voer een geldige hexkleur in, zoals #3B82F6.',
@@ -6394,6 +6398,7 @@ const TRANSLATIONS = {
       recurring: 'Recurrente',
       eventOptions: 'Opciones del evento',
       customColor: 'Color',
+      customColorTitle: 'Color personalizado',
       useDefault: 'Usar predeterminado',
       applyColor: 'Aplicar color',
       invalidHexColor: 'Introduce un color hexadecimal válido como #3B82F6.',
@@ -6514,6 +6519,7 @@ const TRANSLATIONS = {
       recurring: 'Korduv',
       eventOptions: 'Sündmuse valikud',
       customColor: 'Värv',
+      customColorTitle: 'Kohandatud värv',
       useDefault: 'Kasuta vaikimisi värvi',
       applyColor: 'Rakenda värv',
       invalidHexColor: 'Sisesta korrektne hex värvikood, näiteks #3B82F6.',
@@ -6634,6 +6640,7 @@ const TRANSLATIONS = {
       recurring: 'Recurrent',
       eventOptions: "Opcions de l'esdeveniment",
       customColor: 'Color',
+      customColorTitle: 'Color personalitzat',
       useDefault: 'Utilitza el valor predeterminat',
       applyColor: 'Aplica el color',
       invalidHexColor: 'Introdueix un color hexadecimal vàlid com #3B82F6.',
@@ -6668,13 +6675,13 @@ const TRANSLATIONS = {
       cancel: 'Cancel·lar',
       createEvent: 'Crear esdeveniment',
       creating: 'Creant...',
-      forwardEvent: 'Reenvia',
+      forwardEvent: 'Reenviar',
       forwardEventTitle: "Reenviar esdeveniment",
       forwardEventPrompt: 'Selecciona un o més calendaris nous als quals reenviar aquest esdeveniment.',
       forwardEventAlreadyExists: 'Ja conté aquest esdeveniment',
       forwardEventNoNewCalendars: 'Selecciona almenys un calendari nou al qual reenviar aquest esdeveniment.',
       continue: 'Continuar',
-      editEvent: 'Edita',
+      editEvent: 'Editar',
       saveChanges: 'Desar canvis',
       saving: 'Desant...',
       delete: 'Eliminar',
@@ -6754,6 +6761,7 @@ const TRANSLATIONS = {
       recurring: 'Gentagende',
       eventOptions: 'Begivenhedsindstillinger',
       customColor: 'Farve',
+      customColorTitle: 'Brugerdefineret farve',
       useDefault: 'Brug standard',
       applyColor: 'Anvend farve',
       invalidHexColor: 'Indtast en gyldig hex-farve som #3B82F6.',
@@ -6874,6 +6882,7 @@ const TRANSLATIONS = {
       recurring: 'Återkommande',
       eventOptions: 'Alternativ',
       customColor: 'Färg',
+      customColorTitle: 'Anpassad färg',
       useDefault: 'Använd standard',
       applyColor: 'Använd färg',
       invalidHexColor: 'Ange en giltig hex-färg som #3B82F6.',
@@ -17558,7 +17567,7 @@ class SkylightCalendarCard extends HTMLElement {
     const sourceEvents = this.getVisibleCombinedSourceEvents(wrapperEvent);
     content.innerHTML = `
       <div class="confirm-dialog">
-        <h3 class="confirm-title">${this.t('customColor')}</h3>
+        <h3 class="confirm-title">${this.t('customColorTitle')}</h3>
         <p class="confirm-message">${this.t('customColorCombinedPrompt')}</p>
         <div class="recurring-options">
           ${sourceEvents.map((sourceEvent, index) => `
@@ -17606,9 +17615,9 @@ class SkylightCalendarCard extends HTMLElement {
         ${scopes.map((scope, index) => `<label class="recurring-option"><input type="radio" name="custom-color-scope" value="${scope.value}" ${index === 0 ? 'checked' : ''} /><div class="recurring-option-label"><div class="recurring-option-title">${scope.label}</div></div></label>`).join('')}
       </div></div>` : '';
     content.innerHTML = `
-      <div class="modal-header"><h3 class="modal-title">${this.t('customColor')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
+      <div class="modal-header"><h3 class="modal-title">${this.t('customColorTitle')}</h3><button class="modal-close" id="close-custom-color-modal">×</button></div>
       <div class="modal-body custom-color-modal">
-        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColor')}" show-actions="false"></daylight-color-picker>
+        <daylight-color-picker id="custom-color-wheel" value="${currentColor}" title="${this.t('customColorTitle')}" show-actions="false"></daylight-color-picker>
         ${scopeHtml}
         <div class="modal-actions"><div class="modal-actions-left"><button class="btn btn-secondary" id="custom-color-default-btn">${this.t('useDefault')}</button></div><div class="modal-actions-right"><button class="btn btn-secondary" id="cancel-custom-color-btn">${this.t('cancel')}</button><button class="btn btn-primary" id="apply-custom-color-btn">${this.t('applyColor')}</button></div></div>
       </div>`;

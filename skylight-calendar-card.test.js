@@ -668,7 +668,7 @@ test('successful create workflow completion still closes the modal', async () =>
 });
 
 
-test('event detail modal exposes Custom Color for read-only events and badge uses effective custom color', async () => {
+test('event detail modal exposes Color action for read-only events and badge uses effective custom color', async () => {
   const { applyCustomEventColor } = await import('./src/events/custom-event-colors.js');
   const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
   const event = { entityId: 'calendar.family', uid: 'readonly-custom', color: '#ffffff', summary: 'Read only', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
@@ -688,6 +688,7 @@ test('event detail modal exposes Custom Color for read-only events and badge use
   card.showEventModal(event);
 
   assert.match(content.innerHTML, /id="custom-color-btn"/);
+  assert.match(content.innerHTML, /id="custom-color-btn">Color/);
   assert.doesNotMatch(content.innerHTML, /id="edit-event-btn"/);
   assert.doesNotMatch(content.innerHTML, /id="delete-event-btn"/);
   assert.match(content.innerHTML, /modal-calendar-badge" style="background: #000000; color: white;/);
@@ -6754,6 +6755,8 @@ test('event custom color modal uses shared picker for apply, default, and recurr
 
   card.showCustomColorModal(event, event);
   assert.match(content.innerHTML, /<daylight-color-picker/);
+  assert.match(content.innerHTML, /<h3 class="modal-title">Custom Color<\/h3>/);
+  assert.match(content.innerHTML, /title="Custom Color"/);
   assert.doesNotMatch(content.innerHTML, /type="color"/);
   handlers['picker:color-change']({ detail: { color: '#abcdef' } });
   handlers.apply();
