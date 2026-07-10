@@ -82,6 +82,40 @@ header_time_sensor: sensor.time
 header_weather_sensor: weather.home
 ```
 
+## Custom header items
+
+Use `header_items` to add short, structured icon/value pairs after the title, live time, and weather summary. Header items are intended for glanceable values. For the best responsive layout, use 1–4 short items.
+
+<ParamField path="header_items" type="array">
+  Optional list of custom header items. Each item supports:
+
+  - `icon`: optional static MDI icon, such as `mdi:weather-sunset-up`.
+  - `entity`: optional Home Assistant entity ID.
+  - `attribute`: optional attribute name. When set, the card displays that attribute instead of the entity state.
+  - `text`: optional static text or fallback text.
+  - `format`: optional display format. Defaults to `auto`. Supported values are `auto`, `raw`, `time`, `date`, and `datetime`.
+
+  `auto` uses compact formatting: timestamp entities show a local time, date entities show a localized date, entities with units keep their unit, and other values display as raw state text.
+</ParamField>
+
+```yaml
+type: custom:daylight-calendar-card
+title: Family Calendar
+entities:
+  - calendar.family
+header_weather_sensor: weather.home
+header_time_sensor: sensor.time
+header_items:
+  - icon: mdi:weather-sunset-up
+    entity: sensor.sun_next_rising
+  - icon: mdi:weather-sunset-down
+    entity: sensor.sun_next_setting
+  - icon: mdi:home
+    text: Family
+```
+
+Header items hide automatically when their resolved value is empty, `unknown`, or `unavailable`. If an entity is missing and `text` is provided, the card displays the text fallback. Values and icon names are escaped before rendering. Arbitrary HTML and Jinja/template subscriptions are intentionally not supported in this initial feature.
+
 ## Combined Example
 
 The configuration below shows a card that displays both a live clock and a daily weather forecast in the header:

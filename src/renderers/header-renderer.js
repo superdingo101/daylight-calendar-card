@@ -60,6 +60,7 @@ export function renderHeaderTitle({
   title,
   headerTime,
   headerWeather,
+  headerItems = [],
   helpers
 }) {
   return `
@@ -67,6 +68,7 @@ export function renderHeaderTitle({
         <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtml(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
     `;
 }

@@ -69,6 +69,11 @@ import {
 } from './config/config-normalizers.js';
 import { escapeHtmlAttribute, normalizeEventTextValue } from './utils/string-utils.js';
 import {
+  getHeaderItemsRenderSignature,
+  normalizeHeaderItems as normalizeHeaderItemsHelper,
+  resolveHeaderItems as resolveHeaderItemsHelper
+} from './header/header-items.js';
+import {
   detectStaleSkylightResource,
   STALE_RESOURCE_TROUBLESHOOTING_URL,
   STALE_RESOURCE_WARNING_STORAGE_KEY
@@ -949,6 +954,7 @@ class SkylightCalendarCard extends HTMLElement {
       normalizedHeaderWeatherSensor: typeof rawConfig.header_weather_sensor === 'string' && rawConfig.header_weather_sensor.trim()
         ? rawConfig.header_weather_sensor.trim()
         : null,
+      normalizedHeaderItems: normalizeHeaderItemsHelper(rawConfig.header_items),
       language
     };
   }
@@ -1058,8 +1064,11 @@ class SkylightCalendarCard extends HTMLElement {
     const nextHeaderWeatherSensorState = configuredHeaderWeatherSensor
       ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderWeatherSensor])
       : null;
+    const previousHeaderItemsState = getHeaderItemsRenderSignature(this._config?.header_items, oldHass);
+    const nextHeaderItemsState = getHeaderItemsRenderSignature(this._config?.header_items, hass);
     const headerSensorChanged = previousHeaderTimeSensorState !== nextHeaderTimeSensorState ||
-      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState;
+      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState ||
+      previousHeaderItemsState !== nextHeaderItemsState;
     const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
       this.getCalendarBadgePersonRenderSignature(hass);
 
@@ -3605,10 +3614,12 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
+    const headerItems = this.resolveHeaderItems();
     return renderHeaderTitleMarkup({
       title: this._config.title,
       headerTime,
       headerWeather,
+      headerItems,
       helpers: this.getHeaderRenderHelpers()
     });
   }
@@ -7507,6 +7518,15 @@ class SkylightCalendarCard extends HTMLElement {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+  }
+
+  resolveHeaderItems() {
+    return resolveHeaderItemsHelper(this._config?.header_items, this._hass, {
+      parseTimeValue: (value) => this.parseTimeValue(value),
+      formatTime: (date) => this.formatTime(date),
+      formatDate: (date) => new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'short', day: 'numeric' })).format(date),
+      formatDateTime: (date) => new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'short', day: 'numeric', ...this.getTimeFormatOptions() })).format(date)
+    });
   }
 
   getFormattedHeaderWeather() {

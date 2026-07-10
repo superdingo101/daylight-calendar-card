@@ -118,6 +118,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_dashboard_path: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
+  header_items: 'header_items normalize supported item shapes and formats',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
   location_links: 'event location links are opt-in for the details modal',
@@ -809,7 +810,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
+    'header_weather_sensor', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
   assert.deepEqual(stub, {
@@ -861,6 +862,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     show_dashboard_nav_button: false,
     header_dashboard_path: null,
     header_weather_sensor: '',
+    header_items: [],
     calendar_person_entities: {},
     default_hidden_calendars: [],
     color_scheme: 'auto',
@@ -2697,6 +2699,97 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   const forecastHtml = card.renderDayForecast(new Date('2026-05-14T00:00:00Z'));
   assert.match(forecastHtml, /<ha-icon icon="mdi:weather-partly-cloudy"><\/ha-icon>/);
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
+});
+
+
+
+test('header_items normalize supported item shapes and formats', async () => {
+  const { normalizeHeaderItems } = await import('./src/header/header-items.js');
+
+  assert.deepEqual(normalizeHeaderItems(null), []);
+  assert.deepEqual(normalizeHeaderItems('bad'), []);
+  assert.deepEqual(normalizeHeaderItems([
+    { icon: ' mdi:home ', text: ' Family ' },
+    { entity: ' sensor.temp ', format: 'raw' },
+    { entity: 'sensor.sun', attribute: 'next_rising', format: 'nonsense' },
+    { text: 'Hidden format', format: 'date' },
+    null,
+    {}
+  ]), [
+    { icon: 'mdi:home', entity: null, attribute: null, text: 'Family', format: 'auto' },
+    { icon: null, entity: 'sensor.temp', attribute: null, text: null, format: 'raw' },
+    { icon: null, entity: 'sensor.sun', attribute: 'next_rising', text: null, format: 'auto' },
+    { icon: null, entity: null, attribute: null, text: 'Hidden format', format: 'date' }
+  ]);
+});
+
+test('header_items render icons entity values fallbacks and escaped text', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    header_items: [
+      { icon: 'mdi:test"bad', entity: 'sensor.temp' },
+      { icon: 'mdi:bad', entity: 'sensor.missing', text: '<Family>' },
+      { icon: 'mdi:hidden', entity: 'sensor.hidden' }
+    ]
+  });
+  card._hass = { states: {
+    'sensor.temp': { state: '72', attributes: { unit_of_measurement: '°F' } },
+    'sensor.hidden': { state: 'unavailable', attributes: {} }
+  } };
+
+  const html = card.renderHeaderTitle();
+  assert.match(html, /<span class="header-item"><ha-icon icon="mdi:test&quot;bad"><\/ha-icon><span class="header-item-value">72 °F<\/span><\/span>/);
+  assert.match(html, /<span class="header-item"><ha-icon icon="mdi:bad"><\/ha-icon><span class="header-item-value">&lt;Family&gt;<\/span><\/span>/);
+  assert.doesNotMatch(html, /mdi:hidden/);
+  assert.doesNotMatch(html, /<Family>/);
+});
+
+test('header_items resolves attribute and auto date timestamp unit and raw values', async () => {
+  const { resolveHeaderItems } = await import('./src/header/header-items.js');
+  const hass = { states: {
+    'sensor.sunrise': { state: '2026-07-10T11:12:00Z', attributes: { device_class: 'timestamp' } },
+    'sensor.day': { state: '2026-07-10', attributes: { device_class: 'date' } },
+    'sensor.temp': { state: '22', attributes: { unit_of_measurement: '°C' } },
+    'sensor.attr': { state: 'ok', attributes: { label: 'Attribute <value>' } },
+    'sensor.raw': { state: 'plain', attributes: {} }
+  } };
+  const formatters = {
+    parseTimeValue: (value) => new Date(value),
+    formatTime: () => '11:12 AM',
+    formatDate: () => 'Jul 10',
+    formatDateTime: () => 'Jul 10, 11:12 AM'
+  };
+
+  assert.deepEqual(resolveHeaderItems([
+    { entity: 'sensor.sunrise' },
+    { entity: 'sensor.day' },
+    { entity: 'sensor.temp' },
+    { entity: 'sensor.attr', attribute: 'label' },
+    { entity: 'sensor.raw' }
+  ], hass, formatters).map((item) => item.value), [
+    '11:12 AM',
+    'Jul 10',
+    '22 °C',
+    'Attribute <value>',
+    'plain'
+  ]);
+});
+
+test('header_items explicit time date and datetime formats use supplied formatters', async () => {
+  const { resolveHeaderItems } = await import('./src/header/header-items.js');
+  const hass = { states: { 'sensor.value': { state: '2026-07-10T11:12:00Z', attributes: {} } } };
+  const formatters = {
+    parseTimeValue: (value) => new Date(value),
+    formatTime: () => 'time value',
+    formatDate: () => 'date value',
+    formatDateTime: () => 'datetime value'
+  };
+
+  assert.deepEqual(resolveHeaderItems([
+    { entity: 'sensor.value', format: 'time' },
+    { entity: 'sensor.value', format: 'date' },
+    { entity: 'sensor.value', format: 'datetime' }
+  ], hass, formatters).map((item) => item.value), ['time value', 'date value', 'datetime value']);
 });
 
 
