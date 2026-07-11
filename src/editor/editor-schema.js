@@ -1,3 +1,4 @@
+import { normalizeHeaderItems } from '../header/header-items.js';
 import {
   DEFAULT_BACKGROUND_IMAGE_POSITION,
   DEFAULT_BACKGROUND_IMAGE_REPEAT,
@@ -72,6 +73,7 @@ export function createConfigNormalizationSchema({
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
       { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || DEFAULT_CONFIG_VALUES.use_short_location },
