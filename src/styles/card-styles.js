@@ -292,7 +292,8 @@ export function getCardStyles() {
         white-space: nowrap;
       }
 
-      .header-weather {
+      .header-weather,
+      .header-item {
         display: inline-flex;
         align-items: center;
         gap: 4px;
@@ -303,8 +304,13 @@ export function getCardStyles() {
         white-space: nowrap;
       }
 
-      .header-weather ha-icon {
+      .header-weather ha-icon,
+      .header-item ha-icon {
         --mdc-icon-size: 28px;
+      }
+
+      .header-item-value {
+        display: inline-block;
       }
 
       .add-event-button {

@@ -179,6 +179,7 @@ const DEFAULT_STUB_CONFIG = {
   show_dashboard_nav_button: false,
   header_dashboard_path: null,
   header_weather_sensor: '',
+  header_items: [],
   calendar_person_entities: {},
   default_hidden_calendars: [],
   color_scheme: 'auto',
@@ -192,8 +193,184 @@ const createDefaultStubConfig = () => ({
   week_days: [...DEFAULT_STUB_CONFIG.week_days],
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
-  default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars]
+  default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
+  header_items: [...DEFAULT_STUB_CONFIG.header_items]
 });
+
+function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
+  const chunks = [];
+  let cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+
+  while (cursor <= endDate) {
+    const chunkStart = new Date(cursor);
+    const chunkEnd = new Date(cursor);
+    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+    if (chunkEnd > endDate) {
+      chunkEnd.setTime(endDate.getTime());
+    }
+    chunkEnd.setHours(23, 59, 59, 999);
+
+    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
+
+    cursor = new Date(chunkEnd);
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return chunks;
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+  return new Date(year, month - 1, day);
+}
+
+function parsePossiblyLocalDateTime(value) {
+  if (!value || typeof value !== 'string') return new Date(value);
+
+  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
+  if (hasTimezone) return new Date(value);
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return new Date(value);
+
+  const [, year, month, day, hour, minute, second = '0'] = match;
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+}
+
+function formatLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getIsoWeekNumber(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+const HEADER_ITEM_FORMATS = new Set(['auto', 'raw', 'time', 'date', 'datetime']);
+const EMPTY_STATES = new Set(['', 'unknown', 'unavailable']);
+
+function normalizeOptionalString(value) {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim();
+  return normalized || null;
+}
+
+function normalizeHeaderItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+    .map((item) => ({
+      icon: normalizeOptionalString(item.icon),
+      entity: normalizeOptionalString(item.entity),
+      attribute: normalizeOptionalString(item.attribute),
+      text: normalizeOptionalString(item.text),
+      format: HEADER_ITEM_FORMATS.has(normalizeOptionalString(item.format)) ? normalizeOptionalString(item.format) : 'auto'
+    }))
+    .filter((item) => item.icon || item.entity || item.text);
+}
+
+function isEmptyResolvedValue(value) {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string') return EMPTY_STATES.has(value.trim().toLowerCase());
+  return false;
+}
+
+function stringifyRawValue(value) {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object' && value !== null) return JSON.stringify(value);
+  return String(value);
+}
+
+function parseDateValue(value, parseTimeValue) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const parsedLocalDate = parseLocalDate(raw);
+    return parsedLocalDate instanceof Date && !Number.isNaN(parsedLocalDate.getTime()) ? parsedLocalDate : null;
+  }
+  if (typeof parseTimeValue === 'function') {
+    const parsedTime = parseTimeValue(value);
+    if (parsedTime) return parsedTime;
+  }
+  const parsed = parsePossiblyLocalDateTime(raw);
+  return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function formatDateValue(value, format, formatters = {}) {
+  const parsed = parseDateValue(value, formatters.parseTimeValue);
+  if (!parsed) return '';
+  if (format === 'time') return formatters.formatTime?.(parsed) || '';
+  if (format === 'date') return formatters.formatDate?.(parsed) || '';
+  return formatters.formatDateTime?.(parsed) || '';
+}
+
+function resolveHeaderItemValue(item, hass, formatters = {}) {
+  const entityState = item.entity ? hass?.states?.[item.entity] : null;
+  const hasEntityValue = !!entityState;
+  const rawEntityValue = hasEntityValue
+    ? (item.attribute ? entityState.attributes?.[item.attribute] : entityState.state)
+    : undefined;
+  const rawValue = !isEmptyResolvedValue(rawEntityValue) ? rawEntityValue : item.text;
+  if (isEmptyResolvedValue(rawValue)) return '';
+
+  const format = item.format || 'auto';
+  if (format === 'time' || format === 'date' || format === 'datetime') {
+    return formatDateValue(rawValue, format, formatters);
+  }
+
+  if (format === 'raw') return stringifyRawValue(rawValue);
+
+  const deviceClass = normalizeOptionalString(entityState?.attributes?.device_class);
+  if (deviceClass === 'timestamp') return formatDateValue(rawValue, 'time', formatters);
+  if (deviceClass === 'date') return formatDateValue(rawValue, 'date', formatters);
+
+  const rawText = stringifyRawValue(rawValue);
+  const unit = normalizeOptionalString(entityState?.attributes?.unit_of_measurement);
+  if (unit && hasEntityValue && !item.attribute) return `${rawText} ${unit}`;
+  return rawText;
+}
+
+function resolveHeaderItems(items, hass, formatters = {}) {
+  return normalizeHeaderItems(items).map((item) => ({
+    icon: item.icon,
+    value: resolveHeaderItemValue(item, hass, formatters)
+  })).filter((item) => !isEmptyResolvedValue(item.value));
+}
+
+function getHeaderItemsRenderSignature(items, hass) {
+  return JSON.stringify(normalizeHeaderItems(items).filter((item) => item.entity).map((item) => {
+    const state = hass?.states?.[item.entity];
+    return {
+      entity: item.entity,
+      attribute: item.attribute,
+      state: state?.state ?? null,
+      attributeValue: item.attribute ? state?.attributes?.[item.attribute] ?? null : null,
+      deviceClass: state?.attributes?.device_class ?? null,
+      unitOfMeasurement: state?.attributes?.unit_of_measurement ?? null,
+      icon: state?.attributes?.icon ?? null
+    };
+  }));
+}
 
 function createConfigNormalizationSchema({
   hasCustomTitle,
@@ -255,6 +432,7 @@ function createConfigNormalizationSchema({
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
       { key: 'use_short_location', defaultValue: ({ rawConfig }) => rawConfig.use_short_location || DEFAULT_CONFIG_VALUES.use_short_location },
@@ -3306,7 +3484,8 @@ function getCardStyles() {
         white-space: nowrap;
       }
 
-      .header-weather {
+      .header-weather,
+      .header-item {
         display: inline-flex;
         align-items: center;
         gap: 4px;
@@ -3317,8 +3496,13 @@ function getCardStyles() {
         white-space: nowrap;
       }
 
-      .header-weather ha-icon {
+      .header-weather ha-icon,
+      .header-item ha-icon {
         --mdc-icon-size: 28px;
+      }
+
+      .header-item-value {
+        display: inline-block;
       }
 
       .add-event-button {
@@ -7275,73 +7459,6 @@ function normalizeDayBadges(rawRules, {
     .filter(Boolean);
 }
 
-function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
-  const chunks = [];
-  let cursor = new Date(startDate);
-  cursor.setHours(0, 0, 0, 0);
-
-  while (cursor <= endDate) {
-    const chunkStart = new Date(cursor);
-    const chunkEnd = new Date(cursor);
-    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
-    if (chunkEnd > endDate) {
-      chunkEnd.setTime(endDate.getTime());
-    }
-    chunkEnd.setHours(23, 59, 59, 999);
-
-    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
-
-    cursor = new Date(chunkEnd);
-    cursor.setDate(cursor.getDate() + 1);
-    cursor.setHours(0, 0, 0, 0);
-  }
-
-  return chunks;
-}
-
-function parseLocalDate(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
-  return new Date(year, month - 1, day);
-}
-
-function parsePossiblyLocalDateTime(value) {
-  if (!value || typeof value !== 'string') return new Date(value);
-
-  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
-  if (hasTimezone) return new Date(value);
-
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) return new Date(value);
-
-  const [, year, month, day, hour, minute, second = '0'] = match;
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second)
-  );
-}
-
-function formatLocalDate(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getIsoWeekNumber(date) {
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNumber = utcDate.getUTCDay() || 7;
-  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
-  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
-}
-
 function normalizeSingleColor(colorValue) {
   if (colorValue === undefined || colorValue === null) {
     return colorValue;
@@ -10038,6 +10155,7 @@ function renderHeaderTitle({
   title,
   headerTime,
   headerWeather,
+  headerItems = [],
   helpers
 }) {
   return `
@@ -10045,6 +10163,7 @@ function renderHeaderTitle({
         <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
     `;
 }
@@ -11296,6 +11415,7 @@ class SkylightCalendarCard extends HTMLElement {
       normalizedHeaderWeatherSensor: typeof rawConfig.header_weather_sensor === 'string' && rawConfig.header_weather_sensor.trim()
         ? rawConfig.header_weather_sensor.trim()
         : null,
+      normalizedHeaderItems: normalizeHeaderItems(rawConfig.header_items),
       language
     };
   }
@@ -11405,8 +11525,11 @@ class SkylightCalendarCard extends HTMLElement {
     const nextHeaderWeatherSensorState = configuredHeaderWeatherSensor
       ? this.getHeaderEntityRenderSignature(hass?.states?.[configuredHeaderWeatherSensor])
       : null;
+    const previousHeaderItemsState = getHeaderItemsRenderSignature(this._config?.header_items, oldHass);
+    const nextHeaderItemsState = getHeaderItemsRenderSignature(this._config?.header_items, hass);
     const headerSensorChanged = previousHeaderTimeSensorState !== nextHeaderTimeSensorState ||
-      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState;
+      previousHeaderWeatherSensorState !== nextHeaderWeatherSensorState ||
+      previousHeaderItemsState !== nextHeaderItemsState;
     const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
       this.getCalendarBadgePersonRenderSignature(hass);
 
@@ -13889,6 +14012,7 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderRenderHelpers() {
     return {
       escapeHtml: (value) => this.escapeHtml(value),
+      escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
       getPeriodLabel: () => this.getPeriodLabel(),
       renderCalendarBadgesInline: () => this.renderCalendarBadgesInline(),
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
@@ -13952,10 +14076,12 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
+    const headerItems = this.resolveHeaderItems();
     return renderHeaderTitle({
       title: this._config.title,
       headerTime,
       headerWeather,
+      headerItems,
       helpers: this.getHeaderRenderHelpers()
     });
   }
@@ -17854,6 +17980,15 @@ class SkylightCalendarCard extends HTMLElement {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+  }
+
+  resolveHeaderItems() {
+    return resolveHeaderItems(this._config?.header_items, this._hass, {
+      parseTimeValue: (value) => this.parseTimeValue(value),
+      formatTime: (date) => this.formatTime(date),
+      formatDate: (date) => new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'short', day: 'numeric' })).format(date),
+      formatDateTime: (date) => new Intl.DateTimeFormat(this.getLocale(), this.withTimeZone({ month: 'short', day: 'numeric', ...this.getTimeFormatOptions() })).format(date)
+    });
   }
 
   getFormattedHeaderWeather() {
