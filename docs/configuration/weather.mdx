@@ -84,19 +84,21 @@ header_weather_sensor: weather.home
 
 ## Custom header items
 
-Use `header_items` to add short, structured icon/value pairs after the title, live time, and weather summary. Header items are intended for glanceable values. For the best responsive layout, use 1–4 short items.
+Use `header_items` to add short, structured icon and value pairs after the title, live time, and weather summary. Each item pulls its value from a Home Assistant entity (or from static text) and updates only when that entity changes. Use header items for glanceable data such as sunrise and sunset times, indoor temperature, or a simple label. For the best responsive layout, keep the list to 1–4 short items.
 
 <ParamField path="header_items" type="array">
-  Optional list of custom header items. Each item supports:
+  Optional list of custom header items. Each item accepts:
 
-  - `icon`: optional static MDI icon, such as `mdi:weather-sunset-up`.
-  - `entity`: optional Home Assistant entity ID.
-  - `attribute`: optional attribute name. When set, the card displays that attribute instead of the entity state.
-  - `text`: optional static text or fallback text.
+  - `icon`: optional MDI icon shown before the value, such as `mdi:weather-sunset-up`.
+  - `entity`: optional Home Assistant entity ID. When set, the card reads the entity's state.
+  - `attribute`: optional attribute name. When set, the card displays the named attribute instead of the entity state.
+  - `text`: optional static text. Used as a fallback when the entity is missing, or on its own for a static label.
   - `format`: optional display format. Defaults to `auto`. Supported values are `auto`, `raw`, `time`, `date`, and `datetime`.
 
-  `auto` uses compact formatting: timestamp entities show a local time, date entities show a localized date, entities with units keep their unit, and other values display as raw state text.
+  With `auto`, the card picks a compact format based on the entity: timestamp entities show a local time, date entities show a localized date, entities with a unit of measurement keep their unit, and everything else displays as raw state text.
 </ParamField>
+
+### Example
 
 ```yaml
 type: custom:daylight-calendar-card
@@ -114,7 +116,9 @@ header_items:
     text: Family
 ```
 
-Header items hide automatically when their resolved value is empty, `unknown`, or `unavailable`. If an entity is missing and `text` is provided, the card displays the text fallback. Values and icon names are escaped before rendering. Arbitrary HTML and Jinja/template subscriptions are intentionally not supported in this initial feature.
+<Note>
+  Header items hide automatically when their resolved value is empty, `unknown`, or `unavailable`. If an entity is missing and `text` is provided, the card displays the text fallback instead. Values and icon names are escaped before rendering — arbitrary HTML and Jinja templates are intentionally not supported.
+</Note>
 
 ## Combined Example
 
