@@ -876,20 +876,41 @@ async function expectBoxWithin(inner, outer, tolerance = 2) {
   expect(innerBox.y + innerBox.height).toBeLessThanOrEqual(outerBox.y + outerBox.height + tolerance);
 }
 
-async function assertCompactHeightGeometry(card, viewSpec) {
-  const host = card;
-  const container = card.locator(viewSpec.containerSelector).first();
-  const scroller = card.locator(viewSpec.internalScrollSelector).first();
-  await expect(container).toBeVisible();
-  await expectBoxWithin(container, host, 2);
+async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box.y).toBeGreaterThanOrEqual(0 - tolerance);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + tolerance);
+}
 
+async function assertIntendedVerticalScroller(scroller, requireOverflow = true) {
   const scrollInfo = await scroller.evaluate((el) => ({
     clientHeight: el.clientHeight,
     scrollHeight: el.scrollHeight,
     overflowY: getComputedStyle(el).overflowY
   }));
   expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
-  expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
+  if (requireOverflow) {
+    expect(scrollInfo.scrollHeight).toBeGreaterThan(scrollInfo.clientHeight);
+  } else {
+    expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
+  }
+}
+
+async function assertCompactHeightGeometry(card, page, viewSpec, viewport, allocationMode) {
+  const container = card.locator(viewSpec.containerSelector).first();
+  const scroller = card.locator(viewSpec.internalScrollSelector).first();
+  await expect(container).toBeVisible();
+
+  if (allocationMode.name === 'fixed-parent') {
+    const parent = page.locator('#app');
+    await expectBoxWithin(card, parent, 2);
+    await expectBoxWithin(container, parent, 2);
+  } else {
+    await expectBoxWithinViewport(container, viewport, 2);
+  }
+
+  await assertIntendedVerticalScroller(scroller, viewSpec.name !== 'month');
 
   if (viewSpec.name === 'month') {
     const rows = await card.locator('.day-cell').evaluateAll((cells) => {
@@ -904,12 +925,18 @@ async function assertCompactHeightGeometry(card, viewSpec) {
       return [...rowMap.values()].map((row) => ({
         top: row.top,
         bottom: row.bottom,
-        eventBottoms: row.cells.flatMap((cell) => [...cell.querySelectorAll('.event, .month-span-event, .more-events')].map((event) => event.getBoundingClientRect().bottom))
+        eventRects: row.cells.flatMap((cell) => [...cell.querySelectorAll('.event, .month-span-event, .more-events')].map((event) => {
+          const rect = event.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }))
       }));
     });
-    for (let i = 0; i < rows.length - 1; i++) {
-      expect(Math.max(...rows[i].eventBottoms, rows[i].top)).toBeLessThanOrEqual(rows[i].bottom + 2);
-      expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
+    for (let i = 0; i < rows.length; i++) {
+      for (const eventRect of rows[i].eventRects) {
+        expect(eventRect.top).toBeGreaterThanOrEqual(rows[i].top - 2);
+        expect(eventRect.bottom).toBeLessThanOrEqual(rows[i].bottom + 2);
+      }
+      if (rows[i + 1]) expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
     }
   } else if (viewSpec.name === 'week-compact') {
     const rows = await card.locator('.week-day-column').evaluateAll((columns) => {
@@ -917,15 +944,22 @@ async function assertCompactHeightGeometry(card, viewSpec) {
       for (const column of columns) {
         const rect = column.getBoundingClientRect();
         const key = Math.round(rect.top);
-        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, eventBottoms: [] });
+        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, eventRects: [] });
         const row = rowMap.get(key);
         row.bottom = Math.max(row.bottom, rect.bottom);
-        row.eventBottoms.push(...[...column.querySelectorAll('.week-compact-event')].map((event) => event.getBoundingClientRect().bottom));
+        row.eventRects.push(...[...column.querySelectorAll('.week-compact-event')].map((event) => {
+          const eventRect = event.getBoundingClientRect();
+          return { top: eventRect.top, bottom: eventRect.bottom };
+        }));
       }
       return [...rowMap.values()].sort((a, b) => a.top - b.top);
     });
+    if (viewport.width <= 768) expect(rows.length).toBeGreaterThan(1);
     for (let i = 0; i < rows.length; i++) {
-      expect(Math.max(...rows[i].eventBottoms, rows[i].top)).toBeLessThanOrEqual(rows[i].bottom + 2);
+      for (const eventRect of rows[i].eventRects) {
+        expect(eventRect.top).toBeGreaterThanOrEqual(rows[i].top - 2);
+        expect(eventRect.bottom).toBeLessThanOrEqual(rows[i].bottom + 2);
+      }
       if (rows[i + 1]) expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
     }
   } else if (viewSpec.name === 'week-standard') {
@@ -933,17 +967,39 @@ async function assertCompactHeightGeometry(card, viewSpec) {
       const headers = [...containerEl.querySelectorAll('.week-standard-day-header')].map((el) => Math.round(el.getBoundingClientRect().bottom));
       const allDay = [...containerEl.querySelectorAll('.all-day-events')].map((el) => Math.round(el.getBoundingClientRect().top));
       const slots = [...containerEl.querySelectorAll('.day-time-slots')].map((el) => Math.round(el.getBoundingClientRect().top));
-      return { headers, allDay, slots };
+      const timedContained = [...containerEl.querySelectorAll('.week-standard-event')].every((event) => {
+        const owner = event.closest('.day-time-slots');
+        if (!owner) return false;
+        const eventRect = event.getBoundingClientRect();
+        const ownerRect = owner.getBoundingClientRect();
+        return eventRect.top >= ownerRect.top - 2 && eventRect.bottom <= ownerRect.bottom + 2;
+      });
+      const allDayContained = [...containerEl.querySelectorAll('.all-day-event')].every((event) => {
+        const owner = event.closest('.all-day-events');
+        if (!owner) return false;
+        const eventRect = event.getBoundingClientRect();
+        const ownerRect = owner.getBoundingClientRect();
+        return eventRect.top >= ownerRect.top - 2 && eventRect.bottom <= ownerRect.bottom + 2;
+      });
+      return { headers, allDay, slots, timedContained, allDayContained };
     });
     expect(new Set(alignment.headers).size).toBe(1);
     expect(new Set(alignment.allDay).size).toBe(1);
     expect(new Set(alignment.slots).size).toBe(1);
+    expect(alignment.timedContained).toBe(true);
+    expect(alignment.allDayContained).toBe(true);
   } else if (viewSpec.name === 'agenda') {
     const rowsContained = await card.locator('.agenda-container').evaluate((containerEl) => {
       const c = containerEl.getBoundingClientRect();
       return [...containerEl.querySelectorAll('.agenda-event')].every((event) => {
+        const owner = event.closest('.agenda-day-row');
         const r = event.getBoundingClientRect();
-        return r.left >= c.left - 2 && r.right <= c.right + 2;
+        const ownerRect = owner?.getBoundingClientRect();
+        return ownerRect
+          && r.left >= c.left - 2
+          && r.right <= c.right + 2
+          && r.top >= ownerRect.top - 2
+          && r.bottom <= ownerRect.bottom + 2;
       });
     });
     expect(rowsContained).toBe(true);
@@ -974,10 +1030,14 @@ for (const allocationMode of compactHeightAllocationModes) {
         await expect(card).toBeVisible();
         await expect(card).toContainText(viewSpec.viewLabel);
         await expect(card.locator(eventSelectorByView[viewSpec.defaultView])).not.toHaveCount(0);
-        await assertCompactHeightGeometry(card, viewSpec);
-        // Geometry assertions above provide the compact-height regression signal; the
-        // matrix still renders each scenario in Playwright without adding PNG
-        // baselines for every viewport/allocation combination.
+        await assertCompactHeightGeometry(card, page, viewSpec, viewport, allocationMode);
+        await expect(card).toHaveScreenshot(
+          `compact-height-${viewSpec.name}-${viewport.name}-${allocationMode.name}.png`,
+          {
+            animations: 'disabled',
+            maxDiffPixelRatio: 0.01
+          }
+        );
       });
     }
   }
