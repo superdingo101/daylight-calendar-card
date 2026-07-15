@@ -8554,6 +8554,51 @@ test('view change requiring refresh renders even when fetched events are identic
   assert.equal(rendered, 1);
 });
 
+test('total calendar fetch failure keeps unloaded range retries throttled', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._loadedEventRange = null;
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
+  let fetchCount = 0;
+  card.fetchEventsByCalendarInRange = async () => {
+    fetchCount += 1;
+    return {
+      'calendar.a': { success: false, events: [] },
+      'calendar.b': { success: false, events: [] }
+    };
+  };
+  card.render = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  const originalDateNow = Date.now;
+  let now = Date.parse('2026-03-01T12:00:00Z');
+  Date.now = () => now;
+  try {
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+    assert.equal(card.isDateRangeCoveredByLoadedEvents(new Date('2026-03-10T00:00:00Z'), new Date('2026-03-17T00:00:00Z')), false);
+
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+
+    now += 60000;
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+
+    now += 1;
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 2);
+    assert.equal(card._loadedEventRange, null);
+    assert.equal(card.isDateRangeCoveredByLoadedEvents(new Date('2026-03-10T00:00:00Z'), new Date('2026-03-17T00:00:00Z')), false);
+  } finally {
+    Date.now = originalDateNow;
+  }
+});
+
 test('today navigation requiring refresh renders even when fetched events are identical', async () => {
   const card = makeCard({ entities: ['calendar.a'] });
   card._hass = { user: { id: 'user-1' }, states: {} };

@@ -2534,9 +2534,13 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
-    if (force || shouldRefreshForAge || !this._loadedEventRange) {
+    if (force || shouldRefreshForAge) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
       await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh, renderAfterFetch: renderIfCovered });
+      return;
+    }
+
+    if (!this._loadedEventRange) {
       return;
     }
 
