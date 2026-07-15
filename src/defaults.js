@@ -146,6 +146,7 @@ export const DEFAULT_STUB_CONFIG = {
   show_dashboard_nav_button: false,
   header_dashboard_path: null,
   header_weather_sensor: '',
+  header_items: [],
   calendar_person_entities: {},
   default_hidden_calendars: [],
   color_scheme: 'auto',
@@ -159,5 +160,6 @@ export const createDefaultStubConfig = () => ({
   week_days: [...DEFAULT_STUB_CONFIG.week_days],
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
-  default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars]
+  default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
+  header_items: [...DEFAULT_STUB_CONFIG.header_items]
 });

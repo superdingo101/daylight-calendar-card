@@ -265,6 +265,28 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
     </Tip>
   </Accordion>
 
+  <Accordion title="Stale-refresh warning or wrong events after startup">
+    The card keeps a local snapshot of the last successful calendar fetch so it can render events immediately when Home Assistant reloads, even before a fresh refresh completes. The snapshot is stored in the browser (IndexedDB) and is scoped to your current card configuration.
+
+    **What you might see:**
+
+    - A brief flash of previously known events on startup before the current data loads.
+    - A small **"Calendar data may be stale"** warning if no successful refresh has completed for 30 minutes (for example, when Home Assistant is unreachable or a calendar integration is failing).
+    - Events that were deleted on your calendar still appearing until the next successful refresh finishes.
+
+    This is expected behavior. A successful refresh — including one that legitimately returns no events — replaces the cached snapshot. Failed refreshes leave the last-known-good data in place instead of blanking the card.
+
+    **If cached data looks wrong or you want to force a clean reload:**
+
+    1. Edit the card and scroll to **About / Diagnostics**.
+    2. Select **Flush event cache**.
+    3. The card clears its stored snapshots and triggers a fresh fetch from Home Assistant.
+
+    <Note>
+      Flushing only removes Daylight Calendar Card snapshots from your browser. It does not delete any events from your calendar integrations.
+    </Note>
+  </Accordion>
+
   <Accordion title="Submitting a bug report">
     If none of the above resolves your issue, please open a GitHub issue so the maintainer can investigate.
 

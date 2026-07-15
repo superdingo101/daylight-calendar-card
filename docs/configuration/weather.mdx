@@ -82,6 +82,44 @@ header_time_sensor: sensor.time
 header_weather_sensor: weather.home
 ```
 
+## Custom header items
+
+Use `header_items` to add short, structured icon and value pairs after the title, live time, and weather summary. Each item pulls its value from a Home Assistant entity (or from static text) and updates only when that entity changes. Use header items for glanceable data such as sunrise and sunset times, indoor temperature, or a simple label. For the best responsive layout, keep the list to 1–4 short items.
+
+<ParamField path="header_items" type="array">
+  Optional list of custom header items. Each item accepts:
+
+  - `icon`: optional MDI icon shown before the value, such as `mdi:weather-sunset-up`.
+  - `entity`: optional Home Assistant entity ID. When set, the card reads the entity's state.
+  - `attribute`: optional attribute name. When set, the card displays the named attribute instead of the entity state.
+  - `text`: optional static text. Used as a fallback when the entity is missing, or on its own for a static label.
+  - `format`: optional display format. Defaults to `auto`. Supported values are `auto`, `raw`, `time`, `date`, and `datetime`.
+
+  With `auto`, the card picks a compact format based on the entity: timestamp entities show a local time, date entities show a localized date, entities with a unit of measurement keep their unit, and everything else displays as raw state text.
+</ParamField>
+
+### Example
+
+```yaml
+type: custom:daylight-calendar-card
+title: Family Calendar
+entities:
+  - calendar.family
+header_weather_sensor: weather.home
+header_time_sensor: sensor.time
+header_items:
+  - icon: mdi:weather-sunset-up
+    entity: sensor.sun_next_rising
+  - icon: mdi:weather-sunset-down
+    entity: sensor.sun_next_setting
+  - icon: mdi:home
+    text: Family
+```
+
+<Note>
+  Header items hide automatically when their resolved value is empty, `unknown`, or `unavailable`. If an entity is missing and `text` is provided, the card displays the text fallback instead. Values and icon names are escaped before rendering — arbitrary HTML and Jinja templates are intentionally not supported.
+</Note>
+
 ## Combined Example
 
 The configuration below shows a card that displays both a live clock and a daily weather forecast in the header:
