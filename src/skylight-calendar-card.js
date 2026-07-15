@@ -2534,9 +2534,24 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
-    if (force || shouldRefreshForAge || !this._loadedEventRange) {
+    if (force || shouldRefreshForAge) {
       const shouldPreserveScrollDuringRefresh = this._viewMode === 'agenda' && !force && !renderIfCovered;
       await this.updateEvents({ preserveScroll: shouldPreserveScrollDuringRefresh, renderAfterFetch: renderIfCovered });
+      return;
+    }
+
+    if (!this._loadedEventRange) {
+      const hasLoadedCalendarRange = (this._config.entities || []).some((entityId) => {
+        const range = this._calendarEventMetadata[entityId]?.range;
+        return !!this.getValidRange(range?.startDate, range?.endDate);
+      });
+      if (renderIfCovered && hasLoadedCalendarRange) {
+        await this.updateEvents({ renderAfterFetch: true });
+        return;
+      }
+      if (renderIfCovered) {
+        this.render();
+      }
       return;
     }
 

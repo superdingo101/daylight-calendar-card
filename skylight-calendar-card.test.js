@@ -8554,6 +8554,95 @@ test('view change requiring refresh renders even when fetched events are identic
   assert.equal(rendered, 1);
 });
 
+test('partial calendar fetch failure allows navigation refresh during retry throttle', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._loadedEventRange = null;
+  let fetchCount = 0;
+  let renderCount = 0;
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
+  card.fetchEventsByCalendarInRange = async () => {
+    fetchCount += 1;
+    return {
+      'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'a', start: { date: '2026-03-10' }, end: { date: '2026-03-11' } }] },
+      'calendar.b': { success: false, events: [] }
+    };
+  };
+  card.render = () => { renderCount += 1; };
+  card.persistEventCacheSnapshot = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  const originalDateNow = Date.now;
+  Date.now = () => Date.parse('2026-03-01T12:00:00Z');
+  try {
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+    assert.ok(card._calendarEventMetadata['calendar.a'].range);
+    renderCount = 0;
+
+    await card.ensureEventsForCurrentRange({ renderIfCovered: true });
+    assert.equal(fetchCount, 2);
+    assert.equal(renderCount, 1);
+  } finally {
+    Date.now = originalDateNow;
+  }
+});
+
+test('total calendar fetch failure keeps unloaded range retries throttled', async () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._loadedEventRange = null;
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
+  let fetchCount = 0;
+  let renderCount = 0;
+  card.fetchEventsByCalendarInRange = async () => {
+    fetchCount += 1;
+    return {
+      'calendar.a': { success: false, events: [] },
+      'calendar.b': { success: false, events: [] }
+    };
+  };
+  card.render = () => { renderCount += 1; };
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  const originalDateNow = Date.now;
+  let now = Date.parse('2026-03-01T12:00:00Z');
+  Date.now = () => now;
+  try {
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+    assert.equal(card.isDateRangeCoveredByLoadedEvents(new Date('2026-03-10T00:00:00Z'), new Date('2026-03-17T00:00:00Z')), false);
+    renderCount = 0;
+
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(renderCount, 0);
+    assert.equal(card._loadedEventRange, null);
+
+    await card.ensureEventsForCurrentRange({ renderIfCovered: true });
+    assert.equal(fetchCount, 1);
+    assert.equal(renderCount, 1);
+    assert.equal(card._loadedEventRange, null);
+
+    now += 60000;
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 1);
+    assert.equal(card._loadedEventRange, null);
+
+    now += 1;
+    await card.ensureEventsForCurrentRange();
+    assert.equal(fetchCount, 2);
+    assert.equal(card._loadedEventRange, null);
+    assert.equal(card.isDateRangeCoveredByLoadedEvents(new Date('2026-03-10T00:00:00Z'), new Date('2026-03-17T00:00:00Z')), false);
+  } finally {
+    Date.now = originalDateNow;
+  }
+});
+
 test('today navigation requiring refresh renders even when fetched events are identical', async () => {
   const card = makeCard({ entities: ['calendar.a'] });
   card._hass = { user: { id: 'user-1' }, states: {} };
