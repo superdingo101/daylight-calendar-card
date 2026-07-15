@@ -11,7 +11,7 @@ export function renderWeekCompactView({
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
-      <div class="week-compact-container day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+      <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
           const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });

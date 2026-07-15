@@ -4038,6 +4038,11 @@ function getCardStyles() {
         overflow: auto;
       }
 
+      .week-compact-container.compact-height {
+        grid-auto-rows: max-content;
+        align-content: start;
+      }
+
       .week-day-column {
         background: white;
         padding: 16px 12px;
@@ -10318,7 +10323,7 @@ function renderWeekCompactView({
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
-      <div class="week-compact-container day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+      <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
           const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });
@@ -13308,7 +13313,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
-    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
+    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(min-content, 1fr));`;
 
     if (this.hasFixedHeightParentAllocation()) {
       return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;

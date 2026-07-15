@@ -2847,7 +2847,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
-    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
+    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(min-content, 1fr));`;
 
     if (this.hasFixedHeightParentAllocation()) {
       return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;

@@ -412,6 +412,67 @@ const cases = [
   }
 ];
 
+
+
+const compactHeightViewports = [
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'medium', width: 980, height: 820 },
+  { name: 'desktop', width: 1400, height: 1000 }
+];
+
+const compactHeightViews = [
+  { name: 'month', defaultView: 'month', viewLabel: 'Month', containerSelector: '.calendar-grid', internalScrollSelector: '.calendar-grid' },
+  { name: 'week-compact', defaultView: 'week-compact', viewLabel: 'Week', containerSelector: '.week-compact-container', internalScrollSelector: '.week-compact-container' },
+  { name: 'week-standard', defaultView: 'week-standard', viewLabel: 'Schedule', containerSelector: '.week-standard-container', internalScrollSelector: '.week-standard-container' },
+  { name: 'agenda', defaultView: 'agenda', viewLabel: 'Agenda', containerSelector: '.agenda-container', internalScrollSelector: '.agenda-container' }
+];
+
+const compactHeightAllocationModes = [
+  { name: 'viewport', parentStyle: '' },
+  { name: 'fixed-parent', parentStyle: 'height: 620px; min-height: 0; overflow: hidden; display: grid;' }
+];
+
+const compactStressEvents = {
+  'calendar.family': [
+    { summary: 'All Day School Closure With An Exceptionally Long Wrapping Title', start: '2026-03-15', end: '2026-03-16', location: LONG_LOCATION },
+    { summary: 'Multi-Day Family Travel Across Several Busy Days With Wrapping Text', start: '2026-03-16', end: '2026-03-20', location: LONG_LOCATION },
+    { summary: 'Early Breakfast Preparation With Long Notes', start: '2026-03-15T07:00:00Z', end: '2026-03-15T08:00:00Z', location: LONG_LOCATION },
+    { summary: 'Morning School Dropoff And Supply Pickup With A Very Long Title', start: '2026-03-15T08:30:00Z', end: '2026-03-15T09:15:00Z', location: LONG_LOCATION },
+    { summary: 'Lunch Planning Call That Wraps On Narrow Week Compact Columns', start: '2026-03-15T12:00:00Z', end: '2026-03-15T12:45:00Z', location: LONG_LOCATION },
+    { summary: 'Afternoon Activity Signup Review', start: '2026-03-15T15:00:00Z', end: '2026-03-15T16:00:00Z', location: LONG_LOCATION },
+    { summary: 'Dinner With Visiting Family And Very Long Location', start: '2026-03-15T18:00:00Z', end: '2026-03-15T19:30:00Z', location: LONG_LOCATION },
+    { summary: 'Overnight Family Support Shift', start: '2026-03-15T23:00:00Z', end: '2026-03-16T02:00:00Z', location: LONG_LOCATION },
+    { summary: 'Wednesday Piano Recital Setup', start: '2026-03-18T16:00:00Z', end: '2026-03-18T17:00:00Z', location: LONG_LOCATION },
+    { summary: 'Weekend Tournament Multi-Day', start: '2026-03-20', end: '2026-03-23' }
+  ],
+  'calendar.work': [
+    { summary: 'All Day Release Freeze With Long Calendar Badge Text', start: '2026-03-15', end: '2026-03-16', location: LONG_LOCATION },
+    { summary: 'Weekly Planning Session With Long Wrapping Title And Location', start: '2026-03-15T09:30:00Z', end: '2026-03-15T10:30:00Z', location: LONG_LOCATION },
+    { summary: 'Architecture Review With Many Participants And Wrapping Title', start: '2026-03-15T10:45:00Z', end: '2026-03-15T11:45:00Z', location: LONG_LOCATION },
+    { summary: 'Customer Escalation Triage With Extremely Long Title', start: '2026-03-15T13:00:00Z', end: '2026-03-15T14:00:00Z', location: LONG_LOCATION },
+    { summary: 'Design Critique And Follow Up', start: '2026-03-15T14:15:00Z', end: '2026-03-15T15:00:00Z', location: LONG_LOCATION },
+    { summary: 'Late Deployment Window', start: '2026-03-15T20:00:00Z', end: '2026-03-15T22:00:00Z', location: LONG_LOCATION },
+    { summary: 'Cross-Team Workshop Multi-Day With Long Title', start: '2026-03-17', end: '2026-03-21', location: LONG_LOCATION },
+    { summary: 'Thursday Status Review', start: '2026-03-19T15:00:00Z', end: '2026-03-19T16:00:00Z', location: LONG_LOCATION }
+  ]
+};
+
+const compactStressConfig = {
+  compact_height: true,
+  show_event_location: true,
+  use_short_location: false,
+  show_all_events_month: false,
+  header_weather_sensor: 'weather.mock',
+  colors: defaultColors,
+  day_badge_layout_week: 'stacked',
+  day_badges: [
+    { conditions: { title_contains: 'School' }, icon: 'mdi:school', text: 'School' },
+    { conditions: { title_contains: 'Release' }, icon: 'mdi:rocket-launch', text: 'Release' },
+    { conditions: { title_contains: 'Travel' }, icon: 'mdi:bag-suitcase', text: 'Travel' }
+  ]
+};
+
 const eventSelectorByView = {
   month: '.event, .all-day-event',
   week: '.week-compact-event, .week-standard-event, .all-day-event',
@@ -803,6 +864,123 @@ for (const scenario of cases) {
       maxDiffPixelRatio: scenario.maxDiffPixelRatio || 0.01
     });
   });
+}
+
+
+async function expectBoxWithin(inner, outer, tolerance = 2) {
+  const innerBox = await inner.boundingBox();
+  const outerBox = await outer.boundingBox();
+  expect(innerBox).not.toBeNull();
+  expect(outerBox).not.toBeNull();
+  expect(innerBox.y).toBeGreaterThanOrEqual(outerBox.y - tolerance);
+  expect(innerBox.y + innerBox.height).toBeLessThanOrEqual(outerBox.y + outerBox.height + tolerance);
+}
+
+async function assertCompactHeightGeometry(card, viewSpec) {
+  const host = card;
+  const container = card.locator(viewSpec.containerSelector).first();
+  const scroller = card.locator(viewSpec.internalScrollSelector).first();
+  await expect(container).toBeVisible();
+  await expectBoxWithin(container, host, 2);
+
+  const scrollInfo = await scroller.evaluate((el) => ({
+    clientHeight: el.clientHeight,
+    scrollHeight: el.scrollHeight,
+    overflowY: getComputedStyle(el).overflowY
+  }));
+  expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
+  expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
+
+  if (viewSpec.name === 'month') {
+    const rows = await card.locator('.day-cell').evaluateAll((cells) => {
+      const rowMap = new Map();
+      for (const cell of cells) {
+        const rect = cell.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, cells: [] });
+        rowMap.get(key).cells.push(cell);
+        rowMap.get(key).bottom = Math.max(rowMap.get(key).bottom, rect.bottom);
+      }
+      return [...rowMap.values()].map((row) => ({
+        top: row.top,
+        bottom: row.bottom,
+        eventBottoms: row.cells.flatMap((cell) => [...cell.querySelectorAll('.event, .month-span-event, .more-events')].map((event) => event.getBoundingClientRect().bottom))
+      }));
+    });
+    for (let i = 0; i < rows.length - 1; i++) {
+      expect(Math.max(...rows[i].eventBottoms, rows[i].top)).toBeLessThanOrEqual(rows[i].bottom + 2);
+      expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
+    }
+  } else if (viewSpec.name === 'week-compact') {
+    const rows = await card.locator('.week-day-column').evaluateAll((columns) => {
+      const rowMap = new Map();
+      for (const column of columns) {
+        const rect = column.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, eventBottoms: [] });
+        const row = rowMap.get(key);
+        row.bottom = Math.max(row.bottom, rect.bottom);
+        row.eventBottoms.push(...[...column.querySelectorAll('.week-compact-event')].map((event) => event.getBoundingClientRect().bottom));
+      }
+      return [...rowMap.values()].sort((a, b) => a.top - b.top);
+    });
+    for (let i = 0; i < rows.length; i++) {
+      expect(Math.max(...rows[i].eventBottoms, rows[i].top)).toBeLessThanOrEqual(rows[i].bottom + 2);
+      if (rows[i + 1]) expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
+    }
+  } else if (viewSpec.name === 'week-standard') {
+    const alignment = await card.locator('.week-standard-container').evaluate((containerEl) => {
+      const headers = [...containerEl.querySelectorAll('.week-standard-day-header')].map((el) => Math.round(el.getBoundingClientRect().bottom));
+      const allDay = [...containerEl.querySelectorAll('.all-day-events')].map((el) => Math.round(el.getBoundingClientRect().top));
+      const slots = [...containerEl.querySelectorAll('.day-time-slots')].map((el) => Math.round(el.getBoundingClientRect().top));
+      return { headers, allDay, slots };
+    });
+    expect(new Set(alignment.headers).size).toBe(1);
+    expect(new Set(alignment.allDay).size).toBe(1);
+    expect(new Set(alignment.slots).size).toBe(1);
+  } else if (viewSpec.name === 'agenda') {
+    const rowsContained = await card.locator('.agenda-container').evaluate((containerEl) => {
+      const c = containerEl.getBoundingClientRect();
+      return [...containerEl.querySelectorAll('.agenda-event')].every((event) => {
+        const r = event.getBoundingClientRect();
+        return r.left >= c.left - 2 && r.right <= c.right + 2;
+      });
+    });
+    expect(rowsContained).toBe(true);
+  }
+}
+
+for (const allocationMode of compactHeightAllocationModes) {
+  for (const viewport of compactHeightViewports) {
+    for (const viewSpec of compactHeightViews) {
+      test(`visual: compact-height ${viewSpec.name} ${viewport.name} ${allocationMode.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+        await page.goto(fixtureUrl);
+        await page.evaluate((params) => window.renderCalendarCard(params), {
+          config: {
+            entities: ['calendar.family', 'calendar.work'],
+            title: 'Compact Height Stress Calendar',
+            default_view: viewSpec.defaultView,
+            ...compactStressConfig
+          },
+          events: compactStressEvents,
+          weather: { 'weather.mock': { temperature: 62, condition: 'partlycloudy', forecast: [] } },
+          darkMode: false,
+          parentStyle: allocationMode.parentStyle
+        });
+
+        const card = page.locator('skylight-calendar-card');
+        await expect(card).toBeVisible();
+        await expect(card).toContainText(viewSpec.viewLabel);
+        await expect(card.locator(eventSelectorByView[viewSpec.defaultView])).not.toHaveCount(0);
+        await assertCompactHeightGeometry(card, viewSpec);
+        // Geometry assertions above provide the compact-height regression signal; the
+        // matrix still renders each scenario in Playwright without adding PNG
+        // baselines for every viewport/allocation combination.
+      });
+    }
+  }
 }
 
 test('regression: month compact-height hides overflowing span lanes in more count', async ({ page }) => {

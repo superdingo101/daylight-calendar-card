@@ -846,6 +846,11 @@ export function getCardStyles() {
         overflow: auto;
       }
 
+      .week-compact-container.compact-height {
+        grid-auto-rows: max-content;
+        align-content: start;
+      }
+
       .week-day-column {
         background: white;
         padding: 16px 12px;

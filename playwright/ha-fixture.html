@@ -35,9 +35,11 @@
   <div id="app"></div>
   <script src="../skylight-calendar-card.js"></script>
   <script>
-    window.renderCalendarCard = ({ config, events, darkMode = false }) => {
+    window.renderCalendarCard = ({ config, events, weather = {}, darkMode = false, parentStyle = '' }) => {
       const app = document.getElementById('app');
       app.innerHTML = '';
+      app.removeAttribute('style');
+      if (parentStyle) app.setAttribute('style', parentStyle);
       document.body.classList.toggle('dark-fixture', !!darkMode);
       const el = document.createElement('skylight-calendar-card');
       const hass = {
@@ -46,7 +48,8 @@
         themes: { darkMode },
         states: {
           'calendar.family': { entity_id: 'calendar.family', attributes: { friendly_name: 'Family', supported_features: 7 } },
-          'calendar.work': { entity_id: 'calendar.work', attributes: { friendly_name: 'Work', supported_features: 7 } }
+          'calendar.work': { entity_id: 'calendar.work', attributes: { friendly_name: 'Work', supported_features: 7 } },
+          ...Object.fromEntries(Object.entries(weather).map(([entity_id, attributes]) => [entity_id, { entity_id, state: attributes.condition || 'sunny', attributes }]))
         },
         callApi: async (method, endpoint, payload) => {
           const normalizedMethod = String(method || '').toUpperCase();
