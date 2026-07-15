@@ -13002,6 +13002,9 @@ class SkylightCalendarCard extends HTMLElement {
     }
 
     if (!this._loadedEventRange) {
+      if (renderIfCovered) {
+        this.render();
+      }
       return;
     }
 

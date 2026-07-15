@@ -8561,6 +8561,7 @@ test('total calendar fetch failure keeps unloaded range retries throttled', asyn
   card.getVisibleDateRange = () => ({ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-17T00:00:00Z') });
   card.getEventFetchRange = () => ({ startDate: new Date('2026-03-01T00:00:00Z'), endDate: new Date('2026-04-01T00:00:00Z') });
   let fetchCount = 0;
+  let renderCount = 0;
   card.fetchEventsByCalendarInRange = async () => {
     fetchCount += 1;
     return {
@@ -8568,7 +8569,7 @@ test('total calendar fetch failure keeps unloaded range retries throttled', asyn
       'calendar.b': { success: false, events: [] }
     };
   };
-  card.render = () => {};
+  card.render = () => { renderCount += 1; };
   card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
 
   const originalDateNow = Date.now;
@@ -8579,9 +8580,16 @@ test('total calendar fetch failure keeps unloaded range retries throttled', asyn
     assert.equal(fetchCount, 1);
     assert.equal(card._loadedEventRange, null);
     assert.equal(card.isDateRangeCoveredByLoadedEvents(new Date('2026-03-10T00:00:00Z'), new Date('2026-03-17T00:00:00Z')), false);
+    renderCount = 0;
 
     await card.ensureEventsForCurrentRange();
     assert.equal(fetchCount, 1);
+    assert.equal(renderCount, 0);
+    assert.equal(card._loadedEventRange, null);
+
+    await card.ensureEventsForCurrentRange({ renderIfCovered: true });
+    assert.equal(fetchCount, 1);
+    assert.equal(renderCount, 1);
     assert.equal(card._loadedEventRange, null);
 
     now += 60000;
