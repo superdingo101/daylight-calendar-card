@@ -10848,7 +10848,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingEventRenderAfterCurrentFetch = false;
     this._eventRefreshWarningTimer = null;
     this._eventCacheHydrated = false;
+    this._eventCacheLoadInFlight = false;
     this._eventLoadingInvalidatedWhileDisconnected = false;
+    this._eventCacheLoadingInvalidatedWhileDisconnected = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
     this._calendarEventMetadata = {};
@@ -12543,7 +12545,10 @@ class SkylightCalendarCard extends HTMLElement {
     const requestId = this._eventFetchGeneration;
     const configSignature = this.getEventCacheConfigSignature();
     if (!configSignature) return;
-    const { available, snapshot } = await readEventCacheSnapshot(configSignature);
+    this._eventCacheLoadInFlight = true;
+    const { available, snapshot } = await readEventCacheSnapshot(configSignature).finally(() => {
+      if (generation === this._eventCacheGeneration) this._eventCacheLoadInFlight = false;
+    });
     if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
     const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, requestId);
     if (hydratable.successfulEntityIds.length === 0) return;
@@ -13222,7 +13227,10 @@ class SkylightCalendarCard extends HTMLElement {
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
       this._eventLoadingInvalidatedWhileDisconnected = false;
-      this.loadEventCacheForCurrentConfig();
+      if (this._eventCacheLoadingInvalidatedWhileDisconnected) {
+        this._eventCacheLoadingInvalidatedWhileDisconnected = false;
+        this.loadEventCacheForCurrentConfig();
+      }
       if (this._hass) this.ensureEventsForCurrentRange({ force: true });
     }
   }
@@ -13231,7 +13239,11 @@ class SkylightCalendarCard extends HTMLElement {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    this._eventCacheLoadingInvalidatedWhileDisconnected = this._eventCacheLoadingInvalidatedWhileDisconnected
+      || this._eventCacheLoadInFlight
+      || !this._loadedEventRange;
     this._eventCacheGeneration += 1;
+    this._eventCacheLoadInFlight = false;
     this._eventFetchGeneration += 1;
     this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();

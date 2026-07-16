@@ -4733,6 +4733,30 @@ test('repeated reconnects coalesce replacement event fetches and first connectio
   }
 });
 
+test('reconnect preserves usable in-memory events instead of reloading an older cache snapshot', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const restore = stubLifecycleEnvironment(card);
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._events = [{ entityId: 'calendar.a', summary: 'fresh network event' }];
+  card._loadedEventRange = {
+    startDate: new Date('2026-07-01T00:00:00Z'),
+    endDate: new Date('2026-08-01T00:00:00Z')
+  };
+  let cacheLoads = 0;
+  card.loadEventCacheForCurrentConfig = () => { cacheLoads += 1; };
+  card.ensureEventsForCurrentRange = () => {};
+
+  try {
+    card.disconnectedCallback();
+    card.connectedCallback();
+
+    assert.equal(cacheLoads, 0);
+    assert.equal(card._events[0].summary, 'fresh network event');
+  } finally {
+    restore();
+  }
+});
+
 test('day_badge CSS variables do not leak into non-badge selectors', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();
