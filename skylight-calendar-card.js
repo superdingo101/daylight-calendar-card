@@ -10848,6 +10848,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingEventRenderAfterCurrentFetch = false;
     this._eventRefreshWarningTimer = null;
     this._eventCacheHydrated = false;
+    this._eventLoadingInvalidatedWhileDisconnected = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
     this._calendarEventMetadata = {};
@@ -13006,8 +13007,20 @@ class SkylightCalendarCard extends HTMLElement {
         const range = this._calendarEventMetadata[entityId]?.range;
         return !!this.getValidRange(range?.startDate, range?.endDate);
       });
+      const hasCalendarMetadata = (this._config.entities || []).some((entityId) => {
+        const metadata = this._calendarEventMetadata[entityId];
+        return !!metadata && Object.keys(metadata).length > 0;
+      });
       if (renderIfCovered && hasLoadedCalendarRange) {
         await this.updateEvents({ renderAfterFetch: true });
+        return;
+      }
+      // A lifecycle invalidation can leave _lastFetch looking recent even though
+      // neither the cache nor the request was allowed to populate usable data.
+      // Retry that unloaded state immediately, while retaining the normal retry
+      // throttle for calendars with recorded failure metadata.
+      if (!hasLoadedCalendarRange && !hasCalendarMetadata) {
+        await this.updateEvents({ renderAfterFetch: renderIfCovered });
         return;
       }
       if (renderIfCovered) {
@@ -13207,6 +13220,11 @@ class SkylightCalendarCard extends HTMLElement {
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
     this.render();
+    if (this._eventLoadingInvalidatedWhileDisconnected) {
+      this._eventLoadingInvalidatedWhileDisconnected = false;
+      this.loadEventCacheForCurrentConfig();
+      if (this._hass) this.ensureEventsForCurrentRange({ force: true });
+    }
   }
 
   disconnectedCallback() {
@@ -13215,6 +13233,7 @@ class SkylightCalendarCard extends HTMLElement {
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
     this._eventCacheGeneration += 1;
     this._eventFetchGeneration += 1;
+    this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
