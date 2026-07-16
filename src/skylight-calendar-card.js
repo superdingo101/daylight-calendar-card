@@ -387,6 +387,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingEventRenderAfterCurrentFetch = false;
     this._eventRefreshWarningTimer = null;
     this._eventCacheHydrated = false;
+    this._eventCacheLoadInFlight = false;
+    this._eventLoadingInvalidatedWhileDisconnected = false;
+    this._eventCacheLoadingInvalidatedWhileDisconnected = false;
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
     this._calendarEventMetadata = {};
@@ -2081,7 +2084,10 @@ class SkylightCalendarCard extends HTMLElement {
     const requestId = this._eventFetchGeneration;
     const configSignature = this.getEventCacheConfigSignature();
     if (!configSignature) return;
-    const { available, snapshot } = await readEventCacheSnapshot(configSignature);
+    this._eventCacheLoadInFlight = true;
+    const { available, snapshot } = await readEventCacheSnapshot(configSignature).finally(() => {
+      if (generation === this._eventCacheGeneration) this._eventCacheLoadInFlight = false;
+    });
     if (generation !== this._eventCacheGeneration || !available || !snapshot) return;
     const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, requestId);
     if (hydratable.successfulEntityIds.length === 0) return;
@@ -2545,8 +2551,20 @@ class SkylightCalendarCard extends HTMLElement {
         const range = this._calendarEventMetadata[entityId]?.range;
         return !!this.getValidRange(range?.startDate, range?.endDate);
       });
+      const hasCalendarMetadata = (this._config.entities || []).some((entityId) => {
+        const metadata = this._calendarEventMetadata[entityId];
+        return !!metadata && Object.keys(metadata).length > 0;
+      });
       if (renderIfCovered && hasLoadedCalendarRange) {
         await this.updateEvents({ renderAfterFetch: true });
+        return;
+      }
+      // A lifecycle invalidation can leave _lastFetch looking recent even though
+      // neither the cache nor the request was allowed to populate usable data.
+      // Retry that unloaded state immediately, while retaining the normal retry
+      // throttle for calendars with recorded failure metadata.
+      if (!hasLoadedCalendarRange && !hasCalendarMetadata) {
+        await this.updateEvents({ renderAfterFetch: renderIfCovered });
         return;
       }
       if (renderIfCovered) {
@@ -2746,14 +2764,27 @@ class SkylightCalendarCard extends HTMLElement {
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
     this.render();
+    if (this._eventLoadingInvalidatedWhileDisconnected) {
+      this._eventLoadingInvalidatedWhileDisconnected = false;
+      if (this._eventCacheLoadingInvalidatedWhileDisconnected) {
+        this._eventCacheLoadingInvalidatedWhileDisconnected = false;
+        this.loadEventCacheForCurrentConfig();
+      }
+      if (this._hass) this.ensureEventsForCurrentRange({ force: true });
+    }
   }
 
   disconnectedCallback() {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    this._eventCacheLoadingInvalidatedWhileDisconnected = this._eventCacheLoadingInvalidatedWhileDisconnected
+      || this._eventCacheLoadInFlight
+      || !this._loadedEventRange;
     this._eventCacheGeneration += 1;
+    this._eventCacheLoadInFlight = false;
     this._eventFetchGeneration += 1;
+    this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
