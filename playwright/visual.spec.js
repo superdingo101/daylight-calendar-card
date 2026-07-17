@@ -430,7 +430,7 @@ const compactHeightViews = [
 
 const compactHeightAllocationModes = [
   { name: 'viewport', parentStyle: '' },
-  { name: 'fixed-parent', parentStyle: 'height: 620px; min-height: 0; overflow: hidden; display: grid;' }
+  { name: 'fixed-parent', parentStyle: 'width: 100%; min-width: 0; height: 620px; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr);' }
 ];
 
 const compactStressEvents = {
@@ -872,6 +872,8 @@ async function expectBoxWithin(inner, outer, tolerance = 2) {
   const outerBox = await outer.boundingBox();
   expect(innerBox).not.toBeNull();
   expect(outerBox).not.toBeNull();
+  expect(innerBox.x).toBeGreaterThanOrEqual(outerBox.x - tolerance);
+  expect(innerBox.x + innerBox.width).toBeLessThanOrEqual(outerBox.x + outerBox.width + tolerance);
   expect(innerBox.y).toBeGreaterThanOrEqual(outerBox.y - tolerance);
   expect(innerBox.y + innerBox.height).toBeLessThanOrEqual(outerBox.y + outerBox.height + tolerance);
 }
@@ -879,21 +881,35 @@ async function expectBoxWithin(inner, outer, tolerance = 2) {
 async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0 - tolerance);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + tolerance);
   expect(box.y).toBeGreaterThanOrEqual(0 - tolerance);
   expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + tolerance);
 }
 
-async function assertIntendedVerticalScroller(scroller, requireOverflow = true) {
-  const scrollInfo = await scroller.evaluate((el) => ({
-    clientHeight: el.clientHeight,
-    scrollHeight: el.scrollHeight,
-    overflowY: getComputedStyle(el).overflowY
-  }));
+async function assertIntendedVerticalScroller(card, scroller, requireOverflow = false) {
+  const scrollInfo = await scroller.evaluate((el, host) => {
+    const unexpectedScrollableAncestors = [];
+    let current = el.parentElement;
+    while (current && current !== host) {
+      const style = getComputedStyle(current);
+      if (/(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight) {
+        unexpectedScrollableAncestors.push(current.className || current.id || current.tagName.toLowerCase());
+      }
+      current = current.parentElement;
+    }
+    return {
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+      overflowY: getComputedStyle(el).overflowY,
+      unexpectedScrollableAncestors
+    };
+  }, await card.elementHandle());
   expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
+  expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
+  expect(scrollInfo.unexpectedScrollableAncestors).toEqual([]);
   if (requireOverflow) {
     expect(scrollInfo.scrollHeight).toBeGreaterThan(scrollInfo.clientHeight);
-  } else {
-    expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
   }
 }
 
@@ -907,10 +923,12 @@ async function assertCompactHeightGeometry(card, page, viewSpec, viewport, alloc
     await expectBoxWithin(card, parent, 2);
     await expectBoxWithin(container, parent, 2);
   } else {
+    await expectBoxWithinViewport(card, viewport, 2);
     await expectBoxWithinViewport(container, viewport, 2);
   }
 
-  await assertIntendedVerticalScroller(scroller, viewSpec.name !== 'month');
+  const shouldRequireOverflow = viewSpec.name === 'week-compact' || viewSpec.name === 'agenda';
+  await assertIntendedVerticalScroller(card, scroller, shouldRequireOverflow);
 
   if (viewSpec.name === 'month') {
     const rows = await card.locator('.day-cell').evaluateAll((cells) => {
@@ -955,6 +973,12 @@ async function assertCompactHeightGeometry(card, page, viewSpec, viewport, alloc
       return [...rowMap.values()].sort((a, b) => a.top - b.top);
     });
     if (viewport.width <= 768) expect(rows.length).toBeGreaterThan(1);
+    const eventVisibility = await card.locator('.week-compact-event').evaluateAll((events) => events.every((event) => {
+      const style = getComputedStyle(event);
+      const rect = event.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    }));
+    expect(eventVisibility).toBe(true);
     for (let i = 0; i < rows.length; i++) {
       for (const eventRect of rows[i].eventRects) {
         expect(eventRect.top).toBeGreaterThanOrEqual(rows[i].top - 2);
