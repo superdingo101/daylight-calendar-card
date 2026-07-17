@@ -4757,6 +4757,66 @@ test('reconnect preserves usable in-memory events instead of reloading an older 
   }
 });
 
+test('reconnect cache hydration preserves fresher per-calendar data after a partial fetch', () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  const restore = stubLifecycleEnvironment(card);
+  const range = { startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-01T00:00:00Z') };
+  const freshRefresh = Date.parse('2026-07-15T12:00:00Z');
+  const cachedRefresh = Date.parse('2026-07-10T12:00:00Z');
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._eventsByCalendar = {
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'fresh network a', start: { date: '2026-07-12' }, end: { date: '2026-07-13' } }]
+  };
+  card._calendarEventMetadata = {
+    'calendar.a': { range, lastSuccessfulRefresh: freshRefresh, lastNetworkSuccessRequest: 1 },
+    'calendar.b': { refreshFailed: true }
+  };
+  card.recomputeEventState();
+  assert.equal(card._loadedEventRange, null);
+
+  const snapshot = {
+    eventsByCalendar: {
+      'calendar.a': [{ entityId: 'calendar.a', summary: 'older cached a', start: { date: '2026-07-05' }, end: { date: '2026-07-06' } }],
+      'calendar.b': [{ entityId: 'calendar.b', summary: 'cached b', start: { date: '2026-07-07' }, end: { date: '2026-07-08' } }]
+    },
+    perCalendarMetadata: {
+      'calendar.a': { range, lastSuccessfulRefresh: cachedRefresh },
+      'calendar.b': { range, lastSuccessfulRefresh: cachedRefresh }
+    }
+  };
+  card.loadEventCacheForCurrentConfig = function() {
+    const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, this._eventFetchGeneration);
+    this.applyEventsByCalendar(hydratable.eventsByCalendar, {
+      startDate: range.startDate,
+      endDate: range.endDate,
+      lastSuccessfulRefresh: cachedRefresh,
+      successfulEntityIds: hydratable.successfulEntityIds,
+      source: 'cache',
+      requestId: this._eventFetchGeneration,
+      perCalendarMetadata: hydratable.perCalendarMetadata
+    });
+  };
+  card.ensureEventsForCurrentRange = function() {
+    this.applyEventsByCalendar({}, {
+      successfulEntityIds: [],
+      failedEntityIds: ['calendar.a', 'calendar.b'],
+      source: 'network',
+      requestId: this._eventFetchGeneration
+    });
+  };
+
+  try {
+    card.disconnectedCallback();
+    card.connectedCallback();
+
+    assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'fresh network a');
+    assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'cached b');
+    assert.equal(card._lastEventRefreshFailed, true);
+  } finally {
+    restore();
+  }
+});
+
 test('day_badge CSS variables do not leak into non-badge selectors', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();

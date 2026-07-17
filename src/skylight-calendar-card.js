@@ -2119,6 +2119,10 @@ class SkylightCalendarCard extends HTMLElement {
       const cachedRange = this.getValidRange(cachedMetadata.range?.startDate, cachedMetadata.range?.endDate);
       const cachedLastSuccessfulRefresh = cachedMetadata.lastSuccessfulRefresh;
       if (!cachedRange || !Number.isFinite(cachedLastSuccessfulRefresh)) return;
+      const existingRange = this.getValidRange(metadata.range?.startDate, metadata.range?.endDate);
+      if (existingRange
+        && Number.isFinite(metadata.lastSuccessfulRefresh)
+        && metadata.lastSuccessfulRefresh >= cachedLastSuccessfulRefresh) return;
       cacheEventsByCalendar[entityId] = snapshot.eventsByCalendar[entityId];
       cacheMetadataByCalendar[entityId] = {
         range: cachedRange,
