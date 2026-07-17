@@ -433,6 +433,21 @@ const compactHeightAllocationModes = [
   { name: 'fixed-parent', parentStyle: 'width: 100%; min-width: 0; height: 620px; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr);' }
 ];
 
+const sharedHeaderViewports = [
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 }
+];
+
+const sharedHeaderLayouts = [
+  { name: 'compact', compactHeader: true },
+  { name: 'standard', compactHeader: false }
+];
+
+const sharedHeaderTitles = [
+  { name: 'spaced', value: 'Family Calendar With A Really Long Name Testing Shared Header Wrapping' },
+  { name: 'unbroken', value: 'FamilyCalendarwithareallylongnametesting' }
+];
+
 const compactStressEvents = {
   'calendar.family': [
     { summary: 'All Day School Closure With An Exceptionally Long Wrapping Title', start: '2026-03-15', end: '2026-03-16', location: LONG_LOCATION },
@@ -887,6 +902,59 @@ async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
   expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + tolerance);
 }
 
+async function assertSharedHeaderGeometry(card, header, viewport) {
+  const title = header.locator('.header-title');
+  const left = header.locator('.header-left, .compact-header-left').first();
+  const controlsGroup = header.locator('.header-controls').first();
+  const controls = [
+    header.locator('#prev-period'),
+    header.locator('#next-period'),
+    header.locator('.month-year'),
+    header.locator('#today'),
+    header.locator('#theme-toggle'),
+    header.locator('#view-mode-select'),
+    header.locator('#add-event-btn')
+  ];
+
+  const overflow = await Promise.all([card, header].map((locator) => locator.evaluate((el) => ({
+    clientWidth: el.clientWidth,
+    scrollWidth: el.scrollWidth
+  }))));
+  for (const dimensions of overflow) {
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+  }
+
+  await expectBoxWithin(header, card, 2);
+  await expectBoxWithin(title, header, 2);
+  for (const control of controls) {
+    await expect(control).toBeVisible();
+    await expectBoxWithin(control, header, 2);
+    await expectBoxWithin(control, card, 2);
+  }
+
+  const controlBoxes = await Promise.all(controls.map((control) => control.boundingBox()));
+  for (let first = 0; first < controlBoxes.length; first++) {
+    for (let second = first + 1; second < controlBoxes.length; second++) {
+      const a = controlBoxes[first];
+      const b = controlBoxes[second];
+      expect(a).not.toBeNull();
+      expect(b).not.toBeNull();
+      const overlapWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+      const overlapHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+      expect(overlapWidth > 1 && overlapHeight > 1).toBe(false);
+    }
+  }
+
+  const cardBox = await card.boundingBox();
+  expect(cardBox).not.toBeNull();
+  expect(cardBox.x).toBeGreaterThanOrEqual(-2);
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(viewport.width + 2);
+  if (viewport.name === 'mobile') {
+    await expect(header).toHaveClass(/is-wrapped/);
+    await expect.poll(async () => headerGroupsShareRow(left, controlsGroup)).toBe(false);
+  }
+}
+
 async function assertIntendedVerticalScroller(card, scroller, requireOverflow = false) {
   const scrollInfo = await scroller.evaluate((el, host) => {
     const unexpectedScrollableAncestors = [];
@@ -1057,6 +1125,45 @@ for (const allocationMode of compactHeightAllocationModes) {
         await assertCompactHeightGeometry(card, page, viewSpec, viewport, allocationMode);
         await expect(card).toHaveScreenshot(
           `compact-height-${viewSpec.name}-${viewport.name}-${allocationMode.name}.png`,
+          {
+            animations: 'disabled',
+            maxDiffPixelRatio: 0.01
+          }
+        );
+      });
+    }
+  }
+}
+
+for (const viewport of sharedHeaderViewports) {
+  for (const layout of sharedHeaderLayouts) {
+    for (const titleSpec of sharedHeaderTitles) {
+      test(`visual: shared-header ${layout.name} ${viewport.name} ${titleSpec.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+        await page.goto(fixtureUrl);
+        await page.evaluate((params) => window.renderCalendarCard(params), {
+          config: {
+            entities: ['calendar.family', 'calendar.work'],
+            title: titleSpec.value,
+            default_view: 'month',
+            compact_header: layout.compactHeader,
+            show_dashboard_nav_button: true,
+            dashboard_path: '/lovelace/home',
+            enable_event_management: true
+          },
+          events: monthVisualEvents,
+          darkMode: false
+        });
+
+        const card = page.locator('skylight-calendar-card');
+        const header = card.locator(layout.compactHeader ? '.header-compact' : '.header').first();
+        await expect(card).toBeVisible();
+        await expect(header).toBeVisible();
+        await expect(header.locator('.header-title')).toHaveText(titleSpec.value);
+        await assertSharedHeaderGeometry(card, header, viewport);
+        await expect(card).toHaveScreenshot(
+          `shared-header-${layout.name}-${viewport.name}-${titleSpec.name}.png`,
           {
             animations: 'disabled',
             maxDiffPixelRatio: 0.01
