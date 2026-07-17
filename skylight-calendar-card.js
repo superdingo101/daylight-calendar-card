@@ -3333,6 +3333,8 @@ function getCardStyles() {
         display: flex;
         align-items: center;
         gap: 16px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .compact-header-left {
@@ -3340,6 +3342,8 @@ function getCardStyles() {
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .header-compact.is-wrapped .compact-header-left,
@@ -3467,6 +3471,9 @@ function getCardStyles() {
         font-size: 24px;
         font-weight: 600;
         margin: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
       }
 
       .header-title-wrap {
@@ -3474,6 +3481,10 @@ function getCardStyles() {
         align-items: baseline;
         gap: 10px;
         flex-wrap: wrap;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
       }
 
       .header-time {
@@ -3535,6 +3546,8 @@ function getCardStyles() {
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .compact-header-controls {
@@ -3548,6 +3561,8 @@ function getCardStyles() {
         gap: 12px;
         flex: 0 1 auto;
         margin-left: auto;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .header-controls.is-wrapped {
@@ -3714,7 +3729,9 @@ function getCardStyles() {
         font-weight: 500;
         color: inherit;
         min-width: 210px;
+        max-width: 100%;
         text-align: center;
+        overflow-wrap: anywhere;
       }
 
       .calendar-container.hide-year .month-year {
@@ -4036,6 +4053,11 @@ function getCardStyles() {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
+      }
+
+      .week-compact-container.compact-height {
+        grid-auto-rows: max-content;
+        align-content: start;
       }
 
       .week-day-column {
@@ -6019,6 +6041,12 @@ function getCardStyles() {
 
         .header-controls {
           justify-content: space-between;
+          width: 100%;
+        }
+
+        .header-left,
+        .compact-header-left {
+          width: 100%;
         }
 
         .compact-header-controls {
@@ -6036,6 +6064,7 @@ function getCardStyles() {
         .period-controls .month-year,
         .compact-period-controls .month-year {
           flex: 1;
+          min-width: 0;
           text-align: center;
         }
 
@@ -10311,14 +10340,15 @@ function renderWeekCompactView({
   today,
   dayNames,
   headerHeight,
+  compactMaxHeight,
   helpers
 }) {
   const headerHeightStyle = headerHeight ? `--week-compact-header-height: ${headerHeight}px;` : '';
-  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle()}`;
+  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
-      <div class="week-compact-container day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
+      <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
           const dayEventsForMatching = helpers.getEventsForDay(date, { includeHiddenStyledEvents: true });
@@ -10884,6 +10914,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._weekStandardHeaderHeight = null;
     this._weekCompactHeaderHeight = null;
     this._weekStandardContainerTopInViewport = null;
+    this._weekCompactContainerTopInViewport = null;
     this._monthContainerTopInViewport = null;
     this._agendaContainerTopInViewport = null;
     this._agendaStartDate = null;
@@ -13328,10 +13359,7 @@ class SkylightCalendarCard extends HTMLElement {
     );
     const looksLikeGridAllocation = /grid/i.test(parentDisplay) || parent.hasAttribute?.('grid_options') || parent.classList?.contains('grid-cell');
     const clipsOrScrollsOverflow = /(auto|hidden|scroll|clip)/.test(parentOverflowY);
-    const hostSize = this.getElementSizeForAllocation(this);
-    const parentHasExtraAllocatedHeight = hostSize.height > 0 && parentSize.height - hostSize.height > 1;
-
-    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow || parentHasExtraAllocatedHeight;
+    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow;
   }
 
   getGridAwareCompactContainerStyle() {
@@ -13339,7 +13367,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
-    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
+    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(min-content, 1fr));`;
 
     if (this.hasFixedHeightParentAllocation()) {
       return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;
@@ -13466,15 +13494,22 @@ class SkylightCalendarCard extends HTMLElement {
     const dayHeaders = Array.from(this._root.querySelectorAll('.week-day-header'));
     if (!container || dayHeaders.length === 0) return;
 
+    const measuredContainerTop = Math.max(0, container.getBoundingClientRect?.().top || 0);
+    const containerTopChanged = this._weekCompactContainerTopInViewport === null || Math.abs(this._weekCompactContainerTopInViewport - measuredContainerTop) > 1;
+    if (containerTopChanged) {
+      this._weekCompactContainerTopInViewport = measuredContainerTop;
+    }
+
     const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
       && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
 
     if (!hasRenderedStackedDayBadges) {
-      if (this._weekCompactHeaderHeight !== null) {
+      const headerHeightChanged = this._weekCompactHeaderHeight !== null;
+      if (headerHeightChanged) {
         this._weekCompactHeaderHeight = null;
         container.style.removeProperty('--week-compact-header-height');
-        if (renderOnChange) this.render();
       }
+      if (renderOnChange && (containerTopChanged || headerHeightChanged)) this.render();
       return;
     }
 
@@ -13498,8 +13533,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (headerHeightChanged) {
       this._weekCompactHeaderHeight = measuredHeaderHeight;
       container.style.setProperty('--week-compact-header-height', `${measuredHeaderHeight}px`);
-      if (renderOnChange) this.render();
     }
+    if (renderOnChange && (headerHeightChanged || containerTopChanged)) this.render();
   }
 
 
@@ -14290,8 +14325,9 @@ class SkylightCalendarCard extends HTMLElement {
       today,
       dayNames: this.getWeekdayNames(),
       headerHeight: this._weekCompactHeaderHeight,
+      compactMaxHeight: this.getCompactMaxHeight(this._weekCompactContainerTopInViewport),
       helpers: {
-        getCompactContainerStyle: () => this.getCompactContainerStyle(),
+        getCompactContainerStyle: (maxHeight) => this.getCompactContainerStyle(maxHeight),
         renderCalendarBadges: () => this.renderCalendarBadges(),
         getEventsForDay: (date, options) => this.getEventsForDay(date, options),
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),

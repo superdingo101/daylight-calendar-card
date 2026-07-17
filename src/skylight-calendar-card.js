@@ -423,6 +423,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._weekStandardHeaderHeight = null;
     this._weekCompactHeaderHeight = null;
     this._weekStandardContainerTopInViewport = null;
+    this._weekCompactContainerTopInViewport = null;
     this._monthContainerTopInViewport = null;
     this._agendaContainerTopInViewport = null;
     this._agendaStartDate = null;
@@ -2867,10 +2868,7 @@ class SkylightCalendarCard extends HTMLElement {
     );
     const looksLikeGridAllocation = /grid/i.test(parentDisplay) || parent.hasAttribute?.('grid_options') || parent.classList?.contains('grid-cell');
     const clipsOrScrollsOverflow = /(auto|hidden|scroll|clip)/.test(parentOverflowY);
-    const hostSize = this.getElementSizeForAllocation(this);
-    const parentHasExtraAllocatedHeight = hostSize.height > 0 && parentSize.height - hostSize.height > 1;
-
-    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow || parentHasExtraAllocatedHeight;
+    return hasExplicitCssHeight || looksLikeGridAllocation || clipsOrScrollsOverflow;
   }
 
   getGridAwareCompactContainerStyle() {
@@ -2878,7 +2876,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getCompactMonthGridStyle(monthWeekRows, compactMaxHeight = null) {
-    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(0, 1fr));`;
+    const rowTemplate = `grid-template-rows: auto repeat(${monthWeekRows}, minmax(min-content, 1fr));`;
 
     if (this.hasFixedHeightParentAllocation()) {
       return `height: 100%; min-height: 0; overflow-y: auto; ${rowTemplate}`;
@@ -3005,15 +3003,22 @@ class SkylightCalendarCard extends HTMLElement {
     const dayHeaders = Array.from(this._root.querySelectorAll('.week-day-header'));
     if (!container || dayHeaders.length === 0) return;
 
+    const measuredContainerTop = Math.max(0, container.getBoundingClientRect?.().top || 0);
+    const containerTopChanged = this._weekCompactContainerTopInViewport === null || Math.abs(this._weekCompactContainerTopInViewport - measuredContainerTop) > 1;
+    if (containerTopChanged) {
+      this._weekCompactContainerTopInViewport = measuredContainerTop;
+    }
+
     const hasRenderedStackedDayBadges = this._config.day_badge_layout_week === 'stacked'
       && dayHeaders.some((header) => Boolean(header.querySelector?.('.day-badges .day-badge')));
 
     if (!hasRenderedStackedDayBadges) {
-      if (this._weekCompactHeaderHeight !== null) {
+      const headerHeightChanged = this._weekCompactHeaderHeight !== null;
+      if (headerHeightChanged) {
         this._weekCompactHeaderHeight = null;
         container.style.removeProperty('--week-compact-header-height');
-        if (renderOnChange) this.render();
       }
+      if (renderOnChange && (containerTopChanged || headerHeightChanged)) this.render();
       return;
     }
 
@@ -3037,8 +3042,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (headerHeightChanged) {
       this._weekCompactHeaderHeight = measuredHeaderHeight;
       container.style.setProperty('--week-compact-header-height', `${measuredHeaderHeight}px`);
-      if (renderOnChange) this.render();
     }
+    if (renderOnChange && (headerHeightChanged || containerTopChanged)) this.render();
   }
 
 
@@ -3829,8 +3834,9 @@ class SkylightCalendarCard extends HTMLElement {
       today,
       dayNames: this.getWeekdayNames(),
       headerHeight: this._weekCompactHeaderHeight,
+      compactMaxHeight: this.getCompactMaxHeight(this._weekCompactContainerTopInViewport),
       helpers: {
-        getCompactContainerStyle: () => this.getCompactContainerStyle(),
+        getCompactContainerStyle: (maxHeight) => this.getCompactContainerStyle(maxHeight),
         renderCalendarBadges: () => this.renderCalendarBadges(),
         getEventsForDay: (date, options) => this.getEventsForDay(date, options),
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),

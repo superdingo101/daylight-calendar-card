@@ -412,6 +412,82 @@ const cases = [
   }
 ];
 
+
+
+const compactHeightViewports = [
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'medium', width: 980, height: 820 },
+  { name: 'desktop', width: 1400, height: 1000 }
+];
+
+const compactHeightViews = [
+  { name: 'month', defaultView: 'month', viewLabel: 'Month', containerSelector: '.calendar-grid', internalScrollSelector: '.calendar-grid' },
+  { name: 'week-compact', defaultView: 'week-compact', viewLabel: 'Week', containerSelector: '.week-compact-container', internalScrollSelector: '.week-compact-container' },
+  { name: 'week-standard', defaultView: 'week-standard', viewLabel: 'Schedule', containerSelector: '.week-standard-container', internalScrollSelector: '.week-standard-container' },
+  { name: 'agenda', defaultView: 'agenda', viewLabel: 'Agenda', containerSelector: '.agenda-container', internalScrollSelector: '.agenda-container' }
+];
+
+const compactHeightAllocationModes = [
+  { name: 'viewport', parentStyle: '' },
+  { name: 'fixed-parent', parentStyle: 'width: 100%; min-width: 0; height: 620px; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr);' }
+];
+
+const sharedHeaderViewports = [
+  { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 }
+];
+
+const sharedHeaderLayouts = [
+  { name: 'compact', compactHeader: true },
+  { name: 'standard', compactHeader: false }
+];
+
+const sharedHeaderTitles = [
+  { name: 'spaced', value: 'Family Calendar With A Really Long Name Testing Shared Header Wrapping' },
+  { name: 'unbroken', value: 'FamilyCalendarwithareallylongnametesting' }
+];
+
+const compactStressEvents = {
+  'calendar.family': [
+    { summary: 'All Day School Closure With An Exceptionally Long Wrapping Title', start: '2026-03-15', end: '2026-03-16', location: LONG_LOCATION },
+    { summary: 'Multi-Day Family Travel Across Several Busy Days With Wrapping Text', start: '2026-03-16', end: '2026-03-20', location: LONG_LOCATION },
+    { summary: 'Early Breakfast Preparation With Long Notes', start: '2026-03-15T07:00:00Z', end: '2026-03-15T08:00:00Z', location: LONG_LOCATION },
+    { summary: 'Morning School Dropoff And Supply Pickup With A Very Long Title', start: '2026-03-15T08:30:00Z', end: '2026-03-15T09:15:00Z', location: LONG_LOCATION },
+    { summary: 'Lunch Planning Call That Wraps On Narrow Week Compact Columns', start: '2026-03-15T12:00:00Z', end: '2026-03-15T12:45:00Z', location: LONG_LOCATION },
+    { summary: 'Afternoon Activity Signup Review', start: '2026-03-15T15:00:00Z', end: '2026-03-15T16:00:00Z', location: LONG_LOCATION },
+    { summary: 'Dinner With Visiting Family And Very Long Location', start: '2026-03-15T18:00:00Z', end: '2026-03-15T19:30:00Z', location: LONG_LOCATION },
+    { summary: 'Overnight Family Support Shift', start: '2026-03-15T23:00:00Z', end: '2026-03-16T02:00:00Z', location: LONG_LOCATION },
+    { summary: 'Wednesday Piano Recital Setup', start: '2026-03-18T16:00:00Z', end: '2026-03-18T17:00:00Z', location: LONG_LOCATION },
+    { summary: 'Weekend Tournament Multi-Day', start: '2026-03-20', end: '2026-03-23' }
+  ],
+  'calendar.work': [
+    { summary: 'All Day Release Freeze With Long Calendar Badge Text', start: '2026-03-15', end: '2026-03-16', location: LONG_LOCATION },
+    { summary: 'Weekly Planning Session With Long Wrapping Title And Location', start: '2026-03-15T09:30:00Z', end: '2026-03-15T10:30:00Z', location: LONG_LOCATION },
+    { summary: 'Architecture Review With Many Participants And Wrapping Title', start: '2026-03-15T10:45:00Z', end: '2026-03-15T11:45:00Z', location: LONG_LOCATION },
+    { summary: 'Customer Escalation Triage With Extremely Long Title', start: '2026-03-15T13:00:00Z', end: '2026-03-15T14:00:00Z', location: LONG_LOCATION },
+    { summary: 'Design Critique And Follow Up', start: '2026-03-15T14:15:00Z', end: '2026-03-15T15:00:00Z', location: LONG_LOCATION },
+    { summary: 'Late Deployment Window', start: '2026-03-15T20:00:00Z', end: '2026-03-15T22:00:00Z', location: LONG_LOCATION },
+    { summary: 'Cross-Team Workshop Multi-Day With Long Title', start: '2026-03-17', end: '2026-03-21', location: LONG_LOCATION },
+    { summary: 'Thursday Status Review', start: '2026-03-19T15:00:00Z', end: '2026-03-19T16:00:00Z', location: LONG_LOCATION }
+  ]
+};
+
+const compactStressConfig = {
+  compact_height: true,
+  show_event_location: true,
+  use_short_location: false,
+  show_all_events_month: false,
+  header_weather_sensor: 'weather.mock',
+  colors: defaultColors,
+  day_badge_layout_week: 'stacked',
+  day_badges: [
+    { conditions: { title_contains: 'School' }, icon: 'mdi:school', text: 'School' },
+    { conditions: { title_contains: 'Release' }, icon: 'mdi:rocket-launch', text: 'Release' },
+    { conditions: { title_contains: 'Travel' }, icon: 'mdi:bag-suitcase', text: 'Travel' }
+  ]
+};
+
 const eventSelectorByView = {
   month: '.event, .all-day-event',
   week: '.week-compact-event, .week-standard-event, .all-day-event',
@@ -802,6 +878,381 @@ for (const scenario of cases) {
       animations: 'disabled',
       maxDiffPixelRatio: scenario.maxDiffPixelRatio || 0.01
     });
+  });
+}
+
+
+async function expectBoxWithin(inner, outer, tolerance = 2) {
+  const innerBox = await inner.boundingBox();
+  const outerBox = await outer.boundingBox();
+  expect(innerBox).not.toBeNull();
+  expect(outerBox).not.toBeNull();
+  expect(innerBox.x).toBeGreaterThanOrEqual(outerBox.x - tolerance);
+  expect(innerBox.x + innerBox.width).toBeLessThanOrEqual(outerBox.x + outerBox.width + tolerance);
+  expect(innerBox.y).toBeGreaterThanOrEqual(outerBox.y - tolerance);
+  expect(innerBox.y + innerBox.height).toBeLessThanOrEqual(outerBox.y + outerBox.height + tolerance);
+}
+
+async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0 - tolerance);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + tolerance);
+  expect(box.y).toBeGreaterThanOrEqual(0 - tolerance);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + tolerance);
+}
+
+async function assertSharedHeaderGeometry(card, header, viewport, { fullContent = false } = {}) {
+  const title = header.locator('.header-title');
+  const left = header.locator('.header-left, .compact-header-left').first();
+  const controlsGroup = header.locator('.header-controls').first();
+  const requiredControls = [
+    header.locator('.dashboard-nav-button'),
+    header.locator('#prev-period'),
+    header.locator('#next-period'),
+    header.locator('.month-year'),
+    header.locator('#today'),
+    header.locator('#theme-toggle'),
+    header.locator('#view-mode-select'),
+    header.locator('#add-event-btn')
+  ];
+  const optionalContent = [
+    header.locator('.header-time'),
+    header.locator('.header-weather'),
+    card.locator('.calendar-badge')
+  ];
+
+  const overflow = await Promise.all([card, header].map((locator) => locator.evaluate((el) => ({
+    clientWidth: el.clientWidth,
+    scrollWidth: el.scrollWidth
+  }))));
+  for (const dimensions of overflow) {
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+  }
+
+  await expectBoxWithin(header, card, 2);
+  await expectBoxWithin(title, header, 2);
+  for (const control of requiredControls) {
+    await expect(control).toBeVisible();
+    await expectBoxWithin(control, header, 2);
+    await expectBoxWithin(control, card, 2);
+  }
+
+  if (fullContent) {
+    await expect(header.locator('.header-time')).toBeVisible();
+    await expect(header.locator('.header-weather')).toBeVisible();
+    expect(await card.locator('.calendar-badge').count()).toBeGreaterThan(0);
+  }
+
+  for (const content of optionalContent) {
+    for (let index = 0; index < await content.count(); index++) {
+      const item = content.nth(index);
+      await expect(item).toBeVisible();
+      await expectBoxWithin(item, card, 2);
+      if (await item.evaluate((el, headerEl) => headerEl.contains(el), await header.elementHandle())) {
+        await expectBoxWithin(item, header, 2);
+      }
+    }
+  }
+
+  const leafItems = card.locator('.header-title, .header-time, .header-weather, .calendar-badge, .dashboard-nav-button, #prev-period, #next-period, .month-year, #today, #theme-toggle, #view-mode-select, #add-event-btn');
+  const leafBoxes = await leafItems.evaluateAll((items) => items
+    .filter((item) => {
+      const style = getComputedStyle(item);
+      const rect = item.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    })
+    .map((item) => {
+      const rect = item.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }));
+  for (let first = 0; first < leafBoxes.length; first++) {
+    for (let second = first + 1; second < leafBoxes.length; second++) {
+      const a = leafBoxes[first];
+      const b = leafBoxes[second];
+      expect(a).not.toBeNull();
+      expect(b).not.toBeNull();
+      const overlapWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+      const overlapHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+      expect(overlapWidth > 1 && overlapHeight > 1).toBe(false);
+    }
+  }
+
+  const cardBox = await card.boundingBox();
+  expect(cardBox).not.toBeNull();
+  expect(cardBox.x).toBeGreaterThanOrEqual(-2);
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(viewport.width + 2);
+  for (let index = 0; index < await leafItems.count(); index++) {
+    const item = leafItems.nth(index);
+    const box = await item.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(-2);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 2);
+    expect(box.y).toBeGreaterThanOrEqual(-2);
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 2);
+  }
+  if (viewport.name === 'mobile') {
+    await expect(header).toHaveClass(/is-wrapped/);
+    await expect.poll(async () => headerGroupsShareRow(left, controlsGroup)).toBe(false);
+  }
+}
+
+async function assertIntendedVerticalScroller(card, scroller, requireOverflow = false) {
+  const scrollInfo = await scroller.evaluate((el, host) => {
+    const unexpectedScrollableAncestors = [];
+    let current = el.parentElement;
+    while (current && current !== host) {
+      const style = getComputedStyle(current);
+      if (/(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight) {
+        unexpectedScrollableAncestors.push(current.className || current.id || current.tagName.toLowerCase());
+      }
+      current = current.parentElement;
+    }
+    return {
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+      overflowY: getComputedStyle(el).overflowY,
+      unexpectedScrollableAncestors
+    };
+  }, await card.elementHandle());
+  expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
+  expect(scrollInfo.scrollHeight).toBeGreaterThanOrEqual(scrollInfo.clientHeight);
+  expect(scrollInfo.unexpectedScrollableAncestors).toEqual([]);
+  if (requireOverflow) {
+    expect(scrollInfo.scrollHeight).toBeGreaterThan(scrollInfo.clientHeight);
+  }
+}
+
+async function assertCompactHeightGeometry(card, page, viewSpec, viewport, allocationMode) {
+  const container = card.locator(viewSpec.containerSelector).first();
+  const scroller = card.locator(viewSpec.internalScrollSelector).first();
+  await expect(container).toBeVisible();
+
+  if (allocationMode.name === 'fixed-parent') {
+    const parent = page.locator('#app');
+    await expectBoxWithin(card, parent, 2);
+    await expectBoxWithin(container, parent, 2);
+  } else {
+    await expectBoxWithinViewport(card, viewport, 2);
+    await expectBoxWithinViewport(container, viewport, 2);
+  }
+
+  const shouldRequireOverflow = viewSpec.name === 'week-compact' || viewSpec.name === 'agenda';
+  await assertIntendedVerticalScroller(card, scroller, shouldRequireOverflow);
+
+  if (viewSpec.name === 'month') {
+    const rows = await card.locator('.day-cell').evaluateAll((cells) => {
+      const rowMap = new Map();
+      for (const cell of cells) {
+        const rect = cell.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, cells: [] });
+        rowMap.get(key).cells.push(cell);
+        rowMap.get(key).bottom = Math.max(rowMap.get(key).bottom, rect.bottom);
+      }
+      return [...rowMap.values()].map((row) => ({
+        top: row.top,
+        bottom: row.bottom,
+        eventRects: row.cells.flatMap((cell) => [...cell.querySelectorAll('.event, .month-span-event, .more-events')].map((event) => {
+          const rect = event.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom };
+        }))
+      }));
+    });
+    for (let i = 0; i < rows.length; i++) {
+      for (const eventRect of rows[i].eventRects) {
+        expect(eventRect.top).toBeGreaterThanOrEqual(rows[i].top - 2);
+        expect(eventRect.bottom).toBeLessThanOrEqual(rows[i].bottom + 2);
+      }
+      if (rows[i + 1]) expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
+    }
+  } else if (viewSpec.name === 'week-compact') {
+    const rows = await card.locator('.week-day-column').evaluateAll((columns) => {
+      const rowMap = new Map();
+      for (const column of columns) {
+        const rect = column.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rowMap.has(key)) rowMap.set(key, { top: rect.top, bottom: rect.bottom, eventRects: [] });
+        const row = rowMap.get(key);
+        row.bottom = Math.max(row.bottom, rect.bottom);
+        row.eventRects.push(...[...column.querySelectorAll('.week-compact-event')].map((event) => {
+          const eventRect = event.getBoundingClientRect();
+          return { top: eventRect.top, bottom: eventRect.bottom };
+        }));
+      }
+      return [...rowMap.values()].sort((a, b) => a.top - b.top);
+    });
+    if (viewport.width <= 768) expect(rows.length).toBeGreaterThan(1);
+    const eventVisibility = await card.locator('.week-compact-event').evaluateAll((events) => events.every((event) => {
+      const style = getComputedStyle(event);
+      const rect = event.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    }));
+    expect(eventVisibility).toBe(true);
+    for (let i = 0; i < rows.length; i++) {
+      for (const eventRect of rows[i].eventRects) {
+        expect(eventRect.top).toBeGreaterThanOrEqual(rows[i].top - 2);
+        expect(eventRect.bottom).toBeLessThanOrEqual(rows[i].bottom + 2);
+      }
+      if (rows[i + 1]) expect(rows[i].bottom).toBeLessThanOrEqual(rows[i + 1].top + 2);
+    }
+  } else if (viewSpec.name === 'week-standard') {
+    const alignment = await card.locator('.week-standard-container').evaluate((containerEl) => {
+      const headers = [...containerEl.querySelectorAll('.week-standard-day-header')].map((el) => Math.round(el.getBoundingClientRect().bottom));
+      const allDay = [...containerEl.querySelectorAll('.all-day-events')].map((el) => Math.round(el.getBoundingClientRect().top));
+      const slots = [...containerEl.querySelectorAll('.day-time-slots')].map((el) => Math.round(el.getBoundingClientRect().top));
+      const timedContained = [...containerEl.querySelectorAll('.week-standard-event')].every((event) => {
+        const owner = event.closest('.day-time-slots');
+        if (!owner) return false;
+        const eventRect = event.getBoundingClientRect();
+        const ownerRect = owner.getBoundingClientRect();
+        return eventRect.top >= ownerRect.top - 2 && eventRect.bottom <= ownerRect.bottom + 2;
+      });
+      const allDayContained = [...containerEl.querySelectorAll('.all-day-event')].every((event) => {
+        const owner = event.closest('.all-day-events');
+        if (!owner) return false;
+        const eventRect = event.getBoundingClientRect();
+        const ownerRect = owner.getBoundingClientRect();
+        return eventRect.top >= ownerRect.top - 2 && eventRect.bottom <= ownerRect.bottom + 2;
+      });
+      return { headers, allDay, slots, timedContained, allDayContained };
+    });
+    expect(new Set(alignment.headers).size).toBe(1);
+    expect(new Set(alignment.allDay).size).toBe(1);
+    expect(new Set(alignment.slots).size).toBe(1);
+    expect(alignment.timedContained).toBe(true);
+    expect(alignment.allDayContained).toBe(true);
+  } else if (viewSpec.name === 'agenda') {
+    const rowsContained = await card.locator('.agenda-container').evaluate((containerEl) => {
+      const c = containerEl.getBoundingClientRect();
+      return [...containerEl.querySelectorAll('.agenda-event')].every((event) => {
+        const owner = event.closest('.agenda-day-row');
+        const r = event.getBoundingClientRect();
+        const ownerRect = owner?.getBoundingClientRect();
+        return ownerRect
+          && r.left >= c.left - 2
+          && r.right <= c.right + 2
+          && r.top >= ownerRect.top - 2
+          && r.bottom <= ownerRect.bottom + 2;
+      });
+    });
+    expect(rowsContained).toBe(true);
+  }
+}
+
+for (const allocationMode of compactHeightAllocationModes) {
+  for (const viewport of compactHeightViewports) {
+    for (const viewSpec of compactHeightViews) {
+      test(`visual: compact-height ${viewSpec.name} ${viewport.name} ${allocationMode.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+        await page.goto(fixtureUrl);
+        await page.evaluate((params) => window.renderCalendarCard(params), {
+          config: {
+            entities: ['calendar.family', 'calendar.work'],
+            title: 'Compact Height Stress Calendar',
+            default_view: viewSpec.defaultView,
+            ...compactStressConfig
+          },
+          events: compactStressEvents,
+          weather: { 'weather.mock': { temperature: 62, condition: 'partlycloudy', forecast: [] } },
+          darkMode: false,
+          parentStyle: allocationMode.parentStyle
+        });
+
+        const card = page.locator('skylight-calendar-card');
+        await expect(card).toBeVisible();
+        await expect(card).toContainText(viewSpec.viewLabel);
+        await expect(card.locator(eventSelectorByView[viewSpec.defaultView])).not.toHaveCount(0);
+        await assertCompactHeightGeometry(card, page, viewSpec, viewport, allocationMode);
+        await expect(card).toHaveScreenshot(
+          `compact-height-${viewSpec.name}-${viewport.name}-${allocationMode.name}.png`,
+          {
+            animations: 'disabled',
+            maxDiffPixelRatio: 0.01
+          }
+        );
+      });
+    }
+  }
+}
+
+for (const viewport of sharedHeaderViewports) {
+  for (const layout of sharedHeaderLayouts) {
+    for (const titleSpec of sharedHeaderTitles) {
+      test(`visual: shared-header ${layout.name} ${viewport.name} ${titleSpec.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+        await page.goto(fixtureUrl);
+        await page.evaluate((params) => window.renderCalendarCard(params), {
+          config: {
+            entities: ['calendar.family', 'calendar.work'],
+            title: titleSpec.value,
+            default_view: 'month',
+            compact_header: layout.compactHeader,
+            show_dashboard_nav_button: true,
+            header_dashboard_path: '/lovelace/home',
+            enable_event_management: true
+          },
+          events: monthVisualEvents,
+          darkMode: false
+        });
+
+        const card = page.locator('skylight-calendar-card');
+        const header = card.locator(layout.compactHeader ? '.header-compact' : '.header').first();
+        await expect(card).toBeVisible();
+        await expect(header).toBeVisible();
+        await expect(header.locator('.header-title')).toHaveText(titleSpec.value);
+        await assertSharedHeaderGeometry(card, header, viewport);
+        await expect(card).toHaveScreenshot(
+          `shared-header-${layout.name}-${viewport.name}-${titleSpec.name}.png`,
+          {
+            animations: 'disabled',
+            maxDiffPixelRatio: 0.01
+          }
+        );
+      });
+    }
+  }
+}
+
+for (const layout of sharedHeaderLayouts) {
+  test(`visual: shared-header full-content ${layout.name} mobile`, async ({ page }) => {
+    const viewport = sharedHeaderViewports.find(({ name }) => name === 'mobile');
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'FamilyCalendarwithareallylongnametesting',
+        default_view: 'month',
+        compact_header: layout.compactHeader,
+        show_dashboard_nav_button: true,
+        header_dashboard_path: '/lovelace/home',
+        header_time_sensor: 'sensor.header_time',
+        header_weather_sensor: 'weather.mock',
+        enable_event_management: true
+      },
+      events: monthVisualEvents,
+      weather: { 'weather.mock': { temperature: 72, condition: 'sunny', forecast: [] } },
+      states: {
+        'sensor.header_time': { entity_id: 'sensor.header_time', state: '14:30', attributes: { friendly_name: 'Header Time' } }
+      },
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const header = card.locator(layout.compactHeader ? '.header-compact' : '.header').first();
+    await expect(card).toBeVisible();
+    await expect(header).toBeVisible();
+    await assertSharedHeaderGeometry(card, header, viewport, { fullContent: true });
+    await expect(card).toHaveScreenshot(
+      `shared-header-full-content-${layout.name}-mobile.png`,
+      {
+        animations: 'disabled',
+        maxDiffPixelRatio: 0.01
+      }
+    );
   });
 }
 
