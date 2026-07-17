@@ -141,6 +141,8 @@ export function getCardStyles() {
         display: flex;
         align-items: center;
         gap: 16px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .compact-header-left {
@@ -148,6 +150,8 @@ export function getCardStyles() {
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .header-compact.is-wrapped .compact-header-left,
@@ -275,6 +279,9 @@ export function getCardStyles() {
         font-size: 24px;
         font-weight: 600;
         margin: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
       }
 
       .header-title-wrap {
@@ -282,6 +289,10 @@ export function getCardStyles() {
         align-items: baseline;
         gap: 10px;
         flex-wrap: wrap;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
       }
 
       .header-time {
@@ -343,6 +354,8 @@ export function getCardStyles() {
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .compact-header-controls {
@@ -356,6 +369,8 @@ export function getCardStyles() {
         gap: 12px;
         flex: 0 1 auto;
         margin-left: auto;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .header-controls.is-wrapped {
@@ -522,7 +537,9 @@ export function getCardStyles() {
         font-weight: 500;
         color: inherit;
         min-width: 210px;
+        max-width: 100%;
         text-align: center;
+        overflow-wrap: anywhere;
       }
 
       .calendar-container.hide-year .month-year {
@@ -844,6 +861,11 @@ export function getCardStyles() {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
+      }
+
+      .week-compact-container.compact-height {
+        grid-auto-rows: max-content;
+        align-content: start;
       }
 
       .week-day-column {
@@ -2827,6 +2849,12 @@ export function getCardStyles() {
 
         .header-controls {
           justify-content: space-between;
+          width: 100%;
+        }
+
+        .header-left,
+        .compact-header-left {
+          width: 100%;
         }
 
         .compact-header-controls {
@@ -2844,6 +2872,7 @@ export function getCardStyles() {
         .period-controls .month-year,
         .compact-period-controls .month-year {
           flex: 1;
+          min-width: 0;
           text-align: center;
         }
 

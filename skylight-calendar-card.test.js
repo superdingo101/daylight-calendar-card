@@ -4607,6 +4607,216 @@ test('disconnectedCallback disconnects host ResizeObserver', () => {
   }
 });
 
+function stubLifecycleEnvironment(card) {
+  const originals = {
+    addEventListener: window.addEventListener,
+    removeEventListener: window.removeEventListener,
+    cancelAnimationFrame: window.cancelAnimationFrame
+  };
+  window.addEventListener = () => {};
+  window.removeEventListener = () => {};
+  window.cancelAnimationFrame = () => {};
+  card.attachSystemThemeListener = () => {};
+  card.detachSystemThemeListener = () => {};
+  card.observeHostAndParentResize = () => {};
+  card.teardownWeatherForecastSubscription = () => {};
+  card.updateEventModalOpenState = () => {};
+  card.cancelMonthCompactMeasurement = () => {};
+  card.render = () => {};
+  return () => Object.assign(window, originals);
+}
+
+test('reconnect invalidates a delayed request and promptly replaces it without waiting for staleness', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const restore = stubLifecycleEnvironment(card);
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-01T00:00:00Z') });
+  const pending = [];
+  let fetchCount = 0;
+  card.fetchEventsByCalendarInRange = () => {
+    fetchCount += 1;
+    return new Promise(resolve => pending.push(resolve));
+  };
+  card.persistEventCacheSnapshot = () => {};
+  card.loadEventCacheForCurrentConfig = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  try {
+    const oldRequest = card.updateEvents();
+    assert.equal(fetchCount, 1);
+    card.disconnectedCallback();
+    card.connectedCallback();
+    assert.equal(card._pendingEventRefreshAfterCurrentFetch, true);
+
+    pending[0]({
+      'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'obsolete', start: { date: '2026-07-10' }, end: { date: '2026-07-11' } }] }
+    });
+    await oldRequest;
+    assert.equal(fetchCount, 2);
+    assert.deepEqual(card._events, []);
+
+    pending[1]({
+      'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'reconnected', start: { date: '2026-07-12' }, end: { date: '2026-07-13' } }] }
+    });
+    while (card._fetching) await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(card._events[0].summary, 'reconnected');
+    assert.equal(fetchCount, 2);
+  } finally {
+    restore();
+  }
+});
+
+test('reconnect restarts invalidated delayed cache hydration and ignores its obsolete result', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const restore = stubLifecycleEnvironment(card);
+  card._hass = null;
+  const pending = [];
+  card.loadEventCacheForCurrentConfig = function() {
+    const generation = ++this._eventCacheGeneration;
+    return new Promise(resolve => pending.push(() => {
+      if (generation === this._eventCacheGeneration) this._events = [{ summary: `cache-${generation}` }];
+      resolve();
+    }));
+  };
+
+  try {
+    const oldCacheRead = card.loadEventCacheForCurrentConfig();
+    card.disconnectedCallback();
+    card.connectedCallback();
+    assert.equal(pending.length, 2);
+    pending[0]();
+    await oldCacheRead;
+    assert.deepEqual(card._events, []);
+    pending[1]();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(card._events[0].summary, `cache-${card._eventCacheGeneration}`);
+  } finally {
+    restore();
+  }
+});
+
+test('repeated reconnects coalesce replacement event fetches and first connection stays unchanged', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const restore = stubLifecycleEnvironment(card);
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-01T00:00:00Z') });
+  const pending = [];
+  let fetchCount = 0;
+  let cacheLoads = 0;
+  card.fetchEventsByCalendarInRange = () => {
+    fetchCount += 1;
+    return new Promise(resolve => pending.push(resolve));
+  };
+  card.loadEventCacheForCurrentConfig = () => { cacheLoads += 1; };
+  card.persistEventCacheSnapshot = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  try {
+    card.connectedCallback();
+    assert.equal(fetchCount, 0);
+    assert.equal(cacheLoads, 0);
+    const oldRequest = card.updateEvents();
+    for (let index = 0; index < 3; index += 1) {
+      card.disconnectedCallback();
+      card.connectedCallback();
+    }
+    assert.equal(fetchCount, 1);
+    assert.equal(cacheLoads, 3);
+    pending[0]({ 'calendar.a': { success: true, events: [] } });
+    await oldRequest;
+    assert.equal(fetchCount, 2);
+    pending[1]({ 'calendar.a': { success: true, events: [] } });
+    while (card._fetching) await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(fetchCount, 2);
+  } finally {
+    restore();
+  }
+});
+
+test('reconnect preserves usable in-memory events instead of reloading an older cache snapshot', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const restore = stubLifecycleEnvironment(card);
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._events = [{ entityId: 'calendar.a', summary: 'fresh network event' }];
+  card._loadedEventRange = {
+    startDate: new Date('2026-07-01T00:00:00Z'),
+    endDate: new Date('2026-08-01T00:00:00Z')
+  };
+  let cacheLoads = 0;
+  card.loadEventCacheForCurrentConfig = () => { cacheLoads += 1; };
+  card.ensureEventsForCurrentRange = () => {};
+
+  try {
+    card.disconnectedCallback();
+    card.connectedCallback();
+
+    assert.equal(cacheLoads, 0);
+    assert.equal(card._events[0].summary, 'fresh network event');
+  } finally {
+    restore();
+  }
+});
+
+test('reconnect cache hydration preserves fresher per-calendar data after a partial fetch', () => {
+  const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
+  const restore = stubLifecycleEnvironment(card);
+  const range = { startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-01T00:00:00Z') };
+  const freshRefresh = Date.parse('2026-07-15T12:00:00Z');
+  const cachedRefresh = Date.parse('2026-07-10T12:00:00Z');
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._eventsByCalendar = {
+    'calendar.a': [{ entityId: 'calendar.a', summary: 'fresh network a', start: { date: '2026-07-12' }, end: { date: '2026-07-13' } }]
+  };
+  card._calendarEventMetadata = {
+    'calendar.a': { range, lastSuccessfulRefresh: freshRefresh, lastNetworkSuccessRequest: 1 },
+    'calendar.b': { refreshFailed: true }
+  };
+  card.recomputeEventState();
+  assert.equal(card._loadedEventRange, null);
+
+  const snapshot = {
+    eventsByCalendar: {
+      'calendar.a': [{ entityId: 'calendar.a', summary: 'older cached a', start: { date: '2026-07-05' }, end: { date: '2026-07-06' } }],
+      'calendar.b': [{ entityId: 'calendar.b', summary: 'cached b', start: { date: '2026-07-07' }, end: { date: '2026-07-08' } }]
+    },
+    perCalendarMetadata: {
+      'calendar.a': { range, lastSuccessfulRefresh: cachedRefresh },
+      'calendar.b': { range, lastSuccessfulRefresh: cachedRefresh }
+    }
+  };
+  card.loadEventCacheForCurrentConfig = function() {
+    const hydratable = this.getHydratableEventCacheSnapshotData(snapshot, this._eventFetchGeneration);
+    this.applyEventsByCalendar(hydratable.eventsByCalendar, {
+      startDate: range.startDate,
+      endDate: range.endDate,
+      lastSuccessfulRefresh: cachedRefresh,
+      successfulEntityIds: hydratable.successfulEntityIds,
+      source: 'cache',
+      requestId: this._eventFetchGeneration,
+      perCalendarMetadata: hydratable.perCalendarMetadata
+    });
+  };
+  card.ensureEventsForCurrentRange = function() {
+    this.applyEventsByCalendar({}, {
+      successfulEntityIds: [],
+      failedEntityIds: ['calendar.a', 'calendar.b'],
+      source: 'network',
+      requestId: this._eventFetchGeneration
+    });
+  };
+
+  try {
+    card.disconnectedCallback();
+    card.connectedCallback();
+
+    assert.equal(card._eventsByCalendar['calendar.a'][0].summary, 'fresh network a');
+    assert.equal(card._eventsByCalendar['calendar.b'][0].summary, 'cached b');
+    assert.equal(card._lastEventRefreshFailed, true);
+  } finally {
+    restore();
+  }
+});
+
 test('day_badge CSS variables do not leak into non-badge selectors', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const styles = card.getStyles();
@@ -8479,6 +8689,30 @@ test('normal hass update does not queue redundant refresh while forced setConfig
   card._pendingEventRefreshAfterCurrentFetch = false;
   await card.ensureEventsForCurrentRange();
   assert.equal(card._pendingEventRefreshAfterCurrentFetch, false);
+});
+
+test('recent invalidated fetch timestamp does not delay an entirely unloaded card', async () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  card._hass = { user: { id: 'user-1' }, states: {} };
+  card._lastFetch = Date.now();
+  card._loadedEventRange = null;
+  card._calendarEventMetadata = {};
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-07-10T00:00:00Z'), endDate: new Date('2026-07-17T00:00:00Z') });
+  card.getEventFetchRange = () => ({ startDate: new Date('2026-07-01T00:00:00Z'), endDate: new Date('2026-08-01T00:00:00Z') });
+  let fetchCount = 0;
+  card.fetchEventsByCalendarInRange = async () => {
+    fetchCount += 1;
+    return {
+      'calendar.a': { success: true, events: [{ entityId: 'calendar.a', summary: 'prompt', start: { date: '2026-07-12' }, end: { date: '2026-07-13' } }] }
+    };
+  };
+  card.persistEventCacheSnapshot = () => {};
+  card.ensureEventsForCurrentRange = originalEnsureEventsForCurrentRange.bind(card);
+
+  await card.ensureEventsForCurrentRange();
+
+  assert.equal(fetchCount, 1);
+  assert.equal(card._events[0].summary, 'prompt');
 });
 
 test('active fetch queues follow-up when switched view needs uncovered range', async () => {
