@@ -902,11 +902,12 @@ async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
   expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + tolerance);
 }
 
-async function assertSharedHeaderGeometry(card, header, viewport) {
+async function assertSharedHeaderGeometry(card, header, viewport, { fullContent = false } = {}) {
   const title = header.locator('.header-title');
   const left = header.locator('.header-left, .compact-header-left').first();
   const controlsGroup = header.locator('.header-controls').first();
-  const controls = [
+  const requiredControls = [
+    header.locator('.dashboard-nav-button'),
     header.locator('#prev-period'),
     header.locator('#next-period'),
     header.locator('.month-year'),
@@ -914,6 +915,11 @@ async function assertSharedHeaderGeometry(card, header, viewport) {
     header.locator('#theme-toggle'),
     header.locator('#view-mode-select'),
     header.locator('#add-event-btn')
+  ];
+  const optionalContent = [
+    header.locator('.header-time'),
+    header.locator('.header-weather'),
+    card.locator('.calendar-badge')
   ];
 
   const overflow = await Promise.all([card, header].map((locator) => locator.evaluate((el) => ({
@@ -926,17 +932,44 @@ async function assertSharedHeaderGeometry(card, header, viewport) {
 
   await expectBoxWithin(header, card, 2);
   await expectBoxWithin(title, header, 2);
-  for (const control of controls) {
+  for (const control of requiredControls) {
     await expect(control).toBeVisible();
     await expectBoxWithin(control, header, 2);
     await expectBoxWithin(control, card, 2);
   }
 
-  const controlBoxes = await Promise.all(controls.map((control) => control.boundingBox()));
-  for (let first = 0; first < controlBoxes.length; first++) {
-    for (let second = first + 1; second < controlBoxes.length; second++) {
-      const a = controlBoxes[first];
-      const b = controlBoxes[second];
+  if (fullContent) {
+    await expect(header.locator('.header-time')).toBeVisible();
+    await expect(header.locator('.header-weather')).toBeVisible();
+    expect(await card.locator('.calendar-badge').count()).toBeGreaterThan(0);
+  }
+
+  for (const content of optionalContent) {
+    for (let index = 0; index < await content.count(); index++) {
+      const item = content.nth(index);
+      await expect(item).toBeVisible();
+      await expectBoxWithin(item, card, 2);
+      if (await item.evaluate((el, headerEl) => headerEl.contains(el), await header.elementHandle())) {
+        await expectBoxWithin(item, header, 2);
+      }
+    }
+  }
+
+  const leafItems = card.locator('.header-title, .header-time, .header-weather, .calendar-badge, .dashboard-nav-button, #prev-period, #next-period, .month-year, #today, #theme-toggle, #view-mode-select, #add-event-btn');
+  const leafBoxes = await leafItems.evaluateAll((items) => items
+    .filter((item) => {
+      const style = getComputedStyle(item);
+      const rect = item.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    })
+    .map((item) => {
+      const rect = item.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }));
+  for (let first = 0; first < leafBoxes.length; first++) {
+    for (let second = first + 1; second < leafBoxes.length; second++) {
+      const a = leafBoxes[first];
+      const b = leafBoxes[second];
       expect(a).not.toBeNull();
       expect(b).not.toBeNull();
       const overlapWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
@@ -949,6 +982,14 @@ async function assertSharedHeaderGeometry(card, header, viewport) {
   expect(cardBox).not.toBeNull();
   expect(cardBox.x).toBeGreaterThanOrEqual(-2);
   expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(viewport.width + 2);
+  for (let index = 0; index < await leafItems.count(); index++) {
+    const item = leafItems.nth(index);
+    const box = await item.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(-2);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 2);
+    expect(box.y).toBeGreaterThanOrEqual(-2);
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 2);
+  }
   if (viewport.name === 'mobile') {
     await expect(header).toHaveClass(/is-wrapped/);
     await expect.poll(async () => headerGroupsShareRow(left, controlsGroup)).toBe(false);
@@ -1149,7 +1190,7 @@ for (const viewport of sharedHeaderViewports) {
             default_view: 'month',
             compact_header: layout.compactHeader,
             show_dashboard_nav_button: true,
-            dashboard_path: '/lovelace/home',
+            header_dashboard_path: '/lovelace/home',
             enable_event_management: true
           },
           events: monthVisualEvents,
@@ -1172,6 +1213,47 @@ for (const viewport of sharedHeaderViewports) {
       });
     }
   }
+}
+
+for (const layout of sharedHeaderLayouts) {
+  test(`visual: shared-header full-content ${layout.name} mobile`, async ({ page }) => {
+    const viewport = sharedHeaderViewports.find(({ name }) => name === 'mobile');
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'FamilyCalendarwithareallylongnametesting',
+        default_view: 'month',
+        compact_header: layout.compactHeader,
+        show_dashboard_nav_button: true,
+        header_dashboard_path: '/lovelace/home',
+        header_time_sensor: 'sensor.header_time',
+        header_weather_sensor: 'weather.mock',
+        enable_event_management: true
+      },
+      events: monthVisualEvents,
+      weather: { 'weather.mock': { temperature: 72, condition: 'sunny', forecast: [] } },
+      states: {
+        'sensor.header_time': { entity_id: 'sensor.header_time', state: '14:30', attributes: { friendly_name: 'Header Time' } }
+      },
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const header = card.locator(layout.compactHeader ? '.header-compact' : '.header').first();
+    await expect(card).toBeVisible();
+    await expect(header).toBeVisible();
+    await assertSharedHeaderGeometry(card, header, viewport, { fullContent: true });
+    await expect(card).toHaveScreenshot(
+      `shared-header-full-content-${layout.name}-mobile.png`,
+      {
+        animations: 'disabled',
+        maxDiffPixelRatio: 0.01
+      }
+    );
+  });
 }
 
 test('regression: month compact-height hides overflowing span lanes in more count', async ({ page }) => {
