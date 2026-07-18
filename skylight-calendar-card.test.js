@@ -8971,6 +8971,48 @@ test('parseRRule does not infer byDay for non-WEEKLY frequencies', () => {
   assert.deepEqual(parsed.byDay, []);
 });
 
+test('parseRRule infers weekday using the configured time_zone, not the browser local zone', () => {
+  const originalTZ = process.env.TZ;
+  try {
+    // Simulate a browser whose local zone is Chicago.
+    process.env.TZ = 'America/Chicago';
+
+    // 2026-07-14T23:00:00Z is still Tuesday 18:00 in Chicago (UTC-5),
+    // but already Wednesday 11:00 in Auckland (UTC+12) — the two zones
+    // disagree on the calendar day, which is exactly what this guards.
+    const instant = new Date('2026-07-14T23:00:00Z');
+    assert.equal(instant.getDay(), 2, 'test setup: browser-local (Chicago) day must be Tuesday');
+
+    const card = makeCard({ entities: ['calendar.a'], time_zone: 'Pacific/Auckland' });
+    const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', instant);
+
+    assert.deepEqual(parsed.byDay, ['WE'], 'should use the configured Auckland weekday, not the browser-local Tuesday');
+  } finally {
+    if (originalTZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTZ;
+    }
+  }
+});
+
+test('parseRRule falls back to the browser local weekday when no time_zone is configured', () => {
+  const originalTZ = process.env.TZ;
+  try {
+    process.env.TZ = 'America/Chicago';
+    const instant = new Date('2026-07-14T23:00:00Z');
+    const card = makeCard({ entities: ['calendar.a'] });
+    const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', instant);
+    assert.deepEqual(parsed.byDay, ['TU']);
+  } finally {
+    if (originalTZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTZ;
+    }
+  }
+});
+
 test('showEditEventModal checks the correct weekday when the event rrule omits BYDAY', () => {
   const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
   card.getWritableCalendars = () => ['calendar.family'];

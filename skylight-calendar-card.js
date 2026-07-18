@@ -5435,6 +5435,7 @@ function getCardStyles() {
         gap: 12px;
         justify-content: flex-end;
         margin-top: 6px;
+        max-width: 100%;
       }
 
       .btn {
@@ -5447,7 +5448,9 @@ function getCardStyles() {
         border: none;
         font-family: inherit;
         min-width: 0;
-        overflow-wrap: break-word;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .btn-primary {
@@ -5498,18 +5501,21 @@ function getCardStyles() {
         justify-content: space-between;
         margin-top: 24px;
         align-items: center;
+        max-width: 100%;
       }
 
       .modal-actions-left {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .modal-actions-right {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .confirm-dialog {
@@ -16472,11 +16478,13 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     // WEEKLY rules may omit BYDAY, in which case the recurrence is implied
-    // by DTSTART's weekday (RFC 5545 §3.3.10).
+    // by DTSTART's weekday (RFC 5545 §3.3.10). Use the card's configured
+    // time_zone (via getDateParts) rather than the browser's local zone,
+    // since DTSTART's weekday can differ between the two.
     if (parsed.frequency === 'WEEKLY' && parsed.byDay.length === 0 &&
         fallbackStartDate instanceof Date && !Number.isNaN(fallbackStartDate.getTime())) {
       const weekdayCodes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-      parsed.byDay = [weekdayCodes[fallbackStartDate.getDay()]];
+      parsed.byDay = [weekdayCodes[this.getDateParts(fallbackStartDate).weekday]];
     }
 
     return parsed;

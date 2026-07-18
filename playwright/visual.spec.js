@@ -893,6 +893,14 @@ async function expectBoxWithin(inner, outer, tolerance = 2) {
   expect(innerBox.y + innerBox.height).toBeLessThanOrEqual(outerBox.y + outerBox.height + tolerance);
 }
 
+async function assertNoHorizontalOverflow(locator, tolerance = 1) {
+  const dimensions = await locator.evaluate((el) => ({
+    clientWidth: el.clientWidth,
+    scrollWidth: el.scrollWidth
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + tolerance);
+}
+
 async function expectBoxWithinViewport(locator, viewport, tolerance = 2) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
@@ -1392,6 +1400,73 @@ test('regression issue 321: compact wrapped header rows stay centered at medium 
   await expect.poll(async () => headerGroupsShareRow(left, controls)).toBe(false);
   await expect.poll(async () => centerOffsetWithinTolerance(header, left)).toBe(true);
   await expect.poll(async () => centerOffsetWithinTolerance(header, controls)).toBe(true);
+});
+
+test('regression issue 496: modal action buttons wrap instead of overflowing on small screens', async ({ page }) => {
+  // 320px is the classic "small phone" width and the one most likely to
+  // reproduce #496 (long translated button labels forcing horizontal scroll).
+  await page.setViewportSize({ width: 320, height: 640 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  // Give the Coffee event a uid so the edit/delete buttons render (both are
+  // required to exercise the .modal-actions and .form-actions button rows).
+  const eventsWithEditableCoffee = {
+    ...baseEvents,
+    'calendar.family': baseEvents['calendar.family'].map((evt) =>
+      evt.summary === 'Coffee' ? { ...evt, uid: 'playwright-coffee-uid' } : evt)
+  };
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], default_view: 'month', enable_event_management: true },
+    events: eventsWithEditableCoffee,
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  const coffeeEvent = card.locator('.event').filter({ hasText: 'Coffee' });
+  await expect(coffeeEvent).toBeVisible();
+  await coffeeEvent.click();
+
+  const modal = card.locator('#event-modal');
+  await expect(modal).toHaveClass(/show/);
+
+  // Simulate a translation whose button labels are long, unbroken compound
+  // words (the scenario #496 reports) instead of relying on any specific
+  // language actually shipping such a string today.
+  const LONG_LABEL = 'Antidisestablishmentarianismverylongunbrokenwordwithnobreakopportunities';
+  const modalContent = card.locator('#modal-content');
+  const modalActions = card.locator('.modal-actions');
+
+  await modalActions.locator('.btn').evaluateAll((buttons, label) => {
+    buttons.forEach((btn) => { btn.textContent = label; });
+  }, LONG_LABEL);
+
+  await assertNoHorizontalOverflow(modalContent);
+  await assertNoHorizontalOverflow(modalActions);
+  const detailButtons = await modalActions.locator('.btn').all();
+  for (const btn of detailButtons) {
+    await assertNoHorizontalOverflow(btn);
+  }
+
+  // Open the edit form and repeat for its Cancel/Save Changes button row.
+  await card.locator('#edit-event-btn').click();
+  const editForm = card.locator('#edit-event-form');
+  await expect(editForm).toBeVisible();
+
+  const formActions = card.locator('.form-actions');
+  await formActions.locator('.btn').evaluateAll((buttons, label) => {
+    buttons.forEach((btn) => { btn.textContent = label; });
+  }, LONG_LABEL);
+
+  await assertNoHorizontalOverflow(modalContent);
+  await assertNoHorizontalOverflow(formActions);
+  const formButtons = await formActions.locator('.btn').all();
+  for (const btn of formButtons) {
+    await assertNoHorizontalOverflow(btn);
+  }
+
+  // And confirm the page itself never grew a horizontal scrollbar.
+  await assertNoHorizontalOverflow(page.locator('body'));
 });
 
 test('regression issue 321: standard header stays single-row', async ({ page }) => {

@@ -2243,6 +2243,7 @@ export function getCardStyles() {
         gap: 12px;
         justify-content: flex-end;
         margin-top: 6px;
+        max-width: 100%;
       }
 
       .btn {
@@ -2255,7 +2256,9 @@ export function getCardStyles() {
         border: none;
         font-family: inherit;
         min-width: 0;
-        overflow-wrap: break-word;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .btn-primary {
@@ -2306,18 +2309,21 @@ export function getCardStyles() {
         justify-content: space-between;
         margin-top: 24px;
         align-items: center;
+        max-width: 100%;
       }
 
       .modal-actions-left {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .modal-actions-right {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .confirm-dialog {

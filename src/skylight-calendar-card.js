@@ -5972,11 +5972,13 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     // WEEKLY rules may omit BYDAY, in which case the recurrence is implied
-    // by DTSTART's weekday (RFC 5545 §3.3.10).
+    // by DTSTART's weekday (RFC 5545 §3.3.10). Use the card's configured
+    // time_zone (via getDateParts) rather than the browser's local zone,
+    // since DTSTART's weekday can differ between the two.
     if (parsed.frequency === 'WEEKLY' && parsed.byDay.length === 0 &&
         fallbackStartDate instanceof Date && !Number.isNaN(fallbackStartDate.getTime())) {
       const weekdayCodes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-      parsed.byDay = [weekdayCodes[fallbackStartDate.getDay()]];
+      parsed.byDay = [weekdayCodes[this.getDateParts(fallbackStartDate).weekday]];
     }
 
     return parsed;
