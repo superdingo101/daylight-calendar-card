@@ -5201,7 +5201,7 @@ class SkylightCalendarCard extends HTMLElement {
     const primaryColor = visibleColors[0] || fallbackColor;
     const option = this.normalizeCombineBackground(this._config?.combine_background);
     if (option === DEFAULT_COMBINE_BACKGROUND) return primaryColor;
-    if (option === 'neutral') return DEFAULT_EVENT_NEUTRAL_BACKGROUND;
+    if (option === 'neutral') return this.getEventNeutralBackgroundColor();
     return option;
   }
 

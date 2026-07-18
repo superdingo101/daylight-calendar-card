@@ -5732,6 +5732,28 @@ test('event font color precedence and fallback contrast use final custom backgro
   assert.equal(fallback.getEventBubbleFontColor(event), 'white');
 });
 
+test('combined uses configured neutral custom color', () => {
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    combine_style: 'bars',
+    combine_background: 'neutral',
+    event_neutral_background: '#dddddd',
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.a'], color: '#123123' }],
+    event_styles: [
+      { match: { calendar: 'virtual:family' }, priority: 5, style: { background_color: '#999999' } },
+      { match: { calendar: 'calendar.b' }, priority: 1, style: { background_color: '#555555' } }
+    ]
+  });
+  const events = card.combineDuplicateCalendarEvents([
+    { entityId: 'calendar.a', color: '#ff0000', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } },
+    { entityId: 'calendar.b', color: '#00ff00', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }
+  ]);
+  const combinedEvent = events.find((e) => e.isCombinedCalendarEvent);
+  const style = card.getEventStyle(combinedEvent);
+  assert.match(style, /background-color: #dddddd/);
+});
+
 test('feature order: combine then virtual then event styles influences visible colors/style', () => {
   const card = makeCard({
     entities: ['calendar.a', 'calendar.b'],
