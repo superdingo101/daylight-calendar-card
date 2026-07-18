@@ -5013,9 +5013,11 @@ function getCardStyles() {
         padding: 24px;
         max-width: 500px;
         width: 90%;
+        box-sizing: border-box;
         max-height: 80vh;
         max-height: min(80vh, calc(100dvh - 32px));
         overflow-y: auto;
+        overflow-x: hidden;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       }
 
@@ -5026,6 +5028,7 @@ function getCardStyles() {
       }
 
       .modal-content.modal-size-medium {
+        box-sizing: border-box;
         max-width: 500px;
         width: 90%;
       }
@@ -5428,6 +5431,7 @@ function getCardStyles() {
 
       .form-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: flex-end;
         margin-top: 6px;
@@ -5442,6 +5446,8 @@ function getCardStyles() {
         transition: all 0.2s;
         border: none;
         font-family: inherit;
+        min-width: 0;
+        overflow-wrap: break-word;
       }
 
       .btn-primary {
@@ -5487,6 +5493,7 @@ function getCardStyles() {
 
       .modal-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: space-between;
         margin-top: 24px;
@@ -5495,11 +5502,13 @@ function getCardStyles() {
 
       .modal-actions-left {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
       }
 
       .modal-actions-right {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
       }
 
@@ -16421,7 +16430,7 @@ class SkylightCalendarCard extends HTMLElement {
     return buildRRuleFromInputs({ frequency, interval, untilDate, count, byDay });
   }
 
-  parseRRule(rrule = '') {
+  parseRRule(rrule = '', fallbackStartDate = null) {
     const parsed = {
       frequency: 'DAILY',
       interval: '1',
@@ -16461,6 +16470,14 @@ class SkylightCalendarCard extends HTMLElement {
         }
       }
     });
+
+    // WEEKLY rules may omit BYDAY, in which case the recurrence is implied
+    // by DTSTART's weekday (RFC 5545 §3.3.10).
+    if (parsed.frequency === 'WEEKLY' && parsed.byDay.length === 0 &&
+        fallbackStartDate instanceof Date && !Number.isNaN(fallbackStartDate.getTime())) {
+      const weekdayCodes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+      parsed.byDay = [weekdayCodes[fallbackStartDate.getDay()]];
+    }
 
     return parsed;
   }
@@ -16585,7 +16602,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // For all-day events, show same day to user (we'll add +1 when submitting)
     const endDate = prefill?.endDate ? new Date(prefill.endDate) : new Date(startDate);
-    const recurrenceData = this.parseRRule(prefill?.rrule || '');
+    const recurrenceData = this.parseRRule(prefill?.rrule || '', startDate);
     const isPrefilledRecurring = !!prefill?.rrule;
     const isPrefilledAllDay = !!prefill?.isAllDay;
 
@@ -16783,7 +16800,7 @@ class SkylightCalendarCard extends HTMLElement {
       : [];
     const visibleCalendarOptions = selectedCombinedCalendarIds.length > 0 ? selectedCombinedCalendarIds : writableCalendars;
 
-    const recurrenceData = this.parseRRule(event.rrule || '');
+    const recurrenceData = this.parseRRule(event.rrule || '', startDate);
     const isRecurring = !!event.rrule;
     const isSingleOccurrenceEdit = editScope === 'this' && isRecurring;
     const recurringSelectedByDefault = isRecurring && !isSingleOccurrenceEdit;

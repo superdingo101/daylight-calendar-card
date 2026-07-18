@@ -1821,9 +1821,11 @@ export function getCardStyles() {
         padding: 24px;
         max-width: 500px;
         width: 90%;
+        box-sizing: border-box;
         max-height: 80vh;
         max-height: min(80vh, calc(100dvh - 32px));
         overflow-y: auto;
+        overflow-x: hidden;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       }
 
@@ -1834,6 +1836,7 @@ export function getCardStyles() {
       }
 
       .modal-content.modal-size-medium {
+        box-sizing: border-box;
         max-width: 500px;
         width: 90%;
       }
@@ -2236,6 +2239,7 @@ export function getCardStyles() {
 
       .form-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: flex-end;
         margin-top: 6px;
@@ -2250,6 +2254,8 @@ export function getCardStyles() {
         transition: all 0.2s;
         border: none;
         font-family: inherit;
+        min-width: 0;
+        overflow-wrap: break-word;
       }
 
       .btn-primary {
@@ -2295,6 +2301,7 @@ export function getCardStyles() {
 
       .modal-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: space-between;
         margin-top: 24px;
@@ -2303,11 +2310,13 @@ export function getCardStyles() {
 
       .modal-actions-left {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
       }
 
       .modal-actions-right {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
       }
 

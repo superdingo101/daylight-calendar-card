@@ -8949,3 +8949,72 @@ test('failed refresh preserves last-known-good events and stale warning timing',
   card._lastEventRefreshFailed = false;
   assert.equal(card.shouldShowEventRefreshWarning(Date.now() + 31 * 60 * 1000), false);
 });
+
+test('parseRRule infers weekday from start date when WEEKLY rule omits BYDAY', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15); // 2026-07-15 is a Wednesday
+  const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', wednesday);
+  assert.deepEqual(parsed.byDay, ['WE']);
+});
+
+test('parseRRule keeps explicit BYDAY when present, ignoring fallback start date', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15);
+  const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,FR', wednesday);
+  assert.deepEqual(parsed.byDay, ['MO', 'FR']);
+});
+
+test('parseRRule does not infer byDay for non-WEEKLY frequencies', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15);
+  const parsed = card.parseRRule('FREQ=DAILY;INTERVAL=1', wednesday);
+  assert.deepEqual(parsed.byDay, []);
+});
+
+test('showEditEventModal checks the correct weekday when the event rrule omits BYDAY', () => {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.getCalendarName = () => 'Family';
+  card.applyEventModalSizeClass = () => {};
+  card.syncRecurrenceEndInputs = () => {};
+  card.setupStartEndDurationSync = () => {};
+  const modal = { classList: createClassListHarness() };
+  const content = { innerHTML: '' };
+  const elements = {
+    'event-modal': modal,
+    'modal-content': content,
+    'edit-event-form': { addEventListener: () => {} },
+    'event-all-day': { checked: false, addEventListener: () => {} },
+    'event-recurring': { checked: true, addEventListener: () => {} },
+    'event-recurrence-frequency': { value: 'WEEKLY', addEventListener: () => {} },
+    'timed-event-fields': { style: {} },
+    'all-day-event-fields': { style: {} },
+    'recurring-event-fields': { style: {} },
+    'event-recurrence-weekdays-group': { style: {} },
+    'form-error': { textContent: '', style: {} },
+    'close-modal': { addEventListener: () => {} },
+    'cancel-btn': { addEventListener: () => {} }
+  };
+  card.getRootElementById = (id) => elements[id] || null;
+  card._root = {
+    querySelectorAll: () => [],
+    querySelector: () => null
+  };
+
+  const startDate = new Date('2026-07-15T09:00:00Z'); // a Wednesday
+  card.showEditEventModal(
+    { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', rrule: 'FREQ=WEEKLY;INTERVAL=1', start: { dateTime: '2026-07-15T09:00:00Z' }, end: { dateTime: '2026-07-15T10:00:00Z' } },
+    startDate,
+    new Date('2026-07-15T10:00:00Z'),
+    false,
+    'all'
+  );
+
+  const weCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="WE"[^>]*>/);
+  assert.ok(weCheckboxMatch, 'expected a WE weekday checkbox to be rendered');
+  assert.match(weCheckboxMatch[0], /checked/);
+
+  const moCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="MO"[^>]*>/);
+  assert.ok(moCheckboxMatch, 'expected a MO weekday checkbox to be rendered');
+  assert.doesNotMatch(moCheckboxMatch[0], /checked/);
+});
