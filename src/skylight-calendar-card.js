@@ -5930,7 +5930,7 @@ class SkylightCalendarCard extends HTMLElement {
     return buildRRuleFromInputsHelper({ frequency, interval, untilDate, count, byDay });
   }
 
-  parseRRule(rrule = '') {
+  parseRRule(rrule = '', fallbackStartDate = null) {
     const parsed = {
       frequency: 'DAILY',
       interval: '1',
@@ -5970,6 +5970,16 @@ class SkylightCalendarCard extends HTMLElement {
         }
       }
     });
+
+    // WEEKLY rules may omit BYDAY, in which case the recurrence is implied
+    // by DTSTART's weekday (RFC 5545 §3.3.10). Use the card's configured
+    // time_zone (via getDateParts) rather than the browser's local zone,
+    // since DTSTART's weekday can differ between the two.
+    if (parsed.frequency === 'WEEKLY' && parsed.byDay.length === 0 &&
+        fallbackStartDate instanceof Date && !Number.isNaN(fallbackStartDate.getTime())) {
+      const weekdayCodes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+      parsed.byDay = [weekdayCodes[this.getDateParts(fallbackStartDate).weekday]];
+    }
 
     return parsed;
   }
@@ -6094,7 +6104,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // For all-day events, show same day to user (we'll add +1 when submitting)
     const endDate = prefill?.endDate ? new Date(prefill.endDate) : new Date(startDate);
-    const recurrenceData = this.parseRRule(prefill?.rrule || '');
+    const recurrenceData = this.parseRRule(prefill?.rrule || '', startDate);
     const isPrefilledRecurring = !!prefill?.rrule;
     const isPrefilledAllDay = !!prefill?.isAllDay;
 
@@ -6292,7 +6302,7 @@ class SkylightCalendarCard extends HTMLElement {
       : [];
     const visibleCalendarOptions = selectedCombinedCalendarIds.length > 0 ? selectedCombinedCalendarIds : writableCalendars;
 
-    const recurrenceData = this.parseRRule(event.rrule || '');
+    const recurrenceData = this.parseRRule(event.rrule || '', startDate);
     const isRecurring = !!event.rrule;
     const isSingleOccurrenceEdit = editScope === 'this' && isRecurring;
     const recurringSelectedByDefault = isRecurring && !isSingleOccurrenceEdit;
