@@ -34,7 +34,33 @@ Users can still switch to other views using the view selector buttons in the car
 <ParamField path="show_week_numbers_month" default="false" type="boolean">
   Used by **Month** only.
 
-  Adds an ISO week-number column on the left edge of the grid (e.g., **W 23**). Handy for work or project planning where teams reference week numbers.
+  Adds an ISO week-number column on the left edge of the grid (e.g., **CW 23** in English, **wk 23** in Dutch). The prefix is localized automatically — use `week_number_prefix` to override it. Handy for work or project planning where teams reference week numbers.
+</ParamField>
+
+<ParamField path="week_number_prefix" default="null" type="string">
+  Used by **Month** only, and only when `show_week_numbers_month` is `true`.
+
+  Controls the text shown before each ISO week number in the Month grid. Three modes:
+
+  - **Omit the option** (or set it to `null`) to use the localized default for the card's language (`CW` in English, `wk` in Dutch, `Sem` in French, and so on).
+  - **Set a custom string** to replace the prefix. Surrounding whitespace is trimmed and the card adds exactly one space between the prefix and the number.
+  - **Set an empty string** (`""`) to hide the prefix entirely and show only the week number.
+
+  Regardless of the visible label, the accessibility label always announces the full localized `Week {number}` phrase for screen readers.
+
+  ```yaml
+  type: custom:daylight-calendar-card
+  show_week_numbers_month: true
+  # Custom prefix renders "Week 23"
+  week_number_prefix: Week
+  ```
+
+  ```yaml
+  type: custom:daylight-calendar-card
+  show_week_numbers_month: true
+  # Number only renders "23"
+  week_number_prefix: ""
+  ```
 </ParamField>
 
 <ParamField path="month_day_tap_action" default="create" type="string">
