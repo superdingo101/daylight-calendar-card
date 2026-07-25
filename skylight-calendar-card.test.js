@@ -87,6 +87,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   rolling_days_agenda: 'agenda rolling days are configurable and include current day + N days',
   rolling_weeks: 'rolling_weeks month mode renders configured rolling rows from first day of week',
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
+  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only month labels',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
@@ -1809,6 +1810,26 @@ test('show_week_numbers_month adds month-only week number headers and cells', ()
   assert.doesNotMatch(card.renderDayHeaders(), /month-week-number-header/);
 });
 
+test('week_number_prefix supports localized, custom, and number-only month labels', () => {
+  const week27 = new Date(2026, 5, 29, 12);
+  const dutchCard = makeCard({ entities: ['calendar.family'], language: 'nl', show_week_numbers_month: true });
+  assert.equal(dutchCard.formatMonthWeekNumberLabel(week27), 'wk 27');
+
+  const frenchCard = makeCard({ entities: ['calendar.family'], language: 'fr', show_week_numbers_month: true });
+  assert.equal(frenchCard.formatMonthWeekNumberLabel(week27), 'Sem 27');
+
+  const customCard = makeCard({ entities: ['calendar.family'], week_number_prefix: '  Week  ', show_week_numbers_month: true });
+  assert.equal(customCard._config.week_number_prefix, 'Week');
+  assert.equal(customCard.formatMonthWeekNumberLabel(week27), 'Week 27');
+
+  const numberOnlyCard = makeCard({ entities: ['calendar.family'], week_number_prefix: '', show_week_numbers_month: true });
+  assert.equal(numberOnlyCard._config.week_number_prefix, '');
+  assert.equal(numberOnlyCard.formatMonthWeekNumberLabel(week27), '27');
+  const cell = numberOnlyCard.renderMonthWeekNumberCell(week27);
+  assert.match(cell, /aria-label="Week 27"/);
+  assert.match(cell, /month-week-number-text">27<\/span>/);
+});
+
 test('disable_swipe_controls disables swipe controls without affecting agenda', () => {
   const enabledCard = makeCard({ entities: ['calendar.family'] });
   enabledCard._viewMode = 'week-compact';
@@ -3056,12 +3077,45 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal(editor._config.past_event_mode, 'hide');
   assert.match(editor.innerHTML, /data-field="past_event_mode"/);
   assert.match(editor.innerHTML, /<option value="hide" selected>Hide<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
   editor._config = { entities: ['calendar.family'], show_event_location: false, past_event_mode: 'none' };
   editor._fireConfigChanged = () => {};
   editor.handleChange({ target: { dataset: { field: 'show_event_location' }, type: 'checkbox', checked: true } });
   assert.equal(editor._config.show_event_location, true);
   editor.handleChange({ target: { dataset: { field: 'past_event_mode' }, value: 'muted' } });
   assert.equal(editor._config.past_event_mode, 'muted');
+  editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'number_only' } });
+  assert.equal(editor._config.week_number_prefix, '');
+  editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'default' } });
+  assert.equal('week_number_prefix' in editor._config, false);
+});
+
+test('editor keeps week number prefix controls synchronized across setConfig updates', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  const baseConfig = { entities: ['calendar.family'] };
+
+  editor.setConfig(baseConfig);
+  assert.match(editor.innerHTML, /<option value="default" selected>Localized default<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: '' });
+  assert.match(editor.innerHTML, /<option value="number_only" selected>Number only<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'Week' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="Week"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="wk"/);
+
+  const prefixModeSelect = { dataset: { field: 'week_number_prefix_mode' }, value: '' };
+  editor.querySelector = () => null;
+  editor.querySelectorAll = (selector) => selector === 'select[data-field]' ? [prefixModeSelect] : [];
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk', show_event_location: true });
+  assert.equal(prefixModeSelect.value, 'custom');
 });
 
 

@@ -34,7 +34,24 @@ Users can still switch to other views using the view selector buttons in the car
 <ParamField path="show_week_numbers_month" default="false" type="boolean">
   Used by **Month** only.
 
-  Adds an ISO week-number column on the left edge of the grid (e.g., **W 23**). Handy for work or project planning where teams reference week numbers.
+  Adds an ISO week-number column on the left edge of the grid (e.g., **CW 23**). Handy for work or project planning where teams reference week numbers.
+</ParamField>
+
+<ParamField path="week_number_prefix" default="null" type="string">
+  Used by **Month** only when `show_week_numbers_month` is `true`.
+
+  Omit this option (or set it to `null`) to use the localized prefix. Set a custom value to replace it; surrounding whitespace is trimmed and the card adds one space before the number. Set it to an empty string to show only the localized week number.
+
+  ```yaml
+  # Localized default, such as "wk 27" in Dutch
+  show_week_numbers_month: true
+
+  # Custom prefix: "Week 27"
+  week_number_prefix: Week
+
+  # Number only: "27"
+  week_number_prefix: ""
+  ```
 </ParamField>
 
 <ParamField path="month_day_tap_action" default="create" type="string">
