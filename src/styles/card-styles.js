@@ -362,6 +362,10 @@ export function getCardStyles() {
         justify-content: flex-end;
       }
 
+      .header-controls-only {
+        margin-left: auto;
+      }
+
       .period-controls,
       .compact-period-controls {
         display: flex;
