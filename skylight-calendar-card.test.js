@@ -2629,6 +2629,90 @@ test('hide_header removes the header wrapper entirely', () => {
   assert.match(html, /class="calendar-body"/);
 });
 
+test('blank titles omit title markup and empty left containers while standard controls remain visible', () => {
+  for (const title of ['', '   \t']) {
+    const card = makeCard({ entities: ['calendar.family'], title });
+    const html = card.renderStandardHeader();
+
+    assert.doesNotMatch(html, /header-title(?:-wrap)?/);
+    assert.doesNotMatch(html, /class="header-left"/);
+    assert.match(html, /class="header-controls"/);
+  }
+});
+
+test('blank titles retain configured time weather and custom header items without an h2', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    title: '  ',
+    header_time_sensor: 'sensor.time',
+    header_weather_sensor: 'weather.home',
+    header_items: [{ icon: 'mdi:home', text: 'Family' }],
+    hide_controls: true
+  });
+  card._hass = { states: {
+    'sensor.time': { state: '2026-07-25T14:30:00Z', attributes: {} },
+    'weather.home': { state: 'sunny', attributes: { temperature: 21 } }
+  } };
+
+  const html = card.renderStandardHeader();
+  assert.doesNotMatch(html, /<h2 class="header-title">/);
+  assert.match(html, /class="header-title-wrap"/);
+  assert.match(html, /class="header-time"/);
+  assert.match(html, /class="header-weather"/);
+  assert.match(html, /class="header-item"/);
+  assert.match(html, /class="header-left"/);
+});
+
+test('fully empty standard and compact headers render no markup', () => {
+  const standard = makeCard({ entities: ['calendar.family'], title: '', hide_controls: true });
+  assert.equal(standard.renderHeaderTitle(), '');
+  assert.equal(standard.renderStandardHeader(), '');
+
+  const compact = makeCard({
+    entities: ['calendar.family'],
+    title: '\n ',
+    compact_header: true,
+    hide_controls: true,
+    hide_calendars: true
+  });
+  assert.equal(compact.renderHeaderTitle(), '');
+  assert.equal(compact.renderCompactHeader(), '');
+});
+
+test('compact headers omit an empty left container but retain controls or calendar badges', () => {
+  const controls = makeCard({
+    entities: ['calendar.family'],
+    title: '',
+    compact_header: true,
+    hide_calendars: true
+  });
+  const controlsHtml = controls.renderCompactHeader();
+  assert.doesNotMatch(controlsHtml, /class="compact-header-left"/);
+  assert.match(controlsHtml, /class="header-controls compact-header-controls"/);
+
+  const badges = makeCard({
+    entities: ['calendar.family'],
+    title: '',
+    compact_header: true,
+    hide_controls: true
+  });
+  const badgesHtml = badges.renderCompactHeader();
+  assert.match(badgesHtml, /class="compact-header-left"/);
+  assert.match(badgesHtml, /calendar-badge/);
+  assert.doesNotMatch(badgesHtml, /<h2 class="header-title">/);
+});
+
+test('normal titles retain title markup in standard and compact headers', () => {
+  const standard = makeCard({ entities: ['calendar.family'], title: 'Family Calendar' });
+  assert.match(standard.renderStandardHeader(), /<h2 class="header-title">Family Calendar<\/h2>/);
+
+  const compact = makeCard({ entities: ['calendar.family'], title: 'Family Calendar', compact_header: true });
+  assert.match(compact.renderCompactHeader(), /<h2 class="header-title">Family Calendar<\/h2>/);
+
+  const localizedDefault = makeCard({ entities: ['calendar.family'], language: 'da' });
+  assert.match(localizedDefault.renderStandardHeader(), /<h2 class="header-title">Familiekalender<\/h2>/);
+});
+
 
 
 test('renderEventDescription supports markdown formatting with safe links', () => {
