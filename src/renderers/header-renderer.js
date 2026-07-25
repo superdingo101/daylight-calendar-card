@@ -3,14 +3,20 @@ export function renderStandardHeader({
   shouldShowControls,
   helpers
 }) {
+  const dashboardButton = helpers.renderDashboardNavButton();
+  const headerTitle = helpers.renderHeaderTitle();
+  const leftContent = `${dashboardButton}${headerTitle}`;
+
+  if (!leftContent.trim() && !shouldShowControls) return '';
+
   return `
       <div class="header">
-        <div class="header-left">
-          ${helpers.renderDashboardNavButton()}
-          ${helpers.renderHeaderTitle()}
-        </div>
+        ${leftContent.trim() ? `<div class="header-left">
+          ${dashboardButton}
+          ${headerTitle}
+        </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls">
+          <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -32,15 +38,22 @@ export function renderCompactHeader({
   shouldShowControls,
   helpers
 }) {
+  const dashboardButton = helpers.renderDashboardNavButton();
+  const headerTitle = helpers.renderHeaderTitle();
+  const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
+
+  if (!leftContent.trim() && !shouldShowControls) return '';
+
   return `
       <div class="header header-compact">
-        <div class="compact-header-left">
-          ${helpers.renderDashboardNavButton()}
-          ${helpers.renderHeaderTitle()}
-          ${shouldShowCalendars ? helpers.renderCalendarBadgesInline() : ''}
-        </div>
+        ${leftContent.trim() ? `<div class="compact-header-left">
+          ${dashboardButton}
+          ${headerTitle}
+          ${calendarBadges}
+        </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls compact-header-controls">
+          <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
@@ -63,9 +76,12 @@ export function renderHeaderTitle({
   headerItems = [],
   helpers
 }) {
+  const hasTitle = String(title ?? '').trim().length > 0;
+  if (!hasTitle && !headerTime && !headerWeather && headerItems.length === 0) return '';
+
   return `
       <div class="header-title-wrap">
-        <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
+        ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}

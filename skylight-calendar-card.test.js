@@ -87,6 +87,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   rolling_days_agenda: 'agenda rolling days are configurable and include current day + N days',
   rolling_weeks: 'rolling_weeks month mode renders configured rolling rows from first day of week',
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
+  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only month labels',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
@@ -1809,6 +1810,26 @@ test('show_week_numbers_month adds month-only week number headers and cells', ()
   assert.doesNotMatch(card.renderDayHeaders(), /month-week-number-header/);
 });
 
+test('week_number_prefix supports localized, custom, and number-only month labels', () => {
+  const week27 = new Date(2026, 5, 29, 12);
+  const dutchCard = makeCard({ entities: ['calendar.family'], language: 'nl', show_week_numbers_month: true });
+  assert.equal(dutchCard.formatMonthWeekNumberLabel(week27), 'wk 27');
+
+  const frenchCard = makeCard({ entities: ['calendar.family'], language: 'fr', show_week_numbers_month: true });
+  assert.equal(frenchCard.formatMonthWeekNumberLabel(week27), 'Sem 27');
+
+  const customCard = makeCard({ entities: ['calendar.family'], week_number_prefix: '  Week  ', show_week_numbers_month: true });
+  assert.equal(customCard._config.week_number_prefix, 'Week');
+  assert.equal(customCard.formatMonthWeekNumberLabel(week27), 'Week 27');
+
+  const numberOnlyCard = makeCard({ entities: ['calendar.family'], week_number_prefix: '', show_week_numbers_month: true });
+  assert.equal(numberOnlyCard._config.week_number_prefix, '');
+  assert.equal(numberOnlyCard.formatMonthWeekNumberLabel(week27), '27');
+  const cell = numberOnlyCard.renderMonthWeekNumberCell(week27);
+  assert.match(cell, /aria-label="Week 27"/);
+  assert.match(cell, /month-week-number-text">27<\/span>/);
+});
+
 test('disable_swipe_controls disables swipe controls without affecting agenda', () => {
   const enabledCard = makeCard({ entities: ['calendar.family'] });
   enabledCard._viewMode = 'week-compact';
@@ -2629,6 +2650,94 @@ test('hide_header removes the header wrapper entirely', () => {
   assert.match(html, /class="calendar-body"/);
 });
 
+test('blank titles omit title markup and empty left containers while standard controls remain visible', () => {
+  for (const title of ['', '   \t']) {
+    const card = makeCard({ entities: ['calendar.family'], title });
+    const html = card.renderStandardHeader();
+
+    assert.doesNotMatch(html, /header-title(?:-wrap)?/);
+    assert.doesNotMatch(html, /class="header-left"/);
+    assert.match(html, /class="header-controls header-controls-only"/);
+  }
+});
+
+test('blank titles retain configured time weather and custom header items without an h2', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    title: '  ',
+    header_time_sensor: 'sensor.time',
+    header_weather_sensor: 'weather.home',
+    header_items: [{ icon: 'mdi:home', text: 'Family' }],
+    hide_controls: true
+  });
+  card._hass = { states: {
+    'sensor.time': { state: '2026-07-25T14:30:00Z', attributes: {} },
+    'weather.home': { state: 'sunny', attributes: { temperature: 21 } }
+  } };
+
+  const html = card.renderStandardHeader();
+  assert.doesNotMatch(html, /<h2 class="header-title">/);
+  assert.match(html, /class="header-title-wrap"/);
+  assert.match(html, /class="header-time"/);
+  assert.match(html, /class="header-weather"/);
+  assert.match(html, /class="header-item"/);
+  assert.match(html, /class="header-left"/);
+});
+
+test('fully empty standard and compact headers render no markup', () => {
+  const standard = makeCard({ entities: ['calendar.family'], title: '', hide_controls: true });
+  assert.equal(standard.renderHeaderTitle(), '');
+  assert.equal(standard.renderStandardHeader(), '');
+
+  const compact = makeCard({
+    entities: ['calendar.family'],
+    title: '\n ',
+    compact_header: true,
+    hide_controls: true,
+    hide_calendars: true
+  });
+  assert.equal(compact.renderHeaderTitle(), '');
+  assert.equal(compact.renderCompactHeader(), '');
+});
+
+test('compact headers omit an empty left container but retain controls or calendar badges', () => {
+  const controls = makeCard({
+    entities: ['calendar.family'],
+    title: '',
+    compact_header: true,
+    hide_calendars: true
+  });
+  const controlsHtml = controls.renderCompactHeader();
+  assert.doesNotMatch(controlsHtml, /class="compact-header-left"/);
+  assert.match(controlsHtml, /class="header-controls compact-header-controls header-controls-only"/);
+
+  const badges = makeCard({
+    entities: ['calendar.family'],
+    title: '',
+    compact_header: true,
+    hide_controls: true
+  });
+  const badgesHtml = badges.renderCompactHeader();
+  assert.match(badgesHtml, /class="compact-header-left"/);
+  assert.match(badgesHtml, /calendar-badge/);
+  assert.doesNotMatch(badgesHtml, /<h2 class="header-title">/);
+});
+
+test('normal titles retain title markup in standard and compact headers', () => {
+  const standard = makeCard({ entities: ['calendar.family'], title: 'Family Calendar' });
+  const standardHtml = standard.renderStandardHeader();
+  assert.match(standardHtml, /<h2 class="header-title">Family Calendar<\/h2>/);
+  assert.doesNotMatch(standardHtml, /header-controls-only/);
+
+  const compact = makeCard({ entities: ['calendar.family'], title: 'Family Calendar', compact_header: true });
+  const compactHtml = compact.renderCompactHeader();
+  assert.match(compactHtml, /<h2 class="header-title">Family Calendar<\/h2>/);
+  assert.doesNotMatch(compactHtml, /header-controls-only/);
+
+  const localizedDefault = makeCard({ entities: ['calendar.family'], language: 'da' });
+  assert.match(localizedDefault.renderStandardHeader(), /<h2 class="header-title">Familiekalender<\/h2>/);
+});
+
 
 
 test('renderEventDescription supports markdown formatting with safe links', () => {
@@ -3056,12 +3165,45 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal(editor._config.past_event_mode, 'hide');
   assert.match(editor.innerHTML, /data-field="past_event_mode"/);
   assert.match(editor.innerHTML, /<option value="hide" selected>Hide<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
   editor._config = { entities: ['calendar.family'], show_event_location: false, past_event_mode: 'none' };
   editor._fireConfigChanged = () => {};
   editor.handleChange({ target: { dataset: { field: 'show_event_location' }, type: 'checkbox', checked: true } });
   assert.equal(editor._config.show_event_location, true);
   editor.handleChange({ target: { dataset: { field: 'past_event_mode' }, value: 'muted' } });
   assert.equal(editor._config.past_event_mode, 'muted');
+  editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'number_only' } });
+  assert.equal(editor._config.week_number_prefix, '');
+  editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'default' } });
+  assert.equal('week_number_prefix' in editor._config, false);
+});
+
+test('editor keeps week number prefix controls synchronized across setConfig updates', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  const baseConfig = { entities: ['calendar.family'] };
+
+  editor.setConfig(baseConfig);
+  assert.match(editor.innerHTML, /<option value="default" selected>Localized default<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: '' });
+  assert.match(editor.innerHTML, /<option value="number_only" selected>Number only<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'Week' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="Week"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="wk"/);
+
+  const prefixModeSelect = { dataset: { field: 'week_number_prefix_mode' }, value: '' };
+  editor.querySelector = () => null;
+  editor.querySelectorAll = (selector) => selector === 'select[data-field]' ? [prefixModeSelect] : [];
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk', show_event_location: true });
+  assert.equal(prefixModeSelect.value, 'custom');
 });
 
 
@@ -5730,6 +5872,28 @@ test('event font color precedence and fallback contrast use final custom backgro
   const fallback = makeCard({ entities: ['calendar.a'] });
   fallback._customEventColors = applyCustomEventColor(fallback._customEventColors, event, 'this', '#000000', { getEventIdentityKey: fallback.getEventIdentityKey.bind(fallback) });
   assert.equal(fallback.getEventBubbleFontColor(event), 'white');
+});
+
+test('combined uses configured neutral custom color', () => {
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    combine_style: 'bars',
+    combine_background: 'neutral',
+    event_neutral_background: '#dddddd',
+    virtual_calendars: [{ id: 'family', name: 'Family', entities: ['calendar.a'], color: '#123123' }],
+    event_styles: [
+      { match: { calendar: 'virtual:family' }, priority: 5, style: { background_color: '#999999' } },
+      { match: { calendar: 'calendar.b' }, priority: 1, style: { background_color: '#555555' } }
+    ]
+  });
+  const events = card.combineDuplicateCalendarEvents([
+    { entityId: 'calendar.a', color: '#ff0000', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } },
+    { entityId: 'calendar.b', color: '#00ff00', summary: 'Dup', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } }
+  ]);
+  const combinedEvent = events.find((e) => e.isCombinedCalendarEvent);
+  const style = card.getEventStyle(combinedEvent);
+  assert.match(style, /background-color: #dddddd/);
 });
 
 test('feature order: combine then virtual then event styles influences visible colors/style', () => {
@@ -8948,4 +9112,115 @@ test('failed refresh preserves last-known-good events and stale warning timing',
   card.applyEventsByCalendar({ 'calendar.a': [] }, { startDate: new Date(), endDate: new Date(), lastSuccessfulRefresh: Date.now() });
   card._lastEventRefreshFailed = false;
   assert.equal(card.shouldShowEventRefreshWarning(Date.now() + 31 * 60 * 1000), false);
+});
+
+test('parseRRule infers weekday from start date when WEEKLY rule omits BYDAY', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15); // 2026-07-15 is a Wednesday
+  const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', wednesday);
+  assert.deepEqual(parsed.byDay, ['WE']);
+});
+
+test('parseRRule keeps explicit BYDAY when present, ignoring fallback start date', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15);
+  const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,FR', wednesday);
+  assert.deepEqual(parsed.byDay, ['MO', 'FR']);
+});
+
+test('parseRRule does not infer byDay for non-WEEKLY frequencies', () => {
+  const card = makeCard({ entities: ['calendar.a'] });
+  const wednesday = new Date(2026, 6, 15);
+  const parsed = card.parseRRule('FREQ=DAILY;INTERVAL=1', wednesday);
+  assert.deepEqual(parsed.byDay, []);
+});
+
+test('parseRRule infers weekday using the configured time_zone, not the browser local zone', () => {
+  const originalTZ = process.env.TZ;
+  try {
+    // Simulate a browser whose local zone is Chicago.
+    process.env.TZ = 'America/Chicago';
+
+    // 2026-07-14T23:00:00Z is still Tuesday 18:00 in Chicago (UTC-5),
+    // but already Wednesday 11:00 in Auckland (UTC+12) — the two zones
+    // disagree on the calendar day, which is exactly what this guards.
+    const instant = new Date('2026-07-14T23:00:00Z');
+    assert.equal(instant.getDay(), 2, 'test setup: browser-local (Chicago) day must be Tuesday');
+
+    const card = makeCard({ entities: ['calendar.a'], time_zone: 'Pacific/Auckland' });
+    const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', instant);
+
+    assert.deepEqual(parsed.byDay, ['WE'], 'should use the configured Auckland weekday, not the browser-local Tuesday');
+  } finally {
+    if (originalTZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTZ;
+    }
+  }
+});
+
+test('parseRRule falls back to the browser local weekday when no time_zone is configured', () => {
+  const originalTZ = process.env.TZ;
+  try {
+    process.env.TZ = 'America/Chicago';
+    const instant = new Date('2026-07-14T23:00:00Z');
+    const card = makeCard({ entities: ['calendar.a'] });
+    const parsed = card.parseRRule('FREQ=WEEKLY;INTERVAL=1', instant);
+    assert.deepEqual(parsed.byDay, ['TU']);
+  } finally {
+    if (originalTZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTZ;
+    }
+  }
+});
+
+test('showEditEventModal checks the correct weekday when the event rrule omits BYDAY', () => {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card.getCalendarName = () => 'Family';
+  card.applyEventModalSizeClass = () => {};
+  card.syncRecurrenceEndInputs = () => {};
+  card.setupStartEndDurationSync = () => {};
+  const modal = { classList: createClassListHarness() };
+  const content = { innerHTML: '' };
+  const elements = {
+    'event-modal': modal,
+    'modal-content': content,
+    'edit-event-form': { addEventListener: () => {} },
+    'event-all-day': { checked: false, addEventListener: () => {} },
+    'event-recurring': { checked: true, addEventListener: () => {} },
+    'event-recurrence-frequency': { value: 'WEEKLY', addEventListener: () => {} },
+    'timed-event-fields': { style: {} },
+    'all-day-event-fields': { style: {} },
+    'recurring-event-fields': { style: {} },
+    'event-recurrence-weekdays-group': { style: {} },
+    'form-error': { textContent: '', style: {} },
+    'close-modal': { addEventListener: () => {} },
+    'cancel-btn': { addEventListener: () => {} }
+  };
+  card.getRootElementById = (id) => elements[id] || null;
+  card._root = {
+    querySelectorAll: () => [],
+    querySelector: () => null
+  };
+
+  const startDate = new Date('2026-07-15T09:00:00Z'); // a Wednesday
+  card.showEditEventModal(
+    { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', rrule: 'FREQ=WEEKLY;INTERVAL=1', start: { dateTime: '2026-07-15T09:00:00Z' }, end: { dateTime: '2026-07-15T10:00:00Z' } },
+    startDate,
+    new Date('2026-07-15T10:00:00Z'),
+    false,
+    'all'
+  );
+
+  const weCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="WE"[^>]*>/);
+  assert.ok(weCheckboxMatch, 'expected a WE weekday checkbox to be rendered');
+  assert.match(weCheckboxMatch[0], /checked/);
+
+  const moCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="MO"[^>]*>/);
+  assert.ok(moCheckboxMatch, 'expected a MO weekday checkbox to be rendered');
+  assert.doesNotMatch(moCheckboxMatch[0], /checked/);
 });

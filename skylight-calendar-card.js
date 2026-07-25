@@ -83,6 +83,7 @@ const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,
   month_day_tap_action: 'create',
@@ -401,6 +402,7 @@ function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
       { key: 'month_day_tap_action', defaultValue: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action, normalize: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action },
@@ -1417,6 +1419,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
   setConfig(config) {
     const previousEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    const previousWeekNumberPrefixMode = this.getWeekNumberPrefixMode();
+    const previousWeekNumberPrefix = this._config?.week_number_prefix;
     const normalizedDefaultView = config.default_view === 'week'
       ? 'week-compact'
       : config.default_view === 'schedule'
@@ -1445,8 +1449,12 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
     const nextEntities = Array.isArray(this._config.entities) ? this._config.entities : [];
     const entitiesChanged = previousEntities.join('|') !== nextEntities.join('|');
+    const nextWeekNumberPrefixMode = this.getWeekNumberPrefixMode();
+    const weekNumberPrefixChanged = previousWeekNumberPrefixMode !== nextWeekNumberPrefixMode || (
+      nextWeekNumberPrefixMode === 'custom' && previousWeekNumberPrefix !== this._config.week_number_prefix
+    );
 
-    if (entitiesChanged) {
+    if (entitiesChanged || weekNumberPrefixChanged) {
       this.render();
       return;
     }
@@ -1488,6 +1496,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
   getEventCalendarBubbleMode() {
     return getEventCalendarBubbleMode(this._config);
+  }
+
+  getWeekNumberPrefixMode() {
+    const prefix = this._config?.week_number_prefix;
+    if (prefix == null) return 'default';
+    if (prefix === '') return 'number_only';
+    return typeof prefix === 'string' ? 'custom' : 'default';
   }
 
   getMapFieldValue(key) {
@@ -2112,6 +2127,20 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
+            <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
+            <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
+            <option value="custom" ${this.getWeekNumberPrefixMode() === 'custom' ? 'selected' : ''}>Custom prefix</option>
+          </select>
+          ${this.getWeekNumberPrefixMode() === 'custom' ? `
+            <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
+          ` : ''}
+          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+        </div>
       </div>
       ${this._config.show_dashboard_nav_button ? `
       <div class="field-row">
@@ -2922,6 +2951,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       const field = select.dataset.field;
       if (field === 'default_view') return;
       if (field === 'first_day_of_week') return;
+      if (field === 'week_number_prefix_mode') {
+        select.value = this.getWeekNumberPrefixMode();
+        return;
+      }
       if (field === 'event_calendar_bubble_mode') {
         select.value = this.getEventCalendarBubbleMode();
         return;
@@ -2996,6 +3029,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'week_number_prefix_mode') {
+      if (event.target.value === 'default') delete nextConfig.week_number_prefix;
+      else if (event.target.value === 'number_only') nextConfig.week_number_prefix = '';
+      else nextConfig.week_number_prefix = typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix ? this._config.week_number_prefix : 'Week';
+      this.emitConfigChanged(nextConfig);
+      this.render();
+      return;
+    }
 
     if (field === 'event_calendar_bubble_mode') {
       const selectedMode = event.target.value;
@@ -3552,6 +3594,10 @@ function getCardStyles() {
 
       .compact-header-controls {
         justify-content: flex-end;
+      }
+
+      .header-controls-only {
+        margin-left: auto;
       }
 
       .period-controls,
@@ -5013,9 +5059,11 @@ function getCardStyles() {
         padding: 24px;
         max-width: 500px;
         width: 90%;
+        box-sizing: border-box;
         max-height: 80vh;
         max-height: min(80vh, calc(100dvh - 32px));
         overflow-y: auto;
+        overflow-x: hidden;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       }
 
@@ -5026,6 +5074,7 @@ function getCardStyles() {
       }
 
       .modal-content.modal-size-medium {
+        box-sizing: border-box;
         max-width: 500px;
         width: 90%;
       }
@@ -5428,9 +5477,11 @@ function getCardStyles() {
 
       .form-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: flex-end;
         margin-top: 6px;
+        max-width: 100%;
       }
 
       .btn {
@@ -5442,6 +5493,10 @@ function getCardStyles() {
         transition: all 0.2s;
         border: none;
         font-family: inherit;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .btn-primary {
@@ -5487,20 +5542,26 @@ function getCardStyles() {
 
       .modal-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: space-between;
         margin-top: 24px;
         align-items: center;
+        max-width: 100%;
       }
 
       .modal-actions-left {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .modal-actions-right {
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
+        max-width: 100%;
       }
 
       .confirm-dialog {
@@ -6225,6 +6286,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
@@ -6346,6 +6408,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
+      monthWeekAriaLabel: 'Semaine {week}',
       eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
@@ -6467,6 +6530,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
+      monthWeekAriaLabel: 'Woche {week}',
       eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
@@ -6587,7 +6651,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW',
+      monthWeekPrefix: 'wk',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
@@ -6708,6 +6773,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
+      monthWeekAriaLabel: 'Semana {week}',
       eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
     }
   },
@@ -6829,6 +6895,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} veel',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
+      monthWeekAriaLabel: 'Nädal {week}',
       eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
@@ -6950,6 +7017,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
+      monthWeekAriaLabel: 'Setmana {week}',
       eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
@@ -7071,6 +7139,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
+      monthWeekAriaLabel: 'Uge {week}',
       eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
@@ -7192,6 +7261,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
+      monthWeekAriaLabel: 'Vecka {week}',
       eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }
@@ -10127,14 +10197,20 @@ function renderStandardHeader({
   shouldShowControls,
   helpers
 }) {
+  const dashboardButton = helpers.renderDashboardNavButton();
+  const headerTitle = helpers.renderHeaderTitle();
+  const leftContent = `${dashboardButton}${headerTitle}`;
+
+  if (!leftContent.trim() && !shouldShowControls) return '';
+
   return `
       <div class="header">
-        <div class="header-left">
-          ${helpers.renderDashboardNavButton()}
-          ${helpers.renderHeaderTitle()}
-        </div>
+        ${leftContent.trim() ? `<div class="header-left">
+          ${dashboardButton}
+          ${headerTitle}
+        </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls">
+          <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -10156,15 +10232,22 @@ function renderCompactHeader({
   shouldShowControls,
   helpers
 }) {
+  const dashboardButton = helpers.renderDashboardNavButton();
+  const headerTitle = helpers.renderHeaderTitle();
+  const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
+
+  if (!leftContent.trim() && !shouldShowControls) return '';
+
   return `
       <div class="header header-compact">
-        <div class="compact-header-left">
-          ${helpers.renderDashboardNavButton()}
-          ${helpers.renderHeaderTitle()}
-          ${shouldShowCalendars ? helpers.renderCalendarBadgesInline() : ''}
-        </div>
+        ${leftContent.trim() ? `<div class="compact-header-left">
+          ${dashboardButton}
+          ${headerTitle}
+          ${calendarBadges}
+        </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls compact-header-controls">
+          <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
@@ -10187,9 +10270,12 @@ function renderHeaderTitle({
   headerItems = [],
   helpers
 }) {
+  const hasTitle = String(title ?? '').trim().length > 0;
+  if (!hasTitle && !headerTime && !headerWeather && headerItems.length === 0) return '';
+
   return `
       <div class="header-title-wrap">
-        <h2 class="header-title">${helpers.escapeHtml(title || '')}</h2>
+        ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
@@ -15158,9 +15244,10 @@ class SkylightCalendarCard extends HTMLElement {
 
   formatMonthWeekNumberLabel(date) {
     const weekNumber = this.getIsoWeekNumber(date);
-    const weekPrefix = this.t('monthWeekPrefix');
+    const configuredPrefix = this._config?.week_number_prefix;
+    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
     const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
-    return `${weekPrefix}${localizedWeekNumber}`;
+    return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {
@@ -15171,9 +15258,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderMonthWeekNumberCell(rowStartDate) {
-    const weekLabel = this.formatMonthWeekNumberLabel(this.getIsoWeekAnchorDateForRow(rowStartDate));
+    const anchorDate = this.getIsoWeekAnchorDateForRow(rowStartDate);
+    const weekLabel = this.formatMonthWeekNumberLabel(anchorDate);
+    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(this.getIsoWeekNumber(anchorDate));
+    const ariaLabel = this.t('monthWeekAriaLabel', { week: localizedWeekNumber });
     return `
-      <div class="month-week-number-cell" aria-label="${this.escapeHtml(weekLabel)}">
+      <div class="month-week-number-cell" aria-label="${this.escapeHtml(ariaLabel)}">
         <span class="month-week-number-text">${this.escapeHtml(weekLabel)}</span>
       </div>
     `;
@@ -15692,7 +15782,7 @@ class SkylightCalendarCard extends HTMLElement {
     const primaryColor = visibleColors[0] || fallbackColor;
     const option = this.normalizeCombineBackground(this._config?.combine_background);
     if (option === DEFAULT_COMBINE_BACKGROUND) return primaryColor;
-    if (option === 'neutral') return DEFAULT_EVENT_NEUTRAL_BACKGROUND;
+    if (option === 'neutral') return this.getEventNeutralBackgroundColor();
     return option;
   }
 
@@ -16421,7 +16511,7 @@ class SkylightCalendarCard extends HTMLElement {
     return buildRRuleFromInputs({ frequency, interval, untilDate, count, byDay });
   }
 
-  parseRRule(rrule = '') {
+  parseRRule(rrule = '', fallbackStartDate = null) {
     const parsed = {
       frequency: 'DAILY',
       interval: '1',
@@ -16461,6 +16551,16 @@ class SkylightCalendarCard extends HTMLElement {
         }
       }
     });
+
+    // WEEKLY rules may omit BYDAY, in which case the recurrence is implied
+    // by DTSTART's weekday (RFC 5545 §3.3.10). Use the card's configured
+    // time_zone (via getDateParts) rather than the browser's local zone,
+    // since DTSTART's weekday can differ between the two.
+    if (parsed.frequency === 'WEEKLY' && parsed.byDay.length === 0 &&
+        fallbackStartDate instanceof Date && !Number.isNaN(fallbackStartDate.getTime())) {
+      const weekdayCodes = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+      parsed.byDay = [weekdayCodes[this.getDateParts(fallbackStartDate).weekday]];
+    }
 
     return parsed;
   }
@@ -16585,7 +16685,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     // For all-day events, show same day to user (we'll add +1 when submitting)
     const endDate = prefill?.endDate ? new Date(prefill.endDate) : new Date(startDate);
-    const recurrenceData = this.parseRRule(prefill?.rrule || '');
+    const recurrenceData = this.parseRRule(prefill?.rrule || '', startDate);
     const isPrefilledRecurring = !!prefill?.rrule;
     const isPrefilledAllDay = !!prefill?.isAllDay;
 
@@ -16783,7 +16883,7 @@ class SkylightCalendarCard extends HTMLElement {
       : [];
     const visibleCalendarOptions = selectedCombinedCalendarIds.length > 0 ? selectedCombinedCalendarIds : writableCalendars;
 
-    const recurrenceData = this.parseRRule(event.rrule || '');
+    const recurrenceData = this.parseRRule(event.rrule || '', startDate);
     const isRecurring = !!event.rrule;
     const isSingleOccurrenceEdit = editScope === 'this' && isRecurring;
     const recurringSelectedByDefault = isRecurring && !isSingleOccurrenceEdit;
