@@ -16,7 +16,7 @@ export function renderStandardHeader({
           ${headerTitle}
         </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls">
+          <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -53,7 +53,7 @@ export function renderCompactHeader({
           ${calendarBadges}
         </div>` : ''}
         ${shouldShowControls ? `
-          <div class="header-controls compact-header-controls">
+          <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>

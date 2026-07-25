@@ -2636,7 +2636,7 @@ test('blank titles omit title markup and empty left containers while standard co
 
     assert.doesNotMatch(html, /header-title(?:-wrap)?/);
     assert.doesNotMatch(html, /class="header-left"/);
-    assert.match(html, /class="header-controls"/);
+    assert.match(html, /class="header-controls header-controls-only"/);
   }
 });
 
@@ -2688,7 +2688,7 @@ test('compact headers omit an empty left container but retain controls or calend
   });
   const controlsHtml = controls.renderCompactHeader();
   assert.doesNotMatch(controlsHtml, /class="compact-header-left"/);
-  assert.match(controlsHtml, /class="header-controls compact-header-controls"/);
+  assert.match(controlsHtml, /class="header-controls compact-header-controls header-controls-only"/);
 
   const badges = makeCard({
     entities: ['calendar.family'],
@@ -2704,10 +2704,14 @@ test('compact headers omit an empty left container but retain controls or calend
 
 test('normal titles retain title markup in standard and compact headers', () => {
   const standard = makeCard({ entities: ['calendar.family'], title: 'Family Calendar' });
-  assert.match(standard.renderStandardHeader(), /<h2 class="header-title">Family Calendar<\/h2>/);
+  const standardHtml = standard.renderStandardHeader();
+  assert.match(standardHtml, /<h2 class="header-title">Family Calendar<\/h2>/);
+  assert.doesNotMatch(standardHtml, /header-controls-only/);
 
   const compact = makeCard({ entities: ['calendar.family'], title: 'Family Calendar', compact_header: true });
-  assert.match(compact.renderCompactHeader(), /<h2 class="header-title">Family Calendar<\/h2>/);
+  const compactHtml = compact.renderCompactHeader();
+  assert.match(compactHtml, /<h2 class="header-title">Family Calendar<\/h2>/);
+  assert.doesNotMatch(compactHtml, /header-controls-only/);
 
   const localizedDefault = makeCard({ entities: ['calendar.family'], language: 'da' });
   assert.match(localizedDefault.renderStandardHeader(), /<h2 class="header-title">Familiekalender<\/h2>/);
