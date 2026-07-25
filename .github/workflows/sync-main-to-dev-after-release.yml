@@ -23,6 +23,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          GH_REPO_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
 
@@ -34,12 +35,10 @@ jobs:
           fi
 
           OPEN_PR_COUNT="$(
-            gh pr list \
-              --repo "$GH_REPO" \
-              --state open \
-              --head main \
-              --base dev \
-              --json number \
+            gh api --method GET "repos/$GH_REPO/pulls" \
+              -f state=open \
+              -f head="$GH_REPO_OWNER:main" \
+              -f base=dev \
               --jq 'length'
           )"
           if [ "$OPEN_PR_COUNT" -gt 0 ]; then
@@ -58,6 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          GH_REPO_OWNER: ${{ github.repository_owner }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
@@ -81,12 +81,10 @@ jobs:
           # A run outside the concurrency group could have created the same PR
           # after our check. Treat that duplicate race as a successful no-op.
           OPEN_PR_COUNT="$(
-            gh pr list \
-              --repo "$GH_REPO" \
-              --state open \
-              --head main \
-              --base dev \
-              --json number \
+            gh api --method GET "repos/$GH_REPO/pulls" \
+              -f state=open \
+              -f head="$GH_REPO_OWNER:main" \
+              -f base=dev \
               --jq 'length'
           )"
           if [ "$OPEN_PR_COUNT" -gt 0 ]; then
