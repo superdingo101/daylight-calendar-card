@@ -4667,9 +4667,10 @@ class SkylightCalendarCard extends HTMLElement {
 
   formatMonthWeekNumberLabel(date) {
     const weekNumber = this.getIsoWeekNumber(date);
-    const weekPrefix = this.t('monthWeekPrefix');
+    const configuredPrefix = this._config?.week_number_prefix;
+    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
     const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
-    return `${weekPrefix}${localizedWeekNumber}`;
+    return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {
@@ -4680,9 +4681,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderMonthWeekNumberCell(rowStartDate) {
-    const weekLabel = this.formatMonthWeekNumberLabel(this.getIsoWeekAnchorDateForRow(rowStartDate));
+    const anchorDate = this.getIsoWeekAnchorDateForRow(rowStartDate);
+    const weekLabel = this.formatMonthWeekNumberLabel(anchorDate);
+    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(this.getIsoWeekNumber(anchorDate));
+    const ariaLabel = this.t('monthWeekAriaLabel', { week: localizedWeekNumber });
     return `
-      <div class="month-week-number-cell" aria-label="${this.escapeHtml(weekLabel)}">
+      <div class="month-week-number-cell" aria-label="${this.escapeHtml(ariaLabel)}">
         <span class="month-week-number-text">${this.escapeHtml(weekLabel)}</span>
       </div>
     `;

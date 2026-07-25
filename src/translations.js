@@ -125,6 +125,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
@@ -246,6 +247,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
+      monthWeekAriaLabel: 'Semaine {week}',
       eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
@@ -367,6 +369,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
+      monthWeekAriaLabel: 'Woche {week}',
       eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
@@ -487,7 +490,8 @@ export const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW',
+      monthWeekPrefix: 'wk',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
@@ -608,6 +612,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
+      monthWeekAriaLabel: 'Semana {week}',
       eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
     }
   },
@@ -729,6 +734,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} veel',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
+      monthWeekAriaLabel: 'Nädal {week}',
       eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
@@ -850,6 +856,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
+      monthWeekAriaLabel: 'Setmana {week}',
       eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
@@ -971,6 +978,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
+      monthWeekAriaLabel: 'Uge {week}',
       eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
@@ -1092,6 +1100,7 @@ export const TRANSLATIONS = {
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
+      monthWeekAriaLabel: 'Vecka {week}',
       eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }

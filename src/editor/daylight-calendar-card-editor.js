@@ -837,6 +837,20 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
       </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
+            <option value="default" ${this._config.week_number_prefix == null ? 'selected' : ''}>Localized default</option>
+            <option value="number_only" ${this._config.week_number_prefix === '' ? 'selected' : ''}>Number only</option>
+            <option value="custom" ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? 'selected' : ''}>Custom prefix</option>
+          </select>
+          ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? `
+            <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
+          ` : ''}
+          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+        </div>
+      </div>
       ${this._config.show_dashboard_nav_button ? `
       <div class="field-row">
         <div class="field field-inline">
@@ -1720,6 +1734,15 @@ export class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'week_number_prefix_mode') {
+      if (event.target.value === 'default') delete nextConfig.week_number_prefix;
+      else if (event.target.value === 'number_only') nextConfig.week_number_prefix = '';
+      else nextConfig.week_number_prefix = typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix ? this._config.week_number_prefix : 'Week';
+      this.emitConfigChanged(nextConfig);
+      this.render();
+      return;
+    }
 
     if (field === 'event_calendar_bubble_mode') {
       const selectedMode = event.target.value;

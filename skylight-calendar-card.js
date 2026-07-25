@@ -83,6 +83,7 @@ const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,
   month_day_tap_action: 'create',
@@ -401,6 +402,7 @@ function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
       { key: 'month_day_tap_action', defaultValue: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action, normalize: ({ rawConfig }) => rawConfig.month_day_tap_action === 'show_events' ? 'show_events' : DEFAULT_CONFIG_VALUES.month_day_tap_action },
@@ -2113,6 +2115,20 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
       </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
+            <option value="default" ${this._config.week_number_prefix == null ? 'selected' : ''}>Localized default</option>
+            <option value="number_only" ${this._config.week_number_prefix === '' ? 'selected' : ''}>Number only</option>
+            <option value="custom" ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? 'selected' : ''}>Custom prefix</option>
+          </select>
+          ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? `
+            <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
+          ` : ''}
+          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+        </div>
+      </div>
       ${this._config.show_dashboard_nav_button ? `
       <div class="field-row">
         <div class="field field-inline">
@@ -2996,6 +3012,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'week_number_prefix_mode') {
+      if (event.target.value === 'default') delete nextConfig.week_number_prefix;
+      else if (event.target.value === 'number_only') nextConfig.week_number_prefix = '';
+      else nextConfig.week_number_prefix = typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix ? this._config.week_number_prefix : 'Week';
+      this.emitConfigChanged(nextConfig);
+      this.render();
+      return;
+    }
 
     if (field === 'event_calendar_bubble_mode') {
       const selectedMode = event.target.value;
@@ -6240,6 +6265,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} more',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
     }
   },
@@ -6361,6 +6387,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} de plus',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
+      monthWeekAriaLabel: 'Semaine {week}',
       eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
     }
   },
@@ -6482,6 +6509,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} mehr',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
+      monthWeekAriaLabel: 'Woche {week}',
       eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
     }
   },
@@ -6602,7 +6630,8 @@ const TRANSLATIONS = {
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
       eventTitleWithStartTime: '{title}, {time}',
-      monthWeekPrefix: 'KW',
+      monthWeekPrefix: 'wk',
+      monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
     }
   },
@@ -6723,6 +6752,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} más',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
+      monthWeekAriaLabel: 'Semana {week}',
       eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
     }
   },
@@ -6844,6 +6874,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} veel',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
+      monthWeekAriaLabel: 'Nädal {week}',
       eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
     }
   },
@@ -6965,6 +6996,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} més',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
+      monthWeekAriaLabel: 'Setmana {week}',
       eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
     }
   },
@@ -7086,6 +7118,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} flere',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
+      monthWeekAriaLabel: 'Uge {week}',
       eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
     }
   },
@@ -7207,6 +7240,7 @@ const TRANSLATIONS = {
       moreEvents: '+{count} fler',
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
+      monthWeekAriaLabel: 'Vecka {week}',
       eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
     }
   }
@@ -15173,9 +15207,10 @@ class SkylightCalendarCard extends HTMLElement {
 
   formatMonthWeekNumberLabel(date) {
     const weekNumber = this.getIsoWeekNumber(date);
-    const weekPrefix = this.t('monthWeekPrefix');
+    const configuredPrefix = this._config?.week_number_prefix;
+    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
     const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
-    return `${weekPrefix}${localizedWeekNumber}`;
+    return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {
@@ -15186,9 +15221,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   renderMonthWeekNumberCell(rowStartDate) {
-    const weekLabel = this.formatMonthWeekNumberLabel(this.getIsoWeekAnchorDateForRow(rowStartDate));
+    const anchorDate = this.getIsoWeekAnchorDateForRow(rowStartDate);
+    const weekLabel = this.formatMonthWeekNumberLabel(anchorDate);
+    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(this.getIsoWeekNumber(anchorDate));
+    const ariaLabel = this.t('monthWeekAriaLabel', { week: localizedWeekNumber });
     return `
-      <div class="month-week-number-cell" aria-label="${this.escapeHtml(weekLabel)}">
+      <div class="month-week-number-cell" aria-label="${this.escapeHtml(ariaLabel)}">
         <span class="month-week-number-text">${this.escapeHtml(weekLabel)}</span>
       </div>
     `;
