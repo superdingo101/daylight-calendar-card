@@ -3090,6 +3090,34 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal('week_number_prefix' in editor._config, false);
 });
 
+test('editor keeps week number prefix controls synchronized across setConfig updates', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  const baseConfig = { entities: ['calendar.family'] };
+
+  editor.setConfig(baseConfig);
+  assert.match(editor.innerHTML, /<option value="default" selected>Localized default<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: '' });
+  assert.match(editor.innerHTML, /<option value="number_only" selected>Number only<\/option>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="week_number_prefix" type="text"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'Week' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="Week"/);
+
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk' });
+  assert.match(editor.innerHTML, /<option value="custom" selected>Custom prefix<\/option>/);
+  assert.match(editor.innerHTML, /data-field="week_number_prefix" type="text" value="wk"/);
+
+  const prefixModeSelect = { dataset: { field: 'week_number_prefix_mode' }, value: '' };
+  editor.querySelector = () => null;
+  editor.querySelectorAll = (selector) => selector === 'select[data-field]' ? [prefixModeSelect] : [];
+  editor.setConfig({ ...baseConfig, week_number_prefix: 'wk', show_event_location: true });
+  assert.equal(prefixModeSelect.value, 'custom');
+});
+
 
 function createEditorDomHarness(editor) {
   let html = '';

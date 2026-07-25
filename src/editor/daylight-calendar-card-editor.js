@@ -141,6 +141,8 @@ export class SkylightCalendarCardEditor extends HTMLElement {
 
   setConfig(config) {
     const previousEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    const previousWeekNumberPrefixMode = this.getWeekNumberPrefixMode();
+    const previousWeekNumberPrefix = this._config?.week_number_prefix;
     const normalizedDefaultView = config.default_view === 'week'
       ? 'week-compact'
       : config.default_view === 'schedule'
@@ -169,8 +171,12 @@ export class SkylightCalendarCardEditor extends HTMLElement {
 
     const nextEntities = Array.isArray(this._config.entities) ? this._config.entities : [];
     const entitiesChanged = previousEntities.join('|') !== nextEntities.join('|');
+    const nextWeekNumberPrefixMode = this.getWeekNumberPrefixMode();
+    const weekNumberPrefixChanged = previousWeekNumberPrefixMode !== nextWeekNumberPrefixMode || (
+      nextWeekNumberPrefixMode === 'custom' && previousWeekNumberPrefix !== this._config.week_number_prefix
+    );
 
-    if (entitiesChanged) {
+    if (entitiesChanged || weekNumberPrefixChanged) {
       this.render();
       return;
     }
@@ -212,6 +218,13 @@ export class SkylightCalendarCardEditor extends HTMLElement {
 
   getEventCalendarBubbleMode() {
     return getEventCalendarBubbleModeFromConfig(this._config);
+  }
+
+  getWeekNumberPrefixMode() {
+    const prefix = this._config?.week_number_prefix;
+    if (prefix == null) return 'default';
+    if (prefix === '') return 'number_only';
+    return typeof prefix === 'string' ? 'custom' : 'default';
   }
 
   getMapFieldValue(key) {
@@ -841,11 +854,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <div class="field field-inline">
           <label for="week_number_prefix_mode">Month week-number prefix</label>
           <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
-            <option value="default" ${this._config.week_number_prefix == null ? 'selected' : ''}>Localized default</option>
-            <option value="number_only" ${this._config.week_number_prefix === '' ? 'selected' : ''}>Number only</option>
-            <option value="custom" ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? 'selected' : ''}>Custom prefix</option>
+            <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
+            <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
+            <option value="custom" ${this.getWeekNumberPrefixMode() === 'custom' ? 'selected' : ''}>Custom prefix</option>
           </select>
-          ${typeof this._config.week_number_prefix === 'string' && this._config.week_number_prefix !== '' ? `
+          ${this.getWeekNumberPrefixMode() === 'custom' ? `
             <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
           ` : ''}
           <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
@@ -1660,6 +1673,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       const field = select.dataset.field;
       if (field === 'default_view') return;
       if (field === 'first_day_of_week') return;
+      if (field === 'week_number_prefix_mode') {
+        select.value = this.getWeekNumberPrefixMode();
+        return;
+      }
       if (field === 'event_calendar_bubble_mode') {
         select.value = this.getEventCalendarBubbleMode();
         return;
