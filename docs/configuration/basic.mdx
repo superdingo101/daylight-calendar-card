@@ -20,10 +20,15 @@ The Daylight Calendar Card requires only a list of calendar entities to get star
 </ParamField>
 
 <ParamField path="title" default="Family Calendar" type="string">
-  The title displayed in the card header.
+  The title displayed in the card header. Set it to an empty string (`""`) to hide the title while keeping other header content — such as the header time, weather, controls, or custom `header_items` — visible. If nothing else is shown in the header, the entire header band is omitted.
 
   ```yaml
   title: My Calendar
+  ```
+
+  ```yaml
+  # Hide the title but keep the rest of the header
+  title: ""
   ```
 </ParamField>
 
