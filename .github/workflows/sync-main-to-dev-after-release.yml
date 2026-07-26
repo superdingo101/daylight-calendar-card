@@ -1,0 +1,96 @@
+name: Sync Main Back Into Dev
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Serialize release events so concurrent runs cannot race to open duplicate PRs.
+concurrency:
+  group: sync-main-back-into-dev
+  cancel-in-progress: false
+
+jobs:
+  open-sync-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check whether a sync pull request is needed
+        id: sync-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+
+          AHEAD_BY="$(gh api "repos/$GH_REPO/compare/dev...main" --jq '.ahead_by')"
+          if [ "$AHEAD_BY" -eq 0 ]; then
+            echo "main has no commits that are missing from dev; nothing to synchronize."
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          OPEN_PR_COUNT="$(
+            gh api --method GET "repos/$GH_REPO/pulls" \
+              -f state=open \
+              -f head="$GH_REPO_OWNER:main" \
+              -f base=dev \
+              --jq 'length'
+          )"
+          if [ "$OPEN_PR_COUNT" -gt 0 ]; then
+            echo "An open main-to-dev pull request already exists; nothing to do."
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "main is $AHEAD_BY commit(s) ahead of dev and no sync pull request is open."
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+
+      # A PR preserves branch protection, required checks, and review history;
+      # this workflow intentionally never pushes or merges directly into dev.
+      - name: Open main-to-dev sync pull request
+        if: steps.sync-check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_REPO_OWNER: ${{ github.repository_owner }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          BODY="$(cat <<'EOF'
+          This pull request was automatically created after publishing a GitHub release.
+
+          It synchronizes release-only changes from `main` back into the `dev` development branch.
+          EOF
+          )"
+
+          if gh pr create \
+            --repo "$GH_REPO" \
+            --head main \
+            --base dev \
+            --title "Sync main back into dev after $RELEASE_TAG" \
+            --body "$BODY"; then
+            exit 0
+          fi
+
+          # A run outside the concurrency group could have created the same PR
+          # after our check. Treat that duplicate race as a successful no-op.
+          OPEN_PR_COUNT="$(
+            gh api --method GET "repos/$GH_REPO/pulls" \
+              -f state=open \
+              -f head="$GH_REPO_OWNER:main" \
+              -f base=dev \
+              --jq 'length'
+          )"
+          if [ "$OPEN_PR_COUNT" -gt 0 ]; then
+            echo "A main-to-dev pull request now exists; no duplicate was created."
+            exit 0
+          fi
+
+          echo "ERROR: Unable to create the main-to-dev pull request."
+          exit 1
