@@ -539,6 +539,70 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
+test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const themeStyle = [
+    '--ha-card-background: #3a7b5d',
+    '--ha-card-border-radius: 23px',
+    '--ha-card-border-width: 7px',
+    '--ha-card-border-color: #115395',
+    '--ha-card-box-shadow: 9px 11px 13px 2px #c1256f'
+  ].join('; ');
+  const render = (config) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], default_view: 'month', ...config },
+    events: { 'calendar.family': [] },
+    parentStyle: themeStyle
+  });
+
+  await render({});
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  const themedStyles = await card.locator('.calendar-container').evaluate((container) => {
+    const containerStyle = getComputedStyle(container);
+    const body = container.querySelector('.calendar-body');
+    return {
+      borderRadius: containerStyle.borderRadius,
+      borderWidth: containerStyle.borderWidth,
+      borderColor: containerStyle.borderColor,
+      boxShadow: containerStyle.boxShadow,
+      backgroundColor: getComputedStyle(body, '::before').backgroundColor
+    };
+  });
+  expect(themedStyles).toEqual({
+    borderRadius: '23px',
+    borderWidth: '7px',
+    borderColor: 'rgb(17, 83, 149)',
+    boxShadow: 'rgb(193, 37, 111) 9px 11px 13px 2px',
+    backgroundColor: 'rgb(58, 123, 93)'
+  });
+
+  await render({ color_scheme: 'light' });
+  await expect(card.locator('.calendar-body')).toBeVisible();
+  await expect.poll(() => card.locator('.calendar-body').evaluate((body) =>
+    getComputedStyle(body, '::before').backgroundColor
+  )).toBe('rgb(255, 255, 255)');
+
+  await card.locator('#theme-toggle').click();
+  await expect.poll(() => card.locator('.calendar-body').evaluate((body) =>
+    getComputedStyle(body, '::before').backgroundColor
+  )).toBe('rgb(42, 47, 54)');
+
+  await render({ header_color: 'match-card-background' });
+  await expect.poll(() => card.locator('.header').evaluate((header) =>
+    getComputedStyle(header, '::before').backgroundColor
+  )).toBe('rgb(58, 123, 93)');
+  await expect(card.locator('.header')).toHaveCSS('color', 'rgb(255, 255, 255)');
+
+  await render({ uix: { style: '.calendar-container { --calendar-background: #c14f2f; }' } });
+  await expect(card.locator('.calendar-body')).toBeVisible();
+  const overrideBackground = await card.locator('.calendar-body').evaluate((body) =>
+    getComputedStyle(body, '::before').backgroundColor
+  );
+  expect(overrideBackground).toBe('rgb(193, 79, 47)');
+});
+
 async function renderScheduleColorModeSpanCase(page, eventColorMode, title) {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);

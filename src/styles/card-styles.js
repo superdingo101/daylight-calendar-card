@@ -127,7 +127,7 @@ export function getCardStyles() {
         position: absolute;
         inset: 0;
         z-index: 0;
-        background: var(--calendar-background, var(--theme-card-background, var(--ha-card-background, var(--card-background-color, #ffffff))));
+        background: var(--calendar-background, var(--calendar-forced-background, var(--ha-card-background, var(--card-background-color, var(--calendar-default-background, #ffffff)))));
         opacity: var(--calendar-background-opacity, 1);
         pointer-events: none;
       }
