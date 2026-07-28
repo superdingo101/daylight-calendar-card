@@ -3361,7 +3361,7 @@ function getCardStyles() {
         position: absolute;
         inset: 0;
         z-index: 0;
-        background: var(--calendar-background, var(--theme-card-background, var(--ha-card-background, var(--card-background-color, #ffffff))));
+        background: var(--calendar-background, var(--ha-card-background, var(--card-background-color, var(--calendar-default-background, #ffffff))));
         opacity: var(--calendar-background-opacity, 1);
         pointer-events: none;
       }
@@ -14054,7 +14054,7 @@ class SkylightCalendarCard extends HTMLElement {
     const month = this._currentDate.getMonth();
 
     const themeCardBackground = this._isDarkMode ? '#2a2f36' : '#ffffff';
-    const calendarBaseBackground = `var(--calendar-background, var(--theme-card-background, var(--ha-card-background, var(--card-background-color, ${themeCardBackground}))))`;
+    const calendarBaseBackground = `var(--calendar-background, var(--ha-card-background, var(--card-background-color, ${themeCardBackground})))`;
     const normalizedBackgroundOpacity = this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0);
     const rawHeaderBackgroundColor = this.normalizeSingleColor(this._config.header_color);
     const resolvedHeaderBackgroundBase = typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
@@ -14121,7 +14121,7 @@ class SkylightCalendarCard extends HTMLElement {
         allDay: '249, 250, 251',
         slot: '255, 255, 255'
       };
-    const backgroundStyle = `--theme-card-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; --custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
+    const backgroundStyle = `--calendar-default-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; --custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
     const containerStyle = `${headerStyle} ${backgroundStyle} ${backgroundImageStyle}`.trim();
 
     this._root.innerHTML = `
