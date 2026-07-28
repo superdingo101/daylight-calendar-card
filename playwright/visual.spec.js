@@ -578,6 +578,23 @@ test('regression issue 212: inherited HA card theme styles and explicit backgrou
     backgroundColor: 'rgb(58, 123, 93)'
   });
 
+  await render({ color_scheme: 'light' });
+  await expect(card.locator('.calendar-body')).toBeVisible();
+  await expect.poll(() => card.locator('.calendar-body').evaluate((body) =>
+    getComputedStyle(body, '::before').backgroundColor
+  )).toBe('rgb(255, 255, 255)');
+
+  await card.locator('#theme-toggle').click();
+  await expect.poll(() => card.locator('.calendar-body').evaluate((body) =>
+    getComputedStyle(body, '::before').backgroundColor
+  )).toBe('rgb(42, 47, 54)');
+
+  await render({ header_color: 'match-card-background' });
+  await expect.poll(() => card.locator('.header').evaluate((header) =>
+    getComputedStyle(header, '::before').backgroundColor
+  )).toBe('rgb(58, 123, 93)');
+  await expect(card.locator('.header')).toHaveCSS('color', 'rgb(255, 255, 255)');
+
   await render({ uix: { style: '.calendar-container { --calendar-background: #c14f2f; }' } });
   await expect(card.locator('.calendar-body')).toBeVisible();
   const overrideBackground = await card.locator('.calendar-body').evaluate((body) =>
