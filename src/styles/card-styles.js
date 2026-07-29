@@ -2519,7 +2519,7 @@ export function getCardStyles() {
       .calendar-container.dark-mode .week-standard-container,
       .calendar-container.dark-mode .calendar-badges {
         background: #30363f;
-        border-color: #4b5563;
+        border-color: var(--calendar-grid-color, #4b5563);
       }
 
       .calendar-container.dark-mode .calendar-badges-container.has-overflow::after {
@@ -2547,7 +2547,7 @@ export function getCardStyles() {
       .calendar-container.dark-mode .empty-state {
         background: #353c45;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .time-slot {
@@ -2558,7 +2558,7 @@ export function getCardStyles() {
 
       .calendar-container.dark-mode .week-standard-day-header,
       .calendar-container.dark-mode .all-day-events {
-        border-bottom-color: transparent;
+        border-bottom-color: var(--calendar-grid-color, transparent);
       }
 
 	  .calendar-container.dark-mode .day-header,
@@ -2566,7 +2566,7 @@ export function getCardStyles() {
       .calendar-container.dark-mode .month-week-number-cell {
         background: #353b42;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .week-day-column.today .week-day-header {
@@ -2579,7 +2579,7 @@ export function getCardStyles() {
       .calendar-container.dark-mode .week-day-date {
         background: #3b434d;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .agenda-day-weekday,
@@ -2599,7 +2599,7 @@ export function getCardStyles() {
       }
 
       .calendar-container.dark-mode .week-standard-day-column {
-        border: 1px solid #556070;
+        border: 1px solid var(--calendar-grid-color, #556070);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       }
 
@@ -2638,8 +2638,6 @@ export function getCardStyles() {
         color: #c7d0db;
       }
 
-      .calendar-container.dark-mode .week-standard-day-column,
-      .calendar-container.dark-mode .week-day-column,
       .calendar-container.dark-mode .modal-content,
       .calendar-container.dark-mode .confirm-dialog,
       .calendar-container.dark-mode .form-input,
@@ -2651,6 +2649,14 @@ export function getCardStyles() {
         background: #3b434d;
         color: #e2e8f0;
         border-color: #606b7b;
+        box-shadow: none;
+      }
+
+      .calendar-container.dark-mode .week-standard-day-column,
+      .calendar-container.dark-mode .week-day-column {
+        background: #3b434d;
+        color: #e2e8f0;
+        border-color: var(--calendar-grid-color, #606b7b);
         box-shadow: none;
       }
 
@@ -2739,16 +2745,16 @@ export function getCardStyles() {
       }
 
       .calendar-container.dark-mode .agenda-day-row {
-        border-top-color: #5b6676;
+        border-top-color: var(--calendar-grid-color, #5b6676);
       }
 
       .calendar-container.dark-mode .agenda-day-label {
-        border-bottom-color: #5b6676;
+        border-bottom-color: var(--calendar-grid-color, #5b6676);
       }
 
       .calendar-container.dark-mode .agenda-month-banner {
-        border-top-color: #5b6676;
-        border-bottom-color: #5b6676;
+        border-top-color: var(--calendar-grid-color, #5b6676);
+        border-bottom-color: var(--calendar-grid-color, #5b6676);
         color: #c7d0db;
       }
 

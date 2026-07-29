@@ -582,6 +582,31 @@ test('discussion 532: transparent surfaces and grid color contract across views'
     await expect(card.locator(selector).first()).toHaveCSS(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`), 'rgb(255, 255, 255)');
   }
 
+  await render({ default_view: 'week-compact', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.week-day-column:not(.today) .week-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-day-column.today .week-day-header')).toHaveCSS('border-bottom-color', 'rgb(59, 130, 246)');
+
+  await render({ default_view: 'week-standard', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.calendar-badges')).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-standard-day-column').first()).toHaveCSS('border-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-standard-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.all-day-events').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.day-time-slot').first()).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+
+  await render({ default_view: 'agenda', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.agenda-day-row').first()).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.agenda-day-label').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+
+  await render({ default_view: 'week-compact', color_scheme: 'dark' });
+  await expect(card.locator('.week-day-column:not(.today) .week-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(85, 96, 112)');
+  await render({ default_view: 'week-standard', color_scheme: 'dark' });
+  await expect(card.locator('.calendar-badges')).toHaveCSS('border-bottom-color', 'rgb(75, 85, 99)');
+  await expect(card.locator('.week-standard-day-column').first()).toHaveCSS('border-color', 'rgb(96, 107, 123)');
+  await expect(card.locator('.week-standard-day-header').first()).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)');
+  await expect(card.locator('.day-time-slot').first()).toHaveCSS('border-top-color', 'rgb(85, 96, 112)');
+  await render({ default_view: 'agenda', color_scheme: 'dark' });
+  await expect(card.locator('.agenda-day-row').first()).toHaveCSS('border-top-color', 'rgb(91, 102, 118)');
+
   await render({ default_view: 'month' });
   await expect(card.locator('.calendar-grid')).toHaveCSS('background-color', 'rgb(229, 231, 235)');
   await expect(card.locator('.day-cell:not(.other-month)').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
