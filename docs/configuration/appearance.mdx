@@ -82,6 +82,10 @@ The Daylight Calendar Card gives you extensive control over its visual presentat
 
 ## Card Background
 
+<Note>
+  The card inherits Home Assistant theme values for its background, border radius, border width, border color, and box shadow. If your active HA theme sets `ha-card-background`, `ha-card-border-radius`, `ha-card-border-width`, `ha-card-border-color`, or `ha-card-box-shadow`, the card picks them up automatically. The built‑in light/dark card color is only used as a final fallback when none of those theme values are defined.
+</Note>
+
 <ParamField path="background_opacity" default="0" type="number">
   The transparency of the card body background, from `0` (fully opaque) to `100` (fully transparent). Setting this to `100` lets the underlying dashboard wallpaper or HA theme background show through.
 </ParamField>
@@ -91,7 +95,7 @@ The Daylight Calendar Card gives you extensive control over its visual presentat
 </ParamField>
 
 <ParamField path="grid_color" type="string">
-  The color used for Month and Week Compact grid lines, Schedule dividers and hour lines, and Agenda dividers. Accepts any CSS color value, including hex colors and CSS variables. When omitted, the card keeps its light or dark default; transparent backgrounds use a readable translucent white.
+  The color used for Month and Week Compact grid lines, Schedule dividers and hour lines, and Agenda dividers. It accepts normal CSS color values, including hex colors and CSS variables. When omitted, the card keeps its light or dark default; transparent backgrounds use a readable translucent white.
 
   ```yaml
   background_opacity: 100
