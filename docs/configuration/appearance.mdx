@@ -90,6 +90,15 @@ The Daylight Calendar Card gives you extensive control over its visual presentat
   Legacy shortcut for a fully transparent card body. When `background_opacity` is not set, `true` is equivalent to `background_opacity: 100`.
 </ParamField>
 
+<ParamField path="grid_color" type="string">
+  The color used for Month and Week Compact grid lines, Schedule dividers and hour lines, and Agenda dividers. Accepts any CSS color value, including hex colors and CSS variables. When omitted, the card keeps its light or dark default; transparent backgrounds use a readable translucent white.
+
+  ```yaml
+  background_opacity: 100
+  grid_color: "#ffffff"
+  ```
+</ParamField>
+
 <ParamField path="background_image_url" type="string">
   A URL pointing to an image to display behind the calendar grid. Local Home Assistant paths (e.g. `/local/calendar-bg.jpg`) and remote URLs are both supported.
 </ParamField>
