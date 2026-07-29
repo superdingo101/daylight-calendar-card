@@ -572,8 +572,8 @@ test('discussion 532: transparent surfaces and grid color contract across views'
   expect(await alpha('.day-cell.other-month')).toBe(0);
 
   const whiteGridChecks = [
-    ['month', '.calendar-grid', 'backgroundColor'],
-    ['week-compact', '.week-compact-container', 'backgroundColor'],
+    ['month', '.calendar-grid > .day-cell', 'outlineColor'],
+    ['week-compact', '.week-compact-container > .week-day-column', 'outlineColor'],
     ['week-standard', '.day-time-slot', 'borderTopColor'],
     ['agenda', '.agenda-day-row', 'borderTopColor']
   ];
@@ -609,8 +609,40 @@ test('discussion 532: transparent surfaces and grid color contract across views'
 
   await render({ default_view: 'month' });
   await expect(card.locator('.calendar-grid')).toHaveCSS('background-color', 'rgb(229, 231, 235)');
+  await expect(card.locator('.calendar-grid > .day-cell').first()).toHaveCSS('outline-color', 'rgb(229, 231, 235)');
   await expect(card.locator('.day-cell:not(.other-month)').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(card.locator('.calendar-container')).toHaveCSS('--custom-surface-alpha', '1');
+});
+
+test('regression 535: transparent month and compact-week grids reveal the dashboard between separators', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const render = (config) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], background_opacity: 100, ...config },
+    events: baseEvents,
+    parentStyle: [
+      'padding: 24px',
+      'background-color: #ff2d55',
+      'background-image: linear-gradient(45deg, #ff2d55 25%, #00d4ff 25%, #00d4ff 50%, #ff2d55 50%, #ff2d55 75%, #00d4ff 75%)',
+      'background-size: 48px 48px'
+    ].join('; ')
+  });
+  const card = page.locator('skylight-calendar-card');
+
+  for (const [view, gridSelector] of [
+    ['month', '.calendar-grid'],
+    ['week-compact', '.week-compact-container']
+  ]) {
+    await render({ default_view: view });
+    await expect(card.locator(gridSelector)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(card.locator(gridSelector)).toHaveScreenshot(`${view}-transparent-default-grid.png`, { animations: 'disabled' });
+
+    await render({ default_view: view, grid_color: 'blue' });
+    await expect(card.locator(gridSelector)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(card.locator(`${gridSelector} > *`).first()).toHaveCSS('outline-color', 'rgb(0, 0, 255)');
+    await expect(card.locator(gridSelector)).toHaveScreenshot(`${view}-transparent-blue-grid.png`, { animations: 'disabled' });
+  }
 });
 
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
