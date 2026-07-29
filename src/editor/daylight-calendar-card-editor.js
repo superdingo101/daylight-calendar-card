@@ -900,6 +900,13 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           <input data-field="header_text_color_text" data-type="header-text-color-text" type="text" value="${this.escapeHtml(this._config.header_text_color || '')}" placeholder="Auto contrast">
         </div>
       </div>
+      <div class="field">
+        <label for="grid_color">Grid and divider color</label>
+        <div class="field-row">
+          ${this.renderColorInputControl({ id: 'grid_color', field: 'grid_color', value: this._config.grid_color })}
+          <input data-field="grid_color_text" data-type="grid-color-text" type="text" value="${this.escapeHtml(this._config.grid_color || '')}" placeholder="Theme default">
+        </div>
+      </div>
       ${this.renderSubSection('Calendar colors', `<div class="map-grid">${this.renderMapRowInputs('colors', { label: 'calendar colors', inputType: 'color' })}</div>`)}
       ${this.renderSubSection('Event font colors', `<div class="map-grid">${this.renderMapRowInputs('event_font_colors', { label: 'event font colors', inputType: 'color' })}</div>`)}
       ${this.renderSubSection('Calendar display names', `<div class="map-grid">${this.renderMapRowInputs('calendar_names', { label: 'calendar names', placeholder: 'Display name' })}</div>`)}
@@ -1704,6 +1711,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       headerTextColorTextInput.value = this._config.header_text_color || '';
     }
 
+    const gridColorTextInput = this.querySelector('input[data-field="grid_color_text"]');
+    if (gridColorTextInput && document.activeElement !== gridColorTextInput) {
+      gridColorTextInput.value = this._config.grid_color || '';
+    }
+
     this.querySelectorAll('[data-map-field]').forEach((input) => {
       if (document.activeElement === input) return;
       const mapField = input.dataset.mapField;
@@ -1885,6 +1897,8 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.header_color = event.target.value;
     } else if (event.target.dataset.type === 'header-text-color-text') {
       nextConfig.header_text_color = event.target.value;
+    } else if (event.target.dataset.type === 'grid-color-text') {
+      nextConfig.grid_color = event.target.value;
     } else if (event.target.dataset.type === 'number') {
       if (event.target.value === '') {
         nextConfig[field] = this.getEditorDefaultValue(field);

@@ -539,6 +539,80 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
+test('discussion 532: transparent surfaces and grid color contract across views', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const render = (config) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], ...config },
+    events: baseEvents
+  });
+  const card = page.locator('skylight-calendar-card');
+  const surfaceByView = {
+    month: '.day-cell:not(.day-style-has-background)',
+    'week-compact': '.week-day-column:not(.day-style-has-background)',
+    'week-standard': '.week-standard-day-column:not(.day-style-has-background)',
+    agenda: '.agenda-day-row:not(.day-style-has-background)'
+  };
+  const alpha = async (selector) => card.locator(selector).first().evaluate((element) => {
+    const value = getComputedStyle(element).backgroundColor;
+    const match = value.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/);
+    return match ? Number(match[1]) : 1;
+  });
+
+  for (const [view, selector] of Object.entries(surfaceByView)) {
+    await render({ default_view: view, background_opacity: 100 });
+    await expect(card.locator('.calendar-container')).toHaveCSS('--custom-surface-alpha', '0');
+    expect(await alpha(selector)).toBe(0);
+  }
+
+  await render({ default_view: 'month', background_transparent: true });
+  await expect(card.locator('.calendar-container')).toHaveCSS('--custom-surface-alpha', '0');
+  expect(await alpha('.day-cell:not(.day-style-has-background)')).toBe(0);
+  expect(await alpha('.day-cell.other-month')).toBe(0);
+
+  const whiteGridChecks = [
+    ['month', '.calendar-grid', 'backgroundColor'],
+    ['week-compact', '.week-compact-container', 'backgroundColor'],
+    ['week-standard', '.day-time-slot', 'borderTopColor'],
+    ['agenda', '.agenda-day-row', 'borderTopColor']
+  ];
+  for (const [view, selector, property] of whiteGridChecks) {
+    await render({ default_view: view, grid_color: '#ffffff' });
+    await expect(card.locator(selector).first()).toHaveCSS(property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`), 'rgb(255, 255, 255)');
+  }
+
+  await render({ default_view: 'week-compact', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.week-day-column:not(.today) .week-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-day-column.today .week-day-header')).toHaveCSS('border-bottom-color', 'rgb(59, 130, 246)');
+
+  await render({ default_view: 'week-standard', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.calendar-badges')).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-standard-day-column').first()).toHaveCSS('border-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.week-standard-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.all-day-events').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.day-time-slot').first()).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+
+  await render({ default_view: 'agenda', color_scheme: 'dark', grid_color: '#ffffff' });
+  await expect(card.locator('.agenda-day-row').first()).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.agenda-day-label').first()).toHaveCSS('border-bottom-color', 'rgb(255, 255, 255)');
+
+  await render({ default_view: 'week-compact', color_scheme: 'dark' });
+  await expect(card.locator('.week-day-column:not(.today) .week-day-header').first()).toHaveCSS('border-bottom-color', 'rgb(85, 96, 112)');
+  await render({ default_view: 'week-standard', color_scheme: 'dark' });
+  await expect(card.locator('.calendar-badges')).toHaveCSS('border-bottom-color', 'rgb(75, 85, 99)');
+  await expect(card.locator('.week-standard-day-column').first()).toHaveCSS('border-color', 'rgb(96, 107, 123)');
+  await expect(card.locator('.week-standard-day-header').first()).toHaveCSS('border-bottom-color', 'rgba(0, 0, 0, 0)');
+  await expect(card.locator('.day-time-slot').first()).toHaveCSS('border-top-color', 'rgb(85, 96, 112)');
+  await render({ default_view: 'agenda', color_scheme: 'dark' });
+  await expect(card.locator('.agenda-day-row').first()).toHaveCSS('border-top-color', 'rgb(91, 102, 118)');
+
+  await render({ default_view: 'month' });
+  await expect(card.locator('.calendar-grid')).toHaveCSS('background-color', 'rgb(229, 231, 235)');
+  await expect(card.locator('.day-cell:not(.other-month)').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(card.locator('.calendar-container')).toHaveCSS('--custom-surface-alpha', '1');
+});
+
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
