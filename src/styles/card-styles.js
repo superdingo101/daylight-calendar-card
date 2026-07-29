@@ -554,8 +554,8 @@ export function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -860,8 +860,8 @@ export function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -882,7 +882,7 @@ export function getCardStyles() {
         text-align: center;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1119,14 +1119,14 @@ export function getCardStyles() {
         display: grid;
         grid-template-columns: 88px 1fr;
         gap: 12px;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
       }
 
       .agenda-month-banner {
         width: 100%;
-        border-top: 2px solid #d1d5db;
-        border-bottom: 1px solid #d1d5db;
+        border-top: 2px solid var(--calendar-grid-color, #d1d5db);
+        border-bottom: 1px solid var(--calendar-grid-color, #d1d5db);
         color: #4b5563;
         font-size: 24px;
         font-weight: 700;
@@ -1144,7 +1144,7 @@ export function getCardStyles() {
         text-align: center;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .agenda-day-weekday {
@@ -1297,7 +1297,7 @@ export function getCardStyles() {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
         background: white;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .calendar-badges-container.has-overflow::after,
@@ -1531,7 +1531,7 @@ export function getCardStyles() {
       .week-standard-day-header {
         padding: 16px;
         text-align: center;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
         background: white;
         display: flex;
         flex-direction: column;
@@ -1578,7 +1578,7 @@ export function getCardStyles() {
       .all-day-events {
         padding: var(--all-day-horizontal-padding);
         background: #f9fafb;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -1667,7 +1667,7 @@ export function getCardStyles() {
 
       .day-time-slot {
         height: 120px;
-        border-top: 1px solid var(--schedule-hour-line-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, var(--schedule-hour-line-color, #e5e7eb));
         position: relative;
         box-sizing: border-box;
         cursor: pointer;
@@ -2777,7 +2777,7 @@ export function getCardStyles() {
       .calendar-container.custom-background .calendar-grid,
       .calendar-container.custom-background .week-compact-container,
       .calendar-container.custom-background .calendar-badges {
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-standard-container {
@@ -2785,8 +2785,8 @@ export function getCardStyles() {
       }
 
       .calendar-container.custom-background .calendar-grid {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .day-header,
@@ -2800,8 +2800,8 @@ export function getCardStyles() {
       }
 
       .calendar-container.custom-background .week-compact-container {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-day-column {
@@ -2832,11 +2832,11 @@ export function getCardStyles() {
 
       .calendar-container.dark-mode.custom-background .week-standard-day-header,
       .calendar-container.dark-mode.custom-background .all-day-events {
-        border-bottom-color: transparent !important;
+        border-bottom-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .week-standard-day-column {
-        border-color: transparent !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
         box-shadow: none !important;
       }
 
@@ -2853,11 +2853,11 @@ export function getCardStyles() {
 
 
       .calendar-container.custom-background .day-cell.other-month {
-        background: rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, calc(var(--custom-surface-alpha, 0.55) * 0.12)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .day-cell.other-month {
-        background: rgba(0, 0, 0, 0.2) !important;
+        background: rgba(0, 0, 0, calc(var(--custom-surface-alpha, 0.55) * 0.2)) !important;
       }
 
       @media (max-width: 768px) {

@@ -453,6 +453,7 @@ function createConfigNormalizationSchema({
       { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || DEFAULT_CONFIG_VALUES.show_current_time_bar },
       { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : DEFAULT_CONFIG_VALUES.header_color },
       { key: 'header_text_color', defaultValue: ({ derived }) => derived.normalizedHeaderTextColor },
+      { key: 'grid_color', defaultValue: ({ derived }) => derived.normalizedGridColor, normalize: ({ derived }) => derived.normalizedGridColor },
       { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
       { key: 'header_background_opacity', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity },
       { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
@@ -2178,6 +2179,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <input data-field="header_text_color_text" data-type="header-text-color-text" type="text" value="${this.escapeHtml(this._config.header_text_color || '')}" placeholder="Auto contrast">
         </div>
       </div>
+      <div class="field">
+        <label for="grid_color">Grid and divider color</label>
+        <div class="field-row">
+          ${this.renderColorInputControl({ id: 'grid_color', field: 'grid_color', value: this._config.grid_color })}
+          <input data-field="grid_color_text" data-type="grid-color-text" type="text" value="${this.escapeHtml(this._config.grid_color || '')}" placeholder="Theme default">
+        </div>
+      </div>
       ${this.renderSubSection('Calendar colors', `<div class="map-grid">${this.renderMapRowInputs('colors', { label: 'calendar colors', inputType: 'color' })}</div>`)}
       ${this.renderSubSection('Event font colors', `<div class="map-grid">${this.renderMapRowInputs('event_font_colors', { label: 'event font colors', inputType: 'color' })}</div>`)}
       ${this.renderSubSection('Calendar display names', `<div class="map-grid">${this.renderMapRowInputs('calendar_names', { label: 'calendar names', placeholder: 'Display name' })}</div>`)}
@@ -2982,6 +2990,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
       headerTextColorTextInput.value = this._config.header_text_color || '';
     }
 
+    const gridColorTextInput = this.querySelector('input[data-field="grid_color_text"]');
+    if (gridColorTextInput && document.activeElement !== gridColorTextInput) {
+      gridColorTextInput.value = this._config.grid_color || '';
+    }
+
     this.querySelectorAll('[data-map-field]').forEach((input) => {
       if (document.activeElement === input) return;
       const mapField = input.dataset.mapField;
@@ -3163,6 +3176,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.header_color = event.target.value;
     } else if (event.target.dataset.type === 'header-text-color-text') {
       nextConfig.header_text_color = event.target.value;
+    } else if (event.target.dataset.type === 'grid-color-text') {
+      nextConfig.grid_color = event.target.value;
     } else if (event.target.dataset.type === 'number') {
       if (event.target.value === '') {
         nextConfig[field] = this.getEditorDefaultValue(field);
@@ -3788,8 +3803,8 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -4094,8 +4109,8 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -4116,7 +4131,7 @@ function getCardStyles() {
         text-align: center;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -4353,14 +4368,14 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: 88px 1fr;
         gap: 12px;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
       }
 
       .agenda-month-banner {
         width: 100%;
-        border-top: 2px solid #d1d5db;
-        border-bottom: 1px solid #d1d5db;
+        border-top: 2px solid var(--calendar-grid-color, #d1d5db);
+        border-bottom: 1px solid var(--calendar-grid-color, #d1d5db);
         color: #4b5563;
         font-size: 24px;
         font-weight: 700;
@@ -4378,7 +4393,7 @@ function getCardStyles() {
         text-align: center;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .agenda-day-weekday {
@@ -4531,7 +4546,7 @@ function getCardStyles() {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
         background: white;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .calendar-badges-container.has-overflow::after,
@@ -4765,7 +4780,7 @@ function getCardStyles() {
       .week-standard-day-header {
         padding: 16px;
         text-align: center;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
         background: white;
         display: flex;
         flex-direction: column;
@@ -4812,7 +4827,7 @@ function getCardStyles() {
       .all-day-events {
         padding: var(--all-day-horizontal-padding);
         background: #f9fafb;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -4901,7 +4916,7 @@ function getCardStyles() {
 
       .day-time-slot {
         height: 120px;
-        border-top: 1px solid var(--schedule-hour-line-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, var(--schedule-hour-line-color, #e5e7eb));
         position: relative;
         box-sizing: border-box;
         cursor: pointer;
@@ -6011,7 +6026,7 @@ function getCardStyles() {
       .calendar-container.custom-background .calendar-grid,
       .calendar-container.custom-background .week-compact-container,
       .calendar-container.custom-background .calendar-badges {
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-standard-container {
@@ -6019,8 +6034,8 @@ function getCardStyles() {
       }
 
       .calendar-container.custom-background .calendar-grid {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .day-header,
@@ -6034,8 +6049,8 @@ function getCardStyles() {
       }
 
       .calendar-container.custom-background .week-compact-container {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-day-column {
@@ -6066,11 +6081,11 @@ function getCardStyles() {
 
       .calendar-container.dark-mode.custom-background .week-standard-day-header,
       .calendar-container.dark-mode.custom-background .all-day-events {
-        border-bottom-color: transparent !important;
+        border-bottom-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .week-standard-day-column {
-        border-color: transparent !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
         box-shadow: none !important;
       }
 
@@ -6087,11 +6102,11 @@ function getCardStyles() {
 
 
       .calendar-container.custom-background .day-cell.other-month {
-        background: rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, calc(var(--custom-surface-alpha, 0.55) * 0.12)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .day-cell.other-month {
-        background: rgba(0, 0, 0, 0.2) !important;
+        background: rgba(0, 0, 0, calc(var(--custom-surface-alpha, 0.55) * 0.2)) !important;
       }
 
       @media (max-width: 768px) {
@@ -11515,6 +11530,7 @@ class SkylightCalendarCard extends HTMLElement {
       normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
       normalizedDayBadgeLayoutWeek: this.normalizeDayBadgeLayoutWeek(rawConfig.day_badge_layout_week),
       normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
+      normalizedGridColor: this.normalizeSingleColor(rawConfig.grid_color),
       normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
       normalizedHeaderBackgroundOpacity,
       normalizedBackgroundOpacity,
@@ -14124,7 +14140,7 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedReveal = Math.max(0, Math.min(1, normalizedBackgroundOpacity / 100));
     const scaledBackgroundImageAlpha = Math.max(0, Math.min(1, normalizedReveal * 0.75));
     const backgroundImageAlpha = safeBackgroundImageUrl ? scaledBackgroundImageAlpha : 0;
-    const customSurfaceAlpha = Math.max(0.2, 1 - (normalizedReveal * 0.75));
+    const customSurfaceAlpha = 1 - normalizedReveal;
     const customSurfacePalette = this._isDarkMode
       ? {
         calendar: '48, 54, 63',
@@ -14139,7 +14155,10 @@ class SkylightCalendarCard extends HTMLElement {
         slot: '255, 255, 255'
       };
     const forcedBackgroundStyle = forcedThemeBackground ? `--calendar-forced-background: ${forcedThemeBackground}; ` : '';
-    const backgroundStyle = `${forcedBackgroundStyle}--calendar-default-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; --custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
+    const configuredGridColor = this.normalizeSingleColor(this._config.grid_color);
+    const resolvedGridColor = configuredGridColor || (hasCustomBackground ? 'rgba(255, 255, 255, 0.35)' : null);
+    const gridColorStyle = resolvedGridColor ? `--calendar-grid-color: ${resolvedGridColor}; ` : '';
+    const backgroundStyle = `${forcedBackgroundStyle}--calendar-default-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; ${gridColorStyle}--custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
     const containerStyle = `${headerStyle} ${backgroundStyle} ${backgroundImageStyle}`.trim();
 
     this._root.innerHTML = `

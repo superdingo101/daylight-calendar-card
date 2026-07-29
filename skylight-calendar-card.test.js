@@ -138,6 +138,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   show_current_time_bar: 'setConfig applies visual layout and styling options',
   header_color: 'setConfig applies visual layout and styling options',
   header_text_color: 'setConfig applies visual layout and styling options',
+  grid_color: 'setConfig applies visual layout and styling options',
   header_background_transparent: 'setConfig normalizes fallback values and aliases',
   header_background_opacity: 'setConfig applies visual layout and styling options',
   background_transparent: 'setConfig normalizes fallback values and aliases',
@@ -951,6 +952,7 @@ test('setConfig applies visual layout and styling options', () => {
     display_full_weekday_names: true,
     header_color: '#123456',
     header_text_color: '#ffffff',
+    grid_color: 'rgb(255, 255, 255)',
     header_background_opacity: 55,
     background_opacity: 35,
     background_image_url: 'https://example.com/bg.png',
@@ -1008,6 +1010,7 @@ test('setConfig applies visual layout and styling options', () => {
   assert.equal(card._config.day_badge_layout_week, 'stacked');
   assert.equal(card._config.header_color, '#123456');
   assert.equal(card._config.header_text_color, '#ffffff');
+  assert.equal(card._config.grid_color, 'rgb(255, 255, 255)');
   assert.equal(card._config.header_background_opacity, 55);
   assert.equal(card._config.background_opacity, 35);
   assert.equal(card._config.background_image_url, 'https://example.com/bg.png');
