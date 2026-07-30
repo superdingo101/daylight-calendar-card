@@ -2791,8 +2791,24 @@ export function getCardStyles() {
       }
 
       .calendar-container.custom-background .calendar-grid {
-        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        background: transparent !important;
         border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+      }
+
+      .calendar-container.custom-background .calendar-grid > *,
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > * {
+        position: relative;
+      }
+
+      .calendar-container.custom-background .calendar-grid > *::before,
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
+        content: '';
+        position: absolute;
+        inset: 0 -1px -1px 0;
+        border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        pointer-events: none;
+        z-index: 1;
       }
 
       .calendar-container.custom-background .day-header,
@@ -2806,7 +2822,7 @@ export function getCardStyles() {
       }
 
       .calendar-container.custom-background .week-compact-container {
-        background: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+        background: transparent !important;
         border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
