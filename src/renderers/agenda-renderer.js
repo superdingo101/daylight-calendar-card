@@ -55,7 +55,7 @@ export function renderAgendaView({
 
               return `
                 <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${helpers.getEventBubbleFontSize(event)}; --event-time-font-size: ${helpers.getEventTimeFontSize(event)}; --event-location-font-size: ${helpers.getEventLocationFontSize(event)}; --event-bubble-text-color: ${helpers.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-                  <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, event.summary || helpers.t('untitledEvent'))}</div>
+                  <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, helpers.getEventDisplayTitle(event))}</div>
                   ${helpers.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
                   ${helpers.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${helpers.escapeHtml(helpers.getDisplayLocation(event.location, event))}</div>` : ''}
                   ${helpers.renderEventIcon(event)}

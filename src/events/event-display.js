@@ -156,10 +156,10 @@ export function getEventBubbleFontColor(event, { styleOverrides = null, hiddenCa
   return getContrastColor?.(getEventBackgroundColor?.(event)) || 'white';
 }
 
-export function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, translate }) {
+export function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, getEventDisplayTitle, translate }) {
   const { eventStart, eventEnd, isAllDay } = getEventDateTimeInfo(event);
   const rendersAsAllDay = isAllDay || shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
-  const displayTitle = event.summary || translate('untitledEvent');
+  const displayTitle = getEventDisplayTitle?.(event) || event.summary || translate('untitledEvent');
   const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && shouldShowTime(event);
 
   return {

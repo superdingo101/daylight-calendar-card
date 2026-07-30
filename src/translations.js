@@ -123,7 +123,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minute',
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} more',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'CW',
       monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
@@ -245,7 +245,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minute',
       durationMinutes: '{count} minutes',
       moreEvents: '+{count} de plus',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'Sem',
       monthWeekAriaLabel: 'Semaine {week}',
       eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
@@ -367,7 +367,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} Minute',
       durationMinutes: '{count} Minuten',
       moreEvents: '+{count} mehr',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'KW',
       monthWeekAriaLabel: 'Woche {week}',
       eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
@@ -489,7 +489,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minuut',
       durationMinutes: '{count} minuten',
       moreEvents: '+{count} meer',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'wk',
       monthWeekAriaLabel: 'Week {week}',
       eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
@@ -610,7 +610,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minuto',
       durationMinutes: '{count} minutos',
       moreEvents: '+{count} más',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'Sem.',
       monthWeekAriaLabel: 'Semana {week}',
       eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
@@ -732,7 +732,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minut',
       durationMinutes: '{count} minutit',
       moreEvents: '+{count} veel',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'Nädal',
       monthWeekAriaLabel: 'Nädal {week}',
       eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
@@ -854,7 +854,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minut',
       durationMinutes: '{count} minuts',
       moreEvents: '+{count} més',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'Set.',
       monthWeekAriaLabel: 'Setmana {week}',
       eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
@@ -976,7 +976,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minut',
       durationMinutes: '{count} minutter',
       moreEvents: '+{count} flere',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'Uge',
       monthWeekAriaLabel: 'Uge {week}',
       eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
@@ -1098,7 +1098,7 @@ export const TRANSLATIONS = {
       durationMinute: '{count} minut',
       durationMinutes: '{count} minuter',
       moreEvents: '+{count} fler',
-      eventTitleWithStartTime: '{title}, {time}',
+      eventTitleWithStartTime: '{time} {title}',
       monthWeekPrefix: 'v.',
       monthWeekAriaLabel: 'Vecka {week}',
       eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
