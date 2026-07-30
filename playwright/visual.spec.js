@@ -572,8 +572,8 @@ test('discussion 532: transparent surfaces and grid color contract across views'
   expect(await alpha('.day-cell.other-month')).toBe(0);
 
   const whiteGridChecks = [
-    ['month', '.calendar-grid > .day-cell', 'outlineColor'],
-    ['week-compact', '.week-compact-container > .week-day-column', 'outlineColor'],
+    ['month', '.calendar-grid', 'backgroundColor'],
+    ['week-compact', '.week-compact-container', 'backgroundColor'],
     ['week-standard', '.day-time-slot', 'borderTopColor'],
     ['agenda', '.agenda-day-row', 'borderTopColor']
   ];
@@ -609,7 +609,6 @@ test('discussion 532: transparent surfaces and grid color contract across views'
 
   await render({ default_view: 'month' });
   await expect(card.locator('.calendar-grid')).toHaveCSS('background-color', 'rgb(229, 231, 235)');
-  await expect(card.locator('.calendar-grid > .day-cell').first()).toHaveCSS('outline-color', 'rgb(229, 231, 235)');
   await expect(card.locator('.day-cell:not(.other-month)').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(card.locator('.calendar-container')).toHaveCSS('--custom-surface-alpha', '1');
 });
@@ -629,10 +628,22 @@ test('regression 535: transparent month and compact-week grids reveal the dashbo
     ].join('; ')
   });
   const card = page.locator('skylight-calendar-card');
+  const separatorStyle = (selector) => card.locator(selector).first().evaluate((element) => {
+    const style = getComputedStyle(element, '::before');
+    return {
+      borderTopWidth: style.borderTopWidth,
+      borderRightWidth: style.borderRightWidth,
+      borderBottomWidth: style.borderBottomWidth,
+      borderLeftWidth: style.borderLeftWidth,
+      borderRightColor: style.borderRightColor,
+      borderBottomColor: style.borderBottomColor,
+      outlineStyle: getComputedStyle(element).outlineStyle
+    };
+  });
 
-  for (const [view, gridSelector] of [
-    ['month', '.calendar-grid'],
-    ['week-compact', '.week-compact-container']
+  for (const [view, gridSelector, childSelector] of [
+    ['month', '.calendar-grid', '.day-cell'],
+    ['week-compact', '.week-compact-container', '.week-day-column']
   ]) {
     await render({ default_view: view });
     await expect(card.locator(gridSelector)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -640,9 +651,44 @@ test('regression 535: transparent month and compact-week grids reveal the dashbo
 
     await render({ default_view: view, grid_color: 'blue' });
     await expect(card.locator(gridSelector)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(card.locator(`${gridSelector} > *`).first()).toHaveCSS('outline-color', 'rgb(0, 0, 255)');
+    expect(await separatorStyle(`${gridSelector} > ${childSelector}`)).toEqual({
+      borderTopWidth: '0px',
+      borderRightWidth: '1px',
+      borderBottomWidth: '1px',
+      borderLeftWidth: '0px',
+      borderRightColor: 'rgb(0, 0, 255)',
+      borderBottomColor: 'rgb(0, 0, 255)',
+      outlineStyle: 'none'
+    });
     await expect(card.locator(gridSelector)).toHaveScreenshot(`${view}-transparent-blue-grid.png`, { animations: 'disabled' });
+
+    await render({ default_view: view, background_opacity: 50 });
+    await expect(card.locator(gridSelector)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(card.locator(childSelector).first()).toHaveCSS('background-color', /rgba\([^,]+, [^,]+, [^,]+, 0\.5\)/);
+
+    await render({ default_view: view, grid_color: 'rgba(255, 255, 255, 0.5)' });
+    const semiTransparentSeparator = await separatorStyle(`${gridSelector} > ${childSelector}`);
+    expect(semiTransparentSeparator.borderRightColor).toBe('rgba(255, 255, 255, 0.5)');
+    expect(semiTransparentSeparator.borderBottomColor).toBe('rgba(255, 255, 255, 0.5)');
+    expect(semiTransparentSeparator.borderTopWidth).toBe('0px');
+    expect(semiTransparentSeparator.borderLeftWidth).toBe('0px');
+    expect(semiTransparentSeparator.outlineStyle).toBe('none');
   }
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], default_view: 'month', background_opacity: 100 },
+    events: overflowEvents
+  });
+  await card.locator('.more-events').first().click();
+  const modalColumn = card.locator('.week-compact-container.single-day-modal > .week-day-column');
+  await expect(modalColumn).toHaveCount(1);
+  expect(await separatorStyle('.week-compact-container.single-day-modal > .week-day-column')).toMatchObject({
+    borderTopWidth: '0px',
+    borderRightWidth: '0px',
+    borderBottomWidth: '0px',
+    borderLeftWidth: '0px',
+    outlineStyle: 'none'
+  });
 });
 
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {

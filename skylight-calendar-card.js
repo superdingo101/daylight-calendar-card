@@ -3810,10 +3810,6 @@ function getCardStyles() {
         overflow: auto;
       }
 
-      .calendar-grid > * {
-        outline: 1px solid var(--calendar-grid-color, #e5e7eb);
-      }
-
       .calendar-grid.month-week-numbers {
         grid-template-columns: 28px repeat(7, 1fr);
       }
@@ -4118,10 +4114,6 @@ function getCardStyles() {
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
-      }
-
-      .week-compact-container > * {
-        outline: 1px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .week-compact-container.compact-height {
@@ -6053,8 +6045,19 @@ function getCardStyles() {
       }
 
       .calendar-container.custom-background .calendar-grid > *,
-      .calendar-container.custom-background .week-compact-container > * {
-        outline-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > * {
+        position: relative;
+      }
+
+      .calendar-container.custom-background .calendar-grid > *::before,
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
+        content: '';
+        position: absolute;
+        inset: 0 -1px -1px 0;
+        border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        pointer-events: none;
+        z-index: 1;
       }
 
       .calendar-container.custom-background .day-header,
