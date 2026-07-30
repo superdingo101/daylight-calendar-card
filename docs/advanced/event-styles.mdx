@@ -152,6 +152,8 @@ event_styles:
       display_title: "My Event"
 ```
 
+A plain `match.title` string uses case-insensitive substring matching against the original event title. Use `title: { exact: "…" }`, as shown above, when the alias should apply only to the complete original title.
+
 <ParamField path="style.opacity" type="number">
   A number between `0` and `1` that controls the event's transparency. Use `0.4` to visually mute events without hiding them entirely.
 </ParamField>
