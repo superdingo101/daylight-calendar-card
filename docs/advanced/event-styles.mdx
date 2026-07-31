@@ -138,6 +138,22 @@ The `style` object accepts the following properties to control how matched event
   Hex color string applied to the event's text. Use this to ensure readable contrast when you change the background color.
 </ParamField>
 
+<ParamField path="style.display_title" type="string">
+  Replaces the event title shown in the card with a nonempty fixed string. This changes only the card display; matching, event details, editing, and the source calendar event continue to use the original title.
+</ParamField>
+
+```yaml
+event_styles:
+  - match:
+      calendar: calendar.family
+      title:
+        exact: "My Long Title Event"
+    style:
+      display_title: "My Event"
+```
+
+A plain `match.title` string uses case-insensitive substring matching against the original event title. Use `title: { exact: "…" }`, as shown above, when the alias should apply only to the complete original title.
+
 <ParamField path="style.opacity" type="number">
   A number between `0` and `1` that controls the event's transparency. Use `0.4` to visually mute events without hiding them entirely.
 </ParamField>
