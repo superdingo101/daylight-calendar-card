@@ -290,8 +290,13 @@ test('month_day_tap_action decides busy vs empty from visible events (getEventsF
 });
 
 // --- showDayModal Add Event button + back-navigation --------------------------
-function renderDayModal({ management = true, writable = true, hideAdd = false } = {}) {
-  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, hide_add_event_button: hideAdd });
+function renderDayModal({ management = true, writable = true, hideAdd = false, displayTitle = null } = {}) {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: management,
+    hide_add_event_button: hideAdd,
+    ...(displayTitle ? { event_styles: [{ match: { title: { exact: 'Sample' } }, style: { display_title: displayTitle } }] } : {})
+  });
   card.getWritableCalendars = () => (writable ? ['calendar.family'] : []);
   card.getEventsForDay = () => [];
   // Stub the markup helpers so we don't depend on a fully-normalized event shape.
@@ -462,8 +467,12 @@ test('showDayModal supplies an onSaved callback to showEventModal (fresh reopen)
 });
 
 // --- +N compact modal must NOT reuse post-save navigation (regression guard) ------
-function renderDayCompactModal() {
-  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+function renderDayCompactModal({ displayTitle = null } = {}) {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    ...(displayTitle ? { event_styles: [{ match: { title: { exact: 'Sample' } }, style: { display_title: displayTitle } }] } : {})
+  });
   card.getWritableCalendars = () => ['calendar.family'];
   card.getEventsForDay = () => [];
   card.applyEventModalSizeClass = () => {};
@@ -489,8 +498,33 @@ function renderDayCompactModal() {
   card.getRootElementById = (id) => (id === 'modal-content' ? content : id === 'event-modal' ? modal : { addEventListener: () => {} });
   card._root = { querySelectorAll: (s) => (s === '.week-compact-event' ? [el] : []) };
   card.showDayCompactModal(date, [event]);
-  return { card, handlers };
+  return { card, handlers, content, event };
 }
+
+test('event detail modal retains the original source title when a display alias exists', () => {
+  const { card, content, event } = renderEventModal();
+  card.setConfig({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    event_styles: [{ match: { title: { exact: 'Sample' } }, style: { display_title: 'Short alias' } }]
+  });
+  card.showEventModal(event);
+
+  assert.match(content.innerHTML, /Sample/);
+  assert.doesNotMatch(content.innerHTML, /Short alias/);
+  assert.equal(event.summary, 'Sample');
+});
+
+test('compact +N and full day-event lists render display title aliases', () => {
+  const alias = 'Short alias';
+  const compact = renderDayCompactModal({ displayTitle: alias });
+  const full = renderDayModal({ displayTitle: alias });
+
+  assert.match(compact.content.innerHTML, /week-compact-event-title">Short alias</);
+  assert.doesNotMatch(compact.content.innerHTML, /week-compact-event-title">Sample</);
+  assert.match(full.html, /day-modal-event-title">Short alias</);
+  assert.doesNotMatch(full.html, /day-modal-event-title">Sample</);
+});
 
 test('+N compact modal keeps close/back only and does NOT supply onSaved to showEventModal', () => {
   const { card, handlers } = renderDayCompactModal();
@@ -523,7 +557,7 @@ function renderEventModal(onSaved) {
   };
   const event = { entityId: 'calendar.family', uid: 'evt-1', summary: 'Sample', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } };
   card.showEventModal(event, () => {}, { onSaved });
-  return { card, handlers };
+  return { card, handlers, content, event };
 }
 
 test('event detail X button closes a normal modal', () => {
@@ -2196,6 +2230,28 @@ function getAllDayBodyClassForTitle(html, title) {
   const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return html.match(new RegExp(`<div class="all-day-event([^"]*)"[^>]*"summary":"${escapedTitle}"`))?.[1] || '';
 }
+
+test('week-standard all-day lanes render a long timed event alias with established start-time decoration', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    locale: 'en-US',
+    event_styles: [{ match: { title: { exact: 'Original long event title' } }, style: { display_title: 'Short alias' } }]
+  });
+  card._events = [makeTimedEvent(
+    'Original long event title',
+    '2026-05-04T08:00:00Z',
+    '2026-05-05T09:00:00Z'
+  )];
+
+  const html = renderScheduleAllDayHtml(card);
+  const renderedTitle = html.match(/<div class="all-day-event-title[^"]*">([^<]+)<\/div>/)?.[1];
+
+  assert.equal(renderedTitle, 'Short alias, 8:00 AM');
+  assert.doesNotMatch(renderedTitle, /Original long event title/);
+  assert.equal(countRenderedAllDayBodies(html), 1);
+  assert.ok(countAllDayPlaceholders(html) >= 1);
+  assert.equal(card._events[0].summary, 'Original long event title');
+});
 
 test('schedule all-day multi-day events render once as a continuous span across styling modes', () => {
   for (const event_color_mode of ['classic', 'left-tint', 'left-neutral']) {
@@ -5824,6 +5880,78 @@ test('custom event colors override event_styles backgrounds while preserving oth
   assert.match(style, /background-color: #AABBCC/);
   assert.match(style, /opacity: 0.42/);
   assert.match(style, /filter: grayscale\(20%\)/);
+});
+
+test('display_title normalizes nonempty strings and preserves fallback and original-title matching', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [
+      { match: { title: { exact: 'My Long Title Event' } }, priority: 1, style: { display_title: '  My Event  ' } },
+      { match: { title: { exact: 'My Event' } }, priority: 20, style: { display_title: 'Must Not Cascade' } },
+      { match: { calendar: 'calendar.family' }, priority: 0, style: { display_title: 'Lower Priority' } }
+    ]
+  });
+  const event = { entityId: 'calendar.family', summary: 'My Long Title Event' };
+
+  assert.equal(card._config.event_styles[0].style.display_title, 'My Event');
+  assert.equal(card.getEventDisplayTitle(event), 'My Event');
+  assert.equal(event.summary, 'My Long Title Event');
+  assert.equal(card.getEventDisplayTitle({ entityId: 'calendar.other', summary: 'Original' }), 'Original');
+  assert.equal(card.getEventDisplayTitle({ entityId: 'calendar.other', summary: '' }), 'Untitled Event');
+
+  for (const invalid of ['', '   ', 42, null, {}, []]) {
+    assert.equal(card.normalizeEventStyleBlock({ display_title: invalid }).display_title, undefined);
+  }
+});
+
+test('display_title uses event-style priority and combined-event merging', () => {
+  const card = makeCard({
+    entities: ['calendar.a', 'calendar.b'],
+    combine_calendars: true,
+    event_styles: [
+      { match: { calendar: 'calendar.a' }, priority: 2, style: { display_title: 'Alias A' } },
+      { match: { calendar: 'calendar.b' }, priority: 5, style: { display_title: 'Alias B' } }
+    ]
+  });
+  const source = (entityId) => ({ entityId, color: '#123456', summary: 'Original', location: '', start: { dateTime: '2026-05-01T10:00:00Z' }, end: { dateTime: '2026-05-01T11:00:00Z' } });
+  const combined = card.combineDuplicateCalendarEvents([source('calendar.a'), source('calendar.b')])[0];
+
+  assert.equal(card.getEventDisplayTitle(combined), 'Alias B');
+  assert.equal(combined.summary, 'Original');
+  assert.ok(combined.sourceEvents.every(event => event.summary === 'Original'));
+});
+
+test('display_title renders escaped aliases in month, compact, schedule, and agenda views', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{ match: { title: { exact: 'Original title' } }, style: { display_title: '<b>Alias & title</b>' } }]
+  });
+  const timed = { entityId: 'calendar.family', color: '#123456', summary: 'Original title', start: { dateTime: '2026-05-14T08:00:00Z' }, end: { dateTime: '2026-05-14T09:00:00Z' } };
+  const date = new Date('2026-05-14T00:00:00Z');
+  const escapedAlias = '&lt;b&gt;Alias &amp; title&lt;/b&gt;';
+
+  assert.match(card.renderEvent(timed, date), new RegExp(escapedAlias));
+  assert.match(card.renderWeekCompactEvent(timed, date), new RegExp(escapedAlias));
+  assert.match(card.renderTimedEventsForDay([timed], date, 0, 23, 40), new RegExp(escapedAlias));
+  assert.match(card.renderMonthSpanLane({ event: timed, isFirstVisibleSegment: true, extendsBeforeVisibleRange: false, extendsAfterVisibleRange: false, visibleDaySpan: 2 }), new RegExp(escapedAlias));
+
+  card.getAgendaDays = () => [date];
+  card.getEventsForDay = () => [timed];
+  card.ensureAgendaWindowInitialized = () => {};
+  card.getAgendaEventMinHeight = () => '40px';
+  assert.match(card.renderAgenda(), new RegExp(escapedAlias));
+  assert.doesNotMatch(card.renderAgenda(), /<b>Alias & title<\/b>/);
+});
+
+test('schedule all-day treatment preserves localized decoration for the resolved display title', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    event_styles: [{ match: { title: 'Long original' }, style: { display_title: 'My Event' } }]
+  });
+  card.formatEventTime = () => '8:00 AM';
+  const event = { entityId: 'calendar.family', summary: 'Long original', start: { dateTime: '2026-05-01T08:00:00Z' }, end: { dateTime: '2026-05-03T09:00:00Z' } };
+
+  assert.equal(card.getScheduleVisualInfo(event).displayTitle, 'My Event, 8:00 AM');
 });
 
 test('custom event colors drive left accent and tint modes', async () => {
