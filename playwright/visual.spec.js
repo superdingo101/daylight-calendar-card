@@ -539,6 +539,80 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
+test('regression 543: agenda events expand for wrapped content while compact events stay content-sized', async ({ page }) => {
+  await page.setViewportSize({ width: 500, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const render = (agendaCompactEvents) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'agenda',
+      agenda_compact_events: agendaCompactEvents,
+      event_font_size: 30,
+      event_time_font_size: 20,
+      event_location_font_size: 15,
+      show_event_location: true,
+      use_short_location: false
+    },
+    events: {
+      'calendar.family': [{
+        summary: 'Quarterly planning session with a long wrapping agenda title',
+        start: '2026-03-15T09:30:00Z',
+        end: '2026-03-15T10:30:00Z',
+        location: LONG_LOCATION
+      }]
+    }
+  });
+
+  await render(false);
+  const card = page.locator('skylight-calendar-card');
+  const event = card.locator('.agenda-event');
+  const expandedGeometry = await event.evaluate((eventElement) => {
+    const eventRect = eventElement.getBoundingClientRect();
+    const style = getComputedStyle(eventElement);
+    const minHeight = Number.parseFloat(style.minHeight);
+    const content = [...eventElement.querySelectorAll('.agenda-event-time, .agenda-event-title, .agenda-event-location')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      });
+    const location = eventElement.querySelector('.agenda-event-location');
+    const locationStyle = getComputedStyle(location);
+    const locationRect = location.getBoundingClientRect();
+    const lineHeight = Number.parseFloat(locationStyle.lineHeight);
+    return {
+      eventTop: eventRect.top,
+      eventBottom: eventRect.bottom,
+      eventHeight: eventRect.height,
+      minHeight,
+      content,
+      locationHeight: locationRect.height,
+      locationLineHeight: lineHeight,
+      bottomClearance: eventRect.bottom - locationRect.bottom
+    };
+  });
+  expect(expandedGeometry.locationHeight).toBeGreaterThan(expandedGeometry.locationLineHeight * 1.5);
+  expect(expandedGeometry.eventHeight).toBeGreaterThan(expandedGeometry.minHeight + 1);
+  for (const contentRect of expandedGeometry.content) {
+    expect(contentRect.top).toBeGreaterThanOrEqual(expandedGeometry.eventTop - 1);
+    expect(contentRect.bottom).toBeLessThanOrEqual(expandedGeometry.eventBottom + 1);
+  }
+  expect(expandedGeometry.bottomClearance).toBeGreaterThanOrEqual(9);
+
+  await render(true);
+  const compactGeometry = await event.evaluate((eventElement) => {
+    const style = getComputedStyle(eventElement);
+    return {
+      height: eventElement.getBoundingClientRect().height,
+      minHeight: style.minHeight,
+      baseline: Number.parseFloat(style.getPropertyValue('--agenda-event-min-height'))
+    };
+  });
+  expect(compactGeometry.minHeight).toBe('0px');
+  expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
+});
+
 test('discussion 532: transparent surfaces and grid color contract across views', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
@@ -1352,11 +1426,20 @@ async function assertCompactHeightGeometry(card, page, viewSpec, viewport, alloc
         const owner = event.closest('.agenda-day-row');
         const r = event.getBoundingClientRect();
         const ownerRect = owner?.getBoundingClientRect();
+        const contentContained = [...event.querySelectorAll('.agenda-event-time, .agenda-event-title, .agenda-event-location')]
+          .every((element) => {
+            const contentRect = element.getBoundingClientRect();
+            return contentRect.left >= r.left - 2
+              && contentRect.right <= r.right + 2
+              && contentRect.top >= r.top - 2
+              && contentRect.bottom <= r.bottom + 2;
+          });
         return ownerRect
           && r.left >= c.left - 2
           && r.right <= c.right + 2
           && r.top >= ownerRect.top - 2
-          && r.bottom <= ownerRect.bottom + 2;
+          && r.bottom <= ownerRect.bottom + 2
+          && contentContained;
       });
     });
     expect(rowsContained).toBe(true);
