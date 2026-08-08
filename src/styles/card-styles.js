@@ -1191,7 +1191,8 @@ export function getCardStyles() {
         overflow: hidden;
         color: var(--event-bubble-text-color, white);
         position: relative;
-        height: var(--agenda-event-min-height, 68px);
+        height: auto;
+        min-height: var(--agenda-event-min-height, 68px);
         box-sizing: border-box;
         padding-bottom: calc(10px + (var(--combined-corner-bubbles, 0) * 16px));
       }
@@ -1235,6 +1236,7 @@ export function getCardStyles() {
         align-items: baseline;
         gap: 0 8px;
         height: auto;
+        min-height: 0;
         padding: 8px 64px 8px calc(12px + var(--combine-left-offset, 0px));
         padding-bottom: calc(8px + (var(--combined-corner-bubbles, 0) * 16px));
       }
