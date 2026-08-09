@@ -195,7 +195,7 @@ The Daylight Calendar Card is a custom Lovelace card for Home Assistant that bri
     header_weather_sensor: weather.home
     ```
 
-    The card subscribes to Home Assistant's daily forecast API and displays weather icons both in the card header and in individual day cells. Make sure your weather integration provides a **daily forecast** — hourly-only integrations will not populate the day icons.
+    The card displays current conditions in the header. Daily forecasts are enabled by default and appear in calendar views when the entity supports them. Set `show_daily_weather_forecast: false` to keep the header conditions without requesting or displaying per-day forecasts; in this mode, the entity does not need to support daily forecasts.
 
     <Tip>
       Not sure what your weather entity is called? Open **Developer Tools → States** in Home Assistant and filter by `weather.` to see all available weather entities.
