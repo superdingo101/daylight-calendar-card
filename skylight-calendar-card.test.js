@@ -3293,6 +3293,30 @@ test('editor keeps week number prefix controls synchronized across setConfig upd
   assert.equal(prefixModeSelect.value, 'custom');
 });
 
+test('editor keeps default-true checkboxes checked when refreshing legacy config', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  const eventManagementCheckbox = { dataset: { field: 'enable_event_management' }, checked: false };
+  const dailyWeatherCheckbox = { dataset: { field: 'show_daily_weather_forecast' }, checked: false };
+  editor._config = { entities: ['calendar.family'] };
+  editor.querySelector = () => null;
+  editor.querySelectorAll = (selector) => (
+    selector === 'input[type="checkbox"][data-field]'
+      ? [eventManagementCheckbox, dailyWeatherCheckbox]
+      : []
+  );
+
+  editor.updateFieldValues();
+
+  assert.equal(eventManagementCheckbox.checked, true);
+  assert.equal(dailyWeatherCheckbox.checked, true);
+
+  editor._config.show_daily_weather_forecast = false;
+  editor.updateFieldValues();
+
+  assert.equal(dailyWeatherCheckbox.checked, false);
+});
+
 
 function createEditorDomHarness(editor) {
   let html = '';

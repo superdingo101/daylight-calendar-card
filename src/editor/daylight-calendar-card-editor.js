@@ -1652,8 +1652,8 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (checkbox.dataset.field === 'enable_event_management') {
-        checkbox.checked = this._config.enable_event_management !== false;
+      if (checkbox.dataset.field === 'enable_event_management' || checkbox.dataset.field === 'show_daily_weather_forecast') {
+        checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }
       checkbox.checked = !!this._config[checkbox.dataset.field];
