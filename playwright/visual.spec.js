@@ -1657,6 +1657,48 @@ test('regression issue 321: compact header stays single-row', async ({ page }) =
   }).toBe(true);
 });
 
+test('daily forecasts default on and header-only weather hides forecasts in every view', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  const forecast = await page.evaluate(() => {
+    const items = [];
+    const start = new Date();
+    start.setDate(start.getDate() - 10);
+    for (let offset = 0; offset < 40; offset += 1) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + offset);
+      items.push({ datetime: date.toISOString(), condition: 'sunny', temperature: 72, templow: 58 });
+    }
+    return items;
+  });
+  const weather = { 'weather.mock': { temperature: 70, condition: 'partlycloudy', forecast } };
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], header_weather_sensor: 'weather.mock', default_view: 'month' },
+    events: {},
+    weather
+  });
+  const card = page.locator('skylight-calendar-card');
+  await expect(card.locator('.header-weather')).toBeVisible();
+  await expect(card.locator('.month-day-forecast').first()).toBeVisible();
+
+  for (const defaultView of ['month', 'week-compact', 'week-standard', 'agenda']) {
+    await page.evaluate((params) => window.renderCalendarCard({
+      config: {
+        entities: ['calendar.family'],
+        header_weather_sensor: 'weather.mock',
+        show_daily_weather_forecast: false,
+        default_view: params.defaultView
+      },
+      events: {},
+      weather: params.weather
+    }), { defaultView, weather });
+    await expect(card.locator('.header-weather')).toContainText('70°');
+    await expect(card.locator('.month-day-forecast, .week-day-forecast, .week-standard-day-forecast, .agenda-day-forecast')).toHaveCount(0);
+  }
+});
+
 
 test('regression issue 321: compact wrapped header rows stay centered at medium width', async ({ page }) => {
   await page.setViewportSize({ width: 980, height: 820 });

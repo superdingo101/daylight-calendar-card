@@ -448,7 +448,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
       getHass: () => this._hass,
-      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      getWeatherEntityId: () => this._config?.show_daily_weather_forecast !== false
+        ? this._config?.header_weather_sensor
+        : null,
       onForecastUpdated: () => {
         if (!this.isEventManagementDialogOpen()) {
           this.renderPreservingAgendaScroll();
@@ -991,7 +993,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   setConfig(config) {
-    const previousHeaderWeatherSensor = this._config?.header_weather_sensor || null;
+    const previousForecastWeatherSensor = this._config?.show_daily_weather_forecast !== false
+      ? this._config?.header_weather_sensor || null
+      : null;
     if (!config.entities || !Array.isArray(config.entities)) {
       throw new Error('You need to define calendar entities');
     }
@@ -1018,7 +1022,10 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
     this._lastFetch = null;
-    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
+    const nextForecastWeatherSensor = this._config.show_daily_weather_forecast !== false
+      ? this._config.header_weather_sensor
+      : null;
+    this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
@@ -7640,6 +7647,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getForecastForDate(date) {
+    if (this._config?.show_daily_weather_forecast === false) return null;
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];
