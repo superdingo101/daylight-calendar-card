@@ -4,7 +4,7 @@ sidebarTitle: "Weather"
 description: "Add weather forecasts and a live clock to your Daylight Calendar Card header using Home Assistant weather and time sensor entities."
 ---
 
-The Daylight Calendar Card can pull current conditions and a daily forecast from any Home Assistant `weather.*` entity and display them alongside your events. Current conditions and today's temperature appear in the card header, and per-day forecast icons appear in Month day cells and in the Agenda view.
+The Daylight Calendar Card can pull current conditions and, when available, a daily forecast from a Home Assistant `weather.*` entity. Current conditions and today's temperature appear in the card header. Per-day forecast icons can appear in Month, Week Compact, Week Standard/Schedule, and Agenda views.
 
 ## Weather Forecast
 
@@ -26,7 +26,9 @@ The Daylight Calendar Card can pull current conditions and a daily forecast from
 To display weather data you need:
 
 1. A weather integration installed and configured in Home Assistant — for example, [Met.no](https://www.home-assistant.io/integrations/met/), [OpenWeatherMap](https://www.home-assistant.io/integrations/openweathermap/), or [AccuWeather](https://www.home-assistant.io/integrations/accuweather/).
-2. The `weather.*` entity must support the **daily forecast** type. Home Assistant exposes this as the `FORECAST_DAILY` feature on the entity. Most modern HA weather integrations support daily forecasts out of the box, but a few (especially radar-only or current-conditions-only integrations) do not.
+2. When `show_daily_weather_forecast` is enabled, the `weather.*` entity must support the **daily forecast** type. Home Assistant exposes this as the `FORECAST_DAILY` feature on the entity. Most modern HA weather integrations support daily forecasts out of the box, but a few (especially radar-only or current-conditions-only integrations) do not.
+
+With `show_daily_weather_forecast: false`, the card can still show current conditions in the header from a `weather.*` entity that does not provide daily forecasts.
 
 ### Example
 
