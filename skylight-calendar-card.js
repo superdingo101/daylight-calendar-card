@@ -108,6 +108,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
+  show_daily_weather_forecast: true,
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,
@@ -180,6 +181,7 @@ const DEFAULT_STUB_CONFIG = {
   show_dashboard_nav_button: false,
   header_dashboard_path: null,
   header_weather_sensor: '',
+  show_daily_weather_forecast: true,
   header_items: [],
   calendar_person_entities: {},
   default_hidden_calendars: [],
@@ -434,6 +436,7 @@ function createConfigNormalizationSchema({
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'show_daily_weather_forecast', defaultValue: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast, normalize: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast },
       { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
@@ -2413,6 +2416,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <input id="header_weather_sensor" data-field="header_weather_sensor" type="text" value="${this._config.header_weather_sensor || ''}" placeholder="weather.home">
         </div>
       </div>
+      <label class="checkbox-row">
+        <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
+        Show daily weather forecasts
+      </label>
       <div class="field field-inline">
         <label for="preference_storage_key">Preference storage key</label>
         <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
@@ -11064,7 +11071,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
       getHass: () => this._hass,
-      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      getWeatherEntityId: () => this._config?.show_daily_weather_forecast !== false
+        ? this._config?.header_weather_sensor
+        : null,
       onForecastUpdated: () => {
         if (!this.isEventManagementDialogOpen()) {
           this.renderPreservingAgendaScroll();
@@ -11607,7 +11616,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   setConfig(config) {
-    const previousHeaderWeatherSensor = this._config?.header_weather_sensor || null;
+    const previousForecastWeatherSensor = this._config?.show_daily_weather_forecast !== false
+      ? this._config?.header_weather_sensor || null
+      : null;
     if (!config.entities || !Array.isArray(config.entities)) {
       throw new Error('You need to define calendar entities');
     }
@@ -11634,7 +11645,10 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
     this._lastFetch = null;
-    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
+    const nextForecastWeatherSensor = this._config.show_daily_weather_forecast !== false
+      ? this._config.header_weather_sensor
+      : null;
+    this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
@@ -18256,6 +18270,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getForecastForDate(date) {
+    if (this._config?.show_daily_weather_forecast === false) return null;
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];

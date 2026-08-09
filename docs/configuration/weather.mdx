@@ -17,6 +17,10 @@ The Daylight Calendar Card can pull current conditions and a daily forecast from
   Examples: `weather.home`, `weather.openweathermap`, `weather.met_no`.
 </ParamField>
 
+<ParamField path="show_daily_weather_forecast" type="boolean" default="true">
+  Controls whether daily forecasts appear inside calendar days. Set this to `false` to keep the current condition, icon, and temperature in the header without requesting or displaying daily forecast data.
+</ParamField>
+
 ### Requirements
 
 To display weather data you need:
@@ -32,6 +36,16 @@ title: Family Calendar
 entities:
   - calendar.family
 header_weather_sensor: weather.home
+```
+
+### Header-only weather
+
+```yaml
+type: custom:daylight-calendar-card
+entities:
+  - calendar.family
+header_weather_sensor: weather.home
+show_daily_weather_forecast: false
 ```
 
 <Tip>

@@ -119,6 +119,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_dashboard_path: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
+  show_daily_weather_forecast: 'daily weather forecasts default on and can be disabled without hiding header weather',
   header_items: 'header_items normalize supported item shapes and formats',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
@@ -846,7 +847,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
+    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
   assert.deepEqual(stub, {
@@ -898,6 +899,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     show_dashboard_nav_button: false,
     header_dashboard_path: null,
     header_weather_sensor: '',
+    show_daily_weather_forecast: true,
     header_items: [],
     calendar_person_entities: {},
     default_hidden_calendars: [],
@@ -2867,6 +2869,32 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   const forecastHtml = card.renderDayForecast(new Date('2026-05-14T00:00:00Z'));
   assert.match(forecastHtml, /<ha-icon icon="mdi:weather-partly-cloudy"><\/ha-icon>/);
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
+});
+
+test('daily weather forecasts default on and can be disabled without hiding header weather', () => {
+  const weatherState = {
+    state: 'sunny',
+    attributes: {
+      temperature: 21,
+      forecast: [{ datetime: '2026-05-14T12:00:00Z', condition: 'rainy', temperature: 18, templow: 9 }]
+    }
+  };
+  const defaultCard = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  defaultCard._hass = { states: { 'weather.home': weatherState } };
+  assert.equal(defaultCard._config.show_daily_weather_forecast, true);
+  assert.match(defaultCard.renderDayForecast(new Date('2026-05-14T00:00:00Z')), /month-day-forecast|week-day-forecast/);
+
+  const headerOnlyCard = makeCard({
+    entities: ['calendar.family'],
+    header_weather_sensor: 'weather.home',
+    show_daily_weather_forecast: false
+  });
+  headerOnlyCard._hass = { states: { 'weather.home': weatherState } };
+  assert.match(headerOnlyCard.renderHeaderTitle(), /mdi:weather-sunny/);
+  for (const viewMode of ['month', 'week-compact', 'week-standard', 'agenda']) {
+    assert.equal(headerOnlyCard.renderDayForecast(new Date('2026-05-14T00:00:00Z'), viewMode), '');
+  }
+  assert.equal(headerOnlyCard._weatherForecastController.getActiveWeatherEntityId(), null);
 });
 
 
