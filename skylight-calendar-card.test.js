@@ -83,6 +83,9 @@ const CONFIG_COVERAGE_INVENTORY = {
   default_view: 'setConfig normalizes fallback values and aliases',
   week_days: 'week_days filters configured week rendering days',
   rolling_days_week_compact: 'rolling_days_week_compact shows current day plus configured days',
+  week_compact_weekday_font_size: 'Week Compact day header options preserve defaults and emit scoped custom properties',
+  week_compact_weekday_color: 'Week Compact day header options preserve defaults and emit scoped custom properties',
+  week_compact_day_header_spacing: 'Week Compact day header options preserve defaults and emit scoped custom properties',
   rolling_days_schedule: 'rolling_days_schedule shows current day plus configured days',
   rolling_days_agenda: 'agenda rolling days are configurable and include current day + N days',
   rolling_weeks: 'rolling_weeks month mode renders configured rolling rows from first day of week',
@@ -800,7 +803,7 @@ test('YAML config coverage inventory tracks every normalized schema option', () 
 test('editor schema metadata preserves config key order and editor defaults', () => {
   const card = makeCard();
   const schemaKeys = card.getConfigNormalizationSchema().map((field) => field.key);
-  assert.deepEqual(schemaKeys.slice(0, 12), [
+  assert.deepEqual(schemaKeys.slice(0, 15), [
     'title',
     'entities',
     'firstDayOfWeek',
@@ -812,6 +815,9 @@ test('editor schema metadata preserves config key order and editor defaults', ()
     'default_view',
     'week_days',
     'rolling_days_week_compact',
+    'week_compact_weekday_font_size',
+    'week_compact_weekday_color',
+    'week_compact_day_header_spacing',
     'rolling_days_schedule'
   ]);
   assert.deepEqual(schemaKeys.slice(-7), [
@@ -831,6 +837,8 @@ test('editor schema metadata preserves config key order and editor defaults', ()
   assert.equal(editor.getEditorDefaultValue('event_font_size'), 11);
   assert.equal(editor.getEditorDefaultValue('event_time_font_size'), 9);
   assert.equal(editor.getEditorDefaultValue('event_location_font_size'), 9);
+  assert.equal(editor.getEditorDefaultValue('week_compact_weekday_font_size'), 12);
+  assert.equal(editor.getEditorDefaultValue('week_compact_day_header_spacing'), 12);
   assert.equal(editor.getEditorDefaultValue('event_tint_opacity'), 80);
   assert.equal(editor.getEditorDefaultValue('unknown_editor_field'), 0);
 });
@@ -840,7 +848,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   const requiredStubKeys = [
     'default_view', 'first_day_of_week', 'week_days', 'week_start_hour', 'week_end_hour',
     'lock_schedule_hours', 'disable_swipe_controls', 'show_all_events_month', 'show_all_details_month',
-    'month_day_tap_action', 'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'compact_width', 'day_badge_layout_week',
+    'month_day_tap_action', 'hide_empty_days', 'agenda_compact_events', 'shorten_event_times', 'time_zone', 'display_full_weekday_names', 'week_compact_weekday_font_size', 'week_compact_weekday_color', 'week_compact_day_header_spacing', 'compact_width', 'day_badge_layout_week',
     'show_current_time_bar', 'show_event_location', 'location_links', 'use_short_location',
     'event_calendar_friendly_name', 'event_title_prefix', 'past_event_mode', 'event_color_mode',
     'event_neutral_background', 'event_tint_opacity', 'event_color_bar_width', 'combine_style',
@@ -870,6 +878,9 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     shorten_event_times: false,
     time_zone: '',
     display_full_weekday_names: false,
+    week_compact_weekday_font_size: 12,
+    week_compact_weekday_color: null,
+    week_compact_day_header_spacing: 12,
     compact_width: false,
     show_current_time_bar: false,
     show_event_location: false,
@@ -1070,6 +1081,33 @@ test('setConfig applies visual layout and styling options', () => {
   assert.deepEqual(card._config.default_hidden_calendars, ['calendar.family']);
   assert.equal(card._hiddenCalendars.has('calendar.family'), true);
   assert.equal(card._config.virtual_calendars[0].name, 'home');
+});
+
+test('Week Compact day header options preserve defaults and emit scoped custom properties', () => {
+  const defaultCard = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  assert.equal(defaultCard._config.week_compact_weekday_font_size, 12);
+  assert.equal(defaultCard._config.week_compact_weekday_color, undefined);
+  assert.equal(defaultCard._config.week_compact_day_header_spacing, 12);
+  const defaultMarkup = defaultCard.renderWeekCompact();
+  assert.match(defaultMarkup, /--week-compact-weekday-font-size: 12px;/);
+  assert.match(defaultMarkup, /--week-compact-day-header-spacing: 12px;/);
+  assert.doesNotMatch(defaultMarkup, /--week-compact-weekday-color:/);
+
+  const customCard = makeCard({
+    entities: ['calendar.family'],
+    default_view: 'week-compact',
+    week_compact_weekday_font_size: 15,
+    week_compact_weekday_color: '#123456',
+    week_compact_day_header_spacing: 3
+  });
+  const customMarkup = customCard.renderWeekCompact();
+  assert.match(customMarkup, /--week-compact-weekday-font-size: 15px;/);
+  assert.match(customMarkup, /--week-compact-weekday-color: #123456;/);
+  assert.match(customMarkup, /--week-compact-day-header-spacing: 3px;/);
+
+  const styles = customCard.getStyles();
+  assert.match(styles, /\.week-day-name\s*\{[\s\S]*font-size: var\(--week-compact-weekday-font-size, 12px\);[\s\S]*color: var\(--week-compact-weekday-color, #6b7280\);/);
+  assert.match(styles, /\.calendar-container\.dark-mode \.week-day-name\s*\{[\s\S]*color: var\(--week-compact-weekday-color, #dde3ea\);/);
 });
 
 
@@ -3253,6 +3291,9 @@ test('editor renders key controls and updates config on change', () => {
   assert.match(editor.innerHTML, /data-field="past_event_mode"/);
   assert.match(editor.innerHTML, /<option value="hide" selected>Hide<\/option>/);
   assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
+  assert.match(editor.innerHTML, /data-field="week_compact_weekday_font_size"/);
+  assert.match(editor.innerHTML, /data-color-field="week_compact_weekday_color"/);
+  assert.match(editor.innerHTML, /data-field="week_compact_day_header_spacing"/);
   editor._config = { entities: ['calendar.family'], show_event_location: false, past_event_mode: 'none' };
   editor._fireConfigChanged = () => {};
   editor.handleChange({ target: { dataset: { field: 'show_event_location' }, type: 'checkbox', checked: true } });

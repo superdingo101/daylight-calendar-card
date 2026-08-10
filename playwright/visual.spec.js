@@ -1849,3 +1849,50 @@ test('regression issue 321: standard header stays single-row', async ({ page }) 
     return headerGroupsShareRow(left, controls);
   }).toBe(true);
 });
+
+test('Week Compact weekday styling and spacing keep natural header contents visible', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  const render = (config) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'week-compact',
+      hide_header: true,
+      ...config
+    },
+    events: baseEvents
+  });
+  const card = page.locator('skylight-calendar-card');
+
+  await render({});
+  const defaultHeaderHeight = await card.locator('.week-day-header').first().evaluate((header) => header.getBoundingClientRect().height);
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('font-size', '12px');
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('color', 'rgb(107, 114, 128)');
+
+  await render({
+    week_compact_weekday_font_size: 16,
+    week_compact_weekday_color: '#7c3aed',
+    week_compact_day_header_spacing: 2
+  });
+  const weekday = card.locator('.week-day-name').first();
+  const customHeader = card.locator('.week-day-header').first();
+  await expect(weekday).toHaveCSS('font-size', '16px');
+  await expect(weekday).toHaveCSS('color', 'rgb(124, 58, 237)');
+  await expect(customHeader).toHaveCSS('margin-bottom', '2px');
+  await expect(customHeader).toHaveCSS('padding-bottom', '2px');
+
+  const customHeaderHeight = await customHeader.evaluate((header) => header.getBoundingClientRect().height);
+  expect(customHeaderHeight).toBeLessThan(defaultHeaderHeight);
+  const contentFits = await customHeader.evaluate((header) =>
+    header.scrollHeight <= header.clientHeight && Array.from(header.children).every((child) => {
+      const childRect = child.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      return childRect.top >= headerRect.top && childRect.bottom <= headerRect.bottom;
+    })
+  );
+  expect(contentFits).toBe(true);
+
+  await render({ color_scheme: 'dark', week_compact_weekday_color: '#f97316' });
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('color', 'rgb(249, 115, 22)');
+});

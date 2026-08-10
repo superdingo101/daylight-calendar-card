@@ -817,6 +817,22 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       </div>
       <div class="field-row">
         <div class="field field-inline">
+          <label for="week_compact_weekday_font_size">Week Compact weekday font size (px)</label>
+          <input id="week_compact_weekday_font_size" data-field="week_compact_weekday_font_size" data-type="number" type="number" min="1" value="${Number(this._config.week_compact_weekday_font_size ?? this.getEditorDefaultValue('week_compact_weekday_font_size'))}">
+        </div>
+        <div class="field field-inline">
+          <label for="week_compact_day_header_spacing">Week Compact day header spacing (px)</label>
+          <input id="week_compact_day_header_spacing" data-field="week_compact_day_header_spacing" data-type="number" type="number" min="0" value="${Number(this._config.week_compact_day_header_spacing ?? this.getEditorDefaultValue('week_compact_day_header_spacing'))}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="week_compact_weekday_color">Week Compact weekday color</label>
+          ${this.renderColorInputControl({ id: 'week_compact_weekday_color', field: 'week_compact_weekday_color', value: this._config.week_compact_weekday_color || '' })}
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
           <label for="rolling_days_schedule">Rolling days (schedule view)</label>
           <input id="rolling_days_schedule" data-field="rolling_days_schedule" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_schedule ?? ''}" placeholder="Disabled">
         </div>

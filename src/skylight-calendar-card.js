@@ -927,9 +927,20 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedCombineWidth = hasCombineWidth
       ? rawCombineWidth
       : (hasEventBarWidth ? rawEventBarWidth : DEFAULT_EVENT_COLOR_BAR_WIDTH);
+    const normalizePositiveNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : fallback;
+    };
+    const normalizeNonNegativeNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 0 ? number : fallback;
+    };
 
     return {
       normalizedDefaultView,
+      normalizedWeekCompactWeekdayFontSize: normalizePositiveNumber(rawConfig.week_compact_weekday_font_size, DEFAULT_CONFIG_VALUES.week_compact_weekday_font_size),
+      normalizedWeekCompactWeekdayColor: this.normalizeSingleColor(rawConfig.week_compact_weekday_color),
+      normalizedWeekCompactDayHeaderSpacing: normalizeNonNegativeNumber(rawConfig.week_compact_day_header_spacing, DEFAULT_CONFIG_VALUES.week_compact_day_header_spacing),
       normalizedCalendarColors: this.normalizeColorMap(rawConfig.colors || {}),
       normalizedEventFontColors: this.normalizeColorMap(rawConfig.event_font_colors || {}),
       normalizedEventStyles: this.normalizeEventStyles(rawConfig.event_styles || []),
