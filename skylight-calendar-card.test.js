@@ -3327,6 +3327,20 @@ test('editor can restore the theme-adaptive Week Compact weekday color', () => {
   assert.match(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
 });
 
+test('editor previews effective Week Compact weekday colors for light, dark, and custom configs', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const renderEditor = (config, darkMode) => {
+    const editor = new Editor();
+    editor._hass = { states: {}, themes: { darkMode } };
+    editor.setConfig({ entities: [], ...config });
+    return editor.innerHTML;
+  };
+
+  assert.match(renderEditor({}, false), /id="week_compact_weekday_color"[^>]*--selected-color: #6b7280;/);
+  assert.match(renderEditor({ color_scheme: 'auto' }, true), /id="week_compact_weekday_color"[^>]*--selected-color: #dde3ea;/);
+  assert.match(renderEditor({ color_scheme: 'dark', week_compact_weekday_color: '#123456' }, false), /id="week_compact_weekday_color"[^>]*--selected-color: #123456;/);
+});
+
 test('editor keeps week number prefix controls synchronized across setConfig updates', () => {
   const Editor = customElements.get('skylight-calendar-card-editor');
   const editor = new Editor();
