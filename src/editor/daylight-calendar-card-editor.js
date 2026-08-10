@@ -829,6 +829,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <div class="field field-inline">
           <label for="week_compact_weekday_color">Week Compact weekday color</label>
           ${this.renderColorInputControl({ id: 'week_compact_weekday_color', field: 'week_compact_weekday_color', value: this._config.week_compact_weekday_color || '' })}
+          <button type="button" class="secondary-action" data-clear-config-field="week_compact_weekday_color" ${this._config.week_compact_weekday_color ? '' : 'disabled'}>Use theme color</button>
         </div>
       </div>
       <div class="field-row">
@@ -1590,6 +1591,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.addEventListener('click', () => this.clearConfigField(button.dataset.clearConfigField));
+    });
+
     const picker = this.querySelector('daylight-color-picker');
     if (picker) {
       picker.addEventListener('color-change', (event) => {
@@ -1612,6 +1617,14 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       ? 'Event cache cleared. The card will load fresh calendar data.'
       : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
     window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
+  }
+
+  clearConfigField(field) {
+    if (!field || !Object.hasOwn(this._config, field)) return;
+    const nextConfig = { ...this.value };
+    delete nextConfig[field];
+    this.emitConfigChanged(nextConfig);
     this.render();
   }
 

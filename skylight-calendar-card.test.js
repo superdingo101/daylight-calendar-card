@@ -3293,6 +3293,7 @@ test('editor renders key controls and updates config on change', () => {
   assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
   assert.match(editor.innerHTML, /data-field="week_compact_weekday_font_size"/);
   assert.match(editor.innerHTML, /data-color-field="week_compact_weekday_color"/);
+  assert.match(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"/);
   assert.match(editor.innerHTML, /data-field="week_compact_day_header_spacing"/);
   editor._config = { entities: ['calendar.family'], show_event_location: false, past_event_mode: 'none' };
   editor._fireConfigChanged = () => {};
@@ -3304,6 +3305,26 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal(editor._config.week_number_prefix, '');
   editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'default' } });
   assert.equal('week_number_prefix' in editor._config, false);
+});
+
+test('editor can restore the theme-adaptive Week Compact weekday color', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._hass = { states: {} };
+  editor.setConfig({ entities: [], week_compact_weekday_color: '#123456' });
+  assert.doesNotMatch(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
+
+  const emittedConfigs = [];
+  editor.dispatchEvent = (event) => {
+    emittedConfigs.push(event.detail.config);
+    return true;
+  };
+
+  editor.clearConfigField('week_compact_weekday_color');
+
+  assert.equal('week_compact_weekday_color' in editor._config, false);
+  assert.equal('week_compact_weekday_color' in emittedConfigs.at(-1), false);
+  assert.match(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
 });
 
 test('editor keeps week number prefix controls synchronized across setConfig updates', () => {
