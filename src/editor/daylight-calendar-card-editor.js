@@ -194,6 +194,8 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
+    weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
 
   get value() {
@@ -398,6 +400,9 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     if (field === 'virtual_calendar_color') {
       return this.getEditorVirtualCalendarColor(Number(mapKey));
     }
+    if (field === 'week_compact_weekday_color') {
+      return this.getWeekCompactWeekdayColorPreview();
+    }
     if (mapKey) {
       return this.getEditorMapColorValue(field, mapKey);
     }
@@ -475,6 +480,13 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       value,
       toColorInputValue: (colorValue) => this.toColorInputValue(colorValue)
     });
+  }
+
+  getWeekCompactWeekdayColorPreview() {
+    if (this._config.week_compact_weekday_color) return this._config.week_compact_weekday_color;
+    const darkMode = this._config.color_scheme === 'dark'
+      || (this._config.color_scheme === DEFAULT_THEME_MODE && this._hass?.themes?.darkMode === true);
+    return darkMode ? '#dde3ea' : '#6b7280';
   }
 
   renderMapRowInputs(mapKey, { label, inputType = 'text', placeholder = '' } = {}) {
@@ -813,6 +825,27 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <div class="field field-inline">
           <label for="rolling_days_week_compact">Rolling days (week view)</label>
           <input id="rolling_days_week_compact" data-field="rolling_days_week_compact" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_week_compact ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_weekday_font_size">Week Compact weekday font size (px)</label>
+          <input id="week_compact_weekday_font_size" data-field="week_compact_weekday_font_size" data-type="number" type="number" min="1" value="${Number(this._config.week_compact_weekday_font_size ?? this.getEditorDefaultValue('week_compact_weekday_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_day_header_spacing">Week Compact day header spacing (px)</label>
+          <input id="week_compact_day_header_spacing" data-field="week_compact_day_header_spacing" data-type="number" type="number" min="0" value="${Number(this._config.week_compact_day_header_spacing ?? this.getEditorDefaultValue('week_compact_day_header_spacing'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field week-compact-weekday-color-field">
+          <label for="week_compact_weekday_color">Week Compact weekday color</label>
+          <div class="week-compact-weekday-color-actions">
+            ${this.renderColorInputControl({ id: 'week_compact_weekday_color', field: 'week_compact_weekday_color', value: this.getWeekCompactWeekdayColorPreview() })}
+            <button type="button" class="secondary-action week-compact-theme-color-action" data-clear-config-field="week_compact_weekday_color" ${this._config.week_compact_weekday_color ? '' : 'disabled'}>Use theme color</button>
+          </div>
         </div>
       </div>
       <div class="field-row">
@@ -1366,6 +1399,45 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           display: inline-block;
         }
 
+        .week-compact-header-control-row,
+        .week-compact-header-field {
+          min-width: 0;
+        }
+
+        .field.field-inline.week-compact-header-field {
+          grid-template-columns: minmax(0, 1fr) minmax(70px, 110px);
+        }
+
+        .week-compact-header-field > label {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .week-compact-header-field input {
+          box-sizing: border-box;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .field.field-inline.week-compact-weekday-color-field {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .week-compact-weekday-color-actions {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          min-width: 0;
+          white-space: nowrap;
+        }
+
+        .week-compact-theme-color-action {
+          padding: 4px 7px;
+          font-size: 0.8rem;
+          white-space: nowrap;
+        }
+
         .color-picker-dialog {
           display: none;
           position: fixed;
@@ -1574,6 +1646,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.addEventListener('click', () => this.clearConfigField(button.dataset.clearConfigField));
+    });
+
     const picker = this.querySelector('daylight-color-picker');
     if (picker) {
       picker.addEventListener('color-change', (event) => {
@@ -1596,6 +1672,14 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       ? 'Event cache cleared. The card will load fresh calendar data.'
       : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
     window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
+  }
+
+  clearConfigField(field) {
+    if (!field || !Object.hasOwn(this._config, field)) return;
+    const nextConfig = { ...this.value };
+    delete nextConfig[field];
+    this.emitConfigChanged(nextConfig);
     this.render();
   }
 
@@ -1748,6 +1832,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       const mapKey = swatch.dataset.colorMapKey || null;
       const nextColor = this.getColorValue(field, mapKey);
       swatch.style.setProperty('--selected-color', nextColor);
+    });
+
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.disabled = !this._config[button.dataset.clearConfigField];
     });
 
     this.refreshCalendarEntities();

@@ -1849,3 +1849,109 @@ test('regression issue 321: standard header stays single-row', async ({ page }) 
     return headerGroupsShareRow(left, controls);
   }).toBe(true);
 });
+
+test('Week Compact weekday styling and spacing keep natural header contents visible', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  const render = (config) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'week-compact',
+      hide_header: true,
+      ...config
+    },
+    events: baseEvents
+  });
+  const card = page.locator('skylight-calendar-card');
+
+  await render({});
+  const defaultHeaderHeight = await card.locator('.week-day-header').first().evaluate((header) => header.getBoundingClientRect().height);
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('font-size', '12px');
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('color', 'rgb(107, 114, 128)');
+
+  await render({
+    week_compact_weekday_font_size: 16,
+    week_compact_weekday_color: '#7c3aed',
+    week_compact_day_header_spacing: 2
+  });
+  const weekday = card.locator('.week-day-name').first();
+  const customHeader = card.locator('.week-day-header').first();
+  await expect(weekday).toHaveCSS('font-size', '16px');
+  await expect(weekday).toHaveCSS('color', 'rgb(124, 58, 237)');
+  await expect(customHeader).toHaveCSS('margin-bottom', '2px');
+  await expect(customHeader).toHaveCSS('padding-bottom', '2px');
+
+  const customHeaderHeight = await customHeader.evaluate((header) => header.getBoundingClientRect().height);
+  expect(customHeaderHeight).toBeLessThan(defaultHeaderHeight);
+  const contentFits = await customHeader.evaluate((header) =>
+    header.scrollHeight <= header.clientHeight && Array.from(header.children).every((child) => {
+      const childRect = child.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      return childRect.top >= headerRect.top && childRect.bottom <= headerRect.bottom;
+    })
+  );
+  expect(contentFits).toBe(true);
+
+  await render({ color_scheme: 'dark', week_compact_weekday_color: '#f97316' });
+  await expect(card.locator('.week-day-name').first()).toHaveCSS('color', 'rgb(249, 115, 22)');
+});
+
+test('Week Compact editor controls stay contained at mobile editor width', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate(() => {
+    const app = document.getElementById('app');
+    const editor = document.createElement('daylight-calendar-card-editor');
+    editor.hass = { states: {}, themes: { darkMode: false } };
+    editor.setConfig({
+      entities: [],
+      week_compact_weekday_font_size: 12,
+      week_compact_weekday_color: '#7c3aed',
+      week_compact_day_header_spacing: 12
+    });
+    app.appendChild(editor);
+    const displaySection = Array.from(editor.querySelectorAll('details')).find((details) => details.textContent.includes('Display & layout'));
+    if (displaySection) displaySection.open = true;
+  });
+
+  const editor = page.locator('daylight-calendar-card-editor');
+  const controls = editor.locator('.week-compact-header-control-row');
+  await expect(controls).toHaveCount(3);
+  await expect(editor.locator('.week-compact-weekday-color-actions')).toBeVisible();
+
+  const layout = await editor.evaluate((element) => {
+    const container = element.querySelector('.section-content');
+    const rows = Array.from(element.querySelectorAll('.week-compact-header-control-row'));
+    const rowRects = rows.map((row) => row.getBoundingClientRect());
+    const containerRect = container.getBoundingClientRect();
+    const fields = rows.map((row) => row.querySelector('.week-compact-header-field'));
+    return {
+      rowsContained: rowRects.every((rect) => rect.left >= containerRect.left && rect.right <= containerRect.right),
+      rowsDoNotOverlap: rowRects.every((rect, index) => index === 0 || rect.top >= rowRects[index - 1].bottom),
+      controlsContained: fields.every((field) => {
+        const fieldRect = field.getBoundingClientRect();
+        return field.scrollWidth <= field.clientWidth && Array.from(field.children).every((child) => {
+          const childRect = child.getBoundingClientRect();
+          return child.scrollWidth <= child.clientWidth
+            && childRect.left >= fieldRect.left
+            && childRect.right <= fieldRect.right;
+        });
+      }),
+      controlsDoNotOverlap: fields.every((field) => {
+        const [label, control] = field.children;
+        const labelRect = label.getBoundingClientRect();
+        const controlRect = control.getBoundingClientRect();
+        return labelRect.right <= controlRect.left;
+      })
+    };
+  });
+
+  expect(layout).toEqual({
+    rowsContained: true,
+    rowsDoNotOverlap: true,
+    controlsContained: true,
+    controlsDoNotOverlap: true
+  });
+});

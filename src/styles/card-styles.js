@@ -880,8 +880,8 @@ export function getCardStyles() {
 
       .week-day-header {
         text-align: center;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
+        margin-bottom: var(--week-compact-day-header-spacing, 12px);
+        padding-bottom: var(--week-compact-day-header-spacing, 12px);
         border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
@@ -957,10 +957,10 @@ export function getCardStyles() {
       }
 
       .week-day-name {
-        font-size: 12px;
+        font-size: var(--week-compact-weekday-font-size, 12px);
         font-weight: 600;
         text-transform: uppercase;
-        color: #6b7280;
+        color: var(--week-compact-weekday-color, #6b7280);
         letter-spacing: 0.5px;
       }
 
@@ -2577,10 +2577,15 @@ export function getCardStyles() {
 
       .calendar-container.dark-mode .week-standard-day-name,
       .calendar-container.dark-mode .week-standard-day-date,
-      .calendar-container.dark-mode .week-day-name,
       .calendar-container.dark-mode .week-day-date {
         background: #3b434d;
         color: #dde3ea;
+        border-color: var(--calendar-grid-color, #556070);
+      }
+
+      .calendar-container.dark-mode .week-day-name {
+        background: #3b434d;
+        color: var(--week-compact-weekday-color, #dde3ea);
         border-color: var(--calendar-grid-color, #556070);
       }
 

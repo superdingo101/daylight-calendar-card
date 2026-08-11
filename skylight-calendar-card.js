@@ -79,6 +79,9 @@ const DEFAULT_CONFIG_VALUES = {
   calendar_badge_icons: {},
   week_days: DEFAULT_WEEK_DAYS,
   rolling_days_week_compact: null,
+  week_compact_weekday_font_size: 12,
+  week_compact_weekday_color: null,
+  week_compact_day_header_spacing: 12,
   rolling_days_schedule: null,
   rolling_days_agenda: null,
   rolling_weeks: null,
@@ -152,6 +155,9 @@ const DEFAULT_STUB_CONFIG = {
   shorten_event_times: false,
   time_zone: '',
   display_full_weekday_names: false,
+  week_compact_weekday_font_size: 12,
+  week_compact_weekday_color: null,
+  week_compact_day_header_spacing: 12,
   compact_width: false,
   show_current_time_bar: false,
   show_event_location: false,
@@ -400,6 +406,9 @@ function createConfigNormalizationSchema({
       { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW, normalize: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW },
       { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [...DEFAULT_CONFIG_VALUES.week_days] },
       { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? DEFAULT_CONFIG_VALUES.rolling_days_week_compact },
+      { key: 'week_compact_weekday_font_size', defaultValue: ({ derived }) => derived.normalizedWeekCompactWeekdayFontSize, normalize: ({ derived }) => derived.normalizedWeekCompactWeekdayFontSize },
+      { key: 'week_compact_weekday_color', defaultValue: ({ derived }) => derived.normalizedWeekCompactWeekdayColor, normalize: ({ derived }) => derived.normalizedWeekCompactWeekdayColor },
+      { key: 'week_compact_day_header_spacing', defaultValue: ({ derived }) => derived.normalizedWeekCompactDayHeaderSpacing, normalize: ({ derived }) => derived.normalizedWeekCompactDayHeaderSpacing },
       { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? DEFAULT_CONFIG_VALUES.rolling_days_schedule },
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
@@ -496,6 +505,8 @@ const EDITOR_DEFAULT_VALUES = Object.freeze({
   event_font_size: 11,
   event_time_font_size: 9,
   event_location_font_size: 9,
+  week_compact_weekday_font_size: 12,
+  week_compact_day_header_spacing: 12,
   combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
@@ -1476,6 +1487,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
+    weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
 
   get value() {
@@ -1680,6 +1693,9 @@ class SkylightCalendarCardEditor extends HTMLElement {
     if (field === 'virtual_calendar_color') {
       return this.getEditorVirtualCalendarColor(Number(mapKey));
     }
+    if (field === 'week_compact_weekday_color') {
+      return this.getWeekCompactWeekdayColorPreview();
+    }
     if (mapKey) {
       return this.getEditorMapColorValue(field, mapKey);
     }
@@ -1757,6 +1773,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
       value,
       toColorInputValue: (colorValue) => this.toColorInputValue(colorValue)
     });
+  }
+
+  getWeekCompactWeekdayColorPreview() {
+    if (this._config.week_compact_weekday_color) return this._config.week_compact_weekday_color;
+    const darkMode = this._config.color_scheme === 'dark'
+      || (this._config.color_scheme === DEFAULT_THEME_MODE && this._hass?.themes?.darkMode === true);
+    return darkMode ? '#dde3ea' : '#6b7280';
   }
 
   renderMapRowInputs(mapKey, { label, inputType = 'text', placeholder = '' } = {}) {
@@ -2095,6 +2118,27 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <div class="field field-inline">
           <label for="rolling_days_week_compact">Rolling days (week view)</label>
           <input id="rolling_days_week_compact" data-field="rolling_days_week_compact" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_week_compact ?? ''}" placeholder="Disabled">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_weekday_font_size">Week Compact weekday font size (px)</label>
+          <input id="week_compact_weekday_font_size" data-field="week_compact_weekday_font_size" data-type="number" type="number" min="1" value="${Number(this._config.week_compact_weekday_font_size ?? this.getEditorDefaultValue('week_compact_weekday_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_day_header_spacing">Week Compact day header spacing (px)</label>
+          <input id="week_compact_day_header_spacing" data-field="week_compact_day_header_spacing" data-type="number" type="number" min="0" value="${Number(this._config.week_compact_day_header_spacing ?? this.getEditorDefaultValue('week_compact_day_header_spacing'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field week-compact-weekday-color-field">
+          <label for="week_compact_weekday_color">Week Compact weekday color</label>
+          <div class="week-compact-weekday-color-actions">
+            ${this.renderColorInputControl({ id: 'week_compact_weekday_color', field: 'week_compact_weekday_color', value: this.getWeekCompactWeekdayColorPreview() })}
+            <button type="button" class="secondary-action week-compact-theme-color-action" data-clear-config-field="week_compact_weekday_color" ${this._config.week_compact_weekday_color ? '' : 'disabled'}>Use theme color</button>
+          </div>
         </div>
       </div>
       <div class="field-row">
@@ -2648,6 +2692,45 @@ class SkylightCalendarCardEditor extends HTMLElement {
           display: inline-block;
         }
 
+        .week-compact-header-control-row,
+        .week-compact-header-field {
+          min-width: 0;
+        }
+
+        .field.field-inline.week-compact-header-field {
+          grid-template-columns: minmax(0, 1fr) minmax(70px, 110px);
+        }
+
+        .week-compact-header-field > label {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .week-compact-header-field input {
+          box-sizing: border-box;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .field.field-inline.week-compact-weekday-color-field {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .week-compact-weekday-color-actions {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          min-width: 0;
+          white-space: nowrap;
+        }
+
+        .week-compact-theme-color-action {
+          padding: 4px 7px;
+          font-size: 0.8rem;
+          white-space: nowrap;
+        }
+
         .color-picker-dialog {
           display: none;
           position: fixed;
@@ -2856,6 +2939,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.addEventListener('click', () => this.clearConfigField(button.dataset.clearConfigField));
+    });
+
     const picker = this.querySelector('daylight-color-picker');
     if (picker) {
       picker.addEventListener('color-change', (event) => {
@@ -2878,6 +2965,14 @@ class SkylightCalendarCardEditor extends HTMLElement {
       ? 'Event cache cleared. The card will load fresh calendar data.'
       : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
     window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
+  }
+
+  clearConfigField(field) {
+    if (!field || !Object.hasOwn(this._config, field)) return;
+    const nextConfig = { ...this.value };
+    delete nextConfig[field];
+    this.emitConfigChanged(nextConfig);
     this.render();
   }
 
@@ -3030,6 +3125,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       const mapKey = swatch.dataset.colorMapKey || null;
       const nextColor = this.getColorValue(field, mapKey);
       swatch.style.setProperty('--selected-color', nextColor);
+    });
+
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.disabled = !this._config[button.dataset.clearConfigField];
     });
 
     this.refreshCalendarEntities();
@@ -4136,8 +4235,8 @@ function getCardStyles() {
 
       .week-day-header {
         text-align: center;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
+        margin-bottom: var(--week-compact-day-header-spacing, 12px);
+        padding-bottom: var(--week-compact-day-header-spacing, 12px);
         border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
@@ -4213,10 +4312,10 @@ function getCardStyles() {
       }
 
       .week-day-name {
-        font-size: 12px;
+        font-size: var(--week-compact-weekday-font-size, 12px);
         font-weight: 600;
         text-transform: uppercase;
-        color: #6b7280;
+        color: var(--week-compact-weekday-color, #6b7280);
         letter-spacing: 0.5px;
       }
 
@@ -5833,10 +5932,15 @@ function getCardStyles() {
 
       .calendar-container.dark-mode .week-standard-day-name,
       .calendar-container.dark-mode .week-standard-day-date,
-      .calendar-container.dark-mode .week-day-name,
       .calendar-container.dark-mode .week-day-date {
         background: #3b434d;
         color: #dde3ea;
+        border-color: var(--calendar-grid-color, #556070);
+      }
+
+      .calendar-container.dark-mode .week-day-name {
+        background: #3b434d;
+        color: var(--week-compact-weekday-color, #dde3ea);
         border-color: var(--calendar-grid-color, #556070);
       }
 
@@ -10476,7 +10580,8 @@ function renderWeekCompactView({
   helpers
 }) {
   const headerHeightStyle = headerHeight ? `--week-compact-header-height: ${headerHeight}px;` : '';
-  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
+  const weekdayColorStyle = config.week_compact_weekday_color ? `--week-compact-weekday-color: ${config.week_compact_weekday_color};` : '';
+  const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
@@ -11550,9 +11655,20 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedCombineWidth = hasCombineWidth
       ? rawCombineWidth
       : (hasEventBarWidth ? rawEventBarWidth : DEFAULT_EVENT_COLOR_BAR_WIDTH);
+    const normalizePositiveNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : fallback;
+    };
+    const normalizeNonNegativeNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 0 ? number : fallback;
+    };
 
     return {
       normalizedDefaultView,
+      normalizedWeekCompactWeekdayFontSize: normalizePositiveNumber(rawConfig.week_compact_weekday_font_size, DEFAULT_CONFIG_VALUES.week_compact_weekday_font_size),
+      normalizedWeekCompactWeekdayColor: this.normalizeSingleColor(rawConfig.week_compact_weekday_color),
+      normalizedWeekCompactDayHeaderSpacing: normalizeNonNegativeNumber(rawConfig.week_compact_day_header_spacing, DEFAULT_CONFIG_VALUES.week_compact_day_header_spacing),
       normalizedCalendarColors: this.normalizeColorMap(rawConfig.colors || {}),
       normalizedEventFontColors: this.normalizeColorMap(rawConfig.event_font_colors || {}),
       normalizedEventStyles: this.normalizeEventStyles(rawConfig.event_styles || []),

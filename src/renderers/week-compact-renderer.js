@@ -8,7 +8,8 @@ export function renderWeekCompactView({
   helpers
 }) {
   const headerHeightStyle = headerHeight ? `--week-compact-header-height: ${headerHeight}px;` : '';
-  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
+  const weekdayColorStyle = config.week_compact_weekday_color ? `--week-compact-weekday-color: ${config.week_compact_weekday_color};` : '';
+  const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
