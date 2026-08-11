@@ -1,3 +1,5 @@
+import { normalizeRecurrenceId } from './event-normalizer.js';
+
 export const buildEventServiceData = (calendarId, eventData) => {
   const baseData = {
     entity_id: calendarId,
@@ -44,7 +46,7 @@ export const getRecurringUpdateControls = (originalEvent, eventData, editScope =
   const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
   return {
     isRecurringUpdate,
-    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null,
+    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? normalizeRecurrenceId(originalEvent.recurrence_id) : null,
     recurrenceRange: (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null
   };
 };
@@ -55,8 +57,9 @@ export const buildUpdateEventServiceData = (originalEvent, eventData, recurrence
     uid: originalEvent.uid
   };
 
-  if (recurrenceId) {
-    serviceData.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    serviceData.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -95,8 +98,9 @@ export const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recur
     event: eventPayload
   };
 
-  if (recurrenceId) {
-    wsPayload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    wsPayload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -112,8 +116,9 @@ export const buildDeleteEventPayload = (calendarId, uid, recurrenceId = null, re
     uid: uid
   };
 
-  if (recurrenceId) {
-    payload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    payload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {

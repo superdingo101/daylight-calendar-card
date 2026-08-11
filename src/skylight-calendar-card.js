@@ -82,7 +82,8 @@ import {
   getEventDateTimeInfo as getNormalizedEventDateTimeInfo,
   getEventIdentityKey as getNormalizedEventIdentityKey,
   getEventStartDate as getNormalizedEventStartDate,
-  normalizeCalendarEvent
+  normalizeCalendarEvent,
+  normalizeRecurrenceId
 } from './events/event-normalizer.js';
 import {
   dateMatchesDayCondition as matchDateDayCondition,
@@ -2003,7 +2004,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getStableEventIdentityKey(entityId, event) {
     if (!event?.uid) return null;
-    const recurrenceId = event.recurrence_id || event.recurring_event_id;
+    const recurrenceId = normalizeRecurrenceId(event.recurrence_id || event.recurring_event_id);
     if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
     return null;
   }

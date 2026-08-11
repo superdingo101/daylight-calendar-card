@@ -1,8 +1,8 @@
 import { toStableString } from './event-fetcher.js';
 
-export const EVENT_CACHE_SCHEMA_VERSION = 2;
+export const EVENT_CACHE_SCHEMA_VERSION = 3;
 const DB_NAME = 'daylight-calendar-card-events';
-const DB_VERSION = 1;
+export const EVENT_CACHE_DB_VERSION = 2;
 const STORE_NAME = 'eventSnapshots';
 const MAX_CACHE_ENTRIES = 12;
 let eventCacheMutationQueue = Promise.resolve();
@@ -29,7 +29,7 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
     resolve(null);
     return;
   }
-  const request = indexedDBRef.open(DB_NAME, DB_VERSION);
+  const request = indexedDBRef.open(DB_NAME, EVENT_CACHE_DB_VERSION);
   request.onupgradeneeded = () => {
     const db = request.result;
     if (!db.objectStoreNames.contains(STORE_NAME)) {
