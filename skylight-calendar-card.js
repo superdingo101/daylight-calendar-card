@@ -3127,6 +3127,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       swatch.style.setProperty('--selected-color', nextColor);
     });
 
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.disabled = !this._config[button.dataset.clearConfigField];
+    });
+
     this.refreshCalendarEntities();
   }
 

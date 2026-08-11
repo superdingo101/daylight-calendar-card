@@ -3307,12 +3307,20 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal('week_number_prefix' in editor._config, false);
 });
 
-test('editor can restore the theme-adaptive Week Compact weekday color', () => {
+test('editor synchronizes Week Compact weekday color reset state through set and clear transitions', () => {
   const Editor = customElements.get('skylight-calendar-card-editor');
   const editor = new Editor();
-  editor._hass = { states: {} };
-  editor.setConfig({ entities: [], week_compact_weekday_color: '#123456' });
-  assert.doesNotMatch(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
+  editor._hass = { states: {}, themes: { darkMode: false } };
+  editor.setConfig({ entities: [] });
+  assert.match(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
+
+  const resetButton = {
+    dataset: { clearConfigField: 'week_compact_weekday_color' },
+    disabled: true,
+    addEventListener: () => {}
+  };
+  editor.querySelector = () => null;
+  editor.querySelectorAll = (selector) => selector === '[data-clear-config-field]' ? [resetButton] : [];
 
   const emittedConfigs = [];
   editor.dispatchEvent = (event) => {
@@ -3320,10 +3328,17 @@ test('editor can restore the theme-adaptive Week Compact weekday color', () => {
     return true;
   };
 
+  editor._colorPickerState = { field: 'week_compact_weekday_color', mapKey: null };
+  editor.applyColorPickerColor('#123456');
+
+  assert.equal(editor._config.week_compact_weekday_color, '#123456');
+  assert.equal(resetButton.disabled, false);
+
   editor.clearConfigField('week_compact_weekday_color');
 
   assert.equal('week_compact_weekday_color' in editor._config, false);
   assert.equal('week_compact_weekday_color' in emittedConfigs.at(-1), false);
+  assert.match(editor.innerHTML, /id="week_compact_weekday_color"[^>]*--selected-color: #6b7280;/);
   assert.match(editor.innerHTML, /data-clear-config-field="week_compact_weekday_color"[^>]*disabled/);
 });
 
