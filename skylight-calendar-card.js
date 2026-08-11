@@ -938,7 +938,6 @@ function shouldRefreshEvents({ lastFetch, now = Date.now(), maxAge = 60000 } = {
 
 const EVENT_CACHE_SCHEMA_VERSION = 3;
 const DB_NAME = 'daylight-calendar-card-events';
-const EVENT_CACHE_DB_VERSION = 2;
 const STORE_NAME = 'eventSnapshots';
 const MAX_CACHE_ENTRIES = 12;
 let eventCacheMutationQueue = Promise.resolve();
@@ -965,7 +964,7 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
     resolve(null);
     return;
   }
-  const request = indexedDBRef.open(DB_NAME, EVENT_CACHE_DB_VERSION);
+  const request = indexedDBRef.open(DB_NAME, 1);
   request.onupgradeneeded = () => {
     const db = request.result;
     if (!db.objectStoreNames.contains(STORE_NAME)) {

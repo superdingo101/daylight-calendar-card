@@ -8360,10 +8360,25 @@ test('recurring update and delete payloads normalize object recurrence IDs', asy
 });
 
 test('recurrence identity cache schema bump invalidates prior snapshots', async () => {
-  const { EVENT_CACHE_DB_VERSION, EVENT_CACHE_SCHEMA_VERSION, normalizeEventCacheSnapshot } = await import('./src/events/event-cache.js');
-  assert.equal(EVENT_CACHE_DB_VERSION, 2);
+  const { EVENT_CACHE_SCHEMA_VERSION, normalizeEventCacheSnapshot } = await import('./src/events/event-cache.js');
+  const validSnapshot = {
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    configSignature: 'recurrence-identity',
+    coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' },
+    lastSuccessfulRefresh: 1,
+    eventsByCalendar: {
+      'calendar.a': [{
+        entityId: 'calendar.a',
+        uid: 'series',
+        recurrence_id: { dateTime: '2026-01-01T10:00:00Z' },
+        start: { dateTime: '2026-01-01T10:00:00Z' },
+        end: { dateTime: '2026-01-01T11:00:00Z' }
+      }]
+    }
+  };
   assert.equal(EVENT_CACHE_SCHEMA_VERSION, 3);
-  assert.equal(normalizeEventCacheSnapshot({ schemaVersion: 2 }), null);
+  assert.equal(normalizeEventCacheSnapshot({ ...validSnapshot, schemaVersion: 2 }), null);
+  assert.notEqual(normalizeEventCacheSnapshot(validSnapshot), null);
 });
 
 test('UID-only occurrences use start and end for fetch and merge identity', async () => {
