@@ -180,6 +180,30 @@ event_location_font_size: 11
   Display full weekday names, such as `Monday` and `Tuesday`, instead of abbreviated names like `Mon` and `Tue`. The card formats names using the configured `locale` or `language`, or the locale inherited from Home Assistant when neither is set.
 </ParamField>
 
+### Week Compact day header
+
+These options apply only to the **Week Compact** view. The spacing value controls both the space below the header and its bottom padding. The header continues to size naturally around dates, weather, and day badges.
+
+<ParamField path="week_compact_weekday_font_size" default="12" type="number">
+  Set the weekday-name font size in pixels.
+</ParamField>
+
+<ParamField path="week_compact_weekday_color" type="string">
+  Set the weekday-name color to any CSS color value. Leave it unset to use the existing light, dark, or custom-background color.
+</ParamField>
+
+<ParamField path="week_compact_day_header_spacing" default="12" type="number">
+  Set the day header's vertical spacing and bottom padding in pixels. Use a smaller value to shorten the header without imposing a fixed height.
+</ParamField>
+
+```yaml
+type: custom:daylight-calendar-card
+default_view: week-compact
+week_compact_weekday_font_size: 10
+week_compact_weekday_color: "#475569"
+week_compact_day_header_spacing: 4
+```
+
 <ParamField path="day_badge_layout_week" default="inline" type="string">
   Control how day badges are arranged in **Week** and **Schedule** day headers. Use `inline` to keep the date and badges on one row, or `stacked` to place badges below the date. Invalid values fall back to `inline`.
 
