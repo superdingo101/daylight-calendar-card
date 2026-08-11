@@ -8305,6 +8305,82 @@ test('event identity is HA recurrence-aware across merge and chunk deduplication
   assert.deepEqual(result.events.map(event => event.summary), ['first', 'second']);
 });
 
+test('object recurrence IDs are normalized across identity, fetch, reconciliation, and custom colors', async () => {
+  const { fetchEventsForCalendar } = await import('./src/events/event-fetcher.js');
+  const { getEventIdentityKey, normalizeCalendarEvent, normalizeRecurrenceId } = await import('./src/events/event-normalizer.js');
+  const { applyCustomEventColor, createEmptyCustomEventColors, resolveCustomEventColor } = await import('./src/events/custom-event-colors.js');
+  const dateTimeA = { uid: 'series', recurrence_id: { dateTime: '2026-01-01T10:00:00Z', rrule: null }, summary: 'first', start: { dateTime: '2026-01-01T10:00:00Z' }, end: { dateTime: '2026-01-01T11:00:00Z' } };
+  const dateTimeB = { uid: 'series', recurrence_id: { dateTime: '2026-01-08T10:00:00Z', rrule: null }, summary: 'second', start: { dateTime: '2026-01-08T10:00:00Z' }, end: { dateTime: '2026-01-08T11:00:00Z' } };
+  const dateA = { uid: 'all-day-series', recurrence_id: { date: '2026-01-02' }, start: { date: '2026-01-02' }, end: { date: '2026-01-03' } };
+  const dateB = { uid: 'all-day-series', recurrence_id: { date: '2026-01-09' }, start: { date: '2026-01-09' }, end: { date: '2026-01-10' } };
+
+  assert.equal(normalizeRecurrenceId({ dateTime: 'preferred', date: 'ignored' }), 'preferred');
+  assert.equal(normalizeRecurrenceId('legacy-id'), 'legacy-id');
+  assert.equal(normalizeRecurrenceId({ z: 1, a: 2 }), '{"a":2,"z":1}');
+  assert.notEqual(getEventIdentityKey('calendar.a', dateTimeA), getEventIdentityKey('calendar.a', dateTimeB));
+  assert.notEqual(getEventIdentityKey('calendar.a', dateA), getEventIdentityKey('calendar.a', dateB));
+  assert.equal(getEventIdentityKey('calendar.a', { uid: 'legacy', recurrence_id: 'legacy-id' }), 'calendar.a|legacy|legacy-id');
+
+  const result = await fetchEventsForCalendar({
+    hass: { callWS: async () => [dateTimeA, dateTimeB], callApi: async () => [] },
+    entityId: 'calendar.a',
+    chunks: [{ startDate: new Date('2026-01-01'), endDate: new Date('2026-01-10') }, { startDate: new Date('2026-01-08'), endDate: new Date('2026-01-15') }],
+    formatLocalDate: date => date.toISOString().slice(0, 10),
+    getCalendarColor: () => '#123456',
+    getEventIdentityKey,
+    normalizeCalendarEvent
+  });
+  assert.deepEqual(result.events.map(event => event.summary), ['first', 'second']);
+
+  const card = makeCard({ entities: ['calendar.a'] });
+  const reconciled = card.reconcileEventsForFetchedRange([
+    { ...dateTimeA, entityId: 'calendar.a', summary: 'stale first' },
+    { ...dateTimeB, entityId: 'calendar.a' }
+  ], [{ ...dateTimeA, entityId: 'calendar.a', summary: 'fresh first' }], {
+    startDate: new Date('2026-01-01T00:00:00Z'), endDate: new Date('2026-01-02T00:00:00Z')
+  });
+  assert.deepEqual(reconciled.map(event => event.summary), ['fresh first', 'second']);
+
+  let colors = createEmptyCustomEventColors();
+  colors = applyCustomEventColor(colors, { ...dateTimeA, entityId: 'calendar.a' }, 'this', '#112233', { getEventIdentityKey });
+  colors = applyCustomEventColor(colors, { ...dateTimeB, entityId: 'calendar.a' }, 'this', '#445566', { getEventIdentityKey });
+  assert.equal(resolveCustomEventColor({ ...dateTimeA, entityId: 'calendar.a' }, colors, { getEventIdentityKey }), '#112233');
+  assert.equal(resolveCustomEventColor({ ...dateTimeB, entityId: 'calendar.a' }, colors, { getEventIdentityKey }), '#445566');
+});
+
+test('recurring update and delete payloads normalize object recurrence IDs', async () => {
+  const { buildDeleteEventPayload, buildUpdateEventServiceData, buildUpdateEventWebSocketPayload, getRecurringUpdateControls } = await import('./src/events/event-service.js');
+  const originalEvent = { entityId: 'calendar.a', uid: 'series', rrule: 'FREQ=WEEKLY', recurrence_id: { dateTime: '2026-01-01T10:00:00Z', rrule: null } };
+  const eventData = { summary: 'Updated', rrule: 'FREQ=WEEKLY', start: { dateTime: '2026-01-01T12:00:00Z' }, end: { dateTime: '2026-01-01T13:00:00Z' } };
+  const controls = getRecurringUpdateControls(originalEvent, eventData, 'future');
+  assert.equal(controls.recurrenceId, '2026-01-01T10:00:00Z');
+  assert.equal(buildUpdateEventServiceData(originalEvent, eventData, originalEvent.recurrence_id).recurrence_id, '2026-01-01T10:00:00Z');
+  assert.equal(buildUpdateEventWebSocketPayload(originalEvent, eventData, originalEvent.recurrence_id).recurrence_id, '2026-01-01T10:00:00Z');
+  assert.equal(buildDeleteEventPayload('calendar.a', 'series', { date: '2026-01-01' }).recurrence_id, '2026-01-01');
+});
+
+test('recurrence identity cache schema bump invalidates prior snapshots', async () => {
+  const { EVENT_CACHE_SCHEMA_VERSION, normalizeEventCacheSnapshot } = await import('./src/events/event-cache.js');
+  const validSnapshot = {
+    schemaVersion: EVENT_CACHE_SCHEMA_VERSION,
+    configSignature: 'recurrence-identity',
+    coveredRange: { start: '2026-01-01T00:00:00Z', end: '2026-02-01T00:00:00Z' },
+    lastSuccessfulRefresh: 1,
+    eventsByCalendar: {
+      'calendar.a': [{
+        entityId: 'calendar.a',
+        uid: 'series',
+        recurrence_id: { dateTime: '2026-01-01T10:00:00Z' },
+        start: { dateTime: '2026-01-01T10:00:00Z' },
+        end: { dateTime: '2026-01-01T11:00:00Z' }
+      }]
+    }
+  };
+  assert.equal(EVENT_CACHE_SCHEMA_VERSION, 3);
+  assert.equal(normalizeEventCacheSnapshot({ ...validSnapshot, schemaVersion: 2 }), null);
+  assert.notEqual(normalizeEventCacheSnapshot(validSnapshot), null);
+});
+
 test('UID-only occurrences use start and end for fetch and merge identity', async () => {
   const { fetchEventsForCalendar, mergeEvents } = await import('./src/events/event-fetcher.js');
   const { getEventIdentityKey, normalizeCalendarEvent } = await import('./src/events/event-normalizer.js');

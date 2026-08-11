@@ -1,3 +1,5 @@
+import { normalizeRecurrenceId } from './event-normalizer.js';
+
 export const CUSTOM_EVENT_COLORS_VERSION = 1;
 
 export function createEmptyCustomEventColors() {
@@ -18,7 +20,7 @@ function stablePart(value) {
 }
 
 export function getOccurrenceStartToken(event) {
-  return stablePart(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
+  return normalizeRecurrenceId(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
 }
 
 export function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
@@ -30,7 +32,7 @@ export function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
   const isRecurring = !!(event.recurrence_id || recurringId || rrule);
   const seriesIdentity = recurringId || (isRecurring ? uid : '');
   const seriesKey = entityId && seriesIdentity ? `${entityId}|series|${seriesIdentity}` : null;
-  const occurrenceToken = stablePart(event.recurrence_id) || getOccurrenceStartToken(event);
+  const occurrenceToken = normalizeRecurrenceId(event.recurrence_id) || getOccurrenceStartToken(event);
   let occurrenceKey = null;
   if (seriesKey && occurrenceToken) {
     occurrenceKey = `${seriesKey}|occurrence|${occurrenceToken}`;

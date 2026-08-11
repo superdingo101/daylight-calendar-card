@@ -936,9 +936,8 @@ function shouldRefreshEvents({ lastFetch, now = Date.now(), maxAge = 60000 } = {
   return !lastFetch || (now - lastFetch > maxAge);
 }
 
-const EVENT_CACHE_SCHEMA_VERSION = 2;
+const EVENT_CACHE_SCHEMA_VERSION = 3;
 const DB_NAME = 'daylight-calendar-card-events';
-const DB_VERSION = 1;
 const STORE_NAME = 'eventSnapshots';
 const MAX_CACHE_ENTRIES = 12;
 let eventCacheMutationQueue = Promise.resolve();
@@ -965,7 +964,7 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
     resolve(null);
     return;
   }
-  const request = indexedDBRef.open(DB_NAME, DB_VERSION);
+  const request = indexedDBRef.open(DB_NAME, 1);
   request.onupgradeneeded = () => {
     const db = request.result;
     if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -7945,9 +7944,29 @@ function escapeHtmlAttribute(text) {
   return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
 }
 
+const serializeRecurrenceValue = (value, seen = new WeakSet()) => {
+  if (value === null) return 'null';
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (seen.has(value)) return '"[Circular]"';
+  seen.add(value);
+  const serialized = Array.isArray(value)
+    ? `[${value.map(item => serializeRecurrenceValue(item, seen)).join(',')}]`
+    : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${serializeRecurrenceValue(value[key], seen)}`).join(',')}}`;
+  seen.delete(value);
+  return serialized;
+};
+
+const normalizeRecurrenceId = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'object') return String(value);
+  if (value.dateTime !== undefined && value.dateTime !== null) return normalizeRecurrenceId(value.dateTime);
+  if (value.date !== undefined && value.date !== null) return normalizeRecurrenceId(value.date);
+  return serializeRecurrenceValue(value);
+};
+
 const getEventIdentityKey = (entityId, event) => {
   const uid = event?.uid;
-  const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+  const recurrenceId = normalizeRecurrenceId(event?.recurrence_id || event?.recurring_event_id);
   const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
   const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
@@ -8899,7 +8918,7 @@ const getRecurringUpdateControls = (originalEvent, eventData, editScope = 'this'
   const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
   return {
     isRecurringUpdate,
-    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null,
+    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? normalizeRecurrenceId(originalEvent.recurrence_id) : null,
     recurrenceRange: (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null
   };
 };
@@ -8910,8 +8929,9 @@ const buildUpdateEventServiceData = (originalEvent, eventData, recurrenceId = nu
     uid: originalEvent.uid
   };
 
-  if (recurrenceId) {
-    serviceData.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    serviceData.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -8950,8 +8970,9 @@ const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recurrenceId
     event: eventPayload
   };
 
-  if (recurrenceId) {
-    wsPayload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    wsPayload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -8967,8 +8988,9 @@ const buildDeleteEventPayload = (calendarId, uid, recurrenceId = null, recurrenc
     uid: uid
   };
 
-  if (recurrenceId) {
-    payload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    payload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -9692,7 +9714,7 @@ function stablePart(value) {
 }
 
 function getOccurrenceStartToken(event) {
-  return stablePart(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
+  return normalizeRecurrenceId(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
 }
 
 function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
@@ -9704,7 +9726,7 @@ function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
   const isRecurring = !!(event.recurrence_id || recurringId || rrule);
   const seriesIdentity = recurringId || (isRecurring ? uid : '');
   const seriesKey = entityId && seriesIdentity ? `${entityId}|series|${seriesIdentity}` : null;
-  const occurrenceToken = stablePart(event.recurrence_id) || getOccurrenceStartToken(event);
+  const occurrenceToken = normalizeRecurrenceId(event.recurrence_id) || getOccurrenceStartToken(event);
   let occurrenceKey = null;
   if (seriesKey && occurrenceToken) {
     occurrenceKey = `${seriesKey}|occurrence|${occurrenceToken}`;
@@ -12731,7 +12753,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getStableEventIdentityKey(entityId, event) {
     if (!event?.uid) return null;
-    const recurrenceId = event.recurrence_id || event.recurring_event_id;
+    const recurrenceId = normalizeRecurrenceId(event.recurrence_id || event.recurring_event_id);
     if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
     return null;
   }
