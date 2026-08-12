@@ -79,7 +79,7 @@ Use one or more of the following fields inside `match` (or `match.event`) to fil
 
 ## Text matching
 
-Plain strings for `title`, `summary`, `description`, and `location` use case-insensitive substring matching by default. Use this simple form for most rules:
+Plain strings for `title`, `summary`, `description`, `location`, and `calendar` use case-insensitive substring matching by default. Use this simple form for most rules:
 
 ```yaml
 match:
@@ -109,11 +109,11 @@ match:
     - title: "Annual Leave"
 ```
 
-Arrays belong to logical operators such as `any` and `all`, not text operators such as `contains`. The same text matching rules apply to `calendar` and to event conditions nested in `day_styles` or `day_badges`.
+Arrays belong to logical operators such as `any` and `all`, not text operators such as `contains`. Event conditions nested in `day_styles` or `day_badges` use the same text matching rules, but follow each rule type's scoping syntax.
 
 ## Logical Operators
 
-For compound rules, `match` accepts four logical operator keys. Each operator takes either a single sub-condition object or an array of sub-condition objects, and sub-conditions use the same match-field syntax as a top-level `match` block — including nested operators.
+For compound rules, `match.any`, `match.all`, and `match.and` accept arrays of sub-condition objects. `match.not` accepts either one sub-condition object or an array of them. Sub-conditions use the same match-field syntax as a top-level `match` block, including nested operators.
 
 <ParamField path="match.any" type="array">
   OR logic. The rule matches when **at least one** of the listed sub-conditions matches.

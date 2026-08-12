@@ -82,7 +82,7 @@ The `conditions` object matches against events on each day. All specified keys m
   When `true`, the badge appears on days where at least one event is in the past. When `false`, only days with non-past events match.
 </ParamField>
 
-Text conditions accept a plain string or a matcher object, but operators such as `contains` accept one string, not an array. To match multiple values, use separate conditions under `match.any`. See [Text matching](/advanced/event-styles#text-matching) for the shared syntax and examples.
+Text conditions accept a plain string or a matcher object, but operators such as `contains` accept one string, not an array. In `day_badges`, bare event conditions are supported under `match.any`, so use a separate condition for each value. See [Text matching](/advanced/event-styles#text-matching) for the shared text operators; other rule types may require explicit event scoping.
 
 ### Day-scoped badges
 

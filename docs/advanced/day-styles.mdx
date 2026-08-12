@@ -52,7 +52,16 @@ Use one or more of the following fields inside `match.day` to filter by date pro
   Inverse of `has_event`. When `true`, matches days with no events. When set to an object, matches days where **no** event satisfies that sub-match.
 </ParamField>
 
-You can also nest event-scoped conditions under `match.event` and combine blocks with `match.any`, `match.all`, `match.and`, and `match.not` — see the [shared advanced match schema](/advanced/event-styles#advanced-match-schema). Text fields accept a plain string or a matcher object, but each text operator takes one string. Use logical operators such as `any` to match multiple values; do not pass an array to `contains`. See [Text matching](/advanced/event-styles#text-matching) for syntax and examples.
+You can also nest event-scoped conditions under `match.event` and combine blocks with `match.any`, `match.all`, `match.and`, and `match.not` — see the [shared advanced match schema](/advanced/event-styles#advanced-match-schema). Text fields accept a plain string or a matcher object, but each text operator takes one string. To match multiple event text values in `day_styles`, put each alternative in an explicit `event` block under `match.any`; do not copy the event-style shorthand or pass an array to `contains`. See [Text matching](/advanced/event-styles#text-matching) for the shared text operators.
+
+```yaml
+match:
+  any:
+    - event:
+        title: "Dentist"
+    - event:
+        title: "Annual Leave"
+```
 
 ### Example: only weekdays in the future
 
