@@ -49,23 +49,23 @@ event_styles:
 
 Use one or more of the following fields inside `match` (or `match.event`) to filter by event properties. By default, an event must satisfy **all** specified fields to be considered a match. For OR / NOT logic, use the [logical operators](#logical-operators) below.
 
-<ParamField path="match.calendar" type="string">
+<ParamField path="match.calendar" type="string | object">
   The entity ID of a specific Home Assistant calendar. Only events from that calendar entity will match. Aliases: `calendar_entity`, `entity_id`, `entity`.
 </ParamField>
 
-<ParamField path="match.title" type="string">
+<ParamField path="match.title" type="string | object">
   A substring to look for in the event title. The match is case-insensitive. You can also pass a regex pattern wrapped in forward slashes, e.g. `/standup/i`. Alias: `title_contains: foo` is equivalent to `title: 'contains:foo'`.
 </ParamField>
 
-<ParamField path="match.summary" type="string">
+<ParamField path="match.summary" type="string | object">
   Alias for `match.title`. Both names map to the event summary field. Use whichever feels more natural. Alias: `summary_contains`.
 </ParamField>
 
-<ParamField path="match.description" type="string">
+<ParamField path="match.description" type="string | object">
   A substring to look for in the event description field. Alias: `description_contains`.
 </ParamField>
 
-<ParamField path="match.location" type="string">
+<ParamField path="match.location" type="string | object">
   A substring to look for in the event location field. Alias: `location_contains`.
 </ParamField>
 
@@ -77,9 +77,43 @@ Use one or more of the following fields inside `match` (or `match.event`) to fil
   When `true`, only matches events whose end time is in the past. When `false`, only matches events that are not yet past.
 </ParamField>
 
+## Text matching
+
+Plain strings for `title`, `summary`, `description`, and `location` use case-insensitive substring matching by default. Use this simple form for most rules:
+
+```yaml
+match:
+  title: "Dentist"
+```
+
+For explicit matching, these fields also accept an object with one of the following operators:
+
+- `title: { exact: "Dentist" }` matches the complete value.
+- `title: { contains: "Dentist" }` uses substring matching.
+- `title: { substring: "Dentist" }` is equivalent to `contains`.
+- `title: { regex: "^Dentist appointment$" }` uses a regular expression.
+
+Each text operator accepts a **single string**, not a YAML array. For example, this is invalid:
+
+```yaml
+title:
+  contains: ["Dentist"] # Invalid
+```
+
+To match multiple possible values, put separate conditions in `match.any`:
+
+```yaml
+match:
+  any:
+    - title: "Dentist"
+    - title: "Annual Leave"
+```
+
+Arrays belong to logical operators such as `any` and `all`, not text operators such as `contains`. The same text matching rules apply to `calendar` and to event conditions nested in `day_styles` or `day_badges`.
+
 ## Logical Operators
 
-For compound rules, `match` accepts three logical operator keys. Each operator takes either a single sub-condition object or an array of sub-condition objects, and sub-conditions use the same match-field syntax as a top-level `match` block — including nested operators.
+For compound rules, `match` accepts four logical operator keys. Each operator takes either a single sub-condition object or an array of sub-condition objects, and sub-conditions use the same match-field syntax as a top-level `match` block — including nested operators.
 
 <ParamField path="match.any" type="array">
   OR logic. The rule matches when **at least one** of the listed sub-conditions matches.

@@ -52,7 +52,7 @@ Use one or more of the following fields inside `match.day` to filter by date pro
   Inverse of `has_event`. When `true`, matches days with no events. When set to an object, matches days where **no** event satisfies that sub-match.
 </ParamField>
 
-You can also nest event-scoped conditions under `match.event` and combine blocks with `match.any`, `match.all`, `match.and`, and `match.not` — see the [shared advanced match schema](/advanced/event-styles#advanced-match-schema).
+You can also nest event-scoped conditions under `match.event` and combine blocks with `match.any`, `match.all`, `match.and`, and `match.not` — see the [shared advanced match schema](/advanced/event-styles#advanced-match-schema). Text fields accept a plain string or a matcher object, but each text operator takes one string. Use logical operators such as `any` to match multiple values; do not pass an array to `contains`. See [Text matching](/advanced/event-styles#text-matching) for syntax and examples.
 
 ### Example: only weekdays in the future
 
@@ -126,7 +126,7 @@ day_styles:
 
 When `condition` is `has_event`, you must also provide a `calendar` sibling key containing the entity ID (or virtual calendar ID) to watch. The rule only applies to days where that specific calendar has at least one event. A legacy `has_event` rule without `calendar` (or `title_match`) is ignored — use the advanced `match.day.has_event: true` form instead if you want to match any event.
 
-You can optionally narrow the rule further by adding a `title_match` sibling key. When set, the rule only matches days where the named calendar has at least one event whose title contains the given string. `title_match` uses the same matching syntax as `event_styles` and `day_badges` — prefix the value with `exact:` for an exact match or `regex:` for a regular expression.
+You can optionally narrow the rule further by adding a `title_match` sibling key. When set, the rule only matches days where the named calendar has at least one event whose title contains the given string. `title_match` uses the same single-string matching syntax as `event_styles` and `day_badges` — prefix the value with `exact:` for an exact match or `regex:` for a regular expression. It does not accept an array; use the advanced `match.any` form for multiple titles. See [Text matching](/advanced/event-styles#text-matching).
 
 ```yaml
 # Any event on calendar.work makes the day match
