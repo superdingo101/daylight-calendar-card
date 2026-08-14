@@ -99,18 +99,19 @@ jobs:
 
           cat generated-release-notes.md >> ai-release-prompt.md
 
-      - name: Spiffy release notes with AI
-        id: ai_notes
-        uses: actions/ai-inference@v3
-        with:
-          model: gpt-4.1
-          prompt-file: ai-release-prompt.md
+      - name: Spiffy release notes with Copilot
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Save AI release notes
+          COPILOT_GITHUB_TOKEN: ${{ github.token }}
         run: |
-          cat "${{ steps.ai_notes.outputs.response-file }}" > RELEASE_NOTES.md
+          copilot \
+            -p "$(cat ai-release-prompt.md)" \
+            -s \
+            --no-ask-user \
+            --model gpt-4.1 \
+            > RELEASE_NOTES.md
+
+      - name: Finish release notes
+        run: |
           echo "" >> RELEASE_NOTES.md
           echo "---" >> RELEASE_NOTES.md
           echo "" >> RELEASE_NOTES.md
