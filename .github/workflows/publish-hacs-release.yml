@@ -10,16 +10,23 @@ on:
 
 permissions:
   contents: write
-  models: read
+  copilot-requests: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
 
       - name: Read card version
         id: version
@@ -94,11 +101,12 @@ jobs:
 
       - name: Spiffy release notes with AI
         id: ai_notes
-        uses: actions/ai-inference@v1
+        uses: actions/ai-inference@v3
         with:
-          model: openai/gpt-4o
+          model: gpt-4.1
           prompt-file: ai-release-prompt.md
-          max-completion-tokens: 2000
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Save AI release notes
         run: |
