@@ -128,7 +128,7 @@ For compound rules, `match` supports four logical operator keys. `any`, `all`, `
 </ParamField>
 
 <ParamField path="match.not" type="object | array">
-  NOT logic. The rule matches when the listed sub-condition (or none of the listed sub-conditions) matches.
+  NOT logic. The rule matches when the sub-condition does not match. When given an array, the rule matches only when none of the listed sub-conditions match.
 </ParamField>
 
 ### Example: events on the work OR personal calendar
