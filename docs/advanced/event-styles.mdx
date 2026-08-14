@@ -50,7 +50,7 @@ event_styles:
 Use one or more of the following fields inside `match` (or `match.event`) to filter by event properties. By default, an event must satisfy **all** specified fields to be considered a match. For OR / NOT logic, use the [logical operators](#logical-operators) below.
 
 <ParamField path="match.calendar" type="string | object">
-  The entity ID of a specific Home Assistant calendar. Only events from that calendar entity will match. Aliases: `calendar_entity`, `entity_id`, `entity`.
+  A calendar entity ID or substring to match against an event's calendar identifiers. Plain strings use case-insensitive substring matching. Use an `exact` matcher object when an exact value is required. Aliases: `calendar_entity`, `entity_id`, `entity`.
 </ParamField>
 
 <ParamField path="match.title" type="string | object">
@@ -113,17 +113,17 @@ Arrays belong to logical operators such as `any` and `all`, not text operators s
 
 ## Logical Operators
 
-For compound rules, `match.any`, `match.all`, and `match.and` accept arrays of sub-condition objects. `match.not` accepts either one sub-condition object or an array of them. Sub-conditions use the same match-field syntax as a top-level `match` block, including nested operators.
+For compound rules, `match` supports four logical operator keys. `any`, `all`, `and`, and `not` each accept either a single sub-condition object or an array of sub-condition objects. Arrays are typically used when combining multiple conditions. Sub-conditions use the same match-field syntax as a top-level `match` block, including nested operators.
 
-<ParamField path="match.any" type="array">
+<ParamField path="match.any" type="object | array">
   OR logic. The rule matches when **at least one** of the listed sub-conditions matches.
 </ParamField>
 
-<ParamField path="match.all" type="array">
+<ParamField path="match.all" type="object | array">
   AND logic. The rule matches when **all** listed sub-conditions match. Same as combining fields at the top level, but useful when nesting inside `any` or `not`.
 </ParamField>
 
-<ParamField path="match.and" type="array">
+<ParamField path="match.and" type="object | array">
   Alias for `match.all`.
 </ParamField>
 

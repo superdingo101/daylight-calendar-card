@@ -135,7 +135,7 @@ day_styles:
 
 When `condition` is `has_event`, you must also provide a `calendar` sibling key containing the entity ID (or virtual calendar ID) to watch. The rule only applies to days where that specific calendar has at least one event. A legacy `has_event` rule without `calendar` (or `title_match`) is ignored — use the advanced `match.day.has_event: true` form instead if you want to match any event.
 
-You can optionally narrow the rule further by adding a `title_match` sibling key. When set, the rule only matches days where the named calendar has at least one event whose title contains the given string. `title_match` uses the same single-string matching syntax as `event_styles` and `day_badges` — prefix the value with `exact:` for an exact match or `regex:` for a regular expression. It does not accept an array; use the advanced `match.any` form for multiple titles. See [Text matching](/advanced/event-styles#text-matching).
+You can optionally narrow the rule further by adding a `title_match` sibling key. When set, the rule only matches days where the named calendar has at least one event whose title contains the given string. `title_match` uses the same single-string matching syntax as `event_styles` and `day_badges` — prefix the value with `exact:` for an exact match or `regex:` for a regular expression. It does not accept an array; use the event-scoped `match.any` form shown above for multiple titles. See [Text matching](/advanced/event-styles#text-matching).
 
 ```yaml
 # Any event on calendar.work makes the day match
