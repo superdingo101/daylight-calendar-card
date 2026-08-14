@@ -79,6 +79,9 @@ const DEFAULT_CONFIG_VALUES = {
   calendar_badge_icons: {},
   week_days: DEFAULT_WEEK_DAYS,
   rolling_days_week_compact: null,
+  week_compact_weekday_font_size: 12,
+  week_compact_weekday_color: null,
+  week_compact_day_header_spacing: 12,
   rolling_days_schedule: null,
   rolling_days_agenda: null,
   rolling_weeks: null,
@@ -108,6 +111,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
+  show_daily_weather_forecast: true,
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,
@@ -151,6 +155,9 @@ const DEFAULT_STUB_CONFIG = {
   shorten_event_times: false,
   time_zone: '',
   display_full_weekday_names: false,
+  week_compact_weekday_font_size: 12,
+  week_compact_weekday_color: null,
+  week_compact_day_header_spacing: 12,
   compact_width: false,
   show_current_time_bar: false,
   show_event_location: false,
@@ -180,6 +187,7 @@ const DEFAULT_STUB_CONFIG = {
   show_dashboard_nav_button: false,
   header_dashboard_path: null,
   header_weather_sensor: '',
+  show_daily_weather_forecast: true,
   header_items: [],
   calendar_person_entities: {},
   default_hidden_calendars: [],
@@ -398,6 +406,9 @@ function createConfigNormalizationSchema({
       { key: 'default_view', defaultValue: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW, normalize: ({ derived }) => derived.normalizedDefaultView || DEFAULT_VIEW },
       { key: 'week_days', defaultValue: ({ rawConfig }) => rawConfig.week_days || [...DEFAULT_CONFIG_VALUES.week_days] },
       { key: 'rolling_days_week_compact', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_week_compact ?? DEFAULT_CONFIG_VALUES.rolling_days_week_compact },
+      { key: 'week_compact_weekday_font_size', defaultValue: ({ derived }) => derived.normalizedWeekCompactWeekdayFontSize, normalize: ({ derived }) => derived.normalizedWeekCompactWeekdayFontSize },
+      { key: 'week_compact_weekday_color', defaultValue: ({ derived }) => derived.normalizedWeekCompactWeekdayColor, normalize: ({ derived }) => derived.normalizedWeekCompactWeekdayColor },
+      { key: 'week_compact_day_header_spacing', defaultValue: ({ derived }) => derived.normalizedWeekCompactDayHeaderSpacing, normalize: ({ derived }) => derived.normalizedWeekCompactDayHeaderSpacing },
       { key: 'rolling_days_schedule', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_schedule ?? DEFAULT_CONFIG_VALUES.rolling_days_schedule },
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
@@ -434,6 +445,7 @@ function createConfigNormalizationSchema({
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'show_daily_weather_forecast', defaultValue: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast, normalize: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast },
       { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
@@ -453,6 +465,7 @@ function createConfigNormalizationSchema({
       { key: 'show_current_time_bar', defaultValue: ({ rawConfig }) => rawConfig.show_current_time_bar || DEFAULT_CONFIG_VALUES.show_current_time_bar },
       { key: 'header_color', defaultValue: ({ derived }) => derived.normalizedHeaderColor !== undefined ? derived.normalizedHeaderColor : DEFAULT_CONFIG_VALUES.header_color },
       { key: 'header_text_color', defaultValue: ({ derived }) => derived.normalizedHeaderTextColor },
+      { key: 'grid_color', defaultValue: ({ derived }) => derived.normalizedGridColor, normalize: ({ derived }) => derived.normalizedGridColor },
       { key: 'header_background_transparent', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
       { key: 'header_background_opacity', defaultValue: ({ derived }) => derived.normalizedHeaderBackgroundOpacity, normalize: ({ derived }) => derived.normalizedHeaderBackgroundOpacity },
       { key: 'background_transparent', defaultValue: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold, normalize: ({ derived }) => derived.normalizedBackgroundOpacity >= DEFAULT_CONFIG_VALUES.background_opacity_transparent_threshold },
@@ -492,6 +505,8 @@ const EDITOR_DEFAULT_VALUES = Object.freeze({
   event_font_size: 11,
   event_time_font_size: 9,
   event_location_font_size: 9,
+  week_compact_weekday_font_size: 12,
+  week_compact_day_header_spacing: 12,
   combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
@@ -921,9 +936,8 @@ function shouldRefreshEvents({ lastFetch, now = Date.now(), maxAge = 60000 } = {
   return !lastFetch || (now - lastFetch > maxAge);
 }
 
-const EVENT_CACHE_SCHEMA_VERSION = 2;
+const EVENT_CACHE_SCHEMA_VERSION = 3;
 const DB_NAME = 'daylight-calendar-card-events';
-const DB_VERSION = 1;
 const STORE_NAME = 'eventSnapshots';
 const MAX_CACHE_ENTRIES = 12;
 let eventCacheMutationQueue = Promise.resolve();
@@ -950,7 +964,7 @@ const openEventCacheDb = () => new Promise((resolve, reject) => {
     resolve(null);
     return;
   }
-  const request = indexedDBRef.open(DB_NAME, DB_VERSION);
+  const request = indexedDBRef.open(DB_NAME, 1);
   request.onupgradeneeded = () => {
     const db = request.result;
     if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -1472,6 +1486,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
+    weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
 
   get value() {
@@ -1676,6 +1692,9 @@ class SkylightCalendarCardEditor extends HTMLElement {
     if (field === 'virtual_calendar_color') {
       return this.getEditorVirtualCalendarColor(Number(mapKey));
     }
+    if (field === 'week_compact_weekday_color') {
+      return this.getWeekCompactWeekdayColorPreview();
+    }
     if (mapKey) {
       return this.getEditorMapColorValue(field, mapKey);
     }
@@ -1753,6 +1772,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
       value,
       toColorInputValue: (colorValue) => this.toColorInputValue(colorValue)
     });
+  }
+
+  getWeekCompactWeekdayColorPreview() {
+    if (this._config.week_compact_weekday_color) return this._config.week_compact_weekday_color;
+    const darkMode = this._config.color_scheme === 'dark'
+      || (this._config.color_scheme === DEFAULT_THEME_MODE && this._hass?.themes?.darkMode === true);
+    return darkMode ? '#dde3ea' : '#6b7280';
   }
 
   renderMapRowInputs(mapKey, { label, inputType = 'text', placeholder = '' } = {}) {
@@ -2093,6 +2119,27 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <input id="rolling_days_week_compact" data-field="rolling_days_week_compact" data-type="nullable-number" type="number" min="1" value="${this._config.rolling_days_week_compact ?? ''}" placeholder="Disabled">
         </div>
       </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_weekday_font_size">Week Compact weekday font size (px)</label>
+          <input id="week_compact_weekday_font_size" data-field="week_compact_weekday_font_size" data-type="number" type="number" min="1" value="${Number(this._config.week_compact_weekday_font_size ?? this.getEditorDefaultValue('week_compact_weekday_font_size'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field">
+          <label for="week_compact_day_header_spacing">Week Compact day header spacing (px)</label>
+          <input id="week_compact_day_header_spacing" data-field="week_compact_day_header_spacing" data-type="number" type="number" min="0" value="${Number(this._config.week_compact_day_header_spacing ?? this.getEditorDefaultValue('week_compact_day_header_spacing'))}">
+        </div>
+      </div>
+      <div class="field-row week-compact-header-control-row">
+        <div class="field field-inline week-compact-header-field week-compact-weekday-color-field">
+          <label for="week_compact_weekday_color">Week Compact weekday color</label>
+          <div class="week-compact-weekday-color-actions">
+            ${this.renderColorInputControl({ id: 'week_compact_weekday_color', field: 'week_compact_weekday_color', value: this.getWeekCompactWeekdayColorPreview() })}
+            <button type="button" class="secondary-action week-compact-theme-color-action" data-clear-config-field="week_compact_weekday_color" ${this._config.week_compact_weekday_color ? '' : 'disabled'}>Use theme color</button>
+          </div>
+        </div>
+      </div>
       <div class="field-row">
         <div class="field field-inline">
           <label for="rolling_days_schedule">Rolling days (schedule view)</label>
@@ -2176,6 +2223,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <div class="field-row">
           ${this.renderColorInputControl({ id: 'header_text_color', field: 'header_text_color', value: this._config.header_text_color })}
           <input data-field="header_text_color_text" data-type="header-text-color-text" type="text" value="${this.escapeHtml(this._config.header_text_color || '')}" placeholder="Auto contrast">
+        </div>
+      </div>
+      <div class="field">
+        <label for="grid_color">Grid and divider color</label>
+        <div class="field-row">
+          ${this.renderColorInputControl({ id: 'grid_color', field: 'grid_color', value: this._config.grid_color })}
+          <input data-field="grid_color_text" data-type="grid-color-text" type="text" value="${this.escapeHtml(this._config.grid_color || '')}" placeholder="Theme default">
         </div>
       </div>
       ${this.renderSubSection('Calendar colors', `<div class="map-grid">${this.renderMapRowInputs('colors', { label: 'calendar colors', inputType: 'color' })}</div>`)}
@@ -2405,6 +2459,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <input id="header_weather_sensor" data-field="header_weather_sensor" type="text" value="${this._config.header_weather_sensor || ''}" placeholder="weather.home">
         </div>
       </div>
+      <label class="checkbox-row">
+        <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
+        Show daily weather forecasts
+      </label>
       <div class="field field-inline">
         <label for="preference_storage_key">Preference storage key</label>
         <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
@@ -2633,6 +2691,45 @@ class SkylightCalendarCardEditor extends HTMLElement {
           display: inline-block;
         }
 
+        .week-compact-header-control-row,
+        .week-compact-header-field {
+          min-width: 0;
+        }
+
+        .field.field-inline.week-compact-header-field {
+          grid-template-columns: minmax(0, 1fr) minmax(70px, 110px);
+        }
+
+        .week-compact-header-field > label {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .week-compact-header-field input {
+          box-sizing: border-box;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .field.field-inline.week-compact-weekday-color-field {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .week-compact-weekday-color-actions {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          min-width: 0;
+          white-space: nowrap;
+        }
+
+        .week-compact-theme-color-action {
+          padding: 4px 7px;
+          font-size: 0.8rem;
+          white-space: nowrap;
+        }
+
         .color-picker-dialog {
           display: none;
           position: fixed;
@@ -2841,6 +2938,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       trigger.addEventListener('click', () => this.openColorPicker(trigger.dataset.colorField, trigger.dataset.colorMapKey || null));
     });
 
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.addEventListener('click', () => this.clearConfigField(button.dataset.clearConfigField));
+    });
+
     const picker = this.querySelector('daylight-color-picker');
     if (picker) {
       picker.addEventListener('color-change', (event) => {
@@ -2863,6 +2964,14 @@ class SkylightCalendarCardEditor extends HTMLElement {
       ? 'Event cache cleared. The card will load fresh calendar data.'
       : 'Event cache is unavailable or could not be cleared; normal loading is unaffected.';
     window.dispatchEvent(new CustomEvent('daylight-calendar-card-flush-event-cache'));
+    this.render();
+  }
+
+  clearConfigField(field) {
+    if (!field || !Object.hasOwn(this._config, field)) return;
+    const nextConfig = { ...this.value };
+    delete nextConfig[field];
+    this.emitConfigChanged(nextConfig);
     this.render();
   }
 
@@ -2919,8 +3028,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (checkbox.dataset.field === 'enable_event_management') {
-        checkbox.checked = this._config.enable_event_management !== false;
+      if (checkbox.dataset.field === 'enable_event_management' || checkbox.dataset.field === 'show_daily_weather_forecast') {
+        checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }
       checkbox.checked = !!this._config[checkbox.dataset.field];
@@ -2982,6 +3091,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
       headerTextColorTextInput.value = this._config.header_text_color || '';
     }
 
+    const gridColorTextInput = this.querySelector('input[data-field="grid_color_text"]');
+    if (gridColorTextInput && document.activeElement !== gridColorTextInput) {
+      gridColorTextInput.value = this._config.grid_color || '';
+    }
+
     this.querySelectorAll('[data-map-field]').forEach((input) => {
       if (document.activeElement === input) return;
       const mapField = input.dataset.mapField;
@@ -3010,6 +3124,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       const mapKey = swatch.dataset.colorMapKey || null;
       const nextColor = this.getColorValue(field, mapKey);
       swatch.style.setProperty('--selected-color', nextColor);
+    });
+
+    this.querySelectorAll('[data-clear-config-field]').forEach((button) => {
+      button.disabled = !this._config[button.dataset.clearConfigField];
     });
 
     this.refreshCalendarEntities();
@@ -3163,6 +3281,8 @@ class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.header_color = event.target.value;
     } else if (event.target.dataset.type === 'header-text-color-text') {
       nextConfig.header_text_color = event.target.value;
+    } else if (event.target.dataset.type === 'grid-color-text') {
+      nextConfig.grid_color = event.target.value;
     } else if (event.target.dataset.type === 'number') {
       if (event.target.value === '') {
         nextConfig[field] = this.getEditorDefaultValue(field);
@@ -3361,7 +3481,7 @@ function getCardStyles() {
         position: absolute;
         inset: 0;
         z-index: 0;
-        background: var(--calendar-background, var(--theme-card-background, var(--ha-card-background, var(--card-background-color, #ffffff))));
+        background: var(--calendar-background, var(--calendar-forced-background, var(--ha-card-background, var(--card-background-color, var(--calendar-default-background, #ffffff)))));
         opacity: var(--calendar-background-opacity, 1);
         pointer-events: none;
       }
@@ -3788,8 +3908,8 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -4094,8 +4214,8 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 1px;
-        background: #e5e7eb;
-        border-top: 1px solid #e5e7eb;
+        background: var(--calendar-grid-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         flex: 1 1 auto;
         min-height: 0;
         overflow: auto;
@@ -4114,9 +4234,9 @@ function getCardStyles() {
 
       .week-day-header {
         text-align: center;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        margin-bottom: var(--week-compact-day-header-spacing, 12px);
+        padding-bottom: var(--week-compact-day-header-spacing, 12px);
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -4191,10 +4311,10 @@ function getCardStyles() {
       }
 
       .week-day-name {
-        font-size: 12px;
+        font-size: var(--week-compact-weekday-font-size, 12px);
         font-weight: 600;
         text-transform: uppercase;
-        color: #6b7280;
+        color: var(--week-compact-weekday-color, #6b7280);
         letter-spacing: 0.5px;
       }
 
@@ -4353,14 +4473,14 @@ function getCardStyles() {
         display: grid;
         grid-template-columns: 88px 1fr;
         gap: 12px;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
       }
 
       .agenda-month-banner {
         width: 100%;
-        border-top: 2px solid #d1d5db;
-        border-bottom: 1px solid #d1d5db;
+        border-top: 2px solid var(--calendar-grid-color, #d1d5db);
+        border-bottom: 1px solid var(--calendar-grid-color, #d1d5db);
         color: #4b5563;
         font-size: 24px;
         font-weight: 700;
@@ -4378,7 +4498,7 @@ function getCardStyles() {
         text-align: center;
         margin-bottom: 12px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .agenda-day-weekday {
@@ -4425,7 +4545,8 @@ function getCardStyles() {
         overflow: hidden;
         color: var(--event-bubble-text-color, white);
         position: relative;
-        height: var(--agenda-event-min-height, 68px);
+        height: auto;
+        min-height: var(--agenda-event-min-height, 68px);
         box-sizing: border-box;
         padding-bottom: calc(10px + (var(--combined-corner-bubbles, 0) * 16px));
       }
@@ -4469,6 +4590,7 @@ function getCardStyles() {
         align-items: baseline;
         gap: 0 8px;
         height: auto;
+        min-height: 0;
         padding: 8px 64px 8px calc(12px + var(--combine-left-offset, 0px));
         padding-bottom: calc(8px + (var(--combined-corner-bubbles, 0) * 16px));
       }
@@ -4531,7 +4653,7 @@ function getCardStyles() {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
         background: white;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
       }
 
       .calendar-badges-container.has-overflow::after,
@@ -4765,7 +4887,7 @@ function getCardStyles() {
       .week-standard-day-header {
         padding: 16px;
         text-align: center;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--calendar-grid-color, #e5e7eb);
         background: white;
         display: flex;
         flex-direction: column;
@@ -4812,7 +4934,7 @@ function getCardStyles() {
       .all-day-events {
         padding: var(--all-day-horizontal-padding);
         background: #f9fafb;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 2px solid var(--calendar-grid-color, #e5e7eb);
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -4901,7 +5023,7 @@ function getCardStyles() {
 
       .day-time-slot {
         height: 120px;
-        border-top: 1px solid var(--schedule-hour-line-color, #e5e7eb);
+        border-top: 1px solid var(--calendar-grid-color, var(--schedule-hour-line-color, #e5e7eb));
         position: relative;
         box-sizing: border-box;
         cursor: pointer;
@@ -5753,7 +5875,7 @@ function getCardStyles() {
       .calendar-container.dark-mode .week-standard-container,
       .calendar-container.dark-mode .calendar-badges {
         background: #30363f;
-        border-color: #4b5563;
+        border-color: var(--calendar-grid-color, #4b5563);
       }
 
       .calendar-container.dark-mode .calendar-badges-container.has-overflow::after {
@@ -5781,7 +5903,7 @@ function getCardStyles() {
       .calendar-container.dark-mode .empty-state {
         background: #353c45;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .time-slot {
@@ -5792,7 +5914,7 @@ function getCardStyles() {
 
       .calendar-container.dark-mode .week-standard-day-header,
       .calendar-container.dark-mode .all-day-events {
-        border-bottom-color: transparent;
+        border-bottom-color: var(--calendar-grid-color, transparent);
       }
 
 	  .calendar-container.dark-mode .day-header,
@@ -5800,7 +5922,7 @@ function getCardStyles() {
       .calendar-container.dark-mode .month-week-number-cell {
         background: #353b42;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .week-day-column.today .week-day-header {
@@ -5809,11 +5931,16 @@ function getCardStyles() {
 
       .calendar-container.dark-mode .week-standard-day-name,
       .calendar-container.dark-mode .week-standard-day-date,
-      .calendar-container.dark-mode .week-day-name,
       .calendar-container.dark-mode .week-day-date {
         background: #3b434d;
         color: #dde3ea;
-        border-color: #556070;
+        border-color: var(--calendar-grid-color, #556070);
+      }
+
+      .calendar-container.dark-mode .week-day-name {
+        background: #3b434d;
+        color: var(--week-compact-weekday-color, #dde3ea);
+        border-color: var(--calendar-grid-color, #556070);
       }
 
       .calendar-container.dark-mode .agenda-day-weekday,
@@ -5833,7 +5960,7 @@ function getCardStyles() {
       }
 
       .calendar-container.dark-mode .week-standard-day-column {
-        border: 1px solid #556070;
+        border: 1px solid var(--calendar-grid-color, #556070);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       }
 
@@ -5872,8 +5999,6 @@ function getCardStyles() {
         color: #c7d0db;
       }
 
-      .calendar-container.dark-mode .week-standard-day-column,
-      .calendar-container.dark-mode .week-day-column,
       .calendar-container.dark-mode .modal-content,
       .calendar-container.dark-mode .confirm-dialog,
       .calendar-container.dark-mode .form-input,
@@ -5885,6 +6010,14 @@ function getCardStyles() {
         background: #3b434d;
         color: #e2e8f0;
         border-color: #606b7b;
+        box-shadow: none;
+      }
+
+      .calendar-container.dark-mode .week-standard-day-column,
+      .calendar-container.dark-mode .week-day-column {
+        background: #3b434d;
+        color: #e2e8f0;
+        border-color: var(--calendar-grid-color, #606b7b);
         box-shadow: none;
       }
 
@@ -5973,16 +6106,16 @@ function getCardStyles() {
       }
 
       .calendar-container.dark-mode .agenda-day-row {
-        border-top-color: #5b6676;
+        border-top-color: var(--calendar-grid-color, #5b6676);
       }
 
       .calendar-container.dark-mode .agenda-day-label {
-        border-bottom-color: #5b6676;
+        border-bottom-color: var(--calendar-grid-color, #5b6676);
       }
 
       .calendar-container.dark-mode .agenda-month-banner {
-        border-top-color: #5b6676;
-        border-bottom-color: #5b6676;
+        border-top-color: var(--calendar-grid-color, #5b6676);
+        border-bottom-color: var(--calendar-grid-color, #5b6676);
         color: #c7d0db;
       }
 
@@ -6011,7 +6144,7 @@ function getCardStyles() {
       .calendar-container.custom-background .calendar-grid,
       .calendar-container.custom-background .week-compact-container,
       .calendar-container.custom-background .calendar-badges {
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-standard-container {
@@ -6019,8 +6152,24 @@ function getCardStyles() {
       }
 
       .calendar-container.custom-background .calendar-grid {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: transparent !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
+      }
+
+      .calendar-container.custom-background .calendar-grid > *,
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > * {
+        position: relative;
+      }
+
+      .calendar-container.custom-background .calendar-grid > *::before,
+      .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
+        content: '';
+        position: absolute;
+        inset: 0 -1px -1px 0;
+        border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
+        pointer-events: none;
+        z-index: 1;
       }
 
       .calendar-container.custom-background .day-header,
@@ -6034,8 +6183,8 @@ function getCardStyles() {
       }
 
       .calendar-container.custom-background .week-compact-container {
-        background: rgba(var(--custom-surface-calendar-rgb, 249, 250, 251), var(--custom-surface-alpha, 0.55)) !important;
-        border-top-color: rgba(var(--custom-surface-column-rgb, 255, 255, 255), var(--custom-surface-alpha, 0.55)) !important;
+        background: transparent !important;
+        border-top-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.custom-background .week-day-column {
@@ -6066,11 +6215,11 @@ function getCardStyles() {
 
       .calendar-container.dark-mode.custom-background .week-standard-day-header,
       .calendar-container.dark-mode.custom-background .all-day-events {
-        border-bottom-color: transparent !important;
+        border-bottom-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .week-standard-day-column {
-        border-color: transparent !important;
+        border-color: var(--calendar-grid-color, rgba(255, 255, 255, 0.35)) !important;
         box-shadow: none !important;
       }
 
@@ -6087,11 +6236,11 @@ function getCardStyles() {
 
 
       .calendar-container.custom-background .day-cell.other-month {
-        background: rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, calc(var(--custom-surface-alpha, 0.55) * 0.12)) !important;
       }
 
       .calendar-container.dark-mode.custom-background .day-cell.other-month {
-        background: rgba(0, 0, 0, 0.2) !important;
+        background: rgba(0, 0, 0, calc(var(--custom-surface-alpha, 0.55) * 0.2)) !important;
       }
 
       @media (max-width: 768px) {
@@ -7795,9 +7944,29 @@ function escapeHtmlAttribute(text) {
   return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
 }
 
+const serializeRecurrenceValue = (value, seen = new WeakSet()) => {
+  if (value === null) return 'null';
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (seen.has(value)) return '"[Circular]"';
+  seen.add(value);
+  const serialized = Array.isArray(value)
+    ? `[${value.map(item => serializeRecurrenceValue(item, seen)).join(',')}]`
+    : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${serializeRecurrenceValue(value[key], seen)}`).join(',')}}`;
+  seen.delete(value);
+  return serialized;
+};
+
+const normalizeRecurrenceId = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'object') return String(value);
+  if (value.dateTime !== undefined && value.dateTime !== null) return normalizeRecurrenceId(value.dateTime);
+  if (value.date !== undefined && value.date !== null) return normalizeRecurrenceId(value.date);
+  return serializeRecurrenceValue(value);
+};
+
 const getEventIdentityKey = (entityId, event) => {
   const uid = event?.uid;
-  const recurrenceId = event?.recurrence_id || event?.recurring_event_id;
+  const recurrenceId = normalizeRecurrenceId(event?.recurrence_id || event?.recurring_event_id);
   const start = event?.start?.dateTime || event?.start?.date || event?.start || '';
   const end = event?.end?.dateTime || event?.end?.date || event?.end || '';
   if (uid && recurrenceId) return `${entityId}|${uid}|${recurrenceId}`;
@@ -8749,7 +8918,7 @@ const getRecurringUpdateControls = (originalEvent, eventData, editScope = 'this'
   const isRecurringUpdate = !!eventData.rrule || !!originalEvent.rrule;
   return {
     isRecurringUpdate,
-    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? originalEvent.recurrence_id : null,
+    recurrenceId: (isRecurringUpdate && editScope !== 'all') ? normalizeRecurrenceId(originalEvent.recurrence_id) : null,
     recurrenceRange: (isRecurringUpdate && editScope === 'future' && originalEvent.recurrence_id) ? 'THISANDFUTURE' : null
   };
 };
@@ -8760,8 +8929,9 @@ const buildUpdateEventServiceData = (originalEvent, eventData, recurrenceId = nu
     uid: originalEvent.uid
   };
 
-  if (recurrenceId) {
-    serviceData.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    serviceData.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -8800,8 +8970,9 @@ const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recurrenceId
     event: eventPayload
   };
 
-  if (recurrenceId) {
-    wsPayload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    wsPayload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -8817,8 +8988,9 @@ const buildDeleteEventPayload = (calendarId, uid, recurrenceId = null, recurrenc
     uid: uid
   };
 
-  if (recurrenceId) {
-    payload.recurrence_id = recurrenceId;
+  const normalizedRecurrenceId = normalizeRecurrenceId(recurrenceId);
+  if (normalizedRecurrenceId) {
+    payload.recurrence_id = normalizedRecurrenceId;
   }
 
   if (recurrenceRange) {
@@ -8989,10 +9161,10 @@ function getEventBubbleFontColor(event, { styleOverrides = null, hiddenCalendars
   return getContrastColor?.(getEventBackgroundColor?.(event)) || 'white';
 }
 
-function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, translate }) {
+function getScheduleVisualInfo(event, { getEventDateTimeInfo, shouldRenderTimedEventAsAllDayInSchedule, shouldShowEventTime: shouldShowTime, formatEventTime, getEventDisplayTitle, translate }) {
   const { eventStart, eventEnd, isAllDay } = getEventDateTimeInfo(event);
   const rendersAsAllDay = isAllDay || shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd);
-  const displayTitle = event.summary || translate('untitledEvent');
+  const displayTitle = getEventDisplayTitle?.(event) || event.summary || translate('untitledEvent');
   const shouldIncludeStartTime = !isAllDay && rendersAsAllDay && shouldShowTime(event);
 
   return {
@@ -9367,7 +9539,7 @@ function renderAgendaView({
 
               return `
                 <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${helpers.getEventBubbleFontSize(event)}; --event-time-font-size: ${helpers.getEventTimeFontSize(event)}; --event-location-font-size: ${helpers.getEventLocationFontSize(event)}; --event-bubble-text-color: ${helpers.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-                  <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, event.summary || helpers.t('untitledEvent'))}</div>
+                  <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, helpers.getEventDisplayTitle(event))}</div>
                   ${helpers.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
                   ${helpers.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${helpers.escapeHtml(helpers.getDisplayLocation(event.location, event))}</div>` : ''}
                   ${helpers.renderEventIcon(event)}
@@ -9542,7 +9714,7 @@ function stablePart(value) {
 }
 
 function getOccurrenceStartToken(event) {
-  return stablePart(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
+  return normalizeRecurrenceId(event?.recurrence_id) || stablePart(event?.start?.dateTime) || stablePart(event?.start?.date) || stablePart(event?.start);
 }
 
 function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
@@ -9554,7 +9726,7 @@ function getCustomEventColorKeys(event, { getEventIdentityKey } = {}) {
   const isRecurring = !!(event.recurrence_id || recurringId || rrule);
   const seriesIdentity = recurringId || (isRecurring ? uid : '');
   const seriesKey = entityId && seriesIdentity ? `${entityId}|series|${seriesIdentity}` : null;
-  const occurrenceToken = stablePart(event.recurrence_id) || getOccurrenceStartToken(event);
+  const occurrenceToken = normalizeRecurrenceId(event.recurrence_id) || getOccurrenceStartToken(event);
   let occurrenceKey = null;
   if (seriesKey && occurrenceToken) {
     occurrenceKey = `${seriesKey}|occurrence|${occurrenceToken}`;
@@ -10430,7 +10602,8 @@ function renderWeekCompactView({
   helpers
 }) {
   const headerHeightStyle = headerHeight ? `--week-compact-header-height: ${headerHeight}px;` : '';
-  const containerStyle = `${headerHeightStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
+  const weekdayColorStyle = config.week_compact_weekday_color ? `--week-compact-weekday-color: ${config.week_compact_weekday_color};` : '';
+  const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
       ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
@@ -11025,7 +11198,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingHeaderSensorRender = false;
     this._weatherForecastController = createWeatherForecastController({
       getHass: () => this._hass,
-      getWeatherEntityId: () => this._config?.header_weather_sensor,
+      getWeatherEntityId: () => this._config?.show_daily_weather_forecast !== false
+        ? this._config?.header_weather_sensor
+        : null,
       onForecastUpdated: () => {
         if (!this.isEventManagementDialogOpen()) {
           this.renderPreservingAgendaScroll();
@@ -11502,9 +11677,20 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedCombineWidth = hasCombineWidth
       ? rawCombineWidth
       : (hasEventBarWidth ? rawEventBarWidth : DEFAULT_EVENT_COLOR_BAR_WIDTH);
+    const normalizePositiveNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : fallback;
+    };
+    const normalizeNonNegativeNumber = (value, fallback) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 0 ? number : fallback;
+    };
 
     return {
       normalizedDefaultView,
+      normalizedWeekCompactWeekdayFontSize: normalizePositiveNumber(rawConfig.week_compact_weekday_font_size, DEFAULT_CONFIG_VALUES.week_compact_weekday_font_size),
+      normalizedWeekCompactWeekdayColor: this.normalizeSingleColor(rawConfig.week_compact_weekday_color),
+      normalizedWeekCompactDayHeaderSpacing: normalizeNonNegativeNumber(rawConfig.week_compact_day_header_spacing, DEFAULT_CONFIG_VALUES.week_compact_day_header_spacing),
       normalizedCalendarColors: this.normalizeColorMap(rawConfig.colors || {}),
       normalizedEventFontColors: this.normalizeColorMap(rawConfig.event_font_colors || {}),
       normalizedEventStyles: this.normalizeEventStyles(rawConfig.event_styles || []),
@@ -11515,6 +11701,7 @@ class SkylightCalendarCard extends HTMLElement {
       normalizedDayBadges: this.normalizeDayBadges(rawConfig.day_badges || []),
       normalizedDayBadgeLayoutWeek: this.normalizeDayBadgeLayoutWeek(rawConfig.day_badge_layout_week),
       normalizedHeaderColor: this.normalizeSingleColor(rawConfig.header_color),
+      normalizedGridColor: this.normalizeSingleColor(rawConfig.grid_color),
       normalizedHeaderTextColor: this.normalizeSingleColor(rawConfig.header_text_color),
       normalizedHeaderBackgroundOpacity,
       normalizedBackgroundOpacity,
@@ -11567,7 +11754,9 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   setConfig(config) {
-    const previousHeaderWeatherSensor = this._config?.header_weather_sensor || null;
+    const previousForecastWeatherSensor = this._config?.show_daily_weather_forecast !== false
+      ? this._config?.header_weather_sensor || null
+      : null;
     if (!config.entities || !Array.isArray(config.entities)) {
       throw new Error('You need to define calendar entities');
     }
@@ -11594,7 +11783,10 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarDataSignatures = {};
     this._lastUnchangedDataRender = null;
     this._lastFetch = null;
-    this._weatherForecastController.handleConfigChanged(previousHeaderWeatherSensor, this._config.header_weather_sensor);
+    const nextForecastWeatherSensor = this._config.show_daily_weather_forecast !== false
+      ? this._config.header_weather_sensor
+      : null;
+    this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
@@ -12145,6 +12337,11 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedFilter = this.normalizeEventStyleFilter(style.filter);
     if (normalizedFilter !== null) normalized.filter = normalizedFilter;
 
+    if (typeof style.display_title === 'string') {
+      const displayTitle = this.normalizeEventTextValue(style.display_title);
+      if (displayTitle) normalized.display_title = displayTitle;
+    }
+
     setIfDefined('event_font_size', style.event_font_size);
     setIfDefined('event_time_font_size', style.event_time_font_size);
     setIfDefined('event_location_font_size', style.event_location_font_size);
@@ -12556,7 +12753,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   getStableEventIdentityKey(entityId, event) {
     if (!event?.uid) return null;
-    const recurrenceId = event.recurrence_id || event.recurring_event_id;
+    const recurrenceId = normalizeRecurrenceId(event.recurrence_id || event.recurring_event_id);
     if (recurrenceId) return `${entityId}|${event.uid}|${recurrenceId}`;
     return null;
   }
@@ -14054,7 +14251,20 @@ class SkylightCalendarCard extends HTMLElement {
     const month = this._currentDate.getMonth();
 
     const themeCardBackground = this._isDarkMode ? '#2a2f36' : '#ffffff';
-    const calendarBaseBackground = `var(--calendar-background, var(--theme-card-background, var(--ha-card-background, var(--card-background-color, ${themeCardBackground}))))`;
+    const forcedThemeBackground = this._themeMode === DEFAULT_THEME_MODE ? null : themeCardBackground;
+    const calendarBaseBackground = `var(--calendar-background, ${forcedThemeBackground || `var(--ha-card-background, var(--card-background-color, ${themeCardBackground}))`})`;
+    const inheritedStyles = window.getComputedStyle(this);
+    const getInheritedStyle = (property) => typeof inheritedStyles?.getPropertyValue === 'function'
+      ? inheritedStyles.getPropertyValue(property).trim()
+      : '';
+    const inheritedCalendarBackground = getInheritedStyle('--calendar-background');
+    const inheritedHaCardBackground = getInheritedStyle('--ha-card-background');
+    const inheritedCardBackground = getInheritedStyle('--card-background-color');
+    const resolvedCalendarBackgroundForContrast = inheritedCalendarBackground
+      || forcedThemeBackground
+      || inheritedHaCardBackground
+      || inheritedCardBackground
+      || themeCardBackground;
     const normalizedBackgroundOpacity = this.normalizeBackgroundOpacity(this._config.background_opacity, this._config.background_transparent ? 100 : 0);
     const rawHeaderBackgroundColor = this.normalizeSingleColor(this._config.header_color);
     const resolvedHeaderBackgroundBase = typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
@@ -14070,10 +14280,14 @@ class SkylightCalendarCard extends HTMLElement {
     let resolvedHeaderTextColor = configuredHeaderTextColor;
     if (!resolvedHeaderTextColor) {
       const headerBaseForContrast = typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
-        ? themeCardBackground
+        ? resolvedCalendarBackgroundForContrast
         : resolvedHeaderBackgroundBase;
       const headerBaseRgb = this.colorToRgb(headerBaseForContrast);
-      const themeCardBackgroundRgb = this.colorToRgb(themeCardBackground);
+      const themeCardBackgroundRgb = this.colorToRgb(
+        typeof rawHeaderBackgroundColor === 'string' && rawHeaderBackgroundColor.trim().toLowerCase() === 'match-card-background'
+          ? resolvedCalendarBackgroundForContrast
+          : themeCardBackground
+      );
 
       if (headerBaseRgb && themeCardBackgroundRgb && headerAlpha < 1) {
         const blendedHeaderRgb = {
@@ -14107,7 +14321,7 @@ class SkylightCalendarCard extends HTMLElement {
     const normalizedReveal = Math.max(0, Math.min(1, normalizedBackgroundOpacity / 100));
     const scaledBackgroundImageAlpha = Math.max(0, Math.min(1, normalizedReveal * 0.75));
     const backgroundImageAlpha = safeBackgroundImageUrl ? scaledBackgroundImageAlpha : 0;
-    const customSurfaceAlpha = Math.max(0.2, 1 - (normalizedReveal * 0.75));
+    const customSurfaceAlpha = 1 - normalizedReveal;
     const customSurfacePalette = this._isDarkMode
       ? {
         calendar: '48, 54, 63',
@@ -14121,7 +14335,11 @@ class SkylightCalendarCard extends HTMLElement {
         allDay: '249, 250, 251',
         slot: '255, 255, 255'
       };
-    const backgroundStyle = `--theme-card-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; --custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
+    const forcedBackgroundStyle = forcedThemeBackground ? `--calendar-forced-background: ${forcedThemeBackground}; ` : '';
+    const configuredGridColor = this.normalizeSingleColor(this._config.grid_color);
+    const resolvedGridColor = configuredGridColor || (hasCustomBackground ? 'rgba(255, 255, 255, 0.35)' : null);
+    const gridColorStyle = resolvedGridColor ? `--calendar-grid-color: ${resolvedGridColor}; ` : '';
+    const backgroundStyle = `${forcedBackgroundStyle}--calendar-default-background: ${themeCardBackground}; --calendar-background-opacity: ${backgroundAlpha}; --calendar-background-image-opacity: ${backgroundImageAlpha}; --custom-surface-alpha: ${customSurfaceAlpha}; ${gridColorStyle}--custom-surface-calendar-rgb: ${customSurfacePalette.calendar}; --custom-surface-column-rgb: ${customSurfacePalette.column}; --custom-surface-all-day-rgb: ${customSurfacePalette.allDay}; --custom-surface-slot-rgb: ${customSurfacePalette.slot};`;
     const containerStyle = `${headerStyle} ${backgroundStyle} ${backgroundImageStyle}`.trim();
 
     this._root.innerHTML = `
@@ -14529,6 +14747,7 @@ class SkylightCalendarCard extends HTMLElement {
         getEventBubbleFontColor: this.getEventBubbleFontColor.bind(this),
         getEventBubbleFontSize: this.getEventBubbleFontSize.bind(this),
         getEventDaySegment: this.getEventDaySegment.bind(this),
+        getEventDisplayTitle: this.getEventDisplayTitle.bind(this),
         getEventLocationFontSize: this.getEventLocationFontSize.bind(this),
         getEventStyle: this.getEventStyle.bind(this),
         getEventTimeFontSize: this.getEventTimeFontSize.bind(this),
@@ -14674,7 +14893,7 @@ class SkylightCalendarCard extends HTMLElement {
             <div class="all-day-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
                  style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute}
                  data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-              <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent')) : ''}</div>
+              <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event)) : ''}</div>
               ${this.renderEventStyleCornerIcon(event)}
             </div>
           `;
@@ -14796,7 +15015,7 @@ class SkylightCalendarCard extends HTMLElement {
         <div class="week-standard-event"
              style="top: ${top}px; height: ${height}px; width: ${width}; left: ${left}; ${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};"
              data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-          <div class="week-standard-event-title">${this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent'))}</div>
+          <div class="week-standard-event-title">${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}</div>
           ${this.shouldShowEventTime(event) ? `<div class="week-standard-event-time">${this.formatEventTimeRange(eventStart, eventEnd, { schedule: true })}</div>` : ''}
           ${this.shouldShowEventLocation(event) ? `<div class="week-standard-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
           ${this.renderEventIcon(event)}
@@ -15402,7 +15621,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return `
       <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-        ${this.renderEventTitleWithPrefix(event, displayTitle || event.summary || this.t('untitledEvent'))}
+        ${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
         ${this.renderCombinedCornerBubbles(event)}
       </div>
@@ -15429,7 +15648,7 @@ class SkylightCalendarCard extends HTMLElement {
     return `
       <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
         ${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}
-        <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}</div>
+        <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
         ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
         ${this.renderEventStyleCornerIcon(event)}
         ${this.renderCombinedCornerBubbles(event)}
@@ -15446,7 +15665,7 @@ class SkylightCalendarCard extends HTMLElement {
     return `
       <div class="event" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
         ${!isAllDaySegment && this.shouldShowEventTime(event) ? `<span class="event-time">${this.formatEventTime(segmentStart)}</span>` : ''}
-        ${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}
+        ${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
         ${this.renderCombinedCornerBubbles(event)}
       </div>
@@ -15735,6 +15954,10 @@ class SkylightCalendarCard extends HTMLElement {
     return overrides;
   }
 
+  getEventDisplayTitle(event) {
+    return this.getEventStyleOverrides(event)?.display_title || event?.summary || this.t('untitledEvent');
+  }
+
   isEventHiddenByStyle(event) {
     return this.getEventStyleOverrides(event)?.hide === true;
   }
@@ -15942,6 +16165,7 @@ class SkylightCalendarCard extends HTMLElement {
       shouldRenderTimedEventAsAllDayInSchedule: (eventStart, eventEnd) => this.shouldRenderTimedEventAsAllDayInSchedule(eventStart, eventEnd),
       shouldShowEventTime: (timeEvent) => this.shouldShowEventTime(timeEvent),
       formatEventTime: (date, options) => this.formatEventTime(date, options),
+      getEventDisplayTitle: (titleEvent) => this.getEventDisplayTitle(titleEvent),
       translate: (key, params) => this.t(key, params)
     });
   }
@@ -15973,7 +16197,7 @@ class SkylightCalendarCard extends HTMLElement {
       isAllDaySegment,
       startsOnDay: eventStart >= dayStart && eventStart < nextDayStart,
       endsOnDay: eventEnd > dayStart && eventEnd <= nextDayStart,
-      displayTitle: scheduleVisualInfo?.displayTitle || event.summary || this.t('untitledEvent'),
+      displayTitle: scheduleVisualInfo?.displayTitle || this.getEventDisplayTitle(event),
       rendersAsAllDay
     };
   }
@@ -17985,7 +18209,7 @@ class SkylightCalendarCard extends HTMLElement {
               return `
                 <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
                   ${this.shouldShowEventTime(event) ? `${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}` : ''}
-                  <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}</div>
+                  <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
                   ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
                   ${this.renderEventStyleCornerIcon(event)}
                   ${this.renderCombinedCornerBubbles(event)}
@@ -18036,7 +18260,7 @@ class SkylightCalendarCard extends HTMLElement {
 
           return `
             <div class="day-event day-modal-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
-              <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, event.summary || this.t('untitledEvent'))}</div>
+              <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
               ${this.shouldShowEventTime(event) ? `<div class="day-modal-event-meta">${isAllDaySegment ? this.t('allDay') : this.formatEventTimeRange(segmentStart, segmentEnd)}</div>` : ''}
               ${this.shouldShowEventLocation(event) ? `<div class="day-modal-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
               ${this.renderEventStyleCornerIcon(event)}
@@ -18184,6 +18408,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getForecastForDate(date) {
+    if (this._config?.show_daily_weather_forecast === false) return null;
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherEntity = this._hass?.states?.[sensorEntityId];

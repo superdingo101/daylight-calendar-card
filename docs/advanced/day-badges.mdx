@@ -54,19 +54,23 @@ Each entry in `day_badges` supports the following fields:
 
 The `conditions` object matches against events on each day. All specified keys must match at least one event on that day for the badge to appear. The following fields are supported:
 
-<ParamField path="conditions.calendar" type="string">
+<ParamField path="conditions.calendar" type="string | object">
   A Home Assistant calendar entity ID (or virtual calendar ID). The badge appears on days where at least one event belongs to that calendar.
 </ParamField>
 
-<ParamField path="conditions.title" type="string">
+<ParamField path="conditions.title" type="string | object">
   A substring to match against event titles on a given day. The badge appears on days that have at least one event whose title contains this string. Prefix with `exact:` for an exact match or `regex:` for a regular expression.
 </ParamField>
 
-<ParamField path="conditions.description" type="string">
+<ParamField path="conditions.summary" type="string | object">
+  Alias for `conditions.title`. Both names match the event summary field.
+</ParamField>
+
+<ParamField path="conditions.description" type="string | object">
   A substring to match against the event description field. Supports the same `exact:` and `regex:` prefixes as `title`.
 </ParamField>
 
-<ParamField path="conditions.location" type="string">
+<ParamField path="conditions.location" type="string | object">
   A substring to match against the event location field. Supports the same `exact:` and `regex:` prefixes as `title`.
 </ParamField>
 
@@ -77,6 +81,8 @@ The `conditions` object matches against events on each day. All specified keys m
 <ParamField path="conditions.past" type="boolean">
   When `true`, the badge appears on days where at least one event is in the past. When `false`, only days with non-past events match.
 </ParamField>
+
+Text conditions accept a plain string or a matcher object, but operators such as `contains` accept one string, not an array. In `day_badges`, bare event conditions are supported under `match.any`, so use a separate condition for each value. See [Text matching](/advanced/event-styles#text-matching) for the shared text operators; other rule types may require explicit event scoping.
 
 ### Day-scoped badges
 
