@@ -1,7 +1,7 @@
 ---
 title: "uix: Inject Custom CSS into Daylight Calendar Card"
 sidebarTitle: "Custom CSS (uix)"
-description: "Use the uix.style option to inject raw CSS into Daylight Calendar Card's shadow DOM and override any internal styling."
+description: "Use the uix.style option to inject raw CSS into Daylight Calendar Card's shadow DOM and override internal styling for events, days, and headers."
 ---
 
 The `uix` option is a YAML-only escape hatch for power users who need low-level visual control beyond what the standard appearance, event-style, and day-style options provide. Set `uix.style` to a raw CSS string and the card injects that CSS directly into its shadow DOM at render time. This lets you override any internal style — spacing, font sizes, element visibility, animation durations — without needing a custom theme or additional frontend resources like Card Mod.
