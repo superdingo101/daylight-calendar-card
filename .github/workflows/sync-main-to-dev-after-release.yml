@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 # Serialize release events so concurrent runs cannot race to open duplicate PRs.
@@ -16,6 +16,8 @@ concurrency:
 jobs:
   open-sync-pr:
     runs-on: ubuntu-latest
+    env:
+      SYNC_BRANCH: sync-main-to-dev/${{ github.event.release.tag_name }}
 
     steps:
       - name: Check whether a sync pull request is needed
@@ -37,12 +39,12 @@ jobs:
           OPEN_PR_COUNT="$(
             gh api --method GET "repos/$GH_REPO/pulls" \
               -f state=open \
-              -f head="$GH_REPO_OWNER:main" \
+              -f head="$GH_REPO_OWNER:$SYNC_BRANCH" \
               -f base=dev \
               --jq 'length'
           )"
           if [ "$OPEN_PR_COUNT" -gt 0 ]; then
-            echo "An open main-to-dev pull request already exists; nothing to do."
+            echo "An open sync pull request already exists for $SYNC_BRANCH; nothing to do."
             echo "needed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -50,8 +52,58 @@ jobs:
           echo "main is $AHEAD_BY commit(s) ahead of dev and no sync pull request is open."
           echo "needed=true" >> "$GITHUB_OUTPUT"
 
-      # A PR preserves branch protection, required checks, and review history;
-      # this workflow intentionally never pushes or merges directly into dev.
+      - name: Checkout main
+        if: steps.sync-check.outputs.needed == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        if: steps.sync-check.outputs.needed == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        if: steps.sync-check.outputs.needed == 'true'
+        run: npm ci
+
+      - name: Create sync branch and restore development version
+        if: steps.sync-check.outputs.needed == 'true'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          git switch -c "$SYNC_BRANCH"
+
+          perl -0pi -e "s/export const DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+';/export const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';/" src/version.js
+          npm run build
+
+          SOURCE_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" src/version.js | sed -E "s/.*'([^']+)'.*/\1/")"
+          GENERATED_VERSION="$(grep -oE "DAYLIGHT_CALENDAR_CARD_VERSION = '[^']+'" skylight-calendar-card.js | sed -E "s/.*'([^']+)'.*/\1/")"
+
+          echo "Detected source version: $SOURCE_VERSION"
+          echo "Detected generated version: $GENERATED_VERSION"
+
+          if [ "$SOURCE_VERSION" != "dev" ] || [ "$GENERATED_VERSION" != "dev" ]; then
+            echo "ERROR: Failed to restore the development version marker"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add src/version.js skylight-calendar-card.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Reset card version to dev after $RELEASE_TAG"
+          fi
+
+          # This branch is owned by this workflow and is unique per release tag.
+          # Force-pushing makes a rerun recover cleanly from a stale branch.
+          git push --force origin "$SYNC_BRANCH"
+
       - name: Open main-to-dev sync pull request
         if: steps.sync-check.outputs.needed == 'true'
         env:
@@ -65,13 +117,13 @@ jobs:
           BODY="$(cat <<'EOF'
           This pull request was automatically created after publishing a GitHub release.
 
-          It synchronizes release-only changes from `main` back into the `dev` development branch.
+          It synchronizes release-only changes from `main` back into the `dev` development branch, then resets `DAYLIGHT_CALENDAR_CARD_VERSION` to `dev` and rebuilds the committed bundle so development builds do not report the released version.
           EOF
           )"
 
           if gh pr create \
             --repo "$GH_REPO" \
-            --head main \
+            --head "$SYNC_BRANCH" \
             --base dev \
             --title "Sync main back into dev after $RELEASE_TAG" \
             --body "$BODY"; then
@@ -83,12 +135,12 @@ jobs:
           OPEN_PR_COUNT="$(
             gh api --method GET "repos/$GH_REPO/pulls" \
               -f state=open \
-              -f head="$GH_REPO_OWNER:main" \
+              -f head="$GH_REPO_OWNER:$SYNC_BRANCH" \
               -f base=dev \
               --jq 'length'
           )"
           if [ "$OPEN_PR_COUNT" -gt 0 ]; then
-            echo "A main-to-dev pull request now exists; no duplicate was created."
+            echo "A sync pull request now exists; no duplicate was created."
             exit 0
           fi
 
