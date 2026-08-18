@@ -827,6 +827,11 @@ class SkylightCalendarCard extends HTMLElement {
     const badges = this._root.querySelector('.calendar-badges-inline');
 
     if (header) {
+      // Hidden dashboard views have no usable layout width. Measuring them
+      // would count the configured gap against zero-width groups and falsely
+      // mark the header as wrapped.
+      if (this.getElementContentWidth(header) <= 0) return;
+
       const liveLeftGroup = this._config.compact_header
         ? header.querySelector('.compact-header-left')
         : header.querySelector('.header-left');
@@ -3620,6 +3625,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.observeHostAndParentResize();
     this.attachEventListeners();
+    // render() replaces the header DOM, including its responsive wrap classes.
+    // Restore them synchronously so an unwrapped header is never painted, then
+    // keep the deferred measurement for late layout changes (fonts/icons).
+    this.measureAndApplyHeaderWrapState();
     this.updateCompactHeaderWrapState();
     this.updateCalendarBadgesScrollState();
     this.updateWeekStandardFixedOffsetHeightFromDom();
