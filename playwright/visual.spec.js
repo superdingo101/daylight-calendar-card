@@ -1777,6 +1777,52 @@ test('regression issue 572: wrapped compact header stays wrapped during a calend
   expect(wrapStateImmediatelyAfterRender).toBe(true);
 });
 
+test('regression issue 572: hidden header does not commit a zero-width wrapped state', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate(() => {
+    document.getElementById('app').style.display = 'none';
+  });
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Issue 572 Hidden Header',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true
+    },
+    events: baseEvents,
+    darkMode: false
+  });
+
+  // Wait beyond the two deferred animation frames used by the wrap measurement.
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }));
+
+  const card = page.locator('skylight-calendar-card');
+  const hiddenState = await card.evaluate((element) => {
+    const header = element.querySelector('.header-compact');
+    return {
+      contentWidth: header?.clientWidth ?? -1,
+      wrapped: header?.classList.contains('is-wrapped') ?? false
+    };
+  });
+  expect(hiddenState.contentWidth).toBe(0);
+  expect(hiddenState.wrapped).toBe(false);
+
+  await page.evaluate(() => {
+    document.getElementById('app').style.display = '';
+  });
+
+  const header = card.locator('.header-compact');
+  const left = card.locator('.compact-header-left').first();
+  const controls = card.locator('.compact-header-controls').first();
+  await expect.poll(async () => headerGroupsShareRow(left, controls)).toBe(true);
+  await expect(header).not.toHaveClass(/is-wrapped/);
+});
+
 test('regression issue 496: modal action buttons wrap instead of overflowing on small screens', async ({ page }) => {
   // 320px is the classic "small phone" width and the one most likely to
   // reproduce #496 (long translated button labels forcing horizontal scroll).
