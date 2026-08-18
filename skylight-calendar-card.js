@@ -14369,6 +14369,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.observeHostAndParentResize();
     this.attachEventListeners();
+    // render() replaces the header DOM, including its responsive wrap classes.
+    // Restore them synchronously so an unwrapped header is never painted, then
+    // keep the deferred measurement for late layout changes (fonts/icons).
+    this.measureAndApplyHeaderWrapState();
     this.updateCompactHeaderWrapState();
     this.updateCalendarBadgesScrollState();
     this.updateWeekStandardFixedOffsetHeightFromDom();
