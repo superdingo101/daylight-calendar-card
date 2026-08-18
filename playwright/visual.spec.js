@@ -1781,9 +1781,6 @@ test('regression issue 572: hidden header does not commit a zero-width wrapped s
   await page.setViewportSize({ width: 1360, height: 820 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
-  await page.evaluate(() => {
-    document.getElementById('app').style.display = 'none';
-  });
   await page.evaluate((params) => window.renderCalendarCard(params), {
     config: {
       entities: ['calendar.family', 'calendar.work'],
@@ -1793,7 +1790,8 @@ test('regression issue 572: hidden header does not commit a zero-width wrapped s
       hide_dark_mode_toggle: true
     },
     events: baseEvents,
-    darkMode: false
+    darkMode: false,
+    parentStyle: 'display: none;'
   });
 
   // Wait beyond the two deferred animation frames used by the wrap measurement.
