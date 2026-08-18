@@ -1009,6 +1009,11 @@ export function getCardStyles() {
         font-size: 1em;
         font-weight: 500;
         line-height: 1.3;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .event-title-with-prefix {
@@ -1016,6 +1021,7 @@ export function getCardStyles() {
         align-items: center;
         gap: clamp(4px, calc(var(--event-bubble-font-size, 11px) * 0.3), 7px);
         min-width: 0;
+        max-width: 100%;
       }
 
       .event-style-icon {
