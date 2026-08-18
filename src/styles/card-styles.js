@@ -1021,7 +1021,18 @@ export function getCardStyles() {
         align-items: center;
         gap: clamp(4px, calc(var(--event-bubble-font-size, 11px) * 0.3), 7px);
         min-width: 0;
+      }
+
+      .week-compact-event-title > .event-title-with-prefix {
         max-width: 100%;
+      }
+
+      .week-compact-event-title .event-title-prefix-friendly-name {
+        flex: 0 1 45%;
+        min-width: 0;
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .event-style-icon {
