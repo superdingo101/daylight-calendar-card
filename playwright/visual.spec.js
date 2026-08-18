@@ -613,6 +613,103 @@ test('regression 543: agenda events expand for wrapped content while compact eve
   expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
 });
 
+test('week compact event titles wrap inside their padded event boundary', async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'week-compact',
+      hide_header: true,
+      event_font_size: 14
+    },
+    events: {
+      'calendar.family': [{
+        summary: 'Zoe’s orientation/meet the teacher',
+        start: '2026-03-18T08:30:00Z',
+        end: '2026-03-18T10:00:00Z'
+      }]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const event = card.locator('.week-compact-event').filter({ hasText: 'orientation/meet' });
+  const title = event.locator('.week-compact-event-title');
+  await expect(title).toBeVisible();
+
+  const geometry = await event.evaluate((eventElement) => {
+    const titleElement = eventElement.querySelector('.week-compact-event-title');
+    const eventRect = eventElement.getBoundingClientRect();
+    const eventStyle = getComputedStyle(eventElement);
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(titleElement);
+    const renderedTextRect = titleRange.getBoundingClientRect();
+    return {
+      contentRight: eventRect.right - Number.parseFloat(eventStyle.paddingRight),
+      renderedTextRight: renderedTextRect.right,
+      titleClientWidth: titleElement.clientWidth,
+      titleScrollWidth: titleElement.scrollWidth
+    };
+  });
+
+  expect(geometry.titleScrollWidth).toBeLessThanOrEqual(geometry.titleClientWidth + 1);
+  expect(geometry.renderedTextRight).toBeLessThanOrEqual(geometry.contentRight + 1);
+});
+
+test('week compact friendly-name prefixes reserve space for wrapped titles', async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      calendar_names: { 'calendar.family': 'Extremely Long Family Activities Calendar Name' },
+      default_view: 'week-compact',
+      event_title_prefix: 'friendly_name',
+      hide_header: true,
+      event_font_size: 14
+    },
+    events: {
+      'calendar.family': [{
+        summary: 'Zoe’s orientation/meet the teacher',
+        start: '2026-03-18T08:30:00Z',
+        end: '2026-03-18T10:00:00Z'
+      }]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const event = card.locator('.week-compact-event').filter({ hasText: 'orientation/meet' });
+  const title = event.locator('.week-compact-event-title');
+  await expect(title).toBeVisible();
+
+  const geometry = await title.evaluate((titleElement) => {
+    const wrapper = titleElement.querySelector('.event-title-with-prefix');
+    const prefix = titleElement.querySelector('.event-title-prefix-friendly-name');
+    const titleNode = [...wrapper.childNodes].find((node) =>
+      node.nodeType === Node.TEXT_NODE && node.textContent.includes('orientation/meet')
+    );
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(titleNode);
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const prefixRect = prefix.getBoundingClientRect();
+    return {
+      prefixWidth: prefixRect.width,
+      wrapperWidth: wrapperRect.width,
+      titleLineCount: titleRange.getClientRects().length,
+      titleScrollWidth: titleElement.scrollWidth,
+      titleClientWidth: titleElement.clientWidth
+    };
+  });
+
+  expect(geometry.prefixWidth).toBeLessThanOrEqual(geometry.wrapperWidth * 0.45 + 1);
+  expect(geometry.titleLineCount).toBeLessThanOrEqual(8);
+  expect(geometry.titleScrollWidth).toBeLessThanOrEqual(geometry.titleClientWidth + 1);
+});
+
 test('discussion 532: transparent surfaces and grid color contract across views', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
