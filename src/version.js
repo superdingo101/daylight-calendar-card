@@ -1,4 +1,4 @@
-export const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.11.1';
+export const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 export function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
