@@ -771,7 +771,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.11.0';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
@@ -4363,6 +4363,11 @@ function getCardStyles() {
         font-size: 1em;
         font-weight: 500;
         line-height: 1.3;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .event-title-with-prefix {
@@ -4370,6 +4375,18 @@ function getCardStyles() {
         align-items: center;
         gap: clamp(4px, calc(var(--event-bubble-font-size, 11px) * 0.3), 7px);
         min-width: 0;
+      }
+
+      .week-compact-event-title > .event-title-with-prefix {
+        max-width: 100%;
+      }
+
+      .week-compact-event-title .event-title-prefix-friendly-name {
+        flex: 0 1 45%;
+        min-width: 0;
+        max-width: 45%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .event-style-icon {
@@ -11576,6 +11593,11 @@ class SkylightCalendarCard extends HTMLElement {
     const badges = this._root.querySelector('.calendar-badges-inline');
 
     if (header) {
+      // Hidden dashboard views have no usable layout width. Measuring them
+      // would count the configured gap against zero-width groups and falsely
+      // mark the header as wrapped.
+      if (this.getElementContentWidth(header) <= 0) return;
+
       const liveLeftGroup = this._config.compact_header
         ? header.querySelector('.compact-header-left')
         : header.querySelector('.header-left');
@@ -14369,6 +14391,10 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.observeHostAndParentResize();
     this.attachEventListeners();
+    // render() replaces the header DOM, including its responsive wrap classes.
+    // Restore them synchronously so an unwrapped header is never painted, then
+    // keep the deferred measurement for late layout changes (fonts/icons).
+    this.measureAndApplyHeaderWrapState();
     this.updateCompactHeaderWrapState();
     this.updateCalendarBadgesScrollState();
     this.updateWeekStandardFixedOffsetHeightFromDom();

@@ -613,6 +613,103 @@ test('regression 543: agenda events expand for wrapped content while compact eve
   expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
 });
 
+test('week compact event titles wrap inside their padded event boundary', async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'week-compact',
+      hide_header: true,
+      event_font_size: 14
+    },
+    events: {
+      'calendar.family': [{
+        summary: 'Zoe’s orientation/meet the teacher',
+        start: '2026-03-18T08:30:00Z',
+        end: '2026-03-18T10:00:00Z'
+      }]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const event = card.locator('.week-compact-event').filter({ hasText: 'orientation/meet' });
+  const title = event.locator('.week-compact-event-title');
+  await expect(title).toBeVisible();
+
+  const geometry = await event.evaluate((eventElement) => {
+    const titleElement = eventElement.querySelector('.week-compact-event-title');
+    const eventRect = eventElement.getBoundingClientRect();
+    const eventStyle = getComputedStyle(eventElement);
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(titleElement);
+    const renderedTextRect = titleRange.getBoundingClientRect();
+    return {
+      contentRight: eventRect.right - Number.parseFloat(eventStyle.paddingRight),
+      renderedTextRight: renderedTextRect.right,
+      titleClientWidth: titleElement.clientWidth,
+      titleScrollWidth: titleElement.scrollWidth
+    };
+  });
+
+  expect(geometry.titleScrollWidth).toBeLessThanOrEqual(geometry.titleClientWidth + 1);
+  expect(geometry.renderedTextRight).toBeLessThanOrEqual(geometry.contentRight + 1);
+});
+
+test('week compact friendly-name prefixes reserve space for wrapped titles', async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      calendar_names: { 'calendar.family': 'Extremely Long Family Activities Calendar Name' },
+      default_view: 'week-compact',
+      event_title_prefix: 'friendly_name',
+      hide_header: true,
+      event_font_size: 14
+    },
+    events: {
+      'calendar.family': [{
+        summary: 'Zoe’s orientation/meet the teacher',
+        start: '2026-03-18T08:30:00Z',
+        end: '2026-03-18T10:00:00Z'
+      }]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const event = card.locator('.week-compact-event').filter({ hasText: 'orientation/meet' });
+  const title = event.locator('.week-compact-event-title');
+  await expect(title).toBeVisible();
+
+  const geometry = await title.evaluate((titleElement) => {
+    const wrapper = titleElement.querySelector('.event-title-with-prefix');
+    const prefix = titleElement.querySelector('.event-title-prefix-friendly-name');
+    const titleNode = [...wrapper.childNodes].find((node) =>
+      node.nodeType === Node.TEXT_NODE && node.textContent.includes('orientation/meet')
+    );
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(titleNode);
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const prefixRect = prefix.getBoundingClientRect();
+    return {
+      prefixWidth: prefixRect.width,
+      wrapperWidth: wrapperRect.width,
+      titleLineCount: titleRange.getClientRects().length,
+      titleScrollWidth: titleElement.scrollWidth,
+      titleClientWidth: titleElement.clientWidth
+    };
+  });
+
+  expect(geometry.prefixWidth).toBeLessThanOrEqual(geometry.wrapperWidth * 0.45 + 1);
+  expect(geometry.titleLineCount).toBeLessThanOrEqual(8);
+  expect(geometry.titleScrollWidth).toBeLessThanOrEqual(geometry.titleClientWidth + 1);
+});
+
 test('discussion 532: transparent surfaces and grid color contract across views', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
@@ -1741,6 +1838,84 @@ test('regression issue 321: compact wrapped header rows stay centered at medium 
   await expect.poll(async () => headerGroupsShareRow(left, controls)).toBe(false);
   await expect.poll(async () => centerOffsetWithinTolerance(header, left)).toBe(true);
   await expect.poll(async () => centerOffsetWithinTolerance(header, controls)).toBe(true);
+});
+
+test('regression issue 572: wrapped compact header stays wrapped during a calendar toggle rerender', async ({ page }) => {
+  await page.setViewportSize({ width: 980, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Issue 572 Compact Wrapped Header',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true,
+      show_dashboard_nav_button: true,
+      header_weather_sensor: 'weather.mock',
+      enable_event_management: true,
+      hide_view_selector: false
+    },
+    events: baseEvents,
+    weather: { 'weather.mock': { temperature: 72, condition: 'sunny' } },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect.poll(async () =>
+    card.locator('.header-compact').evaluate((header) => header.classList.contains('is-wrapped'))
+  ).toBe(true);
+
+  const wrapStateImmediatelyAfterRender = await card.evaluate((element) => {
+    element.querySelector('.calendar-badge-inline')?.click();
+    return element.querySelector('.header-compact')?.classList.contains('is-wrapped') ?? false;
+  });
+
+  expect(wrapStateImmediatelyAfterRender).toBe(true);
+});
+
+test('regression issue 572: hidden header does not commit a zero-width wrapped state', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Issue 572 Hidden Header',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true
+    },
+    events: baseEvents,
+    darkMode: false,
+    parentStyle: 'display: none;'
+  });
+
+  // Wait beyond the two deferred animation frames used by the wrap measurement.
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }));
+
+  const card = page.locator('skylight-calendar-card');
+  const hiddenState = await card.evaluate((element) => {
+    const header = element.querySelector('.header-compact');
+    return {
+      contentWidth: header?.clientWidth ?? -1,
+      wrapped: header?.classList.contains('is-wrapped') ?? false
+    };
+  });
+  expect(hiddenState.contentWidth).toBe(0);
+  expect(hiddenState.wrapped).toBe(false);
+
+  await page.evaluate(() => {
+    document.getElementById('app').style.display = '';
+  });
+
+  const header = card.locator('.header-compact');
+  const left = card.locator('.compact-header-left').first();
+  const controls = card.locator('.compact-header-controls').first();
+  await expect.poll(async () => headerGroupsShareRow(left, controls)).toBe(true);
+  await expect(header).not.toHaveClass(/is-wrapped/);
 });
 
 test('regression issue 496: modal action buttons wrap instead of overflowing on small screens', async ({ page }) => {
