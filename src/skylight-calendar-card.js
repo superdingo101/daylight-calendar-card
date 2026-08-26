@@ -5899,6 +5899,28 @@ class SkylightCalendarCard extends HTMLElement {
     return !this._config.disable_swipe_controls && this._viewMode !== 'agenda';
   }
 
+  isSwipeNavigationExcludedTarget(target) {
+    if (typeof Element === 'undefined' || !(target instanceof Element)) {
+      return false;
+    }
+
+    if (target.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id], [data-swipe-navigation-exempt]')) {
+      return true;
+    }
+
+    const cardContainer = this._root?.querySelector('.calendar-container') || null;
+    let element = target;
+    while (element && element !== cardContainer) {
+      const maxHorizontalScroll = Math.max(0, (element.scrollWidth || 0) - (element.clientWidth || 0));
+      if (maxHorizontalScroll > 1 && element.closest?.('.week-standard-container') !== element) {
+        return true;
+      }
+      element = element.parentElement;
+    }
+
+    return false;
+  }
+
   canTriggerSwipePeriodNavigation(deltaX) {
     if (this._viewMode !== 'week-standard') {
       return true;
@@ -5942,8 +5964,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._swipeStartX = touch.clientX;
       this._swipeStartY = touch.clientY;
       this._swipeTracking = true;
-      const eventTarget = event.target instanceof Element ? event.target : null;
-      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id]');
+      this._swipeStartedOnInteractive = this.isSwipeNavigationExcludedTarget(event.target);
     }, { passive: true });
 
     container.addEventListener('touchend', (event) => {
