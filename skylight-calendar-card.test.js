@@ -4241,6 +4241,121 @@ test('day badge actions are treated as interactive swipe targets', () => {
   }
 });
 
+
+test('touch swipes that start in horizontal scroll regions do not navigate periods', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const badgeScroller = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container });
+    const badge = new FakeElement({ parentElement: badgeScroller });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    card.canNavigateToPreviousPeriod = () => true;
+    let nextCalls = 0;
+    let previousCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+    card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: badge,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    assert.equal(card._swipeStartedOnInteractive, true);
+
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 0);
+    assert.equal(previousCalls, 0);
+    assert.equal(card._swipeStartedOnInteractive, false);
+    assert.equal(card._swipeTracking, false);
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
+
+test('touch swipes outside excluded regions still navigate periods', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const dayCell = new FakeElement({ parentElement: container });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    card.canNavigateToPreviousPeriod = () => true;
+    let nextCalls = 0;
+    let previousCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+    card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: dayCell,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    assert.equal(card._swipeStartedOnInteractive, false);
+
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 1);
+    assert.equal(previousCalls, 0);
+    assert.equal(card._swipeTracking, false);
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
+
 test('day badge helper module delegates preserve normalization and resolution behavior', () => {
   const card = makeCard({ entities: ['calendar.a'] });
   const block = card.normalizeDayBadgeBlock({
