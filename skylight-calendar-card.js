@@ -16678,7 +16678,9 @@ class SkylightCalendarCard extends HTMLElement {
     let element = target;
     while (element && element !== cardContainer) {
       const maxHorizontalScroll = Math.max(0, (element.scrollWidth || 0) - (element.clientWidth || 0));
-      if (maxHorizontalScroll > 1 && element.closest?.('.week-standard-container') !== element) {
+      const overflowX = globalThis.getComputedStyle?.(element)?.overflowX;
+      const allowsHorizontalScrolling = overflowX === 'auto' || overflowX === 'scroll';
+      if (maxHorizontalScroll > 1 && allowsHorizontalScrolling && element.closest?.('.week-standard-container') !== element) {
         return true;
       }
       element = element.parentElement;

@@ -4244,12 +4244,14 @@ test('day badge actions are treated as interactive swipe targets', () => {
 
 test('touch swipes that start in horizontal scroll regions do not navigate periods', () => {
   const OriginalElement = global.Element;
+  const originalGetComputedStyle = global.getComputedStyle;
   class FakeElement {
-    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null } = {}) {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null, overflowX = 'visible' } = {}) {
       this.matchingSelectors = matchingSelectors;
       this.scrollWidth = scrollWidth;
       this.clientWidth = clientWidth;
       this.parentElement = parentElement;
+      this.overflowX = overflowX;
     }
     closest(selector) {
       const selectors = selector.split(',').map((part) => part.trim());
@@ -4257,13 +4259,14 @@ test('touch swipes that start in horizontal scroll regions do not navigate perio
     }
   }
   global.Element = FakeElement;
+  global.getComputedStyle = (element) => ({ overflowX: element.overflowX });
 
   try {
     const card = makeCard({ entities: ['calendar.family'] });
     const handlers = {};
     const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
     container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
-    const badgeScroller = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container });
+    const badgeScroller = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container, overflowX: 'auto' });
     const badge = new FakeElement({ parentElement: badgeScroller });
     card._root = {
       querySelector: (selector) => selector === '.calendar-container' ? container : null
@@ -4296,6 +4299,71 @@ test('touch swipes that start in horizontal scroll regions do not navigate perio
       delete global.Element;
     } else {
       global.Element = OriginalElement;
+    }
+    if (originalGetComputedStyle === undefined) {
+      delete global.getComputedStyle;
+    } else {
+      global.getComputedStyle = originalGetComputedStyle;
+    }
+  }
+});
+
+test('touch swipes that start in clipped overflow regions still navigate periods', () => {
+  const OriginalElement = global.Element;
+  const originalGetComputedStyle = global.getComputedStyle;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null, overflowX = 'visible' } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+      this.overflowX = overflowX;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+  global.getComputedStyle = (element) => ({ overflowX: element.overflowX });
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const clippedBadges = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container, overflowX: 'hidden' });
+    const badge = new FakeElement({ parentElement: clippedBadges });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    let nextCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: badge,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 1);
+    assert.equal(card._swipeStartedOnInteractive, false);
+    assert.equal(card._swipeTracking, false);
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+    if (originalGetComputedStyle === undefined) {
+      delete global.getComputedStyle;
+    } else {
+      global.getComputedStyle = originalGetComputedStyle;
     }
   }
 });
