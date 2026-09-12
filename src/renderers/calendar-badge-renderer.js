@@ -3,7 +3,7 @@ export function renderCalendarBadges({ badgeItems, hideCalendarNames = false, he
 
   return `
       <div class="calendar-badges-container">
-        <div class="calendar-badges">
+        <div class="calendar-badges" data-swipe-navigation-exempt>
           ${badgeItems.map((badgeItem) => renderCalendarBadge({
             badgeItem,
             hideCalendarNames,
