@@ -868,8 +868,7 @@ export function getCardStyles() {
       }
 
       .week-compact-container.compact-height {
-        grid-auto-rows: max-content;
-        align-content: start;
+        grid-auto-rows: minmax(max-content, 1fr);
       }
 
       .week-day-column {
