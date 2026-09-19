@@ -1638,6 +1638,69 @@ async function assertCompactHeightGeometry(card, page, viewSpec, viewport, alloc
   }
 }
 
+test('week compact sparse fixed-height allocation fills available height', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Sparse Compact Height Calendar',
+      default_view: 'week-compact',
+      compact_height: true,
+      hide_calendars: true
+    },
+    events: {
+      'calendar.family': [
+        {
+          summary: 'Morning appointment',
+          start: '2026-03-15T09:00:00Z',
+          end: '2026-03-15T10:00:00Z'
+        }
+      ]
+    },
+    darkMode: false,
+    parentStyle: 'width: 100%; min-width: 0; height: 620px; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr);'
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const container = card.locator('.week-compact-container');
+  await expect(container).toBeVisible();
+
+  const geometry = await container.evaluate((containerEl) => {
+    const containerRect = containerEl.getBoundingClientRect();
+    const columns = [...containerEl.querySelectorAll('.week-day-column')];
+    const rows = new Map();
+
+    for (const column of columns) {
+      const rect = column.getBoundingClientRect();
+      const key = Math.round(rect.top);
+      if (!rows.has(key)) {
+        rows.set(key, { top: rect.top, bottom: rect.bottom });
+      } else {
+        rows.get(key).bottom = Math.max(rows.get(key).bottom, rect.bottom);
+      }
+    }
+
+    const rowRects = [...rows.values()].sort((a, b) => a.top - b.top);
+    return {
+      containerTop: containerRect.top,
+      containerBottom: containerRect.bottom,
+      containerHeight: containerRect.height,
+      rowRects,
+      scrollHeight: containerEl.scrollHeight,
+      clientHeight: containerEl.clientHeight
+    };
+  });
+
+  expect(geometry.rowRects).toHaveLength(1);
+  expect(geometry.rowRects[0].top).toBeGreaterThanOrEqual(geometry.containerTop - 1);
+  expect(geometry.rowRects[0].bottom).toBeGreaterThanOrEqual(geometry.containerBottom - 2);
+  expect(geometry.rowRects[0].bottom).toBeLessThanOrEqual(geometry.containerBottom + 2);
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight + 1);
+});
+
 for (const allocationMode of compactHeightAllocationModes) {
   for (const viewport of compactHeightViewports) {
     for (const viewSpec of compactHeightViews) {
