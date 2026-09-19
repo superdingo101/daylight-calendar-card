@@ -539,7 +539,7 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
-test('regression 543: agenda events expand for wrapped content while compact events stay content-sized', async ({ page }) => {
+test('regression 543: agenda events expand to contain wrapped content in standard and compact layouts', async ({ page }) => {
   await page.setViewportSize({ width: 500, height: 900 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
@@ -602,15 +602,35 @@ test('regression 543: agenda events expand for wrapped content while compact eve
 
   await render(true);
   const compactGeometry = await event.evaluate((eventElement) => {
+    const eventRect = eventElement.getBoundingClientRect();
     const style = getComputedStyle(eventElement);
+    const content = [...eventElement.querySelectorAll('.agenda-event-time, .agenda-event-title, .agenda-event-location')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      });
+    const title = eventElement.querySelector('.agenda-event-title');
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(title);
+    const location = eventElement.querySelector('.agenda-event-location');
+    const locationRect = location.getBoundingClientRect();
     return {
-      height: eventElement.getBoundingClientRect().height,
+      eventTop: eventRect.top,
+      eventBottom: eventRect.bottom,
+      eventHeight: eventRect.height,
       minHeight: style.minHeight,
-      baseline: Number.parseFloat(style.getPropertyValue('--agenda-event-min-height'))
+      content,
+      titleLineCount: titleRange.getClientRects().length,
+      bottomClearance: eventRect.bottom - locationRect.bottom
     };
   });
   expect(compactGeometry.minHeight).toBe('0px');
-  expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
+  expect(compactGeometry.titleLineCount).toBeGreaterThan(1);
+  for (const contentRect of compactGeometry.content) {
+    expect(contentRect.top).toBeGreaterThanOrEqual(compactGeometry.eventTop - 1);
+    expect(contentRect.bottom).toBeLessThanOrEqual(compactGeometry.eventBottom + 1);
+  }
+  expect(compactGeometry.bottomClearance).toBeGreaterThanOrEqual(7);
 });
 
 test('compact agenda titles wrap without widening the shared event column', async ({ page }) => {
