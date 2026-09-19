@@ -1134,7 +1134,7 @@ export function getCardStyles() {
 
       .agenda-day-row {
         display: grid;
-        grid-template-columns: 88px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 12px;
         border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
@@ -1199,6 +1199,7 @@ export function getCardStyles() {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-width: 0;
       }
 
       .agenda-event {
@@ -1260,10 +1261,11 @@ export function getCardStyles() {
 
       .calendar-container.agenda-compact-events .agenda-event-title {
         flex: 1 1 auto;
+        min-width: 0;
         min-height: unset;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .calendar-container.agenda-compact-events .agenda-event-time {
