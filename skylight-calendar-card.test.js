@@ -2096,6 +2096,101 @@ test('normalizes enum helper aliases and fallbacks consistently', () => {
   assert.equal(card.normalizeEventColorMode('bad-value'), 'classic');
 });
 
+test('hass theme changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card._isDarkMode = false;
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.ensureEventsForCurrentRange = () => {};
+
+  let renderCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card.hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: true }
+  };
+
+  assert.equal(card._isDarkMode, true);
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('hass language changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card._activeLanguage = 'en';
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.ensureEventsForCurrentRange = () => {};
+
+  let renderCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card.hass = {
+    states: {},
+    locale: { language: 'da' },
+    language: 'da',
+    themes: { darkMode: false }
+  };
+
+  assert.equal(card._activeLanguage, 'da');
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('system theme changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._themeMode = 'auto';
+  card._isDarkMode = false;
+
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card._handleSystemThemeChange({ matches: true });
+
+  assert.equal(card._isDarkMode, true);
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
 test('normalizes css length helpers while preserving size and border width rules', () => {
   const card = makeCard();
 
