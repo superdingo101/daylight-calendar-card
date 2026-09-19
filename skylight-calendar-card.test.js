@@ -3328,6 +3328,80 @@ test('agenda rolling days are configurable and include current day + N days', ()
   assert.equal(card.getAgendaDays().length, 5);
 });
 
+test('agenda rolling window advances at local midnight and preserves the configured span', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+  const initialDay = new Date(2026, 8, 18, 10, 30);
+  card.resetAgendaWindowToToday(initialDay);
+
+  const advanced = card.advanceAgendaWindowToCurrentDay(new Date(2026, 8, 19, 0, 0, 1));
+
+  assert.equal(advanced, true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-09-19');
+  assert.equal(localDateKey(card._agendaEndDate), '2026-09-22');
+  assert.deepEqual(card.getAgendaDays().map(localDateKey), [
+    '2026-09-19',
+    '2026-09-20',
+    '2026-09-21',
+    '2026-09-22'
+  ]);
+});
+
+test('agenda rollover target is browser-local midnight and follows DST calendar arithmetic', () => {
+  const previousTimeZone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+    const dstStartMidnight = new Date(2026, 2, 8, 0, 0, 0, 0);
+    const nextMidnight = card.getNextAgendaLocalMidnight(dstStartMidnight);
+
+    assert.equal(nextMidnight.getFullYear(), 2026);
+    assert.equal(nextMidnight.getMonth(), 2);
+    assert.equal(nextMidnight.getDate(), 9);
+    assert.equal(nextMidnight.getHours(), 0);
+    assert.equal(nextMidnight.getMinutes(), 0);
+    assert.notEqual(dstStartMidnight.getTimezoneOffset(), nextMidnight.getTimezoneOffset());
+    assert.equal(nextMidnight.getTime() - dstStartMidnight.getTime(), 23 * 60 * 60 * 1000);
+  } finally {
+    if (previousTimeZone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = previousTimeZone;
+    }
+  }
+});
+
+test('manual agenda navigation opts out of automatic local-midnight rollover', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 2 });
+  card._viewMode = 'agenda';
+  card.resetAgendaWindowToToday(new Date(2026, 8, 18, 10, 30));
+  card.navigateToNextPeriod();
+
+  const navigatedStart = localDateKey(card._agendaStartDate);
+  const advanced = card.advanceAgendaWindowToCurrentDay(new Date(2026, 8, 19, 0, 0, 1));
+
+  assert.equal(card._agendaFollowsToday, false);
+  assert.equal(advanced, false);
+  assert.equal(localDateKey(card._agendaStartDate), navigatedStart);
+});
+
+test('agenda local-midnight rollover refreshes the visible range', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+  card._viewMode = 'agenda';
+  card._hass = {};
+  card.resetAgendaWindowToToday(new Date(2026, 8, 18, 10, 30));
+  card.isEventManagementDialogOpen = () => false;
+
+  let refreshOptions = null;
+  card.ensureEventsForCurrentRange = (options) => { refreshOptions = options; };
+
+  const advanced = card.handleAgendaDayRollover(new Date(2026, 8, 19, 0, 0, 1));
+
+  assert.equal(advanced, true);
+  assert.deepEqual(refreshOptions, { renderIfCovered: true });
+  assert.equal(localDateKey(card._agendaStartDate), '2026-09-19');
+});
+
 test('agenda vertical scroll loading is disabled in rolling-days mode', async () => {
   const card = makeCard({ entities: ['calendar.family'], rolling_days_agenda: 2 });
   const handlers = {};
