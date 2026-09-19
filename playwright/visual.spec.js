@@ -613,6 +613,81 @@ test('regression 543: agenda events expand for wrapped content while compact eve
   expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
 });
 
+test('compact agenda titles wrap without widening the shared event column', async ({ page }) => {
+  await page.setViewportSize({ width: 500, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'agenda',
+      agenda_compact_events: true,
+      rolling_days_agenda: 1,
+      event_font_size: 34,
+      hide_header: true
+    },
+    events: {
+      'calendar.family': [
+        {
+          summary: 'Family curriculum night and classroom orientation with an intentionally long agenda title',
+          start: '2026-03-15T11:00:00Z',
+          end: '2026-03-15T12:00:00Z'
+        },
+        {
+          summary: 'Short sibling event',
+          start: '2026-03-15T13:00:00Z',
+          end: '2026-03-15T14:00:00Z'
+        }
+      ]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const dayRow = card.locator('.agenda-day-row').filter({ hasText: 'Family curriculum night' }).first();
+  const longEvent = dayRow.locator('.agenda-event').filter({ hasText: 'Family curriculum night' });
+  const shortEvent = dayRow.locator('.agenda-event').filter({ hasText: 'Short sibling event' });
+  const longTitle = longEvent.locator('.agenda-event-title');
+
+  await expect(longTitle).toBeVisible();
+  await expect(shortEvent).toBeVisible();
+
+  const geometry = await dayRow.evaluate((row) => {
+    const container = row.closest('.agenda-container');
+    const dayEvents = row.querySelector('.agenda-day-events');
+    const events = [...dayEvents.querySelectorAll('.agenda-event')];
+    const title = events[0].querySelector('.agenda-event-title');
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(title);
+    const containerRect = container.getBoundingClientRect();
+    const dayEventsRect = dayEvents.getBoundingClientRect();
+    const eventRects = events.map((event) => {
+      const rect = event.getBoundingClientRect();
+      const style = getComputedStyle(event);
+      return {
+        left: rect.left,
+        right: rect.right,
+        borderTopRightRadius: style.borderTopRightRadius,
+        borderBottomRightRadius: style.borderBottomRightRadius
+      };
+    });
+    return {
+      titleLineCount: titleRange.getClientRects().length,
+      dayEventsRight: dayEventsRect.right,
+      containerRight: containerRect.right,
+      eventRects
+    };
+  });
+
+  expect(geometry.titleLineCount).toBeGreaterThan(1);
+  expect(geometry.dayEventsRight).toBeLessThanOrEqual(geometry.containerRight + 1);
+  for (const eventRect of geometry.eventRects) {
+    expect(eventRect.right).toBeLessThanOrEqual(geometry.containerRight + 1);
+    expect(eventRect.borderTopRightRadius).not.toBe('0px');
+    expect(eventRect.borderBottomRightRadius).not.toBe('0px');
+  }
+});
+
 test('week compact event titles wrap inside their padded event boundary', async ({ page }) => {
   await page.setViewportSize({ width: 432, height: 900 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
