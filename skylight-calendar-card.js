@@ -11183,6 +11183,10 @@ class SkylightCalendarCard extends HTMLElement {
       }
 
       this._isDarkMode = !!event.matches;
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHeaderSensorRender = true;
+        return;
+      }
       this.render();
     };
     this._weekStandardFixedOffsetHeight = null;
@@ -11880,7 +11884,12 @@ class SkylightCalendarCard extends HTMLElement {
     this.refreshWeatherForecastData();
 
     if (shouldRender) {
-      this.renderPreservingAgendaScroll();
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHeaderSensorRender = true;
+      } else {
+        this._pendingHeaderSensorRender = false;
+        this.renderPreservingAgendaScroll();
+      }
     }
 
     // Refresh only when stale or when current view needs dates outside loaded range.
