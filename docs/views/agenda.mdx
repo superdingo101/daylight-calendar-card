@@ -104,3 +104,18 @@ use_short_location: false
 <Tip>
   If you want the Agenda view inside a fixed-height grid card, add `compact_height: true` to prevent the list from expanding the card's vertical footprint as the event count grows. The list will scroll internally within the fixed container instead.
 </Tip>
+
+<Tip>
+  Compact Agenda titles wrap to a second line by default so long names never widen the day row. If you prefer one-line titles truncated with an ellipsis, add this `uix.style` override:
+
+  ```yaml
+  uix:
+    style: |
+      .calendar-container.agenda-compact-events .agenda-event-title {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+  ```
+</Tip>
