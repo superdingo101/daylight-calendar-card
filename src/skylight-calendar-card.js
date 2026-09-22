@@ -63,6 +63,7 @@ import {
   normalizeDefaultHiddenCalendars as normalizeDefaultHiddenCalendarsHelper,
   normalizeEventColorMode as normalizeEventColorModeHelper,
   normalizeEventModalSize as normalizeEventModalSizeHelper,
+  normalizeEventTimeStep as normalizeEventTimeStepHelper,
   normalizeEventTitlePrefixMode as normalizeEventTitlePrefixModeHelper,
   normalizePastEventMode as normalizePastEventModeHelper,
   normalizeThemeMode as normalizeThemeModeHelper
@@ -6237,6 +6238,71 @@ class SkylightCalendarCard extends HTMLElement {
     endInput.addEventListener('change', recalculateDuration);
   }
 
+  getEventTimeStep() {
+    return normalizeEventTimeStepHelper(this._config?.event_time_step);
+  }
+
+  // With event_time_step > 1 the form renders a date field plus hour/minute selects
+  // (see renderSteppedDateTimeControl) around a hidden datetime-local-formatted input
+  // that keeps the existing #event-start / #event-end ids. This wires the visible
+  // controls to that hidden input and keeps the duration sync working.
+  setupSteppedDateTimeInputs() {
+    const groups = Array.from(this._root?.querySelectorAll?.('.form-stepped-datetime') || []);
+    if (groups.length === 0) return;
+
+    const getParts = (group) => ({
+      date: group.querySelector('[data-stepped-part="date"]'),
+      hour: group.querySelector('[data-stepped-part="hour"]'),
+      minute: group.querySelector('[data-stepped-part="minute"]'),
+      hidden: group.querySelector('input[type="hidden"]')
+    });
+
+    const ensureOption = (select, value) => {
+      if (!select) return;
+      const options = Array.from(select.options || []);
+      if (options.some((option) => option.value === value)) return;
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      const nextOption = options.find((existing) => existing.value > value) || null;
+      select.add(option, nextOption);
+    };
+
+    const applyHiddenValueToControls = (group) => {
+      const { date, hour, minute, hidden } = getParts(group);
+      const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(hidden?.value || '');
+      if (!match) return;
+      if (date) date.value = match[1];
+      if (hour) {
+        ensureOption(hour, match[2]);
+        hour.value = match[2];
+      }
+      if (minute) {
+        ensureOption(minute, match[3]);
+        minute.value = match[3];
+      }
+    };
+
+    const composeHiddenValue = (group) => {
+      const { date, hour, minute, hidden } = getParts(group);
+      if (!hidden) return;
+      const dateValue = date?.value || '';
+      hidden.value = dateValue ? `${dateValue}T${hour?.value || '00'}:${minute?.value || '00'}` : '';
+      // Let setupStartEndDurationSync react exactly as it would to a native input.
+      hidden.dispatchEvent(new Event('change'));
+      groups.forEach((other) => {
+        if (other !== group) applyHiddenValueToControls(other);
+      });
+    };
+
+    groups.forEach((group) => {
+      const { date, hour, minute } = getParts(group);
+      [date, hour, minute].forEach((control) => {
+        control?.addEventListener('change', () => composeHiddenValue(group));
+      });
+    });
+  }
+
   resolveTimedEventRange(startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) {
     return resolveTimedEventRangeHelper(startValue, endValue, fallbackDurationMs);
   }
@@ -6302,6 +6368,7 @@ class SkylightCalendarCard extends HTMLElement {
       isPrefilledAllDay,
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      eventTimeStep: this.getEventTimeStep(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -6350,6 +6417,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.setupStartEndDurationSync({ startInputId: 'event-start', endInputId: 'event-end' });
     this.setupStartEndDurationSync({ startInputId: 'event-start-date', endInputId: 'event-end-date', isDateOnly: true });
+    this.setupSteppedDateTimeInputs();
 
     // Close button
     this.getRootElementById('close-modal').addEventListener('click', () => {
@@ -6499,6 +6567,7 @@ class SkylightCalendarCard extends HTMLElement {
       recurringSelectedByDefault,
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      eventTimeStep: this.getEventTimeStep(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -6547,6 +6616,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.setupStartEndDurationSync({ startInputId: 'event-start', endInputId: 'event-end' });
     this.setupStartEndDurationSync({ startInputId: 'event-start-date', endInputId: 'event-end-date', isDateOnly: true });
+    this.setupSteppedDateTimeInputs();
 
     // Close button
     this.getRootElementById('close-modal').addEventListener('click', () => {

@@ -160,6 +160,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_neutral_background: 'event color modes normalize widths and tint opacity endpoints',
   event_tint_opacity: 'event color modes normalize widths and tint opacity endpoints',
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
+  event_time_step: 'event_time_step normalizes to divisors of 60 and renders stepped time controls',
   event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
   readonly_calendars: 'readonly calendars suppress event management actions',
   hide_badge_calendars: 'calendar badges respect hidden badge calendars',
@@ -626,8 +627,8 @@ test('event detail X button preserves active modal back-handler behavior', () =>
   assert.equal(card._activeModalBackHandler, null);
 });
 
-function createEventFormHarness({ mode = 'create' } = {}) {
-  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+function createEventFormHarness({ mode = 'create', config = {} } = {}) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true, ...config });
   card.getWritableCalendars = () => ['calendar.family'];
   card.getCalendarName = () => 'Family';
   card.applyEventModalSizeClass = () => {};
@@ -689,7 +690,7 @@ function createEventFormHarness({ mode = 'create' } = {}) {
   } else {
     card.showCreateEventModal(new Date('2026-05-01T09:00:00Z'), new Date('2026-05-01T09:00:00Z'));
   }
-  return { handlers, modalClassList, card };
+  return { handlers, modalClassList, card, content };
 }
 
 test('Cancel buttons close create and edit workflows', () => {
@@ -9925,4 +9926,119 @@ test('showEditEventModal checks the correct weekday when the event rrule omits B
   const moCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="MO"[^>]*>/);
   assert.ok(moCheckboxMatch, 'expected a MO weekday checkbox to be rendered');
   assert.doesNotMatch(moCheckboxMatch[0], /checked/);
+});
+
+test('event_time_step normalizes to divisors of 60 and renders stepped time controls', () => {
+  assert.equal(makeCard({ entities: ['calendar.family'] })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 5 })._config.event_time_step, 5);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: '15' })._config.event_time_step, 15);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 7 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 0 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 'abc' })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: null })._config.event_time_step, 1);
+
+  const nativeHarness = createEventFormHarness();
+  assert.match(nativeHarness.content.innerHTML, /type="datetime-local" class="form-input" id="event-start"/);
+  assert.doesNotMatch(nativeHarness.content.innerHTML, /form-stepped-datetime/);
+
+  const steppedHarness = createEventFormHarness({ config: { event_time_step: 5 } });
+  const html = steppedHarness.content.innerHTML;
+  assert.doesNotMatch(html, /type="datetime-local"/);
+  assert.match(html, /data-stepped-datetime="event-start"/);
+  assert.match(html, /data-stepped-datetime="event-end"/);
+  assert.match(html, /<input type="hidden" id="event-start" value="2026-05-01T\d{2}:\d{2}"/);
+  assert.match(html, /<input type="hidden" id="event-end" value="2026-05-01T\d{2}:\d{2}"/);
+  const startMinuteSelect = html.match(/<select class="form-select form-stepped-minute"[^>]*>(.*?)<\/select>/s)[1];
+  const minuteOptions = [...startMinuteSelect.matchAll(/<option value="(\d{2})"/g)].map((match) => match[1]);
+  assert.deepEqual(minuteOptions, ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']);
+  const hourSelect = html.match(/<select class="form-select form-stepped-hour"[^>]*>(.*?)<\/select>/s)[1];
+  assert.equal([...hourSelect.matchAll(/<option value="(\d{2})"/g)].length, 24);
+
+  // Editing an event with an off-step time keeps that minute selectable.
+  const editHarness = createEventFormHarness({ mode: 'edit', config: { event_time_step: 15 } });
+  const editStart = new Date('2026-05-01T09:00:00Z');
+  editStart.setMinutes(7);
+  editHarness.card.showEditEventModal(
+    { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', start: { dateTime: editStart.toISOString() }, end: { dateTime: new Date(editStart.getTime() + 3600000).toISOString() } },
+    editStart,
+    new Date(editStart.getTime() + 3600000),
+    false
+  );
+  const editMinuteSelect = editHarness.content.innerHTML.match(/<select class="form-select form-stepped-minute"[^>]*>(.*?)<\/select>/s)[1];
+  const editMinuteOptions = [...editMinuteSelect.matchAll(/<option value="(\d{2})"( selected)?/g)].map((match) => `${match[1]}${match[2] ? '*' : ''}`);
+  assert.deepEqual(editMinuteOptions, ['00', '07*', '15', '30', '45']);
+});
+
+test('setupSteppedDateTimeInputs composes the hidden datetime value and mirrors duration sync into the end controls', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_time_step: 5 });
+  const makeControl = (value) => {
+    const handlers = [];
+    return {
+      value,
+      addEventListener: (type, handler) => { if (type === 'change') handlers.push(handler); },
+      dispatchEvent: (event) => { handlers.forEach((handler) => handler(event)); return true; },
+      change: () => handlers.forEach((handler) => handler({ type: 'change' }))
+    };
+  };
+  const makeSelect = (values, selected) => {
+    const select = makeControl(selected);
+    select.options = values.map((value) => ({ value }));
+    select.add = (option, before) => {
+      const index = before ? select.options.indexOf(before) : -1;
+      if (index === -1) select.options.push({ value: option.value });
+      else select.options.splice(index, 0, { value: option.value });
+    };
+    return select;
+  };
+  const makeGroup = (dateValue, hour, minute) => {
+    const parts = {
+      '[data-stepped-part="date"]': makeControl(dateValue),
+      '[data-stepped-part="hour"]': makeSelect(Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), hour),
+      '[data-stepped-part="minute"]': makeSelect(['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'], minute),
+      'input[type="hidden"]': makeControl(`${dateValue}T${hour}:${minute}`)
+    };
+    return { parts, querySelector: (selector) => parts[selector] || null };
+  };
+  const startGroup = makeGroup('2026-05-01', '09', '00');
+  const endGroup = makeGroup('2026-05-01', '10', '00');
+  card._root = { querySelectorAll: (selector) => (selector === '.form-stepped-datetime' ? [startGroup, endGroup] : []) };
+
+  // Stand-in for setupStartEndDurationSync: keep a one-hour duration when the start changes.
+  const startHidden = startGroup.parts['input[type="hidden"]'];
+  const endHidden = endGroup.parts['input[type="hidden"]'];
+  startHidden.addEventListener('change', () => {
+    if (!startHidden.value) return;
+    const [datePart, timePart] = startHidden.value.split('T');
+    const [hours, minutes] = timePart.split(':').map(Number);
+    endHidden.value = `${datePart}T${String(hours + 1).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  });
+
+  card.setupSteppedDateTimeInputs();
+
+  startGroup.parts['[data-stepped-part="minute"]'].value = '15';
+  startGroup.parts['[data-stepped-part="minute"]'].change();
+  assert.equal(startHidden.value, '2026-05-01T09:15');
+  assert.equal(endHidden.value, '2026-05-01T10:15');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '10');
+  assert.equal(endGroup.parts['[data-stepped-part="minute"]'].value, '15');
+
+  startGroup.parts['[data-stepped-part="date"]'].value = '2026-05-02';
+  startGroup.parts['[data-stepped-part="hour"]'].value = '22';
+  startGroup.parts['[data-stepped-part="hour"]'].change();
+  assert.equal(startHidden.value, '2026-05-02T22:15');
+  assert.equal(endGroup.parts['[data-stepped-part="date"]'].value, '2026-05-02');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '23');
+
+  // An off-step value coming back from the sync gets its own option instead of being dropped.
+  endHidden.value = '2026-05-02T23:17';
+  startGroup.parts['[data-stepped-part="minute"]'].value = '17';
+  startGroup.parts['[data-stepped-part="minute"]'].change();
+  assert.equal(endHidden.value, '2026-05-02T23:17');
+  assert.equal(endGroup.parts['[data-stepped-part="minute"]'].value, '17');
+  assert.deepEqual(endGroup.parts['[data-stepped-part="minute"]'].options.map((option) => option.value).slice(3, 5), ['15', '17']);
+
+  // Clearing the date empties the hidden value so the card's own required-time validation kicks in.
+  startGroup.parts['[data-stepped-part="date"]'].value = '';
+  startGroup.parts['[data-stepped-part="date"]'].change();
+  assert.equal(startHidden.value, '');
 });

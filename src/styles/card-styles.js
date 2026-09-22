@@ -2192,6 +2192,27 @@ export function getCardStyles() {
         gap: 10px 14px;
       }
 
+      .form-stepped-datetime {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-select {
+        width: auto;
+        min-width: 4.5em;
+      }
+
+      .form-stepped-datetime input[type="hidden"] {
+        display: none;
+      }
+
+      .form-stepped-separator {
+        font-weight: 600;
+        opacity: 0.7;
+      }
+
       .form-checkbox-row {
         display: flex;
         flex-wrap: wrap;

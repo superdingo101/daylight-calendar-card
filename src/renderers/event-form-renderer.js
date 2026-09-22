@@ -7,6 +7,36 @@ function formatDateTimeLocal(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+function padTwoDigits(value) {
+  return String(value).padStart(2, '0');
+}
+
+function renderSteppedDateTimeControl({ id, value, step, required = false, label, helpers }) {
+  const { escapeHtmlAttribute } = helpers;
+  const date = value instanceof Date && !Number.isNaN(value.getTime()) ? value : null;
+  const hourValue = date ? date.getHours() : null;
+  const minuteValue = date ? date.getMinutes() : null;
+  const minuteOptions = [];
+  for (let minute = 0; minute < 60; minute += step) minuteOptions.push(minute);
+  if (minuteValue !== null && !minuteOptions.includes(minuteValue)) {
+    // Keep an existing off-step time selectable so editing never silently moves an event.
+    minuteOptions.push(minuteValue);
+    minuteOptions.sort((a, b) => a - b);
+  }
+  const hourOptions = Array.from({ length: 24 }, (_, hour) => hour);
+  const renderOptions = (values, selected) => values.map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}>${padTwoDigits(optionValue)}</option>`).join('');
+
+  return `
+                <div class="form-stepped-datetime" data-stepped-datetime="${id}">
+                  <input type="date" class="form-input form-stepped-date" data-stepped-part="date"
+                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(label)}" />
+                  <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(hourOptions, hourValue)}</select>
+                  <span class="form-stepped-separator" aria-hidden="true">:</span>
+                  <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(minuteOptions, minuteValue)}</select>
+                  <input type="hidden" id="${id}" value="${date ? formatDateTimeLocal(date) : ''}" />
+                </div>`;
+}
+
 function formatDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -99,9 +129,11 @@ function renderEventFields({
   recurrenceData,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
+  const useSteppedTime = Number.isInteger(eventTimeStep) && eventTimeStep > 1;
 
   return `
           <div class="form-group form-group-inline">
@@ -147,16 +179,20 @@ ${renderRecurrenceControls({
             <div class="form-group form-group-inline">
               <div class="form-inline-row">
                 <label class="form-label">${t('start')}</label>
-                <input type="datetime-local" class="form-input" id="event-start"
-                       value="${formatDateTimeLocal(startTime)}" required />
+                ${useSteppedTime
+    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, label: t('start'), helpers })
+    : `<input type="datetime-local" class="form-input" id="event-start"
+                       value="${formatDateTimeLocal(startTime)}" required />`}
               </div>
             </div>
 
             <div class="form-group form-group-inline">
               <div class="form-inline-row">
                 <label class="form-label">${t('end')}</label>
-                <input type="datetime-local" class="form-input" id="event-end"
-                       value="${formatDateTimeLocal(endTime)}" />
+                ${useSteppedTime
+    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, label: t('end'), helpers })
+    : `<input type="datetime-local" class="form-input" id="event-end"
+                       value="${formatDateTimeLocal(endTime)}" />`}
               </div>
             </div>
           </div>
@@ -205,6 +241,7 @@ export function renderCreateEventForm({
   isPrefilledAllDay,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -250,6 +287,7 @@ ${renderEventFields({
     recurrenceData,
     recurrenceEndMode,
     recurrenceWeekdayOptions,
+    eventTimeStep,
     helpers
   })}
 
@@ -273,6 +311,7 @@ export function renderEditEventForm({
   recurringSelectedByDefault,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -310,6 +349,7 @@ ${renderEventFields({
     recurrenceData,
     recurrenceEndMode,
     recurrenceWeekdayOptions,
+    eventTimeStep,
     helpers
   })}
 
