@@ -133,6 +133,18 @@ A custom color set from the modal overrides the `background_color` (also known a
   ```
 </ParamField>
 
+<ParamField path="event_time_step" default="1" type="number">
+  Minute step for the start and end time pickers in the create and edit event forms. With the default `1` the form uses the browser's native date-time picker. Set `5`, `10`, `15`, `20`, or `30` to replace it with a date field plus hour and minute dropdowns, where the minute list only offers multiples of the step. This is easier to use on touch screens and wall tablets, where the native picker scrolls through all 60 minutes.
+
+  The hour dropdown follows the card's clock: 00–23 in 24-hour locales and 1–12 with an AM/PM dropdown in 12-hour locales (`use_24hr_schedule` overrides the locale as usual). The stored time is always 24-hour.
+
+  When you edit an existing event whose minutes fall outside the step, its current minute stays available as an extra option so the time is never moved silently; the extra option disappears once you pick a different minute. Any value other than `1`, `5`, `10`, `15`, `20`, or `30` falls back to `1`.
+
+  ```yaml
+  event_time_step: 5
+  ```
+</ParamField>
+
 <ParamField path="location_links" default="false" type="boolean">
   Let users click the location in the event detail modal to reveal location actions. This does not change event rows in Month, Week, Schedule, or Agenda views.
 
@@ -157,6 +169,7 @@ readonly_calendars:
   - calendar.holidays_in_united_states
 hide_add_event_button: false
 event_modal_size: wide
+event_time_step: 5
 ```
 
 <Tip>

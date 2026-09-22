@@ -27,6 +27,8 @@ export const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
 export const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
 export const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
 export const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+export const DEFAULT_EVENT_TIME_STEP = 1;
+export const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
 
 export const EVENT_TITLE_PREFIX_ALIASES = {
   icon: 'badge_icon',
@@ -94,6 +96,7 @@ export const DEFAULT_CONFIG_VALUES = {
   background_image_url: null,
   combine_calendars: false,
   enable_event_management: true,
+  event_time_step: DEFAULT_EVENT_TIME_STEP,
   readonly_calendars: [],
   hide_badge_calendars: [],
   virtual_calendars: [],
