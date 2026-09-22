@@ -21,6 +21,7 @@ import {
   DEFAULT_VIEW,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
+  EVENT_TIME_STEP_OPTIONS,
   PAST_EVENT_MODE_OPTIONS,
   THEME_MODE_OPTIONS
 } from '../defaults.js';
@@ -1133,6 +1134,14 @@ export class SkylightCalendarCardEditor extends HTMLElement {
             <option value="medium" ${this._config.event_modal_size === DEFAULT_EVENT_MODAL_SIZE || !this._config.event_modal_size ? 'selected' : ''}>Medium</option>
             <option value="wide" ${this._config.event_modal_size === 'wide' ? 'selected' : ''}>Wide</option>
             <option value="full" ${this._config.event_modal_size === 'full' ? 'selected' : ''}>Full</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_time_step">Time picker minute step</label>
+          <select id="event_time_step" data-field="event_time_step" data-type="number">
+            ${EVENT_TIME_STEP_OPTIONS.map((step) => `<option value="${step}" ${(this._config.event_time_step ?? 1) === step ? 'selected' : ''}>${step === 1 ? '1 (browser picker)' : `${step} minutes`}</option>`).join('')}
           </select>
         </div>
       </div>

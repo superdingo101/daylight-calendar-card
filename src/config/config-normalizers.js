@@ -7,11 +7,13 @@ import {
   DEFAULT_DAY_BADGE_LAYOUT_WEEK,
   DEFAULT_EVENT_COLOR_MODE,
   DEFAULT_EVENT_MODAL_SIZE,
+  DEFAULT_EVENT_TIME_STEP,
   DEFAULT_EVENT_TITLE_PREFIX,
   DEFAULT_PAST_EVENT_MODE,
   DEFAULT_THEME_MODE,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
+  EVENT_TIME_STEP_OPTIONS,
   EVENT_TITLE_PREFIX_ALIASES,
   EVENT_TITLE_PREFIX_OPTIONS,
   HIDDEN_CALENDAR_VISIBILITY_VALUES,
@@ -119,4 +121,10 @@ export function normalizeBackgroundOpacity(opacityValue, fallback = 0) {
 export function normalizeEventModalSize(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+}
+
+export function normalizeEventTimeStep(value) {
+  if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
+  const numeric = Number(value);
+  return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
 }
