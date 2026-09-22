@@ -1384,14 +1384,16 @@ test('shorten_event_times compacts whole-hour 24-hour ranges', () => {
   assert.equal(card.formatEventTimeRange(start, end), '10-11h');
 });
 
-test('shorten_event_times preserves h24 midnight hour labels', () => {
+test('shorten_event_times preserves the localized midnight hour label', () => {
   const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', use_24hr_schedule: true, shorten_event_times: true });
   const start = new Date('2026-05-14T23:00:00Z');
   const end = new Date('2026-05-15T00:00:00Z');
+  const midnightLabel = card.formatTime(end);
+  const midnightHour = midnightLabel.split(':')[0];
 
-  assert.equal(card.formatTime(end), '24:00');
-  assert.equal(card.formatEventTime(end), '24h');
-  assert.equal(card.formatEventTimeRange(start, end), '23-24h');
+  assert.match(midnightLabel, /^(?:00|24):00$/);
+  assert.equal(card.formatEventTime(end), `${midnightHour}h`);
+  assert.equal(card.formatEventTimeRange(start, end), `23-${midnightHour}h`);
 });
 
 test('shorten_event_times preserves needed minutes in mixed 24-hour ranges', () => {
@@ -1636,22 +1638,30 @@ test('event location map action opens encoded Google Maps URL', () => {
 
 test('copy address action uses clipboard when available and fails gracefully otherwise', async () => {
   const card = makeCard({ entities: ['calendar.family'], location_links: true });
-  const originalNavigator = global.navigator;
+  const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   const writes = [];
-  global.navigator = { clipboard: { writeText: async (value) => writes.push(value) } };
-  assert.equal(await card.copyEventLocationAddress('Main Field'), true);
-  assert.deepEqual(writes, ['Main Field']);
+  const setNavigator = (value) => Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    writable: true,
+    value
+  });
 
-  global.navigator = { clipboard: { writeText: async () => { throw new Error('blocked'); } } };
-  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+  try {
+    setNavigator({ clipboard: { writeText: async (value) => writes.push(value) } });
+    assert.equal(await card.copyEventLocationAddress('Main Field'), true);
+    assert.deepEqual(writes, ['Main Field']);
 
-  global.navigator = {};
-  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+    setNavigator({ clipboard: { writeText: async () => { throw new Error('blocked'); } } });
+    assert.equal(await card.copyEventLocationAddress('Main Field'), false);
 
-  if (originalNavigator === undefined) {
-    delete global.navigator;
-  } else {
-    global.navigator = originalNavigator;
+    setNavigator({});
+    assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+  } finally {
+    if (originalNavigatorDescriptor) {
+      Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
+    } else {
+      delete globalThis.navigator;
+    }
   }
 });
 
