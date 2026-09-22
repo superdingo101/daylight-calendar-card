@@ -644,10 +644,7 @@ function normalizeEventModalSize$1(value) {
 function normalizeEventTimeStep(value) {
   if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
   const numeric = Number(value);
-  if (!Number.isInteger(numeric) || numeric < 1 || numeric > 60 || 60 % numeric !== 0) {
-    return DEFAULT_EVENT_TIME_STEP;
-  }
-  return numeric;
+  return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
 }
 
 function createConfigNormalizationSchema({
@@ -5788,8 +5785,21 @@ function getCardStyles() {
       }
 
       .form-stepped-datetime {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-stepped-date {
+        flex: 1 1 9.5em;
+        width: auto;
+        min-width: 0;
+      }
+
+      .form-stepped-time {
+        display: flex;
+        flex: 0 0 auto;
         gap: 6px;
         align-items: center;
       }
@@ -6642,6 +6652,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Select at least one weekday for weekly recurring events',
       start: 'Start',
       end: 'End',
+      startHour: 'Start hour',
+      startMinute: 'Start minute',
+      startPeriod: 'Start AM/PM',
+      endHour: 'End hour',
+      endMinute: 'End minute',
+      endPeriod: 'End AM/PM',
       startDate: 'Start Date',
       endDate: 'End Date',
       location: 'Location',
@@ -6764,6 +6780,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Sélectionnez au moins un jour pour les événements hebdomadaires',
       start: 'Début',
       end: 'Fin',
+      startHour: 'Heure de début',
+      startMinute: 'Minute de début',
+      startPeriod: 'AM/PM de début',
+      endHour: 'Heure de fin',
+      endMinute: 'Minute de fin',
+      endPeriod: 'AM/PM de fin',
       startDate: 'Date de début',
       endDate: 'Date de fin',
       location: 'Lieu',
@@ -6886,6 +6908,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Wählen Sie mindestens einen Wochentag für wöchentliche Termine aus',
       start: 'Beginn',
       end: 'Ende',
+      startHour: 'Startstunde',
+      startMinute: 'Startminute',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Endstunde',
+      endMinute: 'Endminute',
+      endPeriod: 'Ende AM/PM',
       startDate: 'Startdatum',
       endDate: 'Enddatum',
       location: 'Ort',
@@ -7008,6 +7036,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Selecteer ten minste één dag voor wekelijks terugkerende afspraken',
       start: 'Start',
       end: 'Einde',
+      startHour: 'Startuur',
+      startMinute: 'Startminuut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Einduur',
+      endMinute: 'Eindminuut',
+      endPeriod: 'Einde AM/PM',
       startDate: 'Begindatum',
       endDate: 'Einddatum',
       location: 'Locatie',
@@ -7129,6 +7163,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Selecciona al menos un día de la semana para los eventos recurrentes semanales',
       start: 'Inicio',
       end: 'Fin',
+      startHour: 'Hora de inicio',
+      startMinute: 'Minuto de inicio',
+      startPeriod: 'AM/PM de inicio',
+      endHour: 'Hora de fin',
+      endMinute: 'Minuto de fin',
+      endPeriod: 'AM/PM de fin',
       startDate: 'Fecha de inicio',
       endDate: 'Fecha de fin',
       location: 'Ubicación',
@@ -7251,6 +7291,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Vali iganädalase korduse jaoks vähemalt üks nädalapäev',
       start: 'Algus',
       end: 'Lõpp',
+      startHour: 'Algustund',
+      startMinute: 'Algusminut',
+      startPeriod: 'Alguse AM/PM',
+      endHour: 'Lõpptund',
+      endMinute: 'Lõppminut',
+      endPeriod: 'Lõpu AM/PM',
       startDate: 'Alguskuupäev',
       endDate: 'Lõppkuupäev',
       location: 'Asukoht',
@@ -7373,6 +7419,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: "Selecciona almenys un dia de la setmana per als esdeveniments recurrents setmanals",
       start: 'Inici',
       end: 'Fi',
+      startHour: "Hora d'inici",
+      startMinute: "Minut d'inici",
+      startPeriod: "AM/PM d'inici",
+      endHour: 'Hora de fi',
+      endMinute: 'Minut de fi',
+      endPeriod: 'AM/PM de fi',
       startDate: "Data d'inici",
       endDate: 'Data de fi',
       location: 'Ubicació',
@@ -7495,6 +7547,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Vælg mindst én ugedag for ugentligt gentagende begivenheder',
       start: 'Start',
       end: 'Slut',
+      startHour: 'Starttime',
+      startMinute: 'Startminut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Sluttime',
+      endMinute: 'Slutminut',
+      endPeriod: 'Slut AM/PM',
       startDate: 'Startdato',
       endDate: 'Slutdato',
       location: 'Sted',
@@ -7617,6 +7675,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Välj minst en veckodag för återkommande händelser.',
       start: 'Start',
       end: 'Slut',
+      startHour: 'Starttimme',
+      startMinute: 'Startminut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Sluttimme',
+      endMinute: 'Slutminut',
+      endPeriod: 'Slut AM/PM',
       startDate: 'Startdatum',
       endDate: 'Slutdatum',
       location: 'Plats',
@@ -10114,28 +10178,47 @@ function padTwoDigits(value) {
   return String(value).padStart(2, '0');
 }
 
-function renderSteppedDateTimeControl({ id, value, step, required = false, label, helpers }) {
-  const { escapeHtmlAttribute } = helpers;
-  const date = value instanceof Date && !Number.isNaN(value.getTime()) ? value : null;
+function renderSteppedDateTimeControl({ id, value, step, required = false, field, hour12 = false, dayPeriodLabels = {}, helpers }) {
+  const { escapeHtmlAttribute, t } = helpers;
+  // Duck-type instead of instanceof so Date objects from another realm (or a patched global Date) still render.
+  const date = value && typeof value.getTime === 'function' && !Number.isNaN(value.getTime()) ? value : null;
   const hourValue = date ? date.getHours() : null;
   const minuteValue = date ? date.getMinutes() : null;
   const minuteOptions = [];
   for (let minute = 0; minute < 60; minute += step) minuteOptions.push(minute);
-  if (minuteValue !== null && !minuteOptions.includes(minuteValue)) {
-    // Keep an existing off-step time selectable so editing never silently moves an event.
-    minuteOptions.push(minuteValue);
+  // Keep an existing off-step time selectable so editing never silently moves an event.
+  // The option is flagged so setupSteppedDateTimeInputs can drop it once it is no longer selected.
+  const offStepMinute = minuteValue !== null && !minuteOptions.includes(minuteValue) ? minuteValue : null;
+  if (offStepMinute !== null) {
+    minuteOptions.push(offStepMinute);
     minuteOptions.sort((a, b) => a - b);
   }
-  const hourOptions = Array.from({ length: 24 }, (_, hour) => hour);
-  const renderOptions = (values, selected) => values.map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}>${padTwoDigits(optionValue)}</option>`).join('');
+  // The visible hour list follows the card's 12/24-hour clock; the hidden input always stores 24-hour time.
+  const hourOptions = hour12
+    ? Array.from({ length: 12 }, (_, index) => index + 1)
+    : Array.from({ length: 24 }, (_, hour) => hour);
+  const selectedHour = hourValue === null ? null : (hour12 ? (hourValue % 12 || 12) : hourValue);
+  const renderOptions = (values, selected, { format = padTwoDigits, offStepValue = null } = {}) => values
+    .map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}${optionValue === offStepValue ? ' data-off-step="true"' : ''}>${format(optionValue)}</option>`)
+    .join('');
+  const periodLabel = (period, fallback) => escapeHtmlAttribute(dayPeriodLabels?.[period] || fallback);
+  const periodSelect = hour12
+    ? `<select class="form-select form-stepped-period" data-stepped-part="period" aria-label="${escapeHtmlAttribute(t(`${field}Period`))}">
+                      <option value="AM" ${hourValue !== null && hourValue < 12 ? 'selected' : ''}>${periodLabel('am', 'AM')}</option>
+                      <option value="PM" ${hourValue !== null && hourValue >= 12 ? 'selected' : ''}>${periodLabel('pm', 'PM')}</option>
+                    </select>`
+    : '';
 
   return `
-                <div class="form-stepped-datetime" data-stepped-datetime="${id}">
+                <div class="form-stepped-datetime" data-stepped-datetime="${id}" data-hour-cycle="${hour12 ? '12' : '24'}">
                   <input type="date" class="form-input form-stepped-date" data-stepped-part="date"
-                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(label)}" />
-                  <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(hourOptions, hourValue)}</select>
-                  <span class="form-stepped-separator" aria-hidden="true">:</span>
-                  <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(minuteOptions, minuteValue)}</select>
+                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(t(`${field}Date`))}" />
+                  <div class="form-stepped-time">
+                    <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(t(`${field}Hour`))}">${renderOptions(hourOptions, selectedHour, { format: hour12 ? String : padTwoDigits })}</select>
+                    <span class="form-stepped-separator" aria-hidden="true">:</span>
+                    <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(t(`${field}Minute`))}">${renderOptions(minuteOptions, minuteValue, { offStepValue: offStepMinute })}</select>
+                    ${periodSelect}
+                  </div>
                   <input type="hidden" id="${id}" value="${date ? formatDateTimeLocal(date) : ''}" />
                 </div>`;
 }
@@ -10233,6 +10316,8 @@ function renderEventFields({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
@@ -10283,7 +10368,7 @@ ${renderRecurrenceControls({
               <div class="form-inline-row">
                 <label class="form-label">${t('start')}</label>
                 ${useSteppedTime
-    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, label: t('start'), helpers })
+    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, field: 'start', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
     : `<input type="datetime-local" class="form-input" id="event-start"
                        value="${formatDateTimeLocal(startTime)}" required />`}
               </div>
@@ -10293,7 +10378,7 @@ ${renderRecurrenceControls({
               <div class="form-inline-row">
                 <label class="form-label">${t('end')}</label>
                 ${useSteppedTime
-    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, label: t('end'), helpers })
+    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, field: 'end', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
     : `<input type="datetime-local" class="form-input" id="event-end"
                        value="${formatDateTimeLocal(endTime)}" />`}
               </div>
@@ -10345,6 +10430,8 @@ function renderCreateEventForm({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10391,6 +10478,8 @@ ${renderEventFields({
     recurrenceEndMode,
     recurrenceWeekdayOptions,
     eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 
@@ -10415,6 +10504,8 @@ function renderEditEventForm({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10453,6 +10544,8 @@ ${renderEventFields({
     recurrenceEndMode,
     recurrenceWeekdayOptions,
     eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 
@@ -17091,20 +17184,45 @@ class SkylightCalendarCard extends HTMLElement {
     return normalizeEventTimeStep(this._config?.event_time_step);
   }
 
+  // Localized AM/PM labels for the stepped picker's period select, derived from the card locale.
+  getDayPeriodLabels() {
+    const labels = { am: 'AM', pm: 'PM' };
+    try {
+      const formatter = new Intl.DateTimeFormat(this.getLocale(), { hour: 'numeric', hour12: true, timeZone: 'UTC' });
+      const periodFor = (hour) => formatter.formatToParts(new Date(Date.UTC(2000, 0, 1, hour))).find((part) => part.type === 'dayPeriod')?.value;
+      labels.am = periodFor(9) || labels.am;
+      labels.pm = periodFor(21) || labels.pm;
+    } catch (error) {
+      // Fall back to plain AM/PM when the locale is unknown to Intl.
+    }
+    return labels;
+  }
+
   // With event_time_step > 1 the form renders a date field plus hour/minute selects
   // (see renderSteppedDateTimeControl) around a hidden datetime-local-formatted input
   // that keeps the existing #event-start / #event-end ids. This wires the visible
-  // controls to that hidden input and keeps the duration sync working.
+  // controls to that hidden input and keeps the duration sync working. In 12-hour mode
+  // the hour select holds 01-12 plus an AM/PM select; the hidden input always stores 24-hour time.
   setupSteppedDateTimeInputs() {
     const groups = Array.from(this._root?.querySelectorAll?.('.form-stepped-datetime') || []);
     if (groups.length === 0) return;
 
+    const padTwo = (value) => String(value).padStart(2, '0');
     const getParts = (group) => ({
       date: group.querySelector('[data-stepped-part="date"]'),
       hour: group.querySelector('[data-stepped-part="hour"]'),
       minute: group.querySelector('[data-stepped-part="minute"]'),
+      period: group.querySelector('[data-stepped-part="period"]'),
       hidden: group.querySelector('input[type="hidden"]')
     });
+    const uses12HourClock = (group) => group.getAttribute?.('data-hour-cycle') === '12';
+    const to24Hour = (hourValue, periodValue) => padTwo((Number(hourValue) % 12) + (periodValue === 'PM' ? 12 : 0));
+    const from24Hour = (hour24) => {
+      const hour = Number(hour24);
+      return { hour: padTwo(hour % 12 || 12), period: hour >= 12 ? 'PM' : 'AM' };
+    };
+
+    const isOffStepOption = (option) => option.getAttribute?.('data-off-step') === 'true' || option.dataset?.offStep === 'true';
 
     const ensureOption = (select, value) => {
       if (!select) return;
@@ -17113,30 +17231,55 @@ class SkylightCalendarCard extends HTMLElement {
       const option = document.createElement('option');
       option.value = value;
       option.textContent = value;
+      option.setAttribute?.('data-off-step', 'true');
       const nextOption = options.find((existing) => existing.value > value) || null;
       select.add(option, nextOption);
     };
 
+    // Drop preserved off-step options once they are no longer the selected value,
+    // so the list returns to the configured step choices.
+    const pruneOffStepOptions = (select) => {
+      if (!select) return;
+      Array.from(select.options || []).forEach((option) => {
+        if (!isOffStepOption(option) || option.value === select.value) return;
+        const index = Array.from(select.options).indexOf(option);
+        if (index >= 0) select.remove(index);
+      });
+    };
+
     const applyHiddenValueToControls = (group) => {
-      const { date, hour, minute, hidden } = getParts(group);
+      const { date, hour, minute, period, hidden } = getParts(group);
       const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(hidden?.value || '');
       if (!match) return;
       if (date) date.value = match[1];
       if (hour) {
-        ensureOption(hour, match[2]);
-        hour.value = match[2];
+        if (uses12HourClock(group)) {
+          const converted = from24Hour(match[2]);
+          hour.value = converted.hour;
+          if (period) period.value = converted.period;
+        } else {
+          ensureOption(hour, match[2]);
+          hour.value = match[2];
+        }
       }
       if (minute) {
         ensureOption(minute, match[3]);
         minute.value = match[3];
       }
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
     };
 
     const composeHiddenValue = (group) => {
-      const { date, hour, minute, hidden } = getParts(group);
+      const { date, hour, minute, period, hidden } = getParts(group);
       if (!hidden) return;
       const dateValue = date?.value || '';
-      hidden.value = dateValue ? `${dateValue}T${hour?.value || '00'}:${minute?.value || '00'}` : '';
+      const hourValue = uses12HourClock(group)
+        ? to24Hour(hour?.value || '12', period?.value || 'AM')
+        : (hour?.value || '00');
+      hidden.value = dateValue ? `${dateValue}T${hourValue}:${minute?.value || '00'}` : '';
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
       // Let setupStartEndDurationSync react exactly as it would to a native input.
       hidden.dispatchEvent(new Event('change'));
       groups.forEach((other) => {
@@ -17145,8 +17288,8 @@ class SkylightCalendarCard extends HTMLElement {
     };
 
     groups.forEach((group) => {
-      const { date, hour, minute } = getParts(group);
-      [date, hour, minute].forEach((control) => {
+      const { date, hour, minute, period } = getParts(group);
+      [date, hour, minute, period].forEach((control) => {
         control?.addEventListener('change', () => composeHiddenValue(group));
       });
     });
@@ -17218,6 +17361,8 @@ class SkylightCalendarCard extends HTMLElement {
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
       eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -17417,6 +17562,8 @@ class SkylightCalendarCard extends HTMLElement {
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
       eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),

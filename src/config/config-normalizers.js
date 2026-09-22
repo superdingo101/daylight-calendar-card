@@ -13,6 +13,7 @@ import {
   DEFAULT_THEME_MODE,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
+  EVENT_TIME_STEP_OPTIONS,
   EVENT_TITLE_PREFIX_ALIASES,
   EVENT_TITLE_PREFIX_OPTIONS,
   HIDDEN_CALENDAR_VISIBILITY_VALUES,
@@ -125,8 +126,5 @@ export function normalizeEventModalSize(value) {
 export function normalizeEventTimeStep(value) {
   if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
   const numeric = Number(value);
-  if (!Number.isInteger(numeric) || numeric < 1 || numeric > 60 || 60 % numeric !== 0) {
-    return DEFAULT_EVENT_TIME_STEP;
-  }
-  return numeric;
+  return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
 }

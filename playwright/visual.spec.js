@@ -1321,6 +1321,58 @@ test('visual: event modal renders rich markdown and HTML descriptions', async ({
   await expect(htmlDescription.locator('a')).toHaveAttribute('href', '/local/rich-info');
 });
 
+test('visual: stepped event time pickers stay contained at mobile width in 12- and 24-hour mode', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const modes = [
+    { name: '12h', config: {}, periodSelects: 2 },
+    { name: '24h', config: { use_24hr_schedule: true }, periodSelects: 0 }
+  ];
+
+  for (const mode of modes) {
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Stepped Time Calendar',
+        default_view: 'agenda',
+        enable_event_management: true,
+        event_time_step: 5,
+        ...mode.config
+      },
+      events: baseEvents,
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    await expect(card).toBeVisible();
+    await card.locator('#add-event-btn').click();
+
+    const modal = card.locator('#event-modal');
+    await expect(modal).toHaveClass(/show/);
+    const content = modal.locator('#modal-content');
+    const groups = content.locator('.form-stepped-datetime');
+    await expect(groups).toHaveCount(2);
+    await expect(content.locator('.form-stepped-period')).toHaveCount(mode.periodSelects);
+    await expect(content.locator('input[type="datetime-local"]')).toHaveCount(0);
+
+    // Every stepped control must sit inside the modal body without horizontal overflow.
+    await assertNoHorizontalOverflow(content);
+    const controls = content.locator('.form-stepped-datetime .form-input, .form-stepped-datetime .form-select');
+    const controlCount = await controls.count();
+    expect(controlCount).toBe(mode.periodSelects === 2 ? 8 : 6);
+    for (let index = 0; index < controlCount; index += 1) {
+      await expectBoxWithin(controls.nth(index), content, 1);
+    }
+
+    await expect(content).toHaveScreenshot(`event-form-stepped-${mode.name}-mobile.png`, { animations: 'disabled' });
+
+    await modal.locator('#close-modal').click();
+    await expect(modal).not.toHaveClass(/show/);
+  }
+});
+
 for (const scenario of cases) {
   test(`visual: ${scenario.name}`, async ({ page }) => {
     if (scenario.viewport) {

@@ -11,28 +11,47 @@ function padTwoDigits(value) {
   return String(value).padStart(2, '0');
 }
 
-function renderSteppedDateTimeControl({ id, value, step, required = false, label, helpers }) {
-  const { escapeHtmlAttribute } = helpers;
-  const date = value instanceof Date && !Number.isNaN(value.getTime()) ? value : null;
+function renderSteppedDateTimeControl({ id, value, step, required = false, field, hour12 = false, dayPeriodLabels = {}, helpers }) {
+  const { escapeHtmlAttribute, t } = helpers;
+  // Duck-type instead of instanceof so Date objects from another realm (or a patched global Date) still render.
+  const date = value && typeof value.getTime === 'function' && !Number.isNaN(value.getTime()) ? value : null;
   const hourValue = date ? date.getHours() : null;
   const minuteValue = date ? date.getMinutes() : null;
   const minuteOptions = [];
   for (let minute = 0; minute < 60; minute += step) minuteOptions.push(minute);
-  if (minuteValue !== null && !minuteOptions.includes(minuteValue)) {
-    // Keep an existing off-step time selectable so editing never silently moves an event.
-    minuteOptions.push(minuteValue);
+  // Keep an existing off-step time selectable so editing never silently moves an event.
+  // The option is flagged so setupSteppedDateTimeInputs can drop it once it is no longer selected.
+  const offStepMinute = minuteValue !== null && !minuteOptions.includes(minuteValue) ? minuteValue : null;
+  if (offStepMinute !== null) {
+    minuteOptions.push(offStepMinute);
     minuteOptions.sort((a, b) => a - b);
   }
-  const hourOptions = Array.from({ length: 24 }, (_, hour) => hour);
-  const renderOptions = (values, selected) => values.map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}>${padTwoDigits(optionValue)}</option>`).join('');
+  // The visible hour list follows the card's 12/24-hour clock; the hidden input always stores 24-hour time.
+  const hourOptions = hour12
+    ? Array.from({ length: 12 }, (_, index) => index + 1)
+    : Array.from({ length: 24 }, (_, hour) => hour);
+  const selectedHour = hourValue === null ? null : (hour12 ? (hourValue % 12 || 12) : hourValue);
+  const renderOptions = (values, selected, { format = padTwoDigits, offStepValue = null } = {}) => values
+    .map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}${optionValue === offStepValue ? ' data-off-step="true"' : ''}>${format(optionValue)}</option>`)
+    .join('');
+  const periodLabel = (period, fallback) => escapeHtmlAttribute(dayPeriodLabels?.[period] || fallback);
+  const periodSelect = hour12
+    ? `<select class="form-select form-stepped-period" data-stepped-part="period" aria-label="${escapeHtmlAttribute(t(`${field}Period`))}">
+                      <option value="AM" ${hourValue !== null && hourValue < 12 ? 'selected' : ''}>${periodLabel('am', 'AM')}</option>
+                      <option value="PM" ${hourValue !== null && hourValue >= 12 ? 'selected' : ''}>${periodLabel('pm', 'PM')}</option>
+                    </select>`
+    : '';
 
   return `
-                <div class="form-stepped-datetime" data-stepped-datetime="${id}">
+                <div class="form-stepped-datetime" data-stepped-datetime="${id}" data-hour-cycle="${hour12 ? '12' : '24'}">
                   <input type="date" class="form-input form-stepped-date" data-stepped-part="date"
-                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(label)}" />
-                  <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(hourOptions, hourValue)}</select>
-                  <span class="form-stepped-separator" aria-hidden="true">:</span>
-                  <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(label)}">${renderOptions(minuteOptions, minuteValue)}</select>
+                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(t(`${field}Date`))}" />
+                  <div class="form-stepped-time">
+                    <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(t(`${field}Hour`))}">${renderOptions(hourOptions, selectedHour, { format: hour12 ? String : padTwoDigits })}</select>
+                    <span class="form-stepped-separator" aria-hidden="true">:</span>
+                    <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(t(`${field}Minute`))}">${renderOptions(minuteOptions, minuteValue, { offStepValue: offStepMinute })}</select>
+                    ${periodSelect}
+                  </div>
                   <input type="hidden" id="${id}" value="${date ? formatDateTimeLocal(date) : ''}" />
                 </div>`;
 }
@@ -130,6 +149,8 @@ function renderEventFields({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
@@ -180,7 +201,7 @@ ${renderRecurrenceControls({
               <div class="form-inline-row">
                 <label class="form-label">${t('start')}</label>
                 ${useSteppedTime
-    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, label: t('start'), helpers })
+    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, field: 'start', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
     : `<input type="datetime-local" class="form-input" id="event-start"
                        value="${formatDateTimeLocal(startTime)}" required />`}
               </div>
@@ -190,7 +211,7 @@ ${renderRecurrenceControls({
               <div class="form-inline-row">
                 <label class="form-label">${t('end')}</label>
                 ${useSteppedTime
-    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, label: t('end'), helpers })
+    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, field: 'end', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
     : `<input type="datetime-local" class="form-input" id="event-end"
                        value="${formatDateTimeLocal(endTime)}" />`}
               </div>
@@ -242,6 +263,8 @@ export function renderCreateEventForm({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -288,6 +311,8 @@ ${renderEventFields({
     recurrenceEndMode,
     recurrenceWeekdayOptions,
     eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 
@@ -312,6 +337,8 @@ export function renderEditEventForm({
   recurrenceEndMode,
   recurrenceWeekdayOptions,
   eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -350,6 +377,8 @@ ${renderEventFields({
     recurrenceEndMode,
     recurrenceWeekdayOptions,
     eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 

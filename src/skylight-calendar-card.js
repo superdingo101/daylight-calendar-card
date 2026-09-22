@@ -6242,20 +6242,45 @@ class SkylightCalendarCard extends HTMLElement {
     return normalizeEventTimeStepHelper(this._config?.event_time_step);
   }
 
+  // Localized AM/PM labels for the stepped picker's period select, derived from the card locale.
+  getDayPeriodLabels() {
+    const labels = { am: 'AM', pm: 'PM' };
+    try {
+      const formatter = new Intl.DateTimeFormat(this.getLocale(), { hour: 'numeric', hour12: true, timeZone: 'UTC' });
+      const periodFor = (hour) => formatter.formatToParts(new Date(Date.UTC(2000, 0, 1, hour))).find((part) => part.type === 'dayPeriod')?.value;
+      labels.am = periodFor(9) || labels.am;
+      labels.pm = periodFor(21) || labels.pm;
+    } catch (error) {
+      // Fall back to plain AM/PM when the locale is unknown to Intl.
+    }
+    return labels;
+  }
+
   // With event_time_step > 1 the form renders a date field plus hour/minute selects
   // (see renderSteppedDateTimeControl) around a hidden datetime-local-formatted input
   // that keeps the existing #event-start / #event-end ids. This wires the visible
-  // controls to that hidden input and keeps the duration sync working.
+  // controls to that hidden input and keeps the duration sync working. In 12-hour mode
+  // the hour select holds 01-12 plus an AM/PM select; the hidden input always stores 24-hour time.
   setupSteppedDateTimeInputs() {
     const groups = Array.from(this._root?.querySelectorAll?.('.form-stepped-datetime') || []);
     if (groups.length === 0) return;
 
+    const padTwo = (value) => String(value).padStart(2, '0');
     const getParts = (group) => ({
       date: group.querySelector('[data-stepped-part="date"]'),
       hour: group.querySelector('[data-stepped-part="hour"]'),
       minute: group.querySelector('[data-stepped-part="minute"]'),
+      period: group.querySelector('[data-stepped-part="period"]'),
       hidden: group.querySelector('input[type="hidden"]')
     });
+    const uses12HourClock = (group) => group.getAttribute?.('data-hour-cycle') === '12';
+    const to24Hour = (hourValue, periodValue) => padTwo((Number(hourValue) % 12) + (periodValue === 'PM' ? 12 : 0));
+    const from24Hour = (hour24) => {
+      const hour = Number(hour24);
+      return { hour: padTwo(hour % 12 || 12), period: hour >= 12 ? 'PM' : 'AM' };
+    };
+
+    const isOffStepOption = (option) => option.getAttribute?.('data-off-step') === 'true' || option.dataset?.offStep === 'true';
 
     const ensureOption = (select, value) => {
       if (!select) return;
@@ -6264,30 +6289,55 @@ class SkylightCalendarCard extends HTMLElement {
       const option = document.createElement('option');
       option.value = value;
       option.textContent = value;
+      option.setAttribute?.('data-off-step', 'true');
       const nextOption = options.find((existing) => existing.value > value) || null;
       select.add(option, nextOption);
     };
 
+    // Drop preserved off-step options once they are no longer the selected value,
+    // so the list returns to the configured step choices.
+    const pruneOffStepOptions = (select) => {
+      if (!select) return;
+      Array.from(select.options || []).forEach((option) => {
+        if (!isOffStepOption(option) || option.value === select.value) return;
+        const index = Array.from(select.options).indexOf(option);
+        if (index >= 0) select.remove(index);
+      });
+    };
+
     const applyHiddenValueToControls = (group) => {
-      const { date, hour, minute, hidden } = getParts(group);
+      const { date, hour, minute, period, hidden } = getParts(group);
       const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(hidden?.value || '');
       if (!match) return;
       if (date) date.value = match[1];
       if (hour) {
-        ensureOption(hour, match[2]);
-        hour.value = match[2];
+        if (uses12HourClock(group)) {
+          const converted = from24Hour(match[2]);
+          hour.value = converted.hour;
+          if (period) period.value = converted.period;
+        } else {
+          ensureOption(hour, match[2]);
+          hour.value = match[2];
+        }
       }
       if (minute) {
         ensureOption(minute, match[3]);
         minute.value = match[3];
       }
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
     };
 
     const composeHiddenValue = (group) => {
-      const { date, hour, minute, hidden } = getParts(group);
+      const { date, hour, minute, period, hidden } = getParts(group);
       if (!hidden) return;
       const dateValue = date?.value || '';
-      hidden.value = dateValue ? `${dateValue}T${hour?.value || '00'}:${minute?.value || '00'}` : '';
+      const hourValue = uses12HourClock(group)
+        ? to24Hour(hour?.value || '12', period?.value || 'AM')
+        : (hour?.value || '00');
+      hidden.value = dateValue ? `${dateValue}T${hourValue}:${minute?.value || '00'}` : '';
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
       // Let setupStartEndDurationSync react exactly as it would to a native input.
       hidden.dispatchEvent(new Event('change'));
       groups.forEach((other) => {
@@ -6296,8 +6346,8 @@ class SkylightCalendarCard extends HTMLElement {
     };
 
     groups.forEach((group) => {
-      const { date, hour, minute } = getParts(group);
-      [date, hour, minute].forEach((control) => {
+      const { date, hour, minute, period } = getParts(group);
+      [date, hour, minute, period].forEach((control) => {
         control?.addEventListener('change', () => composeHiddenValue(group));
       });
     });
@@ -6369,6 +6419,8 @@ class SkylightCalendarCard extends HTMLElement {
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
       eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -6568,6 +6620,8 @@ class SkylightCalendarCard extends HTMLElement {
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
       eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
