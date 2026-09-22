@@ -11837,6 +11837,19 @@ class SkylightCalendarCard extends HTMLElement {
     return !!modal && modal.classList.contains('show');
   }
 
+  renderAfterEventDataChange({ preserveScroll = false } = {}) {
+    if (this.isEventManagementDialogOpen()) {
+      this._pendingHeaderSensorRender = true;
+      return false;
+    }
+    if (preserveScroll) {
+      this.renderPreservingAgendaScroll();
+    } else {
+      this.render();
+    }
+    return true;
+  }
+
   getConfigNormalizationSchema() {
     return createConfigNormalizationSchema({
       hasCustomTitle: this._hasCustomTitle,
@@ -13093,7 +13106,7 @@ class SkylightCalendarCard extends HTMLElement {
       requestId,
       perCalendarMetadata: hydratable.perCalendarMetadata
     });
-    this.render();
+    this.renderAfterEventDataChange();
   }
 
   getHydratableEventCacheSnapshotData(snapshot, requestId = this._eventFetchGeneration) {
@@ -13357,7 +13370,7 @@ class SkylightCalendarCard extends HTMLElement {
           };
         });
         this.recomputeEventState();
-        this.render();
+        this.renderAfterEventDataChange();
         return;
       }
 
@@ -13377,11 +13390,8 @@ class SkylightCalendarCard extends HTMLElement {
       const warningVisibilityChanged = wasWarningVisible !== this.shouldShowEventRefreshWarning(now);
       this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
       if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged || renderAfterFetch) {
-        this._lastUnchangedDataRender = now;
-        if (preserveScroll) {
-          this.renderPreservingAgendaScroll();
-        } else {
-          this.render();
+        if (this.renderAfterEventDataChange({ preserveScroll })) {
+          this._lastUnchangedDataRender = now;
         }
       }
     } finally {
@@ -13393,7 +13403,7 @@ class SkylightCalendarCard extends HTMLElement {
         this._pendingEventRefreshAfterCurrentFetch = false;
         this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
       } else if (shouldRenderAfterFetch) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
     }
   }
@@ -13459,7 +13469,7 @@ class SkylightCalendarCard extends HTMLElement {
           firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
         })));
         const stateChanged = stateSignatureBefore !== stateSignatureAfter;
-        if (!returnDetails && (render || stateChanged) && stateChanged) this.render();
+        if (!returnDetails && (render || stateChanged) && stateChanged) this.renderAfterEventDataChange();
         return toResult(false, false, stateChanged);
       }
 
@@ -13484,7 +13494,7 @@ class SkylightCalendarCard extends HTMLElement {
         firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
       })));
       const stateChanged = stateSignatureBefore !== stateSignatureAfter;
-      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.render();
+      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.renderAfterEventDataChange();
       return toResult(failedEntityIds.length === 0, anyChanged, stateChanged);
     } finally {
       this._fetching = false;
@@ -13495,7 +13505,7 @@ class SkylightCalendarCard extends HTMLElement {
         this._pendingEventRefreshAfterCurrentFetch = false;
         this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
       } else if (shouldRenderAfterFetch) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
     }
   }
@@ -13523,7 +13533,7 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
       if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
-        if (renderIfCovered) this.render();
+        if (renderIfCovered) this.renderAfterEventDataChange();
         return;
       }
       const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
@@ -13564,7 +13574,7 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
       if (renderIfCovered) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
       return;
     }
@@ -13573,7 +13583,7 @@ class SkylightCalendarCard extends HTMLElement {
     // all required dates from loaded data, avoid any network call.
     if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
       if (renderIfCovered) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
       return;
     }
@@ -13600,7 +13610,7 @@ class SkylightCalendarCard extends HTMLElement {
       if (extended?.dataChanged || extended?.stateChanged) shouldRenderAfterExtensions = true;
     }
 
-    if (allExtended || shouldRenderAfterExtensions) this.render();
+    if (allExtended || shouldRenderAfterExtensions) this.renderAfterEventDataChange();
   }
 
   getEventFetchRange() {

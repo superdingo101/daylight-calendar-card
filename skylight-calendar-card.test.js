@@ -2254,6 +2254,45 @@ test('system theme changes defer rendering until the event modal closes', () => 
   assert.equal(card._pendingHeaderSensorRender, false);
 });
 
+test('in-flight event refresh defers rendering until the event modal closes', async () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({
+    startDate: new Date('2026-09-01T00:00:00Z'),
+    endDate: new Date('2026-10-01T00:00:00Z')
+  });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.family': {
+      success: true,
+      events: [{
+        entityId: 'calendar.family',
+        summary: 'Added from another client',
+        start: { date: '2026-09-22' },
+        end: { date: '2026-09-23' }
+      }]
+    }
+  });
+  card.persistEventCacheSnapshot = () => {};
+  card.isEventManagementDialogOpen = () => true;
+
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+
+  await card.updateEvents();
+
+  assert.equal(card._events[0].summary, 'Added from another client');
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+  assert.equal(card._lastUnchangedDataRender, null);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
 test('normalizes css length helpers while preserving size and border width rules', () => {
   const card = makeCard();
 
