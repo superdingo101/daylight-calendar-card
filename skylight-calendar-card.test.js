@@ -166,6 +166,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
   event_time_step: 'event_time_step normalizes to the supported steps and renders stepped time controls',
   event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
+  hide_event_actions: 'hide_event_actions hides configured event detail actions without changing capabilities',
   readonly_calendars: 'readonly calendars suppress event management actions',
   hide_badge_calendars: 'calendar badges respect hidden badge calendars',
   default_hidden_calendars: 'default_hidden_calendars initializes hidden calendar badges',
@@ -1581,6 +1582,41 @@ const locationEvent = (location = 'Main Field') => ({
 function clickEvent() {
   return { preventDefault: () => {}, stopPropagation: () => {} };
 }
+
+test('hide_event_actions hides configured event detail actions without changing capabilities', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    hide_event_actions: ['delete', 'custom_color', 'forward']
+  });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card._calendarCapabilities = { 'calendar.family': {} };
+  let harness = createModalHarness(card);
+  const event = { ...locationEvent(), uid: 'evt-1' };
+
+  card.showEventModal(event);
+
+  assert.doesNotMatch(harness.content.innerHTML, /id="delete-event-btn"/);
+  assert.doesNotMatch(harness.content.innerHTML, /id="custom-color-btn"/);
+  assert.doesNotMatch(harness.content.innerHTML, /id="forward-event-btn"/);
+  assert.match(harness.content.innerHTML, /id="edit-event-btn"/);
+  assert.equal(harness.handlers['delete-event-btn'], undefined);
+  assert.equal(harness.handlers['custom-color-btn'], undefined);
+  assert.equal(harness.handlers['forward-event-btn'], undefined);
+  assert.equal(typeof harness.handlers['edit-event-btn'], 'function');
+
+  const allHidden = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    hide_event_actions: ['delete', 'custom_color', 'forward', 'edit']
+  });
+  allHidden.getWritableCalendars = () => ['calendar.family'];
+  allHidden._calendarCapabilities = { 'calendar.family': {} };
+  harness = createModalHarness(allHidden);
+  allHidden.showEventModal(event);
+
+  assert.doesNotMatch(harness.content.innerHTML, /class="modal-actions"/);
+});
 
 test('event location links are opt-in for the details modal', () => {
   const unset = makeCard({ entities: ['calendar.family'] });
