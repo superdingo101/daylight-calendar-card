@@ -13,6 +13,7 @@ import {
   normalizeBackgroundOpacity,
   normalizeCombineBackground,
   normalizeDefaultHiddenCalendars,
+  normalizeEventActions,
   normalizeEventModalSize,
   normalizeEventTitlePrefixMode,
   normalizePastEventMode,
@@ -89,4 +90,13 @@ test('event modal size falls back to the default medium size', () => {
   assert.equal(normalizeEventModalSize('wide'), 'wide');
   assert.equal(normalizeEventModalSize(' FULL '), 'full');
   assert.equal(normalizeEventModalSize('giant'), 'medium');
+});
+
+test('event action normalization keeps only supported actions in stable order', () => {
+  assert.deepEqual(
+    normalizeEventActions([' EDIT ', 'delete', 'unknown', 'delete', 'custom_color']),
+    ['delete', 'custom_color', 'edit']
+  );
+  assert.deepEqual(normalizeEventActions(['forward']), ['forward']);
+  assert.deepEqual(normalizeEventActions('delete'), []);
 });

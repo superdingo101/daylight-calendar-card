@@ -19,6 +19,7 @@ import {
   DEFAULT_PAST_EVENT_MODE,
   DEFAULT_THEME_MODE,
   DEFAULT_VIEW,
+  EVENT_ACTION_OPTIONS,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
   EVENT_TIME_STEP_OPTIONS,
@@ -40,6 +41,7 @@ import {
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
 import { clearAllEventCacheSnapshots } from '../events/event-cache.js';
+import { normalizeEventActions } from '../config/config-normalizers.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
 import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
 import '../components/daylight-color-picker.js';
@@ -77,6 +79,13 @@ function getDefaultColor(index) {
   const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
   return colors[index % colors.length];
 }
+
+const EVENT_ACTION_LABELS = Object.freeze({
+  delete: 'Delete',
+  custom_color: 'Custom Color',
+  forward: 'Forward',
+  edit: 'Edit'
+});
 
 export class SkylightCalendarCardEditor extends HTMLElement {
   constructor() {
@@ -161,6 +170,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       color_scheme: normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
       event_modal_size: normalizeEventModalSize(config.event_modal_size),
+      hide_event_actions: normalizeEventActions(config.hide_event_actions),
       day_badge_layout_week: normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
@@ -537,6 +547,21 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           <label class="list-checkbox-row">
             <span>${displayName}</span>
             <input type="checkbox" data-list-field="${field}" value="${entityId}" ${checked}>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
+  renderEventActionCheckboxes() {
+    const hiddenActions = new Set(this.getListFieldValue('hide_event_actions'));
+    return EVENT_ACTION_OPTIONS
+      .map((action) => {
+        const checked = hiddenActions.has(action) ? 'checked' : '';
+        return `
+          <label class="list-checkbox-row">
+            <span>${EVENT_ACTION_LABELS[action]}</span>
+            <input type="checkbox" data-list-field="hide_event_actions" value="${action}" ${checked}>
           </label>
         `;
       })
@@ -1146,6 +1171,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           </select>
         </div>
       </div>
+      ${this.renderSubSection('Hide event actions', `<div class="list-checkbox-grid">${this.renderEventActionCheckboxes()}</div><p class="helper">Hide selected actions from the event detail popup. This changes the UI only; use read-only calendars or disable event management to prevent modifications.</p>`)}
       ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
       ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
       ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}

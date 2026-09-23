@@ -27,6 +27,7 @@ export const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
 export const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
 export const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
 export const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+export const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
 export const DEFAULT_EVENT_TIME_STEP = 1;
 export const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
 
@@ -98,6 +99,7 @@ export const DEFAULT_CONFIG_VALUES = {
   combine_calendars: false,
   enable_event_management: true,
   event_time_step: DEFAULT_EVENT_TIME_STEP,
+  hide_event_actions: [],
   readonly_calendars: [],
   hide_badge_calendars: [],
   virtual_calendars: [],
@@ -164,7 +166,8 @@ export const DEFAULT_STUB_CONFIG = {
   default_hidden_calendars: [],
   color_scheme: 'auto',
   enable_event_management: true,
-  event_modal_size: 'medium'
+  event_modal_size: 'medium',
+  hide_event_actions: []
 };
 
 export const createDefaultStubConfig = () => ({
@@ -174,5 +177,6 @@ export const createDefaultStubConfig = () => ({
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
   default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
-  header_items: [...DEFAULT_STUB_CONFIG.header_items]
+  header_items: [...DEFAULT_STUB_CONFIG.header_items],
+  hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });
