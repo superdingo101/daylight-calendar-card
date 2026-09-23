@@ -2254,6 +2254,75 @@ test('system theme changes defer rendering until the event modal closes', () => 
   assert.equal(card._pendingHeaderSensorRender, false);
 });
 
+test('in-flight event refresh defers rendering until the event modal closes', async () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({
+    startDate: new Date('2026-09-01T00:00:00Z'),
+    endDate: new Date('2026-10-01T00:00:00Z')
+  });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.family': {
+      success: true,
+      events: [{
+        entityId: 'calendar.family',
+        summary: 'Added from another client',
+        start: { date: '2026-09-22' },
+        end: { date: '2026-09-23' }
+      }]
+    }
+  });
+  card.persistEventCacheSnapshot = () => {};
+  card.isEventManagementDialogOpen = () => true;
+
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+
+  await card.updateEvents();
+
+  assert.equal(card._events[0].summary, 'Added from another client');
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+  assert.equal(card._lastUnchangedDataRender, null);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('event dialog preserves a queued follow-up refresh until it closes', async () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({
+    startDate: new Date('2026-09-01T00:00:00Z'),
+    endDate: new Date('2026-10-01T00:00:00Z')
+  });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.family': { success: true, events: [] }
+  });
+  card.persistEventCacheSnapshot = () => {};
+  card._pendingEventRefreshAfterCurrentFetch = true;
+  card._pendingEventRenderAfterCurrentFetch = true;
+  card.isEventManagementDialogOpen = () => true;
+
+  await card.updateEvents();
+
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, true);
+  assert.equal(card._pendingEventRenderAfterCurrentFetch, true);
+
+  let refreshOptions = null;
+  card.ensureEventsForCurrentRange = (options) => { refreshOptions = options; };
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.deepEqual(refreshOptions, { force: true, renderIfCovered: true });
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, false);
+  assert.equal(card._pendingEventRenderAfterCurrentFetch, false);
+});
+
 test('normalizes css length helpers while preserving size and border width rules', () => {
   const card = makeCard();
 
