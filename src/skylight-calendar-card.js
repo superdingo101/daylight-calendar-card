@@ -2458,8 +2458,12 @@ class SkylightCalendarCard extends HTMLElement {
       const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
-        this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        if (this.isEventManagementDialogOpen()) {
+          if (shouldRenderAfterFetch) this._pendingEventRenderAfterCurrentFetch = true;
+        } else {
+          this._pendingEventRefreshAfterCurrentFetch = false;
+          this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        }
       } else if (shouldRenderAfterFetch) {
         this.renderAfterEventDataChange();
       }
@@ -2560,8 +2564,12 @@ class SkylightCalendarCard extends HTMLElement {
       const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
-        this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        if (this.isEventManagementDialogOpen()) {
+          if (shouldRenderAfterFetch) this._pendingEventRenderAfterCurrentFetch = true;
+        } else {
+          this._pendingEventRefreshAfterCurrentFetch = false;
+          this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        }
       } else if (shouldRenderAfterFetch) {
         this.renderAfterEventDataChange();
       }
@@ -5885,9 +5893,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHeaderTimeRender() {
-    if (!this._pendingHeaderSensorRender) return;
-    this._pendingHeaderSensorRender = false;
-    this.renderPreservingAgendaScroll();
+    if (this._pendingHeaderSensorRender) {
+      this._pendingHeaderSensorRender = false;
+      this.renderPreservingAgendaScroll();
+    }
+    if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
+      const renderIfCovered = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRefreshAfterCurrentFetch = false;
+      this._pendingEventRenderAfterCurrentFetch = false;
+      this.ensureEventsForCurrentRange({ force: true, renderIfCovered });
+    }
   }
 
   navigateToPreviousPeriod() {
