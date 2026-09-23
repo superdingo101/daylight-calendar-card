@@ -41,6 +41,7 @@ import {
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
 import { clearAllEventCacheSnapshots } from '../events/event-cache.js';
+import { normalizeEventActions } from '../config/config-normalizers.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
 import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
 import '../components/daylight-color-picker.js';
@@ -169,6 +170,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       color_scheme: normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
       event_modal_size: normalizeEventModalSize(config.event_modal_size),
+      hide_event_actions: normalizeEventActions(config.hide_event_actions),
       day_badge_layout_week: normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
