@@ -60,6 +60,7 @@ const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
 const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
 const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
 const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
 const DEFAULT_EVENT_TIME_STEP = 1;
 const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
 
@@ -131,6 +132,7 @@ const DEFAULT_CONFIG_VALUES = {
   combine_calendars: false,
   enable_event_management: true,
   event_time_step: DEFAULT_EVENT_TIME_STEP,
+  hide_event_actions: [],
   readonly_calendars: [],
   hide_badge_calendars: [],
   virtual_calendars: [],
@@ -197,7 +199,8 @@ const DEFAULT_STUB_CONFIG = {
   default_hidden_calendars: [],
   color_scheme: 'auto',
   enable_event_management: true,
-  event_modal_size: 'medium'
+  event_modal_size: 'medium',
+  hide_event_actions: []
 };
 
 const createDefaultStubConfig = () => ({
@@ -207,7 +210,8 @@ const createDefaultStubConfig = () => ({
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
   default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
-  header_items: [...DEFAULT_STUB_CONFIG.header_items]
+  header_items: [...DEFAULT_STUB_CONFIG.header_items],
+  hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });
 
 function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
@@ -642,6 +646,16 @@ function normalizeEventModalSize$1(value) {
   return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
 }
 
+function normalizeEventActions(value) {
+  if (!Array.isArray(value)) return [];
+  const requestedActions = new Set(
+    value
+      .filter((entry) => typeof entry === 'string')
+      .map((entry) => entry.trim().toLowerCase())
+  );
+  return EVENT_ACTION_OPTIONS.filter((action) => requestedActions.has(action));
+}
+
 function normalizeEventTimeStep(value) {
   if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
   const numeric = Number(value);
@@ -753,6 +767,7 @@ function createConfigNormalizationSchema({
       { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
       { key: 'event_modal_size', defaultValue: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size) },
       { key: 'event_time_step', defaultValue: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step), normalize: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step) },
+      { key: 'hide_event_actions', defaultValue: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions), normalize: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions) },
       { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
       { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
@@ -1601,6 +1616,13 @@ function getDefaultColor(index) {
   return colors[index % colors.length];
 }
 
+const EVENT_ACTION_LABELS = Object.freeze({
+  delete: 'Delete',
+  custom_color: 'Custom Color',
+  forward: 'Forward',
+  edit: 'Edit'
+});
+
 class SkylightCalendarCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -2060,6 +2082,21 @@ class SkylightCalendarCardEditor extends HTMLElement {
           <label class="list-checkbox-row">
             <span>${displayName}</span>
             <input type="checkbox" data-list-field="${field}" value="${entityId}" ${checked}>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
+  renderEventActionCheckboxes() {
+    const hiddenActions = new Set(this.getListFieldValue('hide_event_actions'));
+    return EVENT_ACTION_OPTIONS
+      .map((action) => {
+        const checked = hiddenActions.has(action) ? 'checked' : '';
+        return `
+          <label class="list-checkbox-row">
+            <span>${EVENT_ACTION_LABELS[action]}</span>
+            <input type="checkbox" data-list-field="hide_event_actions" value="${action}" ${checked}>
           </label>
         `;
       })
@@ -2669,6 +2706,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
           </select>
         </div>
       </div>
+      ${this.renderSubSection('Hide event actions', `<div class="list-checkbox-grid">${this.renderEventActionCheckboxes()}</div><p class="helper">Hide selected actions from the event detail popup. This changes the UI only; use read-only calendars or disable event management to prevent modifications.</p>`)}
       ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
       ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
       ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}
@@ -9705,6 +9743,7 @@ function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  hiddenActions = [],
   customColor = null,
   locationLinks = false,
   locationActionsExpanded = false,
@@ -9746,6 +9785,26 @@ function renderEventDetailsModal({
   const combinedBadgeHtml = event.isCombinedCalendarEvent
     ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: ${calendar.textColor || 'white'}; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
     : `<div class="modal-calendar-badge" style="background: ${modalBadgeColor}; color: ${modalBadgeTextColor}; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
+
+  const hiddenActionSet = new Set(hiddenActions);
+  const showDelete = canDelete && !hiddenActionSet.has('delete');
+  const showCustomColor = !hiddenActionSet.has('custom_color');
+  const showForward = canForward && !hiddenActionSet.has('forward');
+  const showEdit = canEdit && !hiddenActionSet.has('edit');
+  const actionsHtml = showDelete || showCustomColor || showForward || showEdit
+    ? `
+        <div class="modal-actions">
+          <div class="modal-actions-left">
+            ${showDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+          </div>
+          <div class="modal-actions-right">
+            ${showCustomColor ? `<button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>` : ''}
+            ${showForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
+            ${showEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+          </div>
+        </div>
+      `
+    : '';
 
   return `
       <div class="modal-header">
@@ -9808,16 +9867,7 @@ function renderEventDetailsModal({
           </div>
         ` : ''}
 
-        <div class="modal-actions">
-            <div class="modal-actions-left">
-              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
-            </div>
-            <div class="modal-actions-right">
-              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
-              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
-            </div>
-          </div>
+        ${actionsHtml}
       </div>
     `;
 }
@@ -18512,6 +18562,7 @@ class SkylightCalendarCard extends HTMLElement {
       canDelete,
       canForward,
       canModify,
+      hiddenActions: this._config.hide_event_actions,
       customColor: this.getCustomEventColor(event),
       locationLinks: this._config.location_links === true,
       locationActionsExpanded: this._eventLocationActionsExpanded,
