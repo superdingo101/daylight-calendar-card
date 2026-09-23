@@ -1,5 +1,5 @@
 import { normalizeHeaderItems } from '../header/header-items.js';
-import { normalizeEventTimeStep } from '../config/config-normalizers.js';
+import { normalizeEventActions, normalizeEventTimeStep } from '../config/config-normalizers.js';
 import {
   DEFAULT_BACKGROUND_IMAGE_POSITION,
   DEFAULT_BACKGROUND_IMAGE_REPEAT,
@@ -119,6 +119,7 @@ export function createConfigNormalizationSchema({
       { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
       { key: 'event_modal_size', defaultValue: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size) },
       { key: 'event_time_step', defaultValue: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step), normalize: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step) },
+      { key: 'hide_event_actions', defaultValue: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions), normalize: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions) },
       { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
       { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
