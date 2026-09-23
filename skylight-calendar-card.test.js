@@ -910,7 +910,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
+    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size', 'hide_event_actions'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
   assert.deepEqual(stub, {
@@ -971,7 +971,8 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     default_hidden_calendars: [],
     color_scheme: 'auto',
     enable_event_management: true,
-    event_modal_size: 'medium'
+    event_modal_size: 'medium',
+    hide_event_actions: []
   });
 
   const normalized = makeCard({ entities: ['calendar.family'] })._config;
