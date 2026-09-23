@@ -93,7 +93,8 @@ const CONFIG_COVERAGE_INVENTORY = {
   rolling_days_agenda: 'agenda rolling days are configurable and include current day + N days',
   rolling_weeks: 'rolling_weeks month mode renders configured rolling rows from first day of week',
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
-  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only month labels',
+  show_week_numbers_week: 'show_week_numbers_week adds visible ISO week numbers to the Week header',
+  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only Month and Week labels',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
@@ -1970,6 +1971,84 @@ test('week_number_prefix supports localized, custom, and number-only month label
   assert.match(cell, /month-week-number-text">27<\/span>/);
 });
 
+test('show_week_numbers_week is opt-in and limited to Week view', () => {
+  const disabledCard = makeCard({ entities: ['calendar.family'] });
+  disabledCard._viewMode = 'week-compact';
+  disabledCard._currentDate = new Date(2026, 4, 13, 12);
+  disabledCard.setWeekStart();
+  assert.equal(disabledCard._config.show_week_numbers_week, false);
+  assert.equal(disabledCard.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(disabledCard.renderHeaderTitle(), /header-week-number/);
+
+  const card = makeCard({ entities: ['calendar.family'], show_week_numbers_week: true, first_day_of_week: 1 });
+  card._currentDate = new Date(2026, 4, 13, 12);
+  card.setWeekStart();
+  card._viewMode = 'week-compact';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), 'CW 20');
+  assert.match(card.renderHeaderTitle(), /class="header-item header-week-number"/);
+  assert.match(card.renderHeaderTitle(), />CW 20<\/span>/);
+
+  card._viewMode = 'month';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(card.renderHeaderTitle(), /header-week-number/);
+
+  card._viewMode = 'week-standard';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(card.renderHeaderTitle(), /header-week-number/);
+});
+
+test('show_week_numbers_week reflects the visible Week date span and handles ISO year wrap', () => {
+  const calendarWeek = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    first_day_of_week: 0
+  });
+  calendarWeek._currentDate = new Date(2026, 4, 13, 12);
+  calendarWeek.setWeekStart();
+  calendarWeek._viewMode = 'week-compact';
+  assert.equal(calendarWeek.getWeekHeaderWeekNumberLabel(), 'CW 19–20');
+
+  const rolling = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    rolling_days_week_compact: 10
+  });
+  rolling._currentDate = new Date(2026, 4, 13, 12);
+  rolling._viewMode = 'week-compact';
+  assert.equal(rolling.getWeekHeaderWeekNumberLabel(), 'CW 20–21');
+
+  const yearBoundary = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    rolling_days_week_compact: 8
+  });
+  yearBoundary._currentDate = new Date(2026, 11, 27, 12);
+  yearBoundary._viewMode = 'week-compact';
+  assert.equal(yearBoundary.getWeekHeaderWeekNumberLabel(), 'CW 52–53 / 1');
+
+  const dutch = makeCard({
+    entities: ['calendar.family'],
+    language: 'nl',
+    show_week_numbers_week: true,
+    first_day_of_week: 1
+  });
+  dutch._currentDate = new Date(2026, 4, 13, 12);
+  dutch.setWeekStart();
+  dutch._viewMode = 'week-compact';
+  assert.equal(dutch.getWeekHeaderWeekNumberLabel(), 'wk 20');
+
+  const numberOnly = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    week_number_prefix: '',
+    first_day_of_week: 0
+  });
+  numberOnly._currentDate = new Date(2026, 4, 13, 12);
+  numberOnly.setWeekStart();
+  numberOnly._viewMode = 'week-compact';
+  assert.equal(numberOnly.getWeekHeaderWeekNumberLabel(), '19–20');
+});
+
 test('disable_swipe_controls disables swipe controls without affecting agenda', () => {
   const enabledCard = makeCard({ entities: ['calendar.family'] });
   enabledCard._viewMode = 'week-compact';
@@ -3591,6 +3670,7 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal(editor._config.past_event_mode, 'hide');
   assert.match(editor.innerHTML, /data-field="past_event_mode"/);
   assert.match(editor.innerHTML, /<option value="hide" selected>Hide<\/option>/);
+  assert.match(editor.innerHTML, /data-field="show_week_numbers_week"/);
   assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
   assert.match(editor.innerHTML, /data-field="week_compact_weekday_font_size"/);
   assert.match(editor.innerHTML, /data-color-field="week_compact_weekday_color"/);
