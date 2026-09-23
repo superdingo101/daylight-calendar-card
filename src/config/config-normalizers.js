@@ -11,6 +11,7 @@ import {
   DEFAULT_EVENT_TITLE_PREFIX,
   DEFAULT_PAST_EVENT_MODE,
   DEFAULT_THEME_MODE,
+  EVENT_ACTION_OPTIONS,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
   EVENT_TIME_STEP_OPTIONS,
@@ -121,6 +122,16 @@ export function normalizeBackgroundOpacity(opacityValue, fallback = 0) {
 export function normalizeEventModalSize(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+}
+
+export function normalizeEventActions(value) {
+  if (!Array.isArray(value)) return [];
+  const requestedActions = new Set(
+    value
+      .filter((entry) => typeof entry === 'string')
+      .map((entry) => entry.trim().toLowerCase())
+  );
+  return EVENT_ACTION_OPTIONS.filter((action) => requestedActions.has(action));
 }
 
 export function normalizeEventTimeStep(value) {
