@@ -1706,6 +1706,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       color_scheme: normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
       event_modal_size: normalizeEventModalSize(config.event_modal_size),
+      hide_event_actions: normalizeEventActions(config.hide_event_actions),
       day_badge_layout_week: normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
