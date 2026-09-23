@@ -871,6 +871,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
         <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
         <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
+        <label><input type="checkbox" data-field="show_week_numbers_week" ${this._config.show_week_numbers_week ? 'checked' : ''}> Week view: show ISO week number in header</label>
         <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
         <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
         <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
@@ -886,7 +887,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       </div>
       <div class="field-row">
         <div class="field field-inline">
-          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <label for="week_number_prefix_mode">Week-number prefix</label>
           <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
             <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
             <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
@@ -895,7 +896,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           ${this.getWeekNumberPrefixMode() === 'custom' ? `
             <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
           ` : ''}
-          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+          <p class="helper">Used by enabled Month and Week week numbers. Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
         </div>
       </div>
       ${this._config.show_dashboard_nav_button ? `

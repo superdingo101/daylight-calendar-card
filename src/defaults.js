@@ -55,6 +55,7 @@ export const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  show_week_numbers_week: false,
   week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,

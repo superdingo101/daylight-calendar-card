@@ -73,17 +73,19 @@ export function renderHeaderTitle({
   title,
   headerTime,
   headerWeather,
+  weekNumberLabel,
   headerItems = [],
   helpers
 }) {
   const hasTitle = String(title ?? '').trim().length > 0;
-  if (!hasTitle && !headerTime && !headerWeather && headerItems.length === 0) return '';
+  if (!hasTitle && !headerTime && !headerWeather && !weekNumberLabel && headerItems.length === 0) return '';
 
   return `
       <div class="header-title-wrap">
         ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${weekNumberLabel ? `<span class="header-item header-week-number"><span class="header-item-value">${helpers.escapeHtml(weekNumberLabel)}</span></span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
     `;

@@ -46,6 +46,7 @@ export function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_week_numbers_week', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_week || DEFAULT_CONFIG_VALUES.show_week_numbers_week },
       { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },

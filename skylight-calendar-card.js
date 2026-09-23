@@ -88,6 +88,7 @@ const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  show_week_numbers_week: false,
   week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,
@@ -679,6 +680,7 @@ function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_week_numbers_week', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_week || DEFAULT_CONFIG_VALUES.show_week_numbers_week },
       { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
@@ -2392,6 +2394,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
         <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
         <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
+        <label><input type="checkbox" data-field="show_week_numbers_week" ${this._config.show_week_numbers_week ? 'checked' : ''}> Week view: show ISO week number in header</label>
         <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
         <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
         <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
@@ -2407,7 +2410,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       </div>
       <div class="field-row">
         <div class="field field-inline">
-          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <label for="week_number_prefix_mode">Week-number prefix</label>
           <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
             <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
             <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
@@ -2416,7 +2419,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
           ${this.getWeekNumberPrefixMode() === 'custom' ? `
             <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
           ` : ''}
-          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+          <p class="helper">Used by enabled Month and Week week numbers. Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
         </div>
       </div>
       ${this._config.show_dashboard_nav_button ? `
@@ -10633,17 +10636,19 @@ function renderHeaderTitle({
   title,
   headerTime,
   headerWeather,
+  weekNumberLabel,
   headerItems = [],
   helpers
 }) {
   const hasTitle = String(title ?? '').trim().length > 0;
-  if (!hasTitle && !headerTime && !headerWeather && headerItems.length === 0) return '';
+  if (!hasTitle && !headerTime && !headerWeather && !weekNumberLabel && headerItems.length === 0) return '';
 
   return `
       <div class="header-title-wrap">
         ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${weekNumberLabel ? `<span class="header-item header-week-number"><span class="header-item-value">${helpers.escapeHtml(weekNumberLabel)}</span></span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
     `;
@@ -14777,11 +14782,13 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
+    const weekNumberLabel = this.getWeekHeaderWeekNumberLabel();
     const headerItems = this.resolveHeaderItems();
     return renderHeaderTitle({
       title: this._config.title,
       headerTime,
       headerWeather,
+      weekNumberLabel,
       headerItems,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -15773,12 +15780,60 @@ class SkylightCalendarCard extends HTMLElement {
     return getIsoWeekNumber(date);
   }
 
-  formatMonthWeekNumberLabel(date) {
-    const weekNumber = this.getIsoWeekNumber(date);
+  getWeekNumberPrefix() {
     const configuredPrefix = this._config?.week_number_prefix;
-    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
-    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+    return configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
+  }
+
+  formatIsoWeekNumber(weekNumber) {
+    return new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+  }
+
+  formatMonthWeekNumberLabel(date) {
+    const localizedWeekNumber = this.formatIsoWeekNumber(this.getIsoWeekNumber(date));
+    const weekPrefix = this.getWeekNumberPrefix();
     return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
+  }
+
+  shouldShowWeekHeaderWeekNumbers() {
+    return this._viewMode === 'week-compact' && !!this._config?.show_week_numbers_week;
+  }
+
+  getWeekHeaderWeekNumberLabel() {
+    if (!this.shouldShowWeekHeaderWeekNumbers()) return '';
+
+    const weekNumbers = [];
+    for (const date of this.getWeekDays('week-compact')) {
+      const weekNumber = this.getIsoWeekNumber(date);
+      if (weekNumbers[weekNumbers.length - 1] !== weekNumber) {
+        weekNumbers.push(weekNumber);
+      }
+    }
+    if (weekNumbers.length === 0) return '';
+
+    const segments = [];
+    let segmentStart = weekNumbers[0];
+    let segmentEnd = weekNumbers[0];
+
+    for (const weekNumber of weekNumbers.slice(1)) {
+      if (weekNumber === segmentEnd + 1) {
+        segmentEnd = weekNumber;
+        continue;
+      }
+      segments.push([segmentStart, segmentEnd]);
+      segmentStart = weekNumber;
+      segmentEnd = weekNumber;
+    }
+    segments.push([segmentStart, segmentEnd]);
+
+    const rangeLabel = segments.map(([start, end]) => {
+      const localizedStart = this.formatIsoWeekNumber(start);
+      if (start === end) return localizedStart;
+      return `${localizedStart}–${this.formatIsoWeekNumber(end)}`;
+    }).join(' / ');
+
+    const weekPrefix = this.getWeekNumberPrefix();
+    return weekPrefix ? `${weekPrefix} ${rangeLabel}` : rangeLabel;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {

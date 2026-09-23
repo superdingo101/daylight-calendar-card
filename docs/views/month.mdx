@@ -38,15 +38,15 @@ Users can still switch to other views using the view selector buttons in the car
 </ParamField>
 
 <ParamField path="week_number_prefix" default="null" type="string">
-  Used by **Month** only, and only when `show_week_numbers_month` is `true`.
+  Used by **Month** and **Week** when their week-number options are enabled.
 
-  Controls the text shown before each ISO week number in the Month grid. Three modes:
+  Controls the text shown before ISO week numbers in the Month grid and Week header. Three modes:
 
   - **Omit the option** (or set it to `null`) to use the localized default for the card's language (`CW` in English, `wk` in Dutch, `Sem` in French, and so on).
   - **Set a custom string** to replace the prefix. Surrounding whitespace is trimmed and the card adds exactly one space between the prefix and the number.
   - **Set an empty string** (`""`) to hide the prefix entirely and show only the week number.
 
-  Regardless of the visible label, the accessibility label always announces the full localized `Week {number}` phrase for screen readers.
+  In the Month grid, the accessibility label always announces the full localized `Week {number}` phrase for screen readers regardless of the visible prefix.
 
   ```yaml
   type: custom:daylight-calendar-card

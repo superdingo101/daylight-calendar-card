@@ -3835,11 +3835,13 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
+    const weekNumberLabel = this.getWeekHeaderWeekNumberLabel();
     const headerItems = this.resolveHeaderItems();
     return renderHeaderTitleMarkup({
       title: this._config.title,
       headerTime,
       headerWeather,
+      weekNumberLabel,
       headerItems,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -4831,12 +4833,60 @@ class SkylightCalendarCard extends HTMLElement {
     return getIsoWeekNumber(date);
   }
 
-  formatMonthWeekNumberLabel(date) {
-    const weekNumber = this.getIsoWeekNumber(date);
+  getWeekNumberPrefix() {
     const configuredPrefix = this._config?.week_number_prefix;
-    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
-    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+    return configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
+  }
+
+  formatIsoWeekNumber(weekNumber) {
+    return new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+  }
+
+  formatMonthWeekNumberLabel(date) {
+    const localizedWeekNumber = this.formatIsoWeekNumber(this.getIsoWeekNumber(date));
+    const weekPrefix = this.getWeekNumberPrefix();
     return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
+  }
+
+  shouldShowWeekHeaderWeekNumbers() {
+    return this._viewMode === 'week-compact' && !!this._config?.show_week_numbers_week;
+  }
+
+  getWeekHeaderWeekNumberLabel() {
+    if (!this.shouldShowWeekHeaderWeekNumbers()) return '';
+
+    const weekNumbers = [];
+    for (const date of this.getWeekDays('week-compact')) {
+      const weekNumber = this.getIsoWeekNumber(date);
+      if (weekNumbers[weekNumbers.length - 1] !== weekNumber) {
+        weekNumbers.push(weekNumber);
+      }
+    }
+    if (weekNumbers.length === 0) return '';
+
+    const segments = [];
+    let segmentStart = weekNumbers[0];
+    let segmentEnd = weekNumbers[0];
+
+    for (const weekNumber of weekNumbers.slice(1)) {
+      if (weekNumber === segmentEnd + 1) {
+        segmentEnd = weekNumber;
+        continue;
+      }
+      segments.push([segmentStart, segmentEnd]);
+      segmentStart = weekNumber;
+      segmentEnd = weekNumber;
+    }
+    segments.push([segmentStart, segmentEnd]);
+
+    const rangeLabel = segments.map(([start, end]) => {
+      const localizedStart = this.formatIsoWeekNumber(start);
+      if (start === end) return localizedStart;
+      return `${localizedStart}–${this.formatIsoWeekNumber(end)}`;
+    }).join(' / ');
+
+    const weekPrefix = this.getWeekNumberPrefix();
+    return weekPrefix ? `${weekPrefix} ${rangeLabel}` : rangeLabel;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {
