@@ -17453,15 +17453,13 @@ class SkylightCalendarCard extends HTMLElement {
     const hasExplicitDefaultTime = defaultTime instanceof Date || !!prefill?.startDate;
     const startTime = hasExplicitDefaultTime ? new Date(prefill?.startDate || defaultTime) : new Date(startDate);
 
-    // Round to next half hour for timed events
+    // Round implicit timed-event defaults up to the next configured picker step.
+    // Keep the legacy half-hour default when using the native minute picker.
     if (!hasExplicitDefaultTime && (!defaultDate || defaultDate.getHours() !== 0)) {
-      const minutes = startTime.getMinutes();
-      if (minutes < 30) {
-        startTime.setMinutes(30);
-      } else {
-        startTime.setHours(startTime.getHours() + 1);
-        startTime.setMinutes(0);
-      }
+      const configuredStep = this.getEventTimeStep();
+      const defaultMinuteStep = configuredStep > 1 ? configuredStep : 30;
+      const nextMinute = (Math.floor(startTime.getMinutes() / defaultMinuteStep) + 1) * defaultMinuteStep;
+      startTime.setMinutes(nextMinute);
     }
     startTime.setSeconds(0);
     startTime.setMilliseconds(0);
