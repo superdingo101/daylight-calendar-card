@@ -10196,6 +10196,18 @@ test('event_time_step normalizes to the supported steps and renders stepped time
   const optionValues = (selectHtml) => [...selectHtml.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1]);
   const selectHtml = (html, part) => html.match(new RegExp(`<select class="form-select form-stepped-${part}"[^>]*>(.*?)</select>`, 's'))?.[1];
 
+  // Implicit new-event defaults align to the configured step instead of creating an off-step option.
+  const implicitSteppedHarness = createEventFormHarness({ config: { event_time_step: 20, use_24hr_schedule: true } });
+  implicitSteppedHarness.card.showCreateEventModal(new Date(2026, 4, 1, 9, 11));
+  const implicitSteppedHtml = implicitSteppedHarness.content.innerHTML;
+  assert.match(implicitSteppedHtml, /<input type="hidden" id="event-start" value="2026-05-01T09:20"/);
+  assert.match(implicitSteppedHtml, /<input type="hidden" id="event-end" value="2026-05-01T10:20"/);
+  assert.deepEqual(optionValues(selectHtml(implicitSteppedHtml, 'minute')), ['00', '20', '40']);
+
+  // event_time_step: 1 keeps the longstanding next-half-hour default.
+  nativeHarness.card.showCreateEventModal(new Date(2026, 4, 1, 9, 11));
+  assert.match(nativeHarness.content.innerHTML, /value="2026-05-01T09:30"/);
+
   // 24-hour clock: hours 00-23, no AM/PM select.
   const steppedHarness = createEventFormHarness({ config: { event_time_step: 5, use_24hr_schedule: true } });
   const html = steppedHarness.content.innerHTML;
