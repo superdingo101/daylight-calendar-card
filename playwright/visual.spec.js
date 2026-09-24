@@ -1366,6 +1366,11 @@ test('visual: stepped event time pickers stay contained at mobile width in 12- a
       await expectBoxWithin(controls.nth(index), content, 1);
     }
 
+    // This screenshot guards the stepped picker's mobile layout, not its default-time rounding.
+    // Pin the minute value so changes to default-time semantics do not create unrelated baseline churn.
+    await groups.nth(0).locator('[data-stepped-part="minute"]').selectOption('30');
+    await expect(groups.nth(1).locator('[data-stepped-part="minute"]')).toHaveValue('30');
+
     await expect(content).toHaveScreenshot(`event-form-stepped-${mode.name}-mobile.png`, { animations: 'disabled' });
 
     await modal.locator('#close-modal').click();
