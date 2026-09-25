@@ -1056,7 +1056,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.12.0';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
