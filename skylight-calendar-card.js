@@ -60,6 +60,9 @@ const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
 const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
 const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
 const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
+const DEFAULT_EVENT_TIME_STEP = 1;
+const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
 
 const EVENT_TITLE_PREFIX_ALIASES = {
   icon: 'badge_icon',
@@ -86,6 +89,7 @@ const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  show_week_numbers_week: false,
   week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,
@@ -127,6 +131,8 @@ const DEFAULT_CONFIG_VALUES = {
   background_image_url: null,
   combine_calendars: false,
   enable_event_management: true,
+  event_time_step: DEFAULT_EVENT_TIME_STEP,
+  hide_event_actions: [],
   readonly_calendars: [],
   hide_badge_calendars: [],
   virtual_calendars: [],
@@ -193,7 +199,8 @@ const DEFAULT_STUB_CONFIG = {
   default_hidden_calendars: [],
   color_scheme: 'auto',
   enable_event_management: true,
-  event_modal_size: 'medium'
+  event_modal_size: 'medium',
+  hide_event_actions: []
 };
 
 const createDefaultStubConfig = () => ({
@@ -203,7 +210,8 @@ const createDefaultStubConfig = () => ({
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
   default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
-  header_items: [...DEFAULT_STUB_CONFIG.header_items]
+  header_items: [...DEFAULT_STUB_CONFIG.header_items],
+  hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });
 
 function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
@@ -381,6 +389,279 @@ function getHeaderItemsRenderSignature(items, hass) {
   }));
 }
 
+function normalizeDashboardPath(pathValue) {
+  if (typeof pathValue !== 'string') return null;
+  const trimmedPath = pathValue.trim();
+  if (!trimmedPath) return null;
+  return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
+}
+
+function normalizeEnumValue(value, { aliases = {}, allowed = [], fallback }) {
+  const normalizedValue = String(value ?? '').trim().toLowerCase();
+  const mappedValue = aliases[normalizedValue] ?? normalizedValue;
+  return allowed.includes(mappedValue) ? mappedValue : fallback;
+}
+
+function normalizeEntityStringMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.entries(value).reduce((acc, [key, mappedValue]) => {
+    const normalizedKey = typeof key === 'string' ? key.trim() : '';
+    const normalizedValue = typeof mappedValue === 'string' ? mappedValue.trim() : '';
+    if (normalizedKey && normalizedValue) {
+      acc[normalizedKey] = normalizedValue;
+    }
+    return acc;
+  }, {});
+}
+
+function normalizeBooleanStyleValue(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+    if (normalizedValue === 'true') return true;
+    if (normalizedValue === 'false') return false;
+  }
+  return null;
+}
+
+function normalizeSingleColor(colorValue) {
+  if (colorValue === undefined || colorValue === null) {
+    return colorValue;
+  }
+
+  const trimmed = String(colorValue).trim();
+  if (!trimmed) return trimmed;
+
+  const normalizedName = trimmed
+    .toLowerCase()
+    .replace(/[()]/g, '')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const mappedColor = COMMON_NAMED_COLORS[normalizedName];
+  if (mappedColor) {
+    return mappedColor;
+  }
+
+  return trimmed;
+}
+
+function normalizeColorMap(colorMap, { normalizeColor = normalizeSingleColor } = {}) {
+  if (!colorMap || typeof colorMap !== 'object') return {};
+
+  return Object.entries(colorMap).reduce((acc, [entityId, color]) => {
+    const normalized = normalizeColor(color);
+    if (normalized !== undefined && normalized !== null && normalized !== '') {
+      acc[entityId] = normalized;
+    }
+    return acc;
+  }, {});
+}
+
+function colorToHex(color, { normalizeColor = normalizeSingleColor } = {}) {
+  if (!color) return null;
+
+  const normalizedColor = normalizeColor(color);
+  if (typeof normalizedColor !== 'string') return null;
+
+  const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
+  if (hex3Match) {
+    const [r, g, b] = hex3Match[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+
+  const hex6Match = normalizedColor.match(/^#([\da-fA-F]{6})$/);
+  if (hex6Match) {
+    return `#${hex6Match[1].toUpperCase()}`;
+  }
+
+  return null;
+}
+
+function parseColorToRgb(color, {
+  normalizeColor = normalizeSingleColor,
+  resolveComputedCssColorToRgb = null
+} = {}) {
+  const normalizedColor = normalizeColor(color);
+  if (typeof normalizedColor === 'string') {
+    const rgbMatch = normalizedColor
+      .match(/^rgba?\((.+)\)$/i);
+    if (rgbMatch) {
+      const normalizedChannels = rgbMatch[1]
+        .replace(/\s*\/\s*.*/, '')
+        .replace(/,/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 3)
+        .map((channel) => Number(channel));
+
+      if (normalizedChannels.length === 3 && normalizedChannels.every((value) => Number.isFinite(value))) {
+        const [r, g, b] = normalizedChannels.map((value) => Math.max(0, Math.min(255, Math.round(value))));
+        return { r, g, b };
+      }
+    }
+  }
+
+  const hex = colorToHex(normalizedColor, { normalizeColor });
+  if (hex) {
+    return {
+      r: parseInt(hex.slice(1, 3), 16),
+      g: parseInt(hex.slice(3, 5), 16),
+      b: parseInt(hex.slice(5, 7), 16)
+    };
+  }
+
+  return typeof resolveComputedCssColorToRgb === 'function'
+    ? resolveComputedCssColorToRgb(normalizedColor)
+    : null;
+}
+
+function colorWithAlpha(color, alpha = 1, { colorToRgb = parseColorToRgb } = {}) {
+  const rgb = colorToRgb(color);
+  if (!rgb) return color;
+
+  const clamped = Math.max(0, Math.min(1, alpha));
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
+}
+
+function blendRgb(top, bottom, topAlpha = 1) {
+  if (!top && !bottom) return null;
+  if (!top) return bottom;
+  if (!bottom) return top;
+  const clampedAlpha = Math.max(0, Math.min(1, topAlpha));
+  return {
+    r: Math.round((top.r * clampedAlpha) + (bottom.r * (1 - clampedAlpha))),
+    g: Math.round((top.g * clampedAlpha) + (bottom.g * (1 - clampedAlpha))),
+    b: Math.round((top.b * clampedAlpha) + (bottom.b * (1 - clampedAlpha)))
+  };
+}
+
+function getContrastColor(backgroundColor, { colorToRgb = parseColorToRgb } = {}) {
+  const rgb = colorToRgb(backgroundColor);
+  if (!rgb) return 'white';
+
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.6 ? 'black' : 'white';
+}
+
+function normalizeThemeMode(value) {
+  if (value === true) return 'dark';
+  if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
+
+  return normalizeEnumValue(value, {
+    allowed: THEME_MODE_OPTIONS,
+    fallback: DEFAULT_THEME_MODE
+  });
+}
+
+function normalizeEventTitlePrefixMode(value) {
+  return normalizeEnumValue(value, {
+    aliases: EVENT_TITLE_PREFIX_ALIASES,
+    allowed: EVENT_TITLE_PREFIX_OPTIONS,
+    fallback: DEFAULT_EVENT_TITLE_PREFIX
+  });
+}
+
+function normalizePastEventMode$1(value) {
+  return normalizeEnumValue(value, {
+    allowed: PAST_EVENT_MODE_OPTIONS,
+    fallback: DEFAULT_PAST_EVENT_MODE
+  });
+}
+
+function normalizeDayBadgeLayoutWeek$1(value) {
+  return normalizeEnumValue(value, {
+    allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
+    fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
+  });
+}
+
+function normalizeDefaultHiddenCalendars(config = {}) {
+  const knownEntities = new Set(Array.isArray(config.entities) ? config.entities : []);
+  const hiddenCalendars = new Set();
+
+  if (Array.isArray(config.default_hidden_calendars)) {
+    config.default_hidden_calendars.forEach((entityId) => {
+      if (knownEntities.has(entityId)) hiddenCalendars.add(entityId);
+    });
+  }
+
+  const visibilityMap = config.default_calendar_visibility || config.calendar_visibility || {};
+  if (visibilityMap && typeof visibilityMap === 'object' && !Array.isArray(visibilityMap)) {
+    Object.entries(visibilityMap).forEach(([entityId, value]) => {
+      if (!knownEntities.has(entityId)) return;
+      const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
+      if (HIDDEN_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
+        hiddenCalendars.add(entityId);
+      } else if (VISIBLE_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
+        hiddenCalendars.delete(entityId);
+      }
+    });
+  }
+
+  return Array.from(hiddenCalendars);
+}
+
+function normalizeCombineStyle(styleValue) {
+  return normalizeEnumValue(styleValue, {
+    allowed: COMBINE_STYLE_OPTIONS,
+    fallback: DEFAULT_COMBINE_STYLE
+  });
+}
+
+function normalizeEventColorMode(modeValue) {
+  return normalizeEnumValue(modeValue, {
+    allowed: EVENT_COLOR_MODE_OPTIONS,
+    fallback: DEFAULT_EVENT_COLOR_MODE
+  });
+}
+
+function normalizeCombineBackground(backgroundValue, { colorToHex: normalizeColorToHex = colorToHex } = {}) {
+  const normalized = String(backgroundValue || '').trim();
+  if (!normalized) return DEFAULT_COMBINE_BACKGROUND;
+
+  const lower = normalized.toLowerCase();
+  if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(lower)) {
+    return lower;
+  }
+
+  const hex = normalizeColorToHex(normalized);
+  return hex || DEFAULT_COMBINE_BACKGROUND;
+}
+
+function normalizeBackgroundOpacity(opacityValue, fallback = 0) {
+  const numericOpacity = Number(opacityValue);
+  if (!Number.isFinite(numericOpacity)) {
+    return fallback;
+  }
+
+  return Math.min(100, Math.max(0, numericOpacity));
+}
+
+function normalizeEventModalSize$1(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
+}
+
+function normalizeEventActions(value) {
+  if (!Array.isArray(value)) return [];
+  const requestedActions = new Set(
+    value
+      .filter((entry) => typeof entry === 'string')
+      .map((entry) => entry.trim().toLowerCase())
+  );
+  return EVENT_ACTION_OPTIONS.filter((action) => requestedActions.has(action));
+}
+
+function normalizeEventTimeStep(value) {
+  if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
+  const numeric = Number(value);
+  return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
+}
+
 function createConfigNormalizationSchema({
   hasCustomTitle,
   normalizeDashboardPath,
@@ -413,6 +694,7 @@ function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_week_numbers_week', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_week || DEFAULT_CONFIG_VALUES.show_week_numbers_week },
       { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
@@ -484,6 +766,8 @@ function createConfigNormalizationSchema({
       { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY), normalize: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY) },
       { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
       { key: 'event_modal_size', defaultValue: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size) },
+      { key: 'event_time_step', defaultValue: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step), normalize: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step) },
+      { key: 'hide_event_actions', defaultValue: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions), normalize: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions) },
       { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
       { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
@@ -510,6 +794,7 @@ const EDITOR_DEFAULT_VALUES = Object.freeze({
   combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
+  event_time_step: 1,
   first_day_of_week: 0,
   header_background_opacity: 0,
   background_opacity: 0
@@ -771,7 +1056,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.11.1';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
@@ -1132,44 +1417,6 @@ async function clearAllEventCacheSnapshots({ epoch = beginEventCacheFlush() } = 
   });
 }
 
-function normalizeDashboardPath(pathValue) {
-  if (typeof pathValue !== 'string') return null;
-  const trimmedPath = pathValue.trim();
-  if (!trimmedPath) return null;
-  return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
-}
-
-function normalizeEnumValue(value, { aliases = {}, allowed = [], fallback }) {
-  const normalizedValue = String(value ?? '').trim().toLowerCase();
-  const mappedValue = aliases[normalizedValue] ?? normalizedValue;
-  return allowed.includes(mappedValue) ? mappedValue : fallback;
-}
-
-function normalizeEntityStringMap(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-
-  return Object.entries(value).reduce((acc, [key, mappedValue]) => {
-    const normalizedKey = typeof key === 'string' ? key.trim() : '';
-    const normalizedValue = typeof mappedValue === 'string' ? mappedValue.trim() : '';
-    if (normalizedKey && normalizedValue) {
-      acc[normalizedKey] = normalizedValue;
-    }
-    return acc;
-  }, {});
-}
-
-function normalizeBooleanStyleValue(value) {
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const normalizedValue = value.trim().toLowerCase();
-    if (normalizedValue === 'true') return true;
-    if (normalizedValue === 'false') return false;
-  }
-  return null;
-}
-
 const STALE_RESOURCE_WARNING_STORAGE_KEY = 'daylight-calendar-card:stale-resource-warning-dismissed';
 const STALE_RESOURCE_TROUBLESHOOTING_URL = 'https://docs.daylightcalendar.com/troubleshooting#updated-to-the-latest-version-but-still-seeing-old-behavior';
 
@@ -1345,21 +1592,21 @@ function normalizeDefaultDarkMode(value) {
   });
 }
 
-function normalizePastEventMode$1(value) {
+function normalizePastEventMode(value) {
   return normalizeEnumValue(value, {
     allowed: PAST_EVENT_MODE_OPTIONS,
     fallback: DEFAULT_PAST_EVENT_MODE
   });
 }
 
-function normalizeDayBadgeLayoutWeek$1(value) {
+function normalizeDayBadgeLayoutWeek(value) {
   return normalizeEnumValue(value, {
     allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
     fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
   });
 }
 
-function normalizeEventModalSize$1(value) {
+function normalizeEventModalSize(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
 }
@@ -1368,6 +1615,13 @@ function getDefaultColor(index) {
   const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
   return colors[index % colors.length];
 }
+
+const EVENT_ACTION_LABELS = Object.freeze({
+  delete: 'Delete',
+  custom_color: 'Custom Color',
+  forward: 'Forward',
+  edit: 'Edit'
+});
 
 class SkylightCalendarCardEditor extends HTMLElement {
   constructor() {
@@ -1441,7 +1695,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         ? 'week-standard'
         : config.default_view;
     const normalizedPastEventMode = config.past_event_mode !== undefined && config.past_event_mode !== null && config.past_event_mode !== ''
-      ? normalizePastEventMode$1(config.past_event_mode)
+      ? normalizePastEventMode(config.past_event_mode)
       : (config.hide_the_past ? 'hide' : createDefaultStubConfig().past_event_mode);
 
     this._config = {
@@ -1451,8 +1705,9 @@ class SkylightCalendarCardEditor extends HTMLElement {
       past_event_mode: normalizedPastEventMode,
       color_scheme: normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
-      event_modal_size: normalizeEventModalSize$1(config.event_modal_size),
-      day_badge_layout_week: normalizeDayBadgeLayoutWeek$1(config.day_badge_layout_week)
+      event_modal_size: normalizeEventModalSize(config.event_modal_size),
+      hide_event_actions: normalizeEventActions(config.hide_event_actions),
+      day_badge_layout_week: normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
 
@@ -1834,6 +2089,21 @@ class SkylightCalendarCardEditor extends HTMLElement {
       .join('');
   }
 
+  renderEventActionCheckboxes() {
+    const hiddenActions = new Set(this.getListFieldValue('hide_event_actions'));
+    return EVENT_ACTION_OPTIONS
+      .map((action) => {
+        const checked = hiddenActions.has(action) ? 'checked' : '';
+        return `
+          <label class="list-checkbox-row">
+            <span>${EVENT_ACTION_LABELS[action]}</span>
+            <input type="checkbox" data-list-field="hide_event_actions" value="${action}" ${checked}>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
   buildDisclosureKey(scope, title) {
     return `${scope}:${title}`;
   }
@@ -2162,6 +2432,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
         <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
         <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
+        <label><input type="checkbox" data-field="show_week_numbers_week" ${this._config.show_week_numbers_week ? 'checked' : ''}> Week view: show ISO week number in header</label>
         <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
         <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
         <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
@@ -2177,7 +2448,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       </div>
       <div class="field-row">
         <div class="field field-inline">
-          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <label for="week_number_prefix_mode">Week-number prefix</label>
           <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
             <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
             <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
@@ -2186,7 +2457,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
           ${this.getWeekNumberPrefixMode() === 'custom' ? `
             <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
           ` : ''}
-          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+          <p class="helper">Used by enabled Month and Week week numbers. Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
         </div>
       </div>
       ${this._config.show_dashboard_nav_button ? `
@@ -2428,6 +2699,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
           </select>
         </div>
       </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_time_step">Time picker minute step</label>
+          <select id="event_time_step" data-field="event_time_step" data-type="number">
+            ${EVENT_TIME_STEP_OPTIONS.map((step) => `<option value="${step}" ${(this._config.event_time_step ?? 1) === step ? 'selected' : ''}>${step === 1 ? '1 (browser picker)' : `${step} minutes`}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${this.renderSubSection('Hide event actions', `<div class="list-checkbox-grid">${this.renderEventActionCheckboxes()}</div><p class="helper">Hide selected actions from the event detail popup. This changes the UI only; use read-only calendars or disable event management to prevent modifications.</p>`)}
       ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
       ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
       ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}
@@ -4222,8 +4502,7 @@ function getCardStyles() {
       }
 
       .week-compact-container.compact-height {
-        grid-auto-rows: max-content;
-        align-content: start;
+        grid-auto-rows: minmax(max-content, 1fr);
       }
 
       .week-day-column {
@@ -4488,7 +4767,7 @@ function getCardStyles() {
 
       .agenda-day-row {
         display: grid;
-        grid-template-columns: 88px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 12px;
         border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
@@ -4553,6 +4832,7 @@ function getCardStyles() {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-width: 0;
       }
 
       .agenda-event {
@@ -4614,10 +4894,11 @@ function getCardStyles() {
 
       .calendar-container.agenda-compact-events .agenda-event-title {
         flex: 1 1 auto;
+        min-width: 0;
         min-height: unset;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .calendar-container.agenda-compact-events .agenda-event-time {
@@ -5545,6 +5826,40 @@ function getCardStyles() {
         gap: 10px 14px;
       }
 
+      .form-stepped-datetime {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-stepped-date {
+        flex: 1 1 9.5em;
+        width: auto;
+        min-width: 0;
+      }
+
+      .form-stepped-time {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-select {
+        width: auto;
+        min-width: 4.5em;
+      }
+
+      .form-stepped-datetime input[type="hidden"] {
+        display: none;
+      }
+
+      .form-stepped-separator {
+        font-weight: 600;
+        opacity: 0.7;
+      }
+
       .form-checkbox-row {
         display: flex;
         flex-wrap: wrap;
@@ -6379,6 +6694,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Select at least one weekday for weekly recurring events',
       start: 'Start',
       end: 'End',
+      startHour: 'Start hour',
+      startMinute: 'Start minute',
+      startPeriod: 'Start AM/PM',
+      endHour: 'End hour',
+      endMinute: 'End minute',
+      endPeriod: 'End AM/PM',
       startDate: 'Start Date',
       endDate: 'End Date',
       location: 'Location',
@@ -6501,6 +6822,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Sélectionnez au moins un jour pour les événements hebdomadaires',
       start: 'Début',
       end: 'Fin',
+      startHour: 'Heure de début',
+      startMinute: 'Minute de début',
+      startPeriod: 'AM/PM de début',
+      endHour: 'Heure de fin',
+      endMinute: 'Minute de fin',
+      endPeriod: 'AM/PM de fin',
       startDate: 'Date de début',
       endDate: 'Date de fin',
       location: 'Lieu',
@@ -6623,6 +6950,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Wählen Sie mindestens einen Wochentag für wöchentliche Termine aus',
       start: 'Beginn',
       end: 'Ende',
+      startHour: 'Startstunde',
+      startMinute: 'Startminute',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Endstunde',
+      endMinute: 'Endminute',
+      endPeriod: 'Ende AM/PM',
       startDate: 'Startdatum',
       endDate: 'Enddatum',
       location: 'Ort',
@@ -6745,6 +7078,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Selecteer ten minste één dag voor wekelijks terugkerende afspraken',
       start: 'Start',
       end: 'Einde',
+      startHour: 'Startuur',
+      startMinute: 'Startminuut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Einduur',
+      endMinute: 'Eindminuut',
+      endPeriod: 'Einde AM/PM',
       startDate: 'Begindatum',
       endDate: 'Einddatum',
       location: 'Locatie',
@@ -6866,6 +7205,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Selecciona al menos un día de la semana para los eventos recurrentes semanales',
       start: 'Inicio',
       end: 'Fin',
+      startHour: 'Hora de inicio',
+      startMinute: 'Minuto de inicio',
+      startPeriod: 'AM/PM de inicio',
+      endHour: 'Hora de fin',
+      endMinute: 'Minuto de fin',
+      endPeriod: 'AM/PM de fin',
       startDate: 'Fecha de inicio',
       endDate: 'Fecha de fin',
       location: 'Ubicación',
@@ -6988,6 +7333,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Vali iganädalase korduse jaoks vähemalt üks nädalapäev',
       start: 'Algus',
       end: 'Lõpp',
+      startHour: 'Algustund',
+      startMinute: 'Algusminut',
+      startPeriod: 'Alguse AM/PM',
+      endHour: 'Lõpptund',
+      endMinute: 'Lõppminut',
+      endPeriod: 'Lõpu AM/PM',
       startDate: 'Alguskuupäev',
       endDate: 'Lõppkuupäev',
       location: 'Asukoht',
@@ -7110,6 +7461,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: "Selecciona almenys un dia de la setmana per als esdeveniments recurrents setmanals",
       start: 'Inici',
       end: 'Fi',
+      startHour: "Hora d'inici",
+      startMinute: "Minut d'inici",
+      startPeriod: "AM/PM d'inici",
+      endHour: 'Hora de fi',
+      endMinute: 'Minut de fi',
+      endPeriod: 'AM/PM de fi',
       startDate: "Data d'inici",
       endDate: 'Data de fi',
       location: 'Ubicació',
@@ -7232,6 +7589,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Vælg mindst én ugedag for ugentligt gentagende begivenheder',
       start: 'Start',
       end: 'Slut',
+      startHour: 'Starttime',
+      startMinute: 'Startminut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Sluttime',
+      endMinute: 'Slutminut',
+      endPeriod: 'Slut AM/PM',
       startDate: 'Startdato',
       endDate: 'Slutdato',
       location: 'Sted',
@@ -7354,6 +7717,12 @@ const TRANSLATIONS = {
       recurrenceSelectWeekday: 'Välj minst en veckodag för återkommande händelser.',
       start: 'Start',
       end: 'Slut',
+      startHour: 'Starttimme',
+      startMinute: 'Startminut',
+      startPeriod: 'Start AM/PM',
+      endHour: 'Sluttimme',
+      endMinute: 'Slutminut',
+      endPeriod: 'Slut AM/PM',
       startDate: 'Startdatum',
       endDate: 'Slutdatum',
       location: 'Plats',
@@ -7722,225 +8091,6 @@ function normalizeDayBadges(rawRules, {
       return normalized;
     })
     .filter(Boolean);
-}
-
-function normalizeSingleColor(colorValue) {
-  if (colorValue === undefined || colorValue === null) {
-    return colorValue;
-  }
-
-  const trimmed = String(colorValue).trim();
-  if (!trimmed) return trimmed;
-
-  const normalizedName = trimmed
-    .toLowerCase()
-    .replace(/[()]/g, '')
-    .replace(/\s*\/\s*/g, '/')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const mappedColor = COMMON_NAMED_COLORS[normalizedName];
-  if (mappedColor) {
-    return mappedColor;
-  }
-
-  return trimmed;
-}
-
-function normalizeColorMap(colorMap, { normalizeColor = normalizeSingleColor } = {}) {
-  if (!colorMap || typeof colorMap !== 'object') return {};
-
-  return Object.entries(colorMap).reduce((acc, [entityId, color]) => {
-    const normalized = normalizeColor(color);
-    if (normalized !== undefined && normalized !== null && normalized !== '') {
-      acc[entityId] = normalized;
-    }
-    return acc;
-  }, {});
-}
-
-function colorToHex(color, { normalizeColor = normalizeSingleColor } = {}) {
-  if (!color) return null;
-
-  const normalizedColor = normalizeColor(color);
-  if (typeof normalizedColor !== 'string') return null;
-
-  const hex3Match = normalizedColor.match(/^#([\da-fA-F]{3})$/);
-  if (hex3Match) {
-    const [r, g, b] = hex3Match[1].split('');
-    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
-  }
-
-  const hex6Match = normalizedColor.match(/^#([\da-fA-F]{6})$/);
-  if (hex6Match) {
-    return `#${hex6Match[1].toUpperCase()}`;
-  }
-
-  return null;
-}
-
-function parseColorToRgb(color, {
-  normalizeColor = normalizeSingleColor,
-  resolveComputedCssColorToRgb = null
-} = {}) {
-  const normalizedColor = normalizeColor(color);
-  if (typeof normalizedColor === 'string') {
-    const rgbMatch = normalizedColor
-      .match(/^rgba?\((.+)\)$/i);
-    if (rgbMatch) {
-      const normalizedChannels = rgbMatch[1]
-        .replace(/\s*\/\s*.*/, '')
-        .replace(/,/g, ' ')
-        .trim()
-        .split(/\s+/)
-        .slice(0, 3)
-        .map((channel) => Number(channel));
-
-      if (normalizedChannels.length === 3 && normalizedChannels.every((value) => Number.isFinite(value))) {
-        const [r, g, b] = normalizedChannels.map((value) => Math.max(0, Math.min(255, Math.round(value))));
-        return { r, g, b };
-      }
-    }
-  }
-
-  const hex = colorToHex(normalizedColor, { normalizeColor });
-  if (hex) {
-    return {
-      r: parseInt(hex.slice(1, 3), 16),
-      g: parseInt(hex.slice(3, 5), 16),
-      b: parseInt(hex.slice(5, 7), 16)
-    };
-  }
-
-  return typeof resolveComputedCssColorToRgb === 'function'
-    ? resolveComputedCssColorToRgb(normalizedColor)
-    : null;
-}
-
-function colorWithAlpha(color, alpha = 1, { colorToRgb = parseColorToRgb } = {}) {
-  const rgb = colorToRgb(color);
-  if (!rgb) return color;
-
-  const clamped = Math.max(0, Math.min(1, alpha));
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamped})`;
-}
-
-function blendRgb(top, bottom, topAlpha = 1) {
-  if (!top && !bottom) return null;
-  if (!top) return bottom;
-  if (!bottom) return top;
-  const clampedAlpha = Math.max(0, Math.min(1, topAlpha));
-  return {
-    r: Math.round((top.r * clampedAlpha) + (bottom.r * (1 - clampedAlpha))),
-    g: Math.round((top.g * clampedAlpha) + (bottom.g * (1 - clampedAlpha))),
-    b: Math.round((top.b * clampedAlpha) + (bottom.b * (1 - clampedAlpha)))
-  };
-}
-
-function getContrastColor(backgroundColor, { colorToRgb = parseColorToRgb } = {}) {
-  const rgb = colorToRgb(backgroundColor);
-  if (!rgb) return 'white';
-
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-  return luminance > 0.6 ? 'black' : 'white';
-}
-
-function normalizeThemeMode(value) {
-  if (value === true) return 'dark';
-  if (value === false || value === undefined || value === null || value === '') return DEFAULT_THEME_MODE;
-
-  return normalizeEnumValue(value, {
-    allowed: THEME_MODE_OPTIONS,
-    fallback: DEFAULT_THEME_MODE
-  });
-}
-
-function normalizeEventTitlePrefixMode(value) {
-  return normalizeEnumValue(value, {
-    aliases: EVENT_TITLE_PREFIX_ALIASES,
-    allowed: EVENT_TITLE_PREFIX_OPTIONS,
-    fallback: DEFAULT_EVENT_TITLE_PREFIX
-  });
-}
-
-function normalizePastEventMode(value) {
-  return normalizeEnumValue(value, {
-    allowed: PAST_EVENT_MODE_OPTIONS,
-    fallback: DEFAULT_PAST_EVENT_MODE
-  });
-}
-
-function normalizeDayBadgeLayoutWeek(value) {
-  return normalizeEnumValue(value, {
-    allowed: DAY_BADGE_LAYOUT_WEEK_OPTIONS,
-    fallback: DEFAULT_DAY_BADGE_LAYOUT_WEEK
-  });
-}
-
-function normalizeDefaultHiddenCalendars(config = {}) {
-  const knownEntities = new Set(Array.isArray(config.entities) ? config.entities : []);
-  const hiddenCalendars = new Set();
-
-  if (Array.isArray(config.default_hidden_calendars)) {
-    config.default_hidden_calendars.forEach((entityId) => {
-      if (knownEntities.has(entityId)) hiddenCalendars.add(entityId);
-    });
-  }
-
-  const visibilityMap = config.default_calendar_visibility || config.calendar_visibility || {};
-  if (visibilityMap && typeof visibilityMap === 'object' && !Array.isArray(visibilityMap)) {
-    Object.entries(visibilityMap).forEach(([entityId, value]) => {
-      if (!knownEntities.has(entityId)) return;
-      const normalizedValue = typeof value === 'string' ? value.trim().toLowerCase() : value;
-      if (HIDDEN_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
-        hiddenCalendars.add(entityId);
-      } else if (VISIBLE_CALENDAR_VISIBILITY_VALUES.includes(normalizedValue)) {
-        hiddenCalendars.delete(entityId);
-      }
-    });
-  }
-
-  return Array.from(hiddenCalendars);
-}
-
-function normalizeCombineStyle(styleValue) {
-  return normalizeEnumValue(styleValue, {
-    allowed: COMBINE_STYLE_OPTIONS,
-    fallback: DEFAULT_COMBINE_STYLE
-  });
-}
-
-function normalizeEventColorMode(modeValue) {
-  return normalizeEnumValue(modeValue, {
-    allowed: EVENT_COLOR_MODE_OPTIONS,
-    fallback: DEFAULT_EVENT_COLOR_MODE
-  });
-}
-
-function normalizeCombineBackground(backgroundValue, { colorToHex: normalizeColorToHex = colorToHex } = {}) {
-  const normalized = String(backgroundValue || '').trim();
-  if (!normalized) return DEFAULT_COMBINE_BACKGROUND;
-
-  const lower = normalized.toLowerCase();
-  if (COMBINE_BACKGROUND_MODE_OPTIONS.includes(lower)) {
-    return lower;
-  }
-
-  const hex = normalizeColorToHex(normalized);
-  return hex || DEFAULT_COMBINE_BACKGROUND;
-}
-
-function normalizeBackgroundOpacity(opacityValue, fallback = 0) {
-  const numericOpacity = Number(opacityValue);
-  if (!Number.isFinite(numericOpacity)) {
-    return fallback;
-  }
-
-  return Math.min(100, Math.max(0, numericOpacity));
-}
-
-function normalizeEventModalSize(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return EVENT_MODAL_SIZE_OPTIONS.includes(normalized) ? normalized : DEFAULT_EVENT_MODAL_SIZE;
 }
 
 function normalizeEventTextValue(value) {
@@ -9594,6 +9744,7 @@ function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  hiddenActions = [],
   customColor = null,
   locationLinks = false,
   locationActionsExpanded = false,
@@ -9635,6 +9786,26 @@ function renderEventDetailsModal({
   const combinedBadgeHtml = event.isCombinedCalendarEvent
     ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: ${calendar.textColor || 'white'}; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
     : `<div class="modal-calendar-badge" style="background: ${modalBadgeColor}; color: ${modalBadgeTextColor}; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
+
+  const hiddenActionSet = new Set(hiddenActions);
+  const showDelete = canDelete && !hiddenActionSet.has('delete');
+  const showCustomColor = !hiddenActionSet.has('custom_color');
+  const showForward = canForward && !hiddenActionSet.has('forward');
+  const showEdit = canEdit && !hiddenActionSet.has('edit');
+  const actionsHtml = showDelete || showCustomColor || showForward || showEdit
+    ? `
+        <div class="modal-actions">
+          <div class="modal-actions-left">
+            ${showDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+          </div>
+          <div class="modal-actions-right">
+            ${showCustomColor ? `<button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>` : ''}
+            ${showForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
+            ${showEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+          </div>
+        </div>
+      `
+    : '';
 
   return `
       <div class="modal-header">
@@ -9697,16 +9868,7 @@ function renderEventDetailsModal({
           </div>
         ` : ''}
 
-        <div class="modal-actions">
-            <div class="modal-actions-left">
-              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
-            </div>
-            <div class="modal-actions-right">
-              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
-              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
-            </div>
-          </div>
+        ${actionsHtml}
       </div>
     `;
 }
@@ -9975,7 +10137,7 @@ function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }
 
   return `
       <div class="calendar-badges-container">
-        <div class="calendar-badges">
+        <div class="calendar-badges" data-swipe-navigation-exempt>
           ${badgeItems.map((badgeItem) => renderCalendarBadge({
             badgeItem,
             hideCalendarNames,
@@ -10064,6 +10226,55 @@ function formatDateTimeLocal(date) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function padTwoDigits(value) {
+  return String(value).padStart(2, '0');
+}
+
+function renderSteppedDateTimeControl({ id, value, step, required = false, field, hour12 = false, dayPeriodLabels = {}, helpers }) {
+  const { escapeHtmlAttribute, t } = helpers;
+  // Duck-type instead of instanceof so Date objects from another realm (or a patched global Date) still render.
+  const date = value && typeof value.getTime === 'function' && !Number.isNaN(value.getTime()) ? value : null;
+  const hourValue = date ? date.getHours() : null;
+  const minuteValue = date ? date.getMinutes() : null;
+  const minuteOptions = [];
+  for (let minute = 0; minute < 60; minute += step) minuteOptions.push(minute);
+  // Keep an existing off-step time selectable so editing never silently moves an event.
+  // The option is flagged so setupSteppedDateTimeInputs can drop it once it is no longer selected.
+  const offStepMinute = minuteValue !== null && !minuteOptions.includes(minuteValue) ? minuteValue : null;
+  if (offStepMinute !== null) {
+    minuteOptions.push(offStepMinute);
+    minuteOptions.sort((a, b) => a - b);
+  }
+  // The visible hour list follows the card's 12/24-hour clock; the hidden input always stores 24-hour time.
+  const hourOptions = hour12
+    ? Array.from({ length: 12 }, (_, index) => index + 1)
+    : Array.from({ length: 24 }, (_, hour) => hour);
+  const selectedHour = hourValue === null ? null : (hour12 ? (hourValue % 12 || 12) : hourValue);
+  const renderOptions = (values, selected, { format = padTwoDigits, offStepValue = null } = {}) => values
+    .map((optionValue) => `<option value="${padTwoDigits(optionValue)}" ${optionValue === selected ? 'selected' : ''}${optionValue === offStepValue ? ' data-off-step="true"' : ''}>${format(optionValue)}</option>`)
+    .join('');
+  const periodLabel = (period, fallback) => escapeHtmlAttribute(dayPeriodLabels?.[period] || fallback);
+  const periodSelect = hour12
+    ? `<select class="form-select form-stepped-period" data-stepped-part="period" aria-label="${escapeHtmlAttribute(t(`${field}Period`))}">
+                      <option value="AM" ${hourValue !== null && hourValue < 12 ? 'selected' : ''}>${periodLabel('am', 'AM')}</option>
+                      <option value="PM" ${hourValue !== null && hourValue >= 12 ? 'selected' : ''}>${periodLabel('pm', 'PM')}</option>
+                    </select>`
+    : '';
+
+  return `
+                <div class="form-stepped-datetime" data-stepped-datetime="${id}" data-hour-cycle="${hour12 ? '12' : '24'}">
+                  <input type="date" class="form-input form-stepped-date" data-stepped-part="date"
+                         value="${date ? formatDate(date) : ''}" ${required ? 'required' : ''} aria-label="${escapeHtmlAttribute(t(`${field}Date`))}" />
+                  <div class="form-stepped-time">
+                    <select class="form-select form-stepped-hour" data-stepped-part="hour" aria-label="${escapeHtmlAttribute(t(`${field}Hour`))}">${renderOptions(hourOptions, selectedHour, { format: hour12 ? String : padTwoDigits })}</select>
+                    <span class="form-stepped-separator" aria-hidden="true">:</span>
+                    <select class="form-select form-stepped-minute" data-stepped-part="minute" aria-label="${escapeHtmlAttribute(t(`${field}Minute`))}">${renderOptions(minuteOptions, minuteValue, { offStepValue: offStepMinute })}</select>
+                    ${periodSelect}
+                  </div>
+                  <input type="hidden" id="${id}" value="${date ? formatDateTimeLocal(date) : ''}" />
+                </div>`;
 }
 
 function formatDate(date) {
@@ -10158,9 +10369,13 @@ function renderEventFields({
   recurrenceData,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
+  const useSteppedTime = Number.isInteger(eventTimeStep) && eventTimeStep > 1;
 
   return `
           <div class="form-group form-group-inline">
@@ -10206,16 +10421,20 @@ ${renderRecurrenceControls({
             <div class="form-group form-group-inline">
               <div class="form-inline-row">
                 <label class="form-label">${t('start')}</label>
-                <input type="datetime-local" class="form-input" id="event-start"
-                       value="${formatDateTimeLocal(startTime)}" required />
+                ${useSteppedTime
+    ? renderSteppedDateTimeControl({ id: 'event-start', value: startTime, step: eventTimeStep, required: true, field: 'start', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
+    : `<input type="datetime-local" class="form-input" id="event-start"
+                       value="${formatDateTimeLocal(startTime)}" required />`}
               </div>
             </div>
 
             <div class="form-group form-group-inline">
               <div class="form-inline-row">
                 <label class="form-label">${t('end')}</label>
-                <input type="datetime-local" class="form-input" id="event-end"
-                       value="${formatDateTimeLocal(endTime)}" />
+                ${useSteppedTime
+    ? renderSteppedDateTimeControl({ id: 'event-end', value: endTime, step: eventTimeStep, field: 'end', hour12: eventTimeHour12, dayPeriodLabels: eventTimeDayPeriods, helpers })
+    : `<input type="datetime-local" class="form-input" id="event-end"
+                       value="${formatDateTimeLocal(endTime)}" />`}
               </div>
             </div>
           </div>
@@ -10264,6 +10483,9 @@ function renderCreateEventForm({
   isPrefilledAllDay,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10309,6 +10531,9 @@ ${renderEventFields({
     recurrenceData,
     recurrenceEndMode,
     recurrenceWeekdayOptions,
+    eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 
@@ -10332,6 +10557,9 @@ function renderEditEventForm({
   recurringSelectedByDefault,
   recurrenceEndMode,
   recurrenceWeekdayOptions,
+  eventTimeStep = 1,
+  eventTimeHour12 = false,
+  eventTimeDayPeriods = {},
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10369,6 +10597,9 @@ ${renderEventFields({
     recurrenceData,
     recurrenceEndMode,
     recurrenceWeekdayOptions,
+    eventTimeStep,
+    eventTimeHour12,
+    eventTimeDayPeriods,
     helpers
   })}
 
@@ -10456,17 +10687,19 @@ function renderHeaderTitle({
   title,
   headerTime,
   headerWeather,
+  weekNumberLabel,
   headerItems = [],
   helpers
 }) {
   const hasTitle = String(title ?? '').trim().length > 0;
-  if (!hasTitle && !headerTime && !headerWeather && headerItems.length === 0) return '';
+  if (!hasTitle && !headerTime && !headerWeather && !weekNumberLabel && headerItems.length === 0) return '';
 
   return `
       <div class="header-title-wrap">
         ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
         ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${weekNumberLabel ? `<span class="header-item header-week-number"><span class="header-item-value">${helpers.escapeHtml(weekNumberLabel)}</span></span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
     `;
@@ -11183,6 +11416,10 @@ class SkylightCalendarCard extends HTMLElement {
       }
 
       this._isDarkMode = !!event.matches;
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHeaderSensorRender = true;
+        return;
+      }
       this.render();
     };
     this._weekStandardFixedOffsetHeight = null;
@@ -11197,6 +11434,8 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaEndDate = null;
     this._agendaVisibleStartDate = null;
     this._agendaVisibleEndDate = null;
+    this._agendaFollowsToday = true;
+    this._agendaDayRolloverTimer = null;
     this._agendaDaysPerScrollLoad = 7;
     this._agendaScrollLoadLock = false;
     this._agendaSuppressScrollHandling = false;
@@ -11327,11 +11566,11 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizePastEventMode(value) {
-    return normalizePastEventMode(value);
+    return normalizePastEventMode$1(value);
   }
 
   normalizeDayBadgeLayoutWeek(value) {
-    return normalizeDayBadgeLayoutWeek(value);
+    return normalizeDayBadgeLayoutWeek$1(value);
   }
 
   normalizeEntityStringMap(value) {
@@ -11654,6 +11893,19 @@ class SkylightCalendarCard extends HTMLElement {
     return !!modal && modal.classList.contains('show');
   }
 
+  renderAfterEventDataChange({ preserveScroll = false } = {}) {
+    if (this.isEventManagementDialogOpen()) {
+      this._pendingHeaderSensorRender = true;
+      return false;
+    }
+    if (preserveScroll) {
+      this.renderPreservingAgendaScroll();
+    } else {
+      this.render();
+    }
+    return true;
+  }
+
   getConfigNormalizationSchema() {
     return createConfigNormalizationSchema({
       hasCustomTitle: this._hasCustomTitle,
@@ -11812,6 +12064,9 @@ class SkylightCalendarCard extends HTMLElement {
     this.ensureWeatherForecastSubscription();
     this.setWeekStart();
     this.resetAgendaWindowToToday();
+    if (this.isConnected) {
+      this.scheduleAgendaDayRollover();
+    }
     this.render();
     this._activeLanguage = language;
     this.loadEventCacheForCurrentConfig();
@@ -11822,6 +12077,10 @@ class SkylightCalendarCard extends HTMLElement {
     const oldHass = this._hass;
     this._hass = hass;
     let shouldRender = false;
+
+    if (this.advanceAgendaWindowToCurrentDay()) {
+      shouldRender = true;
+    }
 
     // Check calendar capabilities when hass is set
     if (!oldHass || this._hass !== oldHass) {
@@ -11880,7 +12139,12 @@ class SkylightCalendarCard extends HTMLElement {
     this.refreshWeatherForecastData();
 
     if (shouldRender) {
-      this.renderPreservingAgendaScroll();
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingHeaderSensorRender = true;
+      } else {
+        this._pendingHeaderSensorRender = false;
+        this.renderPreservingAgendaScroll();
+      }
     }
 
     // Refresh only when stale or when current view needs dates outside loaded range.
@@ -12898,7 +13162,7 @@ class SkylightCalendarCard extends HTMLElement {
       requestId,
       perCalendarMetadata: hydratable.perCalendarMetadata
     });
-    this.render();
+    this.renderAfterEventDataChange();
   }
 
   getHydratableEventCacheSnapshotData(snapshot, requestId = this._eventFetchGeneration) {
@@ -13162,7 +13426,7 @@ class SkylightCalendarCard extends HTMLElement {
           };
         });
         this.recomputeEventState();
-        this.render();
+        this.renderAfterEventDataChange();
         return;
       }
 
@@ -13182,11 +13446,8 @@ class SkylightCalendarCard extends HTMLElement {
       const warningVisibilityChanged = wasWarningVisible !== this.shouldShowEventRefreshWarning(now);
       this.persistEventCacheSnapshot({ generation: this._eventWriteGeneration });
       if (anyChanged || shouldRenderForUnchangedData || failedEntityIds.length > 0 || warningVisibilityChanged || renderAfterFetch) {
-        this._lastUnchangedDataRender = now;
-        if (preserveScroll) {
-          this.renderPreservingAgendaScroll();
-        } else {
-          this.render();
+        if (this.renderAfterEventDataChange({ preserveScroll })) {
+          this._lastUnchangedDataRender = now;
         }
       }
     } finally {
@@ -13195,10 +13456,14 @@ class SkylightCalendarCard extends HTMLElement {
       const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
-        this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        if (this.isEventManagementDialogOpen()) {
+          if (shouldRenderAfterFetch) this._pendingEventRenderAfterCurrentFetch = true;
+        } else {
+          this._pendingEventRefreshAfterCurrentFetch = false;
+          this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        }
       } else if (shouldRenderAfterFetch) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
     }
   }
@@ -13264,7 +13529,7 @@ class SkylightCalendarCard extends HTMLElement {
           firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
         })));
         const stateChanged = stateSignatureBefore !== stateSignatureAfter;
-        if (!returnDetails && (render || stateChanged) && stateChanged) this.render();
+        if (!returnDetails && (render || stateChanged) && stateChanged) this.renderAfterEventDataChange();
         return toResult(false, false, stateChanged);
       }
 
@@ -13289,7 +13554,7 @@ class SkylightCalendarCard extends HTMLElement {
         firstFailureAt: this._calendarEventMetadata[entityId]?.firstFailureAt ?? null
       })));
       const stateChanged = stateSignatureBefore !== stateSignatureAfter;
-      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.render();
+      if (!returnDetails && (render || failedEntityIds.length > 0) && (anyChanged || stateChanged)) this.renderAfterEventDataChange();
       return toResult(failedEntityIds.length === 0, anyChanged, stateChanged);
     } finally {
       this._fetching = false;
@@ -13297,10 +13562,14 @@ class SkylightCalendarCard extends HTMLElement {
       const shouldRenderAfterFetch = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRenderAfterCurrentFetch = false;
       if (this._pendingEventRefreshAfterCurrentFetch) {
-        this._pendingEventRefreshAfterCurrentFetch = false;
-        this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        if (this.isEventManagementDialogOpen()) {
+          if (shouldRenderAfterFetch) this._pendingEventRenderAfterCurrentFetch = true;
+        } else {
+          this._pendingEventRefreshAfterCurrentFetch = false;
+          this.ensureEventsForCurrentRange({ force: true, renderIfCovered: shouldRenderAfterFetch });
+        }
       } else if (shouldRenderAfterFetch) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
     }
   }
@@ -13328,7 +13597,7 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
       if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
-        if (renderIfCovered) this.render();
+        if (renderIfCovered) this.renderAfterEventDataChange();
         return;
       }
       const activeRange = this.getValidRange(this._activeEventFetchRange?.startDate, this._activeEventFetchRange?.endDate);
@@ -13369,7 +13638,7 @@ class SkylightCalendarCard extends HTMLElement {
         return;
       }
       if (renderIfCovered) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
       return;
     }
@@ -13378,7 +13647,7 @@ class SkylightCalendarCard extends HTMLElement {
     // all required dates from loaded data, avoid any network call.
     if (this.isDateRangeCoveredByLoadedEvents(visibleStartDate, visibleEndDate)) {
       if (renderIfCovered) {
-        this.render();
+        this.renderAfterEventDataChange();
       }
       return;
     }
@@ -13405,7 +13674,7 @@ class SkylightCalendarCard extends HTMLElement {
       if (extended?.dataChanged || extended?.stateChanged) shouldRenderAfterExtensions = true;
     }
 
-    if (allExtended || shouldRenderAfterExtensions) this.render();
+    if (allExtended || shouldRenderAfterExtensions) this.renderAfterEventDataChange();
   }
 
   getEventFetchRange() {
@@ -13564,6 +13833,8 @@ class SkylightCalendarCard extends HTMLElement {
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
+    const agendaWindowAdvanced = this.advanceAgendaWindowToCurrentDay();
+    this.scheduleAgendaDayRollover();
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
       this._eventLoadingInvalidatedWhileDisconnected = false;
@@ -13572,6 +13843,8 @@ class SkylightCalendarCard extends HTMLElement {
         this.loadEventCacheForCurrentConfig();
       }
       if (this._hass) this.ensureEventsForCurrentRange({ force: true });
+    } else if (agendaWindowAdvanced && this._hass) {
+      this.ensureEventsForCurrentRange();
     }
   }
 
@@ -13587,6 +13860,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration += 1;
     this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
+    this.clearAgendaDayRolloverTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();
@@ -14118,8 +14392,8 @@ class SkylightCalendarCard extends HTMLElement {
     this._weekStart = date;
   }
 
-  resetAgendaWindowToToday() {
-    const today = new Date();
+  resetAgendaWindowToToday(now = new Date()) {
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     this._currentDate = new Date(today);
     const agendaWindow = createAgendaWindow(today, this.getAgendaPeriodDaySpan());
@@ -14127,6 +14401,74 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaEndDate = agendaWindow.endDate;
     this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
     this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
+    this._agendaFollowsToday = true;
+  }
+
+  getNextAgendaLocalMidnight(now = new Date()) {
+    const nextMidnight = new Date(now);
+    nextMidnight.setDate(nextMidnight.getDate() + 1);
+    nextMidnight.setHours(0, 0, 0, 0);
+    return nextMidnight;
+  }
+
+  clearAgendaDayRolloverTimer() {
+    if (this._agendaDayRolloverTimer) {
+      clearTimeout(this._agendaDayRolloverTimer);
+    }
+    this._agendaDayRolloverTimer = null;
+  }
+
+  scheduleAgendaDayRollover(now = new Date()) {
+    this.clearAgendaDayRolloverTimer();
+    if (!this._config || this.getAgendaRollingDays() === null) return;
+
+    const currentTime = new Date(now);
+    const nextMidnight = this.getNextAgendaLocalMidnight(currentTime);
+    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime());
+
+    this._agendaDayRolloverTimer = setTimeout(() => {
+      this._agendaDayRolloverTimer = null;
+      this.handleAgendaDayRollover();
+      this.scheduleAgendaDayRollover();
+    }, delay);
+    this._agendaDayRolloverTimer?.unref?.();
+  }
+
+  advanceAgendaWindowToCurrentDay(now = new Date()) {
+    if (
+      this._viewMode !== 'agenda' ||
+      this.getAgendaRollingDays() === null ||
+      !this._agendaFollowsToday
+    ) {
+      return false;
+    }
+
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    if (this._agendaStartDate?.getTime() === today.getTime()) {
+      return false;
+    }
+
+    this.resetAgendaWindowToToday(today);
+    return true;
+  }
+
+  handleAgendaDayRollover(now = new Date()) {
+    if (!this.advanceAgendaWindowToCurrentDay(now)) {
+      return false;
+    }
+
+    if (this.isEventManagementDialogOpen()) {
+      this._pendingHeaderSensorRender = true;
+      return true;
+    }
+
+    if (this._hass) {
+      this.ensureEventsForCurrentRange({ renderIfCovered: true });
+    } else {
+      this.render();
+    }
+    return true;
   }
 
   ensureAgendaWindowInitialized() {
@@ -14491,11 +14833,13 @@ class SkylightCalendarCard extends HTMLElement {
   renderHeaderTitle() {
     const headerTime = this.getFormattedHeaderSensorTime();
     const headerWeather = this.getHeaderWeatherData();
+    const weekNumberLabel = this.getWeekHeaderWeekNumberLabel();
     const headerItems = this.resolveHeaderItems();
     return renderHeaderTitle({
       title: this._config.title,
       headerTime,
       headerWeather,
+      weekNumberLabel,
       headerItems,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -15487,12 +15831,60 @@ class SkylightCalendarCard extends HTMLElement {
     return getIsoWeekNumber(date);
   }
 
-  formatMonthWeekNumberLabel(date) {
-    const weekNumber = this.getIsoWeekNumber(date);
+  getWeekNumberPrefix() {
     const configuredPrefix = this._config?.week_number_prefix;
-    const weekPrefix = configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
-    const localizedWeekNumber = new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+    return configuredPrefix == null ? this.t('monthWeekPrefix') : configuredPrefix;
+  }
+
+  formatIsoWeekNumber(weekNumber) {
+    return new Intl.NumberFormat(this.getLocale()).format(weekNumber);
+  }
+
+  formatMonthWeekNumberLabel(date) {
+    const localizedWeekNumber = this.formatIsoWeekNumber(this.getIsoWeekNumber(date));
+    const weekPrefix = this.getWeekNumberPrefix();
     return weekPrefix ? `${weekPrefix} ${localizedWeekNumber}` : localizedWeekNumber;
+  }
+
+  shouldShowWeekHeaderWeekNumbers() {
+    return this._viewMode === 'week-compact' && !!this._config?.show_week_numbers_week;
+  }
+
+  getWeekHeaderWeekNumberLabel() {
+    if (!this.shouldShowWeekHeaderWeekNumbers()) return '';
+
+    const weekNumbers = [];
+    for (const date of this.getWeekDays('week-compact')) {
+      const weekNumber = this.getIsoWeekNumber(date);
+      if (weekNumbers[weekNumbers.length - 1] !== weekNumber) {
+        weekNumbers.push(weekNumber);
+      }
+    }
+    if (weekNumbers.length === 0) return '';
+
+    const segments = [];
+    let segmentStart = weekNumbers[0];
+    let segmentEnd = weekNumbers[0];
+
+    for (const weekNumber of weekNumbers.slice(1)) {
+      if (weekNumber === segmentEnd + 1) {
+        segmentEnd = weekNumber;
+        continue;
+      }
+      segments.push([segmentStart, segmentEnd]);
+      segmentStart = weekNumber;
+      segmentEnd = weekNumber;
+    }
+    segments.push([segmentStart, segmentEnd]);
+
+    const rangeLabel = segments.map(([start, end]) => {
+      const localizedStart = this.formatIsoWeekNumber(start);
+      if (start === end) return localizedStart;
+      return `${localizedStart}–${this.formatIsoWeekNumber(end)}`;
+    }).join(' / ');
+
+    const weekPrefix = this.getWeekNumberPrefix();
+    return weekPrefix ? `${weekPrefix} ${rangeLabel}` : rangeLabel;
   }
 
   getIsoWeekAnchorDateForRow(rowStartDate) {
@@ -16549,9 +16941,16 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHeaderTimeRender() {
-    if (!this._pendingHeaderSensorRender) return;
-    this._pendingHeaderSensorRender = false;
-    this.renderPreservingAgendaScroll();
+    if (this._pendingHeaderSensorRender) {
+      this._pendingHeaderSensorRender = false;
+      this.renderPreservingAgendaScroll();
+    }
+    if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
+      const renderIfCovered = this._pendingEventRenderAfterCurrentFetch;
+      this._pendingEventRefreshAfterCurrentFetch = false;
+      this._pendingEventRenderAfterCurrentFetch = false;
+      this.ensureEventsForCurrentRange({ force: true, renderIfCovered });
+    }
   }
 
   navigateToPreviousPeriod() {
@@ -16561,6 +16960,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
+      this._agendaFollowsToday = false;
       const rollingDays = this.getAgendaRollingDays();
       const backwardDays = rollingDays !== null
         ? rollingDays + 1
@@ -16610,6 +17010,7 @@ class SkylightCalendarCard extends HTMLElement {
   navigateToNextPeriod() {
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
+      this._agendaFollowsToday = false;
       const rollingDays = this.getAgendaRollingDays();
       const dayMs = 24 * 60 * 60 * 1000;
       const windowSpanDays = rollingDays !== null
@@ -16665,6 +17066,30 @@ class SkylightCalendarCard extends HTMLElement {
     return !this._config.disable_swipe_controls && this._viewMode !== 'agenda';
   }
 
+  isSwipeNavigationExcludedTarget(target) {
+    if (typeof Element === 'undefined' || !(target instanceof Element)) {
+      return false;
+    }
+
+    if (target.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id], [data-swipe-navigation-exempt]')) {
+      return true;
+    }
+
+    const cardContainer = this._root?.querySelector('.calendar-container') || null;
+    let element = target;
+    while (element && element !== cardContainer) {
+      const maxHorizontalScroll = Math.max(0, (element.scrollWidth || 0) - (element.clientWidth || 0));
+      const overflowX = globalThis.getComputedStyle?.(element)?.overflowX;
+      const allowsHorizontalScrolling = overflowX === 'auto' || overflowX === 'scroll';
+      if (maxHorizontalScroll > 1 && allowsHorizontalScrolling && element.closest?.('.week-standard-container') !== element) {
+        return true;
+      }
+      element = element.parentElement;
+    }
+
+    return false;
+  }
+
   canTriggerSwipePeriodNavigation(deltaX) {
     if (this._viewMode !== 'week-standard') {
       return true;
@@ -16708,8 +17133,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._swipeStartX = touch.clientX;
       this._swipeStartY = touch.clientY;
       this._swipeTracking = true;
-      const eventTarget = event.target instanceof Element ? event.target : null;
-      this._swipeStartedOnInteractive = !!eventTarget?.closest('button, select, input, textarea, .event, .week-compact-event, .week-standard-event, .all-day-event, .day-badge-action, [data-day-badge-action-id]');
+      this._swipeStartedOnInteractive = this.isSwipeNavigationExcludedTarget(event.target);
     }, { passive: true });
 
     container.addEventListener('touchend', (event) => {
@@ -16887,6 +17311,121 @@ class SkylightCalendarCard extends HTMLElement {
     endInput.addEventListener('change', recalculateDuration);
   }
 
+  getEventTimeStep() {
+    return normalizeEventTimeStep(this._config?.event_time_step);
+  }
+
+  // Localized AM/PM labels for the stepped picker's period select, derived from the card locale.
+  getDayPeriodLabels() {
+    const labels = { am: 'AM', pm: 'PM' };
+    try {
+      const formatter = new Intl.DateTimeFormat(this.getLocale(), { hour: 'numeric', hour12: true, timeZone: 'UTC' });
+      const periodFor = (hour) => formatter.formatToParts(new Date(Date.UTC(2000, 0, 1, hour))).find((part) => part.type === 'dayPeriod')?.value;
+      labels.am = periodFor(9) || labels.am;
+      labels.pm = periodFor(21) || labels.pm;
+    } catch (error) {
+      // Fall back to plain AM/PM when the locale is unknown to Intl.
+    }
+    return labels;
+  }
+
+  // With event_time_step > 1 the form renders a date field plus hour/minute selects
+  // (see renderSteppedDateTimeControl) around a hidden datetime-local-formatted input
+  // that keeps the existing #event-start / #event-end ids. This wires the visible
+  // controls to that hidden input and keeps the duration sync working. In 12-hour mode
+  // the hour select holds 01-12 plus an AM/PM select; the hidden input always stores 24-hour time.
+  setupSteppedDateTimeInputs() {
+    const groups = Array.from(this._root?.querySelectorAll?.('.form-stepped-datetime') || []);
+    if (groups.length === 0) return;
+
+    const padTwo = (value) => String(value).padStart(2, '0');
+    const getParts = (group) => ({
+      date: group.querySelector('[data-stepped-part="date"]'),
+      hour: group.querySelector('[data-stepped-part="hour"]'),
+      minute: group.querySelector('[data-stepped-part="minute"]'),
+      period: group.querySelector('[data-stepped-part="period"]'),
+      hidden: group.querySelector('input[type="hidden"]')
+    });
+    const uses12HourClock = (group) => group.getAttribute?.('data-hour-cycle') === '12';
+    const to24Hour = (hourValue, periodValue) => padTwo((Number(hourValue) % 12) + (periodValue === 'PM' ? 12 : 0));
+    const from24Hour = (hour24) => {
+      const hour = Number(hour24);
+      return { hour: padTwo(hour % 12 || 12), period: hour >= 12 ? 'PM' : 'AM' };
+    };
+
+    const isOffStepOption = (option) => option.getAttribute?.('data-off-step') === 'true' || option.dataset?.offStep === 'true';
+
+    const ensureOption = (select, value) => {
+      if (!select) return;
+      const options = Array.from(select.options || []);
+      if (options.some((option) => option.value === value)) return;
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      option.setAttribute?.('data-off-step', 'true');
+      const nextOption = options.find((existing) => existing.value > value) || null;
+      select.add(option, nextOption);
+    };
+
+    // Drop preserved off-step options once they are no longer the selected value,
+    // so the list returns to the configured step choices.
+    const pruneOffStepOptions = (select) => {
+      if (!select) return;
+      Array.from(select.options || []).forEach((option) => {
+        if (!isOffStepOption(option) || option.value === select.value) return;
+        const index = Array.from(select.options).indexOf(option);
+        if (index >= 0) select.remove(index);
+      });
+    };
+
+    const applyHiddenValueToControls = (group) => {
+      const { date, hour, minute, period, hidden } = getParts(group);
+      const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(hidden?.value || '');
+      if (!match) return;
+      if (date) date.value = match[1];
+      if (hour) {
+        if (uses12HourClock(group)) {
+          const converted = from24Hour(match[2]);
+          hour.value = converted.hour;
+          if (period) period.value = converted.period;
+        } else {
+          ensureOption(hour, match[2]);
+          hour.value = match[2];
+        }
+      }
+      if (minute) {
+        ensureOption(minute, match[3]);
+        minute.value = match[3];
+      }
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
+    };
+
+    const composeHiddenValue = (group) => {
+      const { date, hour, minute, period, hidden } = getParts(group);
+      if (!hidden) return;
+      const dateValue = date?.value || '';
+      const hourValue = uses12HourClock(group)
+        ? to24Hour(hour?.value || '12', period?.value || 'AM')
+        : (hour?.value || '00');
+      hidden.value = dateValue ? `${dateValue}T${hourValue}:${minute?.value || '00'}` : '';
+      pruneOffStepOptions(hour);
+      pruneOffStepOptions(minute);
+      // Let setupStartEndDurationSync react exactly as it would to a native input.
+      hidden.dispatchEvent(new Event('change'));
+      groups.forEach((other) => {
+        if (other !== group) applyHiddenValueToControls(other);
+      });
+    };
+
+    groups.forEach((group) => {
+      const { date, hour, minute, period } = getParts(group);
+      [date, hour, minute, period].forEach((control) => {
+        control?.addEventListener('change', () => composeHiddenValue(group));
+      });
+    });
+  }
+
   resolveTimedEventRange(startValue, endValue, fallbackDurationMs = 60 * 60 * 1000) {
     return resolveTimedEventRange(startValue, endValue, fallbackDurationMs);
   }
@@ -16914,15 +17453,13 @@ class SkylightCalendarCard extends HTMLElement {
     const hasExplicitDefaultTime = defaultTime instanceof Date || !!prefill?.startDate;
     const startTime = hasExplicitDefaultTime ? new Date(prefill?.startDate || defaultTime) : new Date(startDate);
 
-    // Round to next half hour for timed events
+    // Round implicit timed-event defaults up to the next configured picker step.
+    // Keep the legacy half-hour default when using the native minute picker.
     if (!hasExplicitDefaultTime && (!defaultDate || defaultDate.getHours() !== 0)) {
-      const minutes = startTime.getMinutes();
-      if (minutes < 30) {
-        startTime.setMinutes(30);
-      } else {
-        startTime.setHours(startTime.getHours() + 1);
-        startTime.setMinutes(0);
-      }
+      const configuredStep = this.getEventTimeStep();
+      const defaultMinuteStep = configuredStep > 1 ? configuredStep : 30;
+      const nextMinute = (Math.floor(startTime.getMinutes() / defaultMinuteStep) + 1) * defaultMinuteStep;
+      startTime.setMinutes(nextMinute);
     }
     startTime.setSeconds(0);
     startTime.setMilliseconds(0);
@@ -16952,6 +17489,9 @@ class SkylightCalendarCard extends HTMLElement {
       isPrefilledAllDay,
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -17000,6 +17540,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.setupStartEndDurationSync({ startInputId: 'event-start', endInputId: 'event-end' });
     this.setupStartEndDurationSync({ startInputId: 'event-start-date', endInputId: 'event-end-date', isDateOnly: true });
+    this.setupSteppedDateTimeInputs();
 
     // Close button
     this.getRootElementById('close-modal').addEventListener('click', () => {
@@ -17149,6 +17690,9 @@ class SkylightCalendarCard extends HTMLElement {
       recurringSelectedByDefault,
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
+      eventTimeStep: this.getEventTimeStep(),
+      eventTimeHour12: !this.uses24HourEventTime(),
+      eventTimeDayPeriods: this.getDayPeriodLabels(),
       helpers: {
         escapeHtml: (value) => this.escapeHtml(value),
         escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value),
@@ -17197,6 +17741,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     this.setupStartEndDurationSync({ startInputId: 'event-start', endInputId: 'event-end' });
     this.setupStartEndDurationSync({ startInputId: 'event-start-date', endInputId: 'event-end-date', isDateOnly: true });
+    this.setupSteppedDateTimeInputs();
 
     // Close button
     this.getRootElementById('close-modal').addEventListener('click', () => {
@@ -18016,6 +18561,7 @@ class SkylightCalendarCard extends HTMLElement {
       canDelete,
       canForward,
       canModify,
+      hiddenActions: this._config.hide_event_actions,
       customColor: this.getCustomEventColor(event),
       locationLinks: this._config.location_links === true,
       locationActionsExpanded: this._eventLocationActionsExpanded,
@@ -18746,7 +19292,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   normalizeEventModalSize(value) {
-    return normalizeEventModalSize(value);
+    return normalizeEventModalSize$1(value);
   }
 
   getEventModalSizeClass() {

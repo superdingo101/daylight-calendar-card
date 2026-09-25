@@ -1,4 +1,5 @@
 import { normalizeHeaderItems } from '../header/header-items.js';
+import { normalizeEventActions, normalizeEventTimeStep } from '../config/config-normalizers.js';
 import {
   DEFAULT_BACKGROUND_IMAGE_POSITION,
   DEFAULT_BACKGROUND_IMAGE_REPEAT,
@@ -45,6 +46,7 @@ export function createConfigNormalizationSchema({
       { key: 'rolling_days_agenda', defaultValue: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda, normalize: ({ rawConfig }) => rawConfig.rolling_days_agenda ?? DEFAULT_CONFIG_VALUES.rolling_days_agenda },
       { key: 'rolling_weeks', defaultValue: ({ rawConfig }) => rawConfig.rolling_weeks || DEFAULT_CONFIG_VALUES.rolling_weeks },
       { key: 'show_week_numbers_month', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_month || DEFAULT_CONFIG_VALUES.show_week_numbers_month },
+      { key: 'show_week_numbers_week', defaultValue: ({ rawConfig }) => rawConfig.show_week_numbers_week || DEFAULT_CONFIG_VALUES.show_week_numbers_week },
       { key: 'week_number_prefix', defaultValue: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim(), normalize: ({ rawConfig }) => rawConfig.week_number_prefix == null ? DEFAULT_CONFIG_VALUES.week_number_prefix : String(rawConfig.week_number_prefix).trim() },
       { key: 'show_all_events_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_events_month || DEFAULT_CONFIG_VALUES.show_all_events_month },
       { key: 'show_all_details_month', defaultValue: ({ rawConfig }) => rawConfig.show_all_details_month || DEFAULT_CONFIG_VALUES.show_all_details_month },
@@ -116,6 +118,8 @@ export function createConfigNormalizationSchema({
       { key: 'event_tint_opacity', defaultValue: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY), normalize: ({ rawConfig }) => normalizeBackgroundOpacity(rawConfig.event_tint_opacity, DEFAULT_EVENT_TINT_OPACITY) },
       { key: 'enable_event_management', defaultValue: ({ rawConfig }) => rawConfig.enable_event_management === false ? false : DEFAULT_CONFIG_VALUES.enable_event_management },
       { key: 'event_modal_size', defaultValue: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size), normalize: ({ rawConfig }) => normalizeEventModalSize(rawConfig.event_modal_size) },
+      { key: 'event_time_step', defaultValue: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step), normalize: ({ rawConfig }) => normalizeEventTimeStep(rawConfig.event_time_step) },
+      { key: 'hide_event_actions', defaultValue: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions), normalize: ({ rawConfig }) => normalizeEventActions(rawConfig.hide_event_actions) },
       { key: 'readonly_calendars', defaultValue: ({ rawConfig }) => rawConfig.readonly_calendars || [...DEFAULT_CONFIG_VALUES.readonly_calendars] },
       { key: 'hide_badge_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_badge_calendars || [...DEFAULT_CONFIG_VALUES.hide_badge_calendars] },
       { key: 'default_hidden_calendars', defaultValue: ({ derived }) => derived.normalizedDefaultHiddenCalendars, normalize: ({ derived }) => derived.normalizedDefaultHiddenCalendars },
@@ -142,6 +146,7 @@ export const EDITOR_DEFAULT_VALUES = Object.freeze({
   combine_calendars_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_color_bar_width: DEFAULT_EVENT_COLOR_BAR_WIDTH,
   event_tint_opacity: DEFAULT_EVENT_TINT_OPACITY,
+  event_time_step: 1,
   first_day_of_week: 0,
   header_background_opacity: 0,
   background_opacity: 0

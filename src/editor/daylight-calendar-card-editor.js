@@ -19,8 +19,10 @@ import {
   DEFAULT_PAST_EVENT_MODE,
   DEFAULT_THEME_MODE,
   DEFAULT_VIEW,
+  EVENT_ACTION_OPTIONS,
   EVENT_COLOR_MODE_OPTIONS,
   EVENT_MODAL_SIZE_OPTIONS,
+  EVENT_TIME_STEP_OPTIONS,
   PAST_EVENT_MODE_OPTIONS,
   THEME_MODE_OPTIONS
 } from '../defaults.js';
@@ -39,6 +41,7 @@ import {
 import { getEntityFriendlyName as getEntityFriendlyNameHelper } from '../ha/ha-state-helpers.js';
 import { getDaylightCalendarCardVersion } from '../version.js';
 import { clearAllEventCacheSnapshots } from '../events/event-cache.js';
+import { normalizeEventActions } from '../config/config-normalizers.js';
 import { normalizeDashboardPath, normalizeEnumValue } from '../utils/normalization-utils.js';
 import { detectStaleSkylightResource, STALE_RESOURCE_TROUBLESHOOTING_URL } from '../utils/stale-resource-utils.js';
 import '../components/daylight-color-picker.js';
@@ -76,6 +79,13 @@ function getDefaultColor(index) {
   const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
   return colors[index % colors.length];
 }
+
+const EVENT_ACTION_LABELS = Object.freeze({
+  delete: 'Delete',
+  custom_color: 'Custom Color',
+  forward: 'Forward',
+  edit: 'Edit'
+});
 
 export class SkylightCalendarCardEditor extends HTMLElement {
   constructor() {
@@ -160,6 +170,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       color_scheme: normalizeDefaultDarkMode(config.color_scheme),
       header_dashboard_path: normalizeDashboardPath(config.header_dashboard_path),
       event_modal_size: normalizeEventModalSize(config.event_modal_size),
+      hide_event_actions: normalizeEventActions(config.hide_event_actions),
       day_badge_layout_week: normalizeDayBadgeLayoutWeek(config.day_badge_layout_week)
     };
     this.syncCombineBackgroundEditorState(this._config.combine_background);
@@ -542,6 +553,21 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       .join('');
   }
 
+  renderEventActionCheckboxes() {
+    const hiddenActions = new Set(this.getListFieldValue('hide_event_actions'));
+    return EVENT_ACTION_OPTIONS
+      .map((action) => {
+        const checked = hiddenActions.has(action) ? 'checked' : '';
+        return `
+          <label class="list-checkbox-row">
+            <span>${EVENT_ACTION_LABELS[action]}</span>
+            <input type="checkbox" data-list-field="hide_event_actions" value="${action}" ${checked}>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
   buildDisclosureKey(scope, title) {
     return `${scope}:${title}`;
   }
@@ -870,6 +896,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="compact_height" ${this._config.compact_height ? 'checked' : ''}> Compact height</label>
         <label><input type="checkbox" data-field="compact_width" ${this._config.compact_width ? 'checked' : ''}> Schedule view: compact width columns</label>
         <label><input type="checkbox" data-field="show_week_numbers_month" ${this._config.show_week_numbers_month ? 'checked' : ''}> Month view: show ISO week numbers</label>
+        <label><input type="checkbox" data-field="show_week_numbers_week" ${this._config.show_week_numbers_week ? 'checked' : ''}> Week view: show ISO week number in header</label>
         <label><input type="checkbox" data-field="show_all_events_month" ${this._config.show_all_events_month ? 'checked' : ''}> Month view: show all events (override compact height)</label>
         <label><input type="checkbox" data-field="show_all_details_month" ${this._config.show_all_details_month ? 'checked' : ''}> Month view: show all details (week-compact style + override compact height)</label>
         <label><input type="checkbox" data-field="compact_header" ${this._config.compact_header ? 'checked' : ''}> Compact header</label>
@@ -885,7 +912,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       </div>
       <div class="field-row">
         <div class="field field-inline">
-          <label for="week_number_prefix_mode">Month week-number prefix</label>
+          <label for="week_number_prefix_mode">Week-number prefix</label>
           <select id="week_number_prefix_mode" data-field="week_number_prefix_mode">
             <option value="default" ${this.getWeekNumberPrefixMode() === 'default' ? 'selected' : ''}>Localized default</option>
             <option value="number_only" ${this.getWeekNumberPrefixMode() === 'number_only' ? 'selected' : ''}>Number only</option>
@@ -894,7 +921,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           ${this.getWeekNumberPrefixMode() === 'custom' ? `
             <input data-field="week_number_prefix" type="text" value="${this.escapeHtml(this._config.week_number_prefix)}" placeholder="Week">
           ` : ''}
-          <p class="helper">Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
+          <p class="helper">Used by enabled Month and Week week numbers. Choose the localized prefix, the week number alone, or enter a custom prefix.</p>
         </div>
       </div>
       ${this._config.show_dashboard_nav_button ? `
@@ -1136,6 +1163,15 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           </select>
         </div>
       </div>
+      <div class="field-row">
+        <div class="field field-inline">
+          <label for="event_time_step">Time picker minute step</label>
+          <select id="event_time_step" data-field="event_time_step" data-type="number">
+            ${EVENT_TIME_STEP_OPTIONS.map((step) => `<option value="${step}" ${(this._config.event_time_step ?? 1) === step ? 'selected' : ''}>${step === 1 ? '1 (browser picker)' : `${step} minutes`}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${this.renderSubSection('Hide event actions', `<div class="list-checkbox-grid">${this.renderEventActionCheckboxes()}</div><p class="helper">Hide selected actions from the event detail popup. This changes the UI only; use read-only calendars or disable event management to prevent modifications.</p>`)}
       ${this.renderSubSection('Read-only calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('readonly_calendars', { label: 'read-only calendars' })}</div>`)}
       ${this.renderSubSection('Hide header badges for calendars', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('hide_badge_calendars', { label: 'hidden header badges calendars' })}</div>`)}
       ${this.renderSubSection('Calendars hidden by default', `<div class="list-checkbox-grid">${this.renderCalendarListCheckboxes('default_hidden_calendars', { label: 'calendars hidden by default' })}</div>`)}

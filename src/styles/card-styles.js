@@ -868,8 +868,7 @@ export function getCardStyles() {
       }
 
       .week-compact-container.compact-height {
-        grid-auto-rows: max-content;
-        align-content: start;
+        grid-auto-rows: minmax(max-content, 1fr);
       }
 
       .week-day-column {
@@ -1134,7 +1133,7 @@ export function getCardStyles() {
 
       .agenda-day-row {
         display: grid;
-        grid-template-columns: 88px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 12px;
         border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
@@ -1199,6 +1198,7 @@ export function getCardStyles() {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-width: 0;
       }
 
       .agenda-event {
@@ -1260,10 +1260,11 @@ export function getCardStyles() {
 
       .calendar-container.agenda-compact-events .agenda-event-title {
         flex: 1 1 auto;
+        min-width: 0;
         min-height: unset;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .calendar-container.agenda-compact-events .agenda-event-time {
@@ -2189,6 +2190,40 @@ export function getCardStyles() {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         gap: 10px 14px;
+      }
+
+      .form-stepped-datetime {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-stepped-date {
+        flex: 1 1 9.5em;
+        width: auto;
+        min-width: 0;
+      }
+
+      .form-stepped-time {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-select {
+        width: auto;
+        min-width: 4.5em;
+      }
+
+      .form-stepped-datetime input[type="hidden"] {
+        display: none;
+      }
+
+      .form-stepped-separator {
+        font-weight: 600;
+        opacity: 0.7;
       }
 
       .form-checkbox-row {
