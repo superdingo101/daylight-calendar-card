@@ -1,4 +1,4 @@
-export function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }) {
+export function renderCalendarBadges({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -7,6 +7,7 @@ export function renderCalendarBadges({ badgeItems, hideCalendarNames = false, he
           ${badgeItems.map((badgeItem) => renderCalendarBadge({
             badgeItem,
             hideCalendarNames,
+            hidePersonState,
             inline: false,
             helpers
           })).join('')}
@@ -15,7 +16,7 @@ export function renderCalendarBadges({ badgeItems, hideCalendarNames = false, he
     `;
 }
 
-export function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, helpers }) {
+export function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -23,6 +24,7 @@ export function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = fal
         ${badgeItems.map((badgeItem) => renderCalendarBadge({
           badgeItem,
           hideCalendarNames,
+          hidePersonState,
           inline: true,
           helpers
         })).join('')}
@@ -30,7 +32,7 @@ export function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = fal
     `;
 }
 
-function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) {
+function renderCalendarBadge({ badgeItem, hideCalendarNames, hidePersonState = false, inline, helpers }) {
   const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : helpers.lightenColor(badgeItem.color, 0.85);
   const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : helpers.getContractColor(badgeBackground);
   const inlineClass = inline ? ' calendar-badge-inline' : '';
@@ -49,13 +51,15 @@ function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) 
                 iconOverride: badgeItem.icon,
                 helpers
               })}
-              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers })}
+              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState, helpers })}
             </div>
           `;
 }
 
-export function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers }) {
-  const personStateLabel = helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
+export function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState = false, helpers }) {
+  const personStateLabel = hidePersonState
+    ? ''
+    : helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
   return `
       <span class="calendar-badge-label" style="color: ${badgeTextColor}">
         <span class="calendar-badge-name">${helpers.escapeHtml(badgeItem.name)}</span>

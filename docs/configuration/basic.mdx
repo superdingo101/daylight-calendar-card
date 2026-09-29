@@ -85,6 +85,10 @@ The Daylight Calendar Card requires only a list of calendar entities to get star
   The key must be a calendar entity ID that is already listed under `entities`. The value must be a valid `person.*` entity ID tracked by Home Assistant's [Person integration](https://www.home-assistant.io/integrations/person/).
 </ParamField>
 
+<ParamField path="hide_calendar_badge_person_state" default="false" type="boolean">
+  Hide the person state line (for example "Home", "Away" or a zone name) that is shown under the calendar name in header badges linked through `calendar_person_entities`. The badge keeps the person's picture and the calendar name.
+</ParamField>
+
 ## Example
 
 The YAML below shows a complete basic configuration that covers the most commonly used options:
