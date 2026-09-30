@@ -320,6 +320,44 @@ export function getCardStyles() {
         --mdc-icon-size: 28px;
       }
 
+      .weather-svg-icon {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+
+      .header-weather .weather-svg-icon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .month-day-forecast .forecast-condition .weather-svg-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .agenda-day-forecast .forecast-condition .weather-svg-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .weather-svg-icon .sun { fill: var(--weather-icon-sun-color, #fdd93c); }
+      .weather-svg-icon .moon { fill: var(--weather-icon-moon-color, #fcf497); }
+      .weather-svg-icon .rain { fill: var(--weather-icon-rain-color, #30b3ff); }
+      .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #d4d4d4); }
+      .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #f9f9f9); }
+      .weather-svg-icon .snow {
+        fill: var(--weather-icon-snow-color, #f9f9f9);
+        stroke: var(--weather-icon-snow-stroke-color, #d4d4d4);
+        stroke-width: 1;
+        paint-order: stroke;
+      }
+
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #9aa4ae); }
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #cfd6dd); }
+
       .header-item-value {
         display: inline-block;
       }

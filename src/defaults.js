@@ -83,6 +83,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
   show_daily_weather_forecast: true,
+  weather_icon_style: 'mdi',
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,

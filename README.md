@@ -195,4 +195,6 @@ If you'd like to support development, GitHub Sponsors is the preferred option ‚ù
 
 Thanks to the Home Assistant community for feedback, ideas, and contributions.
 
+The colored weather icons (`weather_icon_style: colored`) are adapted from the [Home Assistant frontend](https://github.com/home-assistant/frontend), licensed under the Apache License 2.0.
+
 Your support helps shape the future of this project!
