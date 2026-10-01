@@ -9398,6 +9398,7 @@ test('mixed cache hydration skips calendars without valid per-calendar metadata'
 test('mixed cache hydration skips calendars whose LKG metadata was pruned outside retained window', async () => {
   const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
   card._hass = { user: { id: 'user-1' } };
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') });
   card.getEventFetchRange = () => ({ startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') });
   card._eventsByCalendar = {
     'calendar.a': [{ entityId: 'calendar.a', summary: 'new a', start: { date: '2026-06-10' }, end: { date: '2026-06-11' } }],
@@ -9750,6 +9751,12 @@ test('agenda cache retention has useful current-view fallback before DOM visible
   card._hass = { user: { id: 'user-1' } };
   card._viewMode = 'agenda';
   card._currentDate = new Date('2026-06-15T12:00:00Z');
+  // makeCard() initializes the agenda window from the real current date.
+  // Make those ranges invalid so this test actually exercises the _currentDate fallback path.
+  card._agendaStartDate = undefined;
+  card._agendaEndDate = undefined;
+  card._agendaVisibleStartDate = undefined;
+  card._agendaVisibleEndDate = undefined;
   card.getVisibleDateRange = () => ({ startDate: new Date('2025-01-01T00:00:00Z'), endDate: new Date('2028-01-01T00:00:00Z') });
   card._eventsByCalendar = {
     'calendar.a': [
