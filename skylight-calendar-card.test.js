@@ -82,6 +82,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   calendar_names: 'calendar_names overrides displayed calendar labels',
   calendar_badge_icons: 'calendar badge can show linked person location and picture',
   calendar_person_entities: 'calendar badge can show linked person location and picture',
+  hide_calendar_badge_person_state: 'hide_calendar_badge_person_state hides linked person state but keeps name and picture',
   max_events: 'max_events limits rendered agenda events',
   default_view: 'setConfig normalizes fallback values and aliases',
   week_days: 'week_days filters configured week rendering days',
@@ -3045,6 +3046,34 @@ test('calendar badge can show linked person location and picture', () => {
   assert.match(html, /calendar-badge-person-state/);
   assert.match(html, />Home</);
   assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
+});
+
+test('hide_calendar_badge_person_state hides linked person state but keeps name and picture', () => {
+  const card = new Card();
+  card._hass = {
+    states: {
+      'calendar.family': { entity_id: 'calendar.family', attributes: { friendly_name: 'Ian' } },
+      'person.ian': { entity_id: 'person.ian', state: 'home', attributes: { friendly_name: 'Ian', entity_picture: '/api/image/serve/ian/original' } }
+    },
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card.setConfig({
+    entities: ['calendar.family'],
+    calendar_person_entities: { 'calendar.family': 'person.ian' },
+    hide_calendar_badge_person_state: true
+  });
+
+  originalCardRender.call(card);
+  const html = card._root.innerHTML;
+
+  assert.equal(card._config.hide_calendar_badge_person_state, true);
+  assert.match(html, /calendar-badge-name/);
+  assert.match(html, /calendar-badge-person-icon/);
+  assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
+  assert.doesNotMatch(html, /class="calendar-badge-person-state"/);
+  assert.doesNotMatch(html, />Home</);
 });
 
 

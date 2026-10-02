@@ -109,6 +109,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_calendars: false,
   hide_header: false,
   hide_calendar_names: false,
+  hide_calendar_badge_person_state: false,
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
@@ -720,6 +721,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
       { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
       { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'hide_calendar_badge_person_state', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_badge_person_state || DEFAULT_CONFIG_VALUES.hide_calendar_badge_person_state },
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
@@ -2443,6 +2445,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
         <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
         <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
+        <label><input type="checkbox" data-field="hide_calendar_badge_person_state" ${this._config.hide_calendar_badge_person_state ? 'checked' : ''}> Header badges: hide linked person state</label>
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
@@ -10140,7 +10143,7 @@ function renderEventTitleWithPrefix(event, title, {
   return `<span class="event-title-with-prefix"><span class="event-title-prefix-badges">${badgesHtml}</span>${titleHtml}</span>`;
 }
 
-function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }) {
+function renderCalendarBadges({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -10149,6 +10152,7 @@ function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }
           ${badgeItems.map((badgeItem) => renderCalendarBadge({
             badgeItem,
             hideCalendarNames,
+            hidePersonState,
             inline: false,
             helpers
           })).join('')}
@@ -10157,7 +10161,7 @@ function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }
     `;
 }
 
-function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, helpers }) {
+function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -10165,6 +10169,7 @@ function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hel
         ${badgeItems.map((badgeItem) => renderCalendarBadge({
           badgeItem,
           hideCalendarNames,
+          hidePersonState,
           inline: true,
           helpers
         })).join('')}
@@ -10172,7 +10177,7 @@ function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hel
     `;
 }
 
-function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) {
+function renderCalendarBadge({ badgeItem, hideCalendarNames, hidePersonState = false, inline, helpers }) {
   const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : helpers.lightenColor(badgeItem.color, 0.85);
   const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : helpers.getContractColor(badgeBackground);
   const inlineClass = inline ? ' calendar-badge-inline' : '';
@@ -10191,13 +10196,15 @@ function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) 
                 iconOverride: badgeItem.icon,
                 helpers
               })}
-              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers })}
+              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState, helpers })}
             </div>
           `;
 }
 
-function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers }) {
-  const personStateLabel = helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
+function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState = false, helpers }) {
+  const personStateLabel = hidePersonState
+    ? ''
+    : helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
   return `
       <span class="calendar-badge-label" style="color: ${badgeTextColor}">
         <span class="calendar-badge-name">${helpers.escapeHtml(badgeItem.name)}</span>
@@ -14842,6 +14849,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgesInline({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -15246,6 +15254,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadges({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -19096,6 +19105,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgeLabel({
       badgeItem,
       badgeTextColor,
+      hidePersonState: !!this._config?.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
