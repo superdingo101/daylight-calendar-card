@@ -127,6 +127,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
   show_daily_weather_forecast: 'daily weather forecasts default on and can be disabled without hiding header weather',
+  weather_icon_style: 'weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback',
   header_items: 'header_items normalize supported item shapes and formats',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
@@ -3291,6 +3292,61 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
 });
 
+test('weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback', () => {
+  const states = {
+    'weather.home': {
+      state: 'partlycloudy',
+      attributes: {
+        temperature: 21,
+        forecast: [
+          { datetime: '2026-05-14T12:00:00Z', condition: 'rainy', temperature: 24, templow: 12 },
+          { datetime: '2026-05-15T12:00:00Z', condition: 'exceptional', temperature: 20, templow: 10 }
+        ]
+      }
+    },
+    'sun.sun': { state: 'below_horizon', attributes: {} }
+  };
+
+  const defaultCard = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  defaultCard._hass = { states };
+  assert.equal(defaultCard._config.weather_icon_style, 'mdi');
+  assert.match(defaultCard.renderHeaderTitle(), /<ha-icon icon="mdi:weather-partly-cloudy"><\/ha-icon>/);
+  assert.doesNotMatch(defaultCard.renderDayForecast(new Date('2026-05-14T00:00:00Z')), /weather-svg-icon/);
+
+  const invalidCard = makeCard({ entities: ['calendar.family'], weather_icon_style: 'rainbow' });
+  assert.equal(invalidCard._config.weather_icon_style, 'mdi');
+
+  const card = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home', weather_icon_style: 'colored' });
+  card._hass = { states };
+  const headerHtml = card.renderHeaderTitle();
+  assert.match(headerHtml, /<svg class="weather-svg-icon"/);
+  assert.match(headerHtml, /class="moon"/, 'partly cloudy at night shows the moon');
+  assert.match(headerHtml, /class="cloud-front"/);
+  assert.doesNotMatch(headerHtml, /<ha-icon icon="mdi:weather-partly-cloudy">/);
+
+  const rainyHtml = card.renderDayForecast(new Date('2026-05-14T00:00:00Z'));
+  assert.match(rainyHtml, /<span class="forecast-condition"><svg class="weather-svg-icon"/);
+  assert.match(rainyHtml, /class="rain"/);
+
+  const fallbackHtml = card.renderDayForecast(new Date('2026-05-15T00:00:00Z'));
+  assert.match(fallbackHtml, /<ha-icon icon="mdi:alert-circle-outline"><\/ha-icon>/);
+  assert.doesNotMatch(fallbackHtml, /weather-svg-icon/);
+});
+
+test('colored weather SVG covers every Home Assistant condition that has artwork', async () => {
+  const { renderColoredWeatherSvg } = await import('./src/weather/weather-svg-icons.js');
+  const conditions = ['sunny', 'clear-night', 'partlycloudy', 'cloudy', 'fog', 'hail', 'lightning', 'lightning-rainy', 'pouring', 'rainy', 'snowy', 'snowy-rainy', 'windy', 'windy-variant'];
+  for (const condition of conditions) {
+    assert.match(renderColoredWeatherSvg(condition), /^<svg class="weather-svg-icon"[^>]*viewBox="0 0 17 17"/, condition);
+  }
+  assert.match(renderColoredWeatherSvg('sunny'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('partlycloudy'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('snowy'), /class="snow"/);
+  assert.equal(renderColoredWeatherSvg('exceptional'), '');
+  assert.equal(renderColoredWeatherSvg('unknown'), '');
+  assert.equal(renderColoredWeatherSvg(''), '');
+});
+
 test('daily weather forecasts default on and can be disabled without hiding header weather', () => {
   const weatherState = {
     state: 'sunny',
@@ -3446,11 +3502,11 @@ test('weather utility normalizes header weather data and preserves temperature u
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'sunny',
     attributes: { temperature: 21.4 }
-  }), { conditionIcon: 'mdi:weather-sunny', temperature: '21°' });
+  }), { conditionIcon: 'mdi:weather-sunny', condition: 'sunny', temperature: '21°' });
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'cloudy',
     attributes: { condition: 'rainy', current_temperature: 18.6 }
-  }), { conditionIcon: 'mdi:weather-rainy', temperature: '19°' });
+  }), { conditionIcon: 'mdi:weather-rainy', condition: 'rainy', temperature: '19°' });
   assert.equal(normalizeHeaderWeatherData({ state: 'unavailable', attributes: { temperature: 20 } }), null);
   assert.equal(normalizeHeaderWeatherData({ state: 'sunny', attributes: {} }), null);
   assert.equal(normalizeHeaderWeatherData(null), null);
@@ -3465,6 +3521,7 @@ test('weather utility normalizes forecast items and handles missing or empty dat
     { date: '2026-05-14', condition: 'partlycloudy', temphigh: 24.2, temperature_low: 12.4 }
   ], new Date('2026-05-14T00:00:00Z'), getDateKey), {
     conditionIcon: 'mdi:weather-partly-cloudy',
+    condition: 'partlycloudy',
     highTemp: '24°',
     lowTemp: '12°'
   });

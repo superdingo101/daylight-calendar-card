@@ -15,6 +15,7 @@ import {
   DEFAULT_VIEW
 } from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
+import { renderColoredWeatherSvg } from './weather/weather-svg-icons.js';
 import { createConfigNormalizationSchema } from './editor/editor-schema.js';
 import {
   renderDayBadges as renderDayBadgesHtml,
@@ -7974,7 +7975,10 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    const weatherData = getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    if (!weatherData || this._config?.weather_icon_style !== 'colored') return weatherData;
+    const nightTime = this._hass?.states?.['sun.sun']?.state === 'below_horizon';
+    return { ...weatherData, iconHtml: renderColoredWeatherSvg(weatherData.condition, { nightTime }) };
   }
 
   resolveHeaderItems() {
@@ -7999,7 +8003,9 @@ class SkylightCalendarCard extends HTMLElement {
     const weatherEntity = this._hass?.states?.[sensorEntityId];
     const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
     const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
-    return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    const forecast = normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    if (!forecast || this._config?.weather_icon_style !== 'colored') return forecast;
+    return { ...forecast, iconHtml: renderColoredWeatherSvg(forecast.condition) };
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
