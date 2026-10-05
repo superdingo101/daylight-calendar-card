@@ -536,6 +536,55 @@ export function getCardStyles() {
         padding: 0;
       }
 
+      .search-events-button .search-icon {
+        display: block;
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+      }
+
+      .add-event-button.search-events-button .search-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .event-search-input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .event-search-status {
+        margin: 8px 0 4px;
+        font-size: 12px;
+        opacity: 0.75;
+      }
+
+      .event-search-status:empty {
+        display: none;
+      }
+
+      .event-search-section {
+        margin-top: 12px;
+      }
+
+      .event-search-section-title {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        opacity: 0.7;
+        margin-bottom: 6px;
+      }
+
+      .event-search-result.is-past {
+        opacity: 0.7;
+      }
+
+      .event-search-result-recurring {
+        font-size: 11px;
+        opacity: 0.75;
+      }
+
       .month-year {
         font-size: 18px;
         font-weight: 500;

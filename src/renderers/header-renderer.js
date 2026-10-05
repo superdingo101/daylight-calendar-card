@@ -1,5 +1,6 @@
 export function renderStandardHeader({
   canAddEvents,
+  canSearch = false,
   shouldShowControls,
   helpers
 }) {
@@ -18,6 +19,7 @@ export function renderStandardHeader({
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
+            ${canSearch ? helpers.renderSearchButton({ compact: false }) : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
@@ -34,6 +36,7 @@ export function renderStandardHeader({
 
 export function renderCompactHeader({
   canAddEvents,
+  canSearch = false,
   shouldShowCalendars,
   shouldShowControls,
   helpers
@@ -61,6 +64,7 @@ export function renderCompactHeader({
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
+            ${canSearch ? helpers.renderSearchButton({ compact: true }) : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
           </div>

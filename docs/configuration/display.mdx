@@ -30,6 +30,18 @@ The header sits at the top of the card and contains the title, navigation arrows
   Hide the **Add Event** button from the header. This only hides the control; it does not disable creation from day or time-slot taps. Use [`disable_event_creation`](/configuration/event-management) to block new-event creation everywhere.
 </ParamField>
 
+<ParamField path="event_search" default="false" type="boolean | object">
+  Add a **Search** button to the header. It opens a search box that finds events by title, location or description across all configured calendars (calendars hidden through their header badge are left out), ignoring case and accents; every word you type must match. Results are split into upcoming and earlier events, a recurring series is listed once at its next occurrence, and tapping a result opens the event with its usual actions.
+
+  `true` searches from 30 days back to 120 days ahead; the visual editor's **Show event search button** checkbox sets `true` and keeps a configured window. To change the window, pass an object with `days_back` and/or `days_ahead` (0–1825). Results from the events the card has already loaded appear immediately. The wider window is fetched when the search box opens, in the same 30-day chunks the views use and one request at a time, so a search never floods Home Assistant; results fill in as the chunks arrive, with a progress counter. The fetched window is reused for five minutes, so typing does not send new calendar requests. A larger window takes proportionally longer to fill in. The button is hidden together with the other controls by `hide_controls`.
+
+  ```yaml
+  event_search:
+    days_back: 7
+    days_ahead: 365
+  ```
+</ParamField>
+
 <ParamField path="hide_dark_mode_toggle" default="false" type="boolean">
   Hide the light/dark mode toggle button.
 </ParamField>

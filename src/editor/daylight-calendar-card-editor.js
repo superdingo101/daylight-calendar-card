@@ -907,6 +907,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
+        <label><input type="checkbox" data-field="event_search" ${this._config.event_search ? 'checked' : ''}> Show event search button</label>
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
       </div>
@@ -2003,6 +2004,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.week_days = selectedWeekdays;
     } else if (event.target.type === 'checkbox') {
       nextConfig[field] = event.target.checked;
+      // A configured search window (event_search object) survives switching the checkbox back on.
+      if (field === 'event_search' && event.target.checked && this._config.event_search && typeof this._config.event_search === 'object') {
+        nextConfig.event_search = this._config.event_search;
+      }
       if (field === 'background_transparent') {
         nextConfig.background_opacity = event.target.checked ? 100 : 0;
       } else if (field === 'header_background_transparent') {

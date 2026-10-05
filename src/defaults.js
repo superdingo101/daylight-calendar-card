@@ -30,6 +30,10 @@ export const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
 export const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
 export const DEFAULT_EVENT_TIME_STEP = 1;
 export const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
+// Window searched by event_search, in days before and after today.
+export const DEFAULT_EVENT_SEARCH_DAYS_BACK = 30;
+export const DEFAULT_EVENT_SEARCH_DAYS_AHEAD = 120;
+export const MAX_EVENT_SEARCH_DAYS = 1825;
 
 export const EVENT_TITLE_PREFIX_ALIASES = {
   icon: 'badge_icon',
@@ -79,6 +83,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
+  event_search: false,
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,

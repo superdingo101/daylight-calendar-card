@@ -1,5 +1,5 @@
 import { normalizeHeaderItems } from '../header/header-items.js';
-import { normalizeEventActions, normalizeEventTimeStep } from '../config/config-normalizers.js';
+import { normalizeEventActions, normalizeEventSearchConfigValue, normalizeEventTimeStep } from '../config/config-normalizers.js';
 import {
   DEFAULT_BACKGROUND_IMAGE_POSITION,
   DEFAULT_BACKGROUND_IMAGE_REPEAT,
@@ -73,6 +73,7 @@ export function createConfigNormalizationSchema({
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
+      { key: 'event_search', defaultValue: ({ rawConfig }) => normalizeEventSearchConfigValue(rawConfig.event_search), normalize: ({ rawConfig }) => normalizeEventSearchConfigValue(rawConfig.event_search) },
       { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || DEFAULT_CONFIG_VALUES.hide_view_selector },
       { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || DEFAULT_CONFIG_VALUES.hide_dark_mode_toggle },
       { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || DEFAULT_CONFIG_VALUES.show_dashboard_nav_button },

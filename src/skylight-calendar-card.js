@@ -63,6 +63,7 @@ import {
   normalizeDefaultHiddenCalendars as normalizeDefaultHiddenCalendarsHelper,
   normalizeEventColorMode as normalizeEventColorModeHelper,
   normalizeEventModalSize as normalizeEventModalSizeHelper,
+  normalizeEventSearch as normalizeEventSearchHelper,
   normalizeEventTimeStep as normalizeEventTimeStepHelper,
   normalizeEventTitlePrefixMode as normalizeEventTitlePrefixModeHelper,
   normalizePastEventMode as normalizePastEventModeHelper,
@@ -206,6 +207,8 @@ import {
   renderCalendarBadgesInline as renderCalendarBadgesInlineMarkup
 } from './renderers/calendar-badge-renderer.js';
 import { renderCreateEventForm, renderEditEventForm } from './renderers/event-form-renderer.js';
+import { renderEventSearchModal, renderEventSearchResults, renderSearchButton } from './renderers/search-renderer.js';
+import { MIN_EVENT_SEARCH_LENGTH, collapseSearchResults, eventMatchesSearchTerms, getSearchTerms } from './events/event-search.js';
 import {
   renderCompactHeader as renderCompactHeaderMarkup,
   renderDashboardNavButton as renderDashboardNavButtonMarkup,
@@ -3785,6 +3788,10 @@ class SkylightCalendarCard extends HTMLElement {
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
+      renderSearchButton: ({ compact }) => renderSearchButton({
+        compact,
+        helpers: { escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value), t: (key, params) => this.t(key, params) }
+      }),
       t: (key, params) => this.t(key, params)
     };
   }
@@ -3795,6 +3802,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return renderStandardHeaderMarkup({
       canAddEvents,
+      canSearch: !!this.getEventSearchConfig(),
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -3807,6 +3815,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return renderCompactHeaderMarkup({
       canAddEvents,
+      canSearch: !!this.getEventSearchConfig(),
       shouldShowCalendars,
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
@@ -5733,6 +5742,10 @@ class SkylightCalendarCard extends HTMLElement {
     // Add event button
     addEventButton?.addEventListener('click', () => {
       this.showCreateEventModal();
+    });
+
+    this.getRootElementById('search-events-btn')?.addEventListener('click', () => {
+      this.showEventSearchModal();
     });
 
     themeToggleButton?.addEventListener('click', () => {
@@ -7821,6 +7834,180 @@ class SkylightCalendarCard extends HTMLElement {
         this.showEventModal(eventData, () => this.showDayCompactModal(date, events));
       });
     });
+  }
+
+  getEventSearchConfig() {
+    return normalizeEventSearchHelper(this._config?.event_search);
+  }
+
+  // Events the card already holds for the visible range; searched instantly while the wider window loads.
+  getLoadedEventsForSearch() {
+    return Object.values(this._eventsByCalendar || {}).flat();
+  }
+
+  // Fetches the search window in the same 30-day chunks the views use, one request at a time with a
+  // short pause, and keeps the result for a few minutes. Measured on CalDAV: a single long window per
+  // calendar costs far more than its chunks (recurrence expansion) and several at once stalled Home
+  // Assistant for ~18 s, while one 30-day chunk takes under a second without stalling. onProgress fires
+  // after every chunk so results can fill in.
+  loadEventSearchEvents({ force = false, onProgress = null, pauseMs = 400 } = {}) {
+    const searchConfig = this.getEventSearchConfig();
+    if (!searchConfig || !this._hass) return Promise.resolve({ byCalendar: {}, failed: false, done: 0, total: 0, complete: true });
+    const cache = this._eventSearchCache;
+    const maxAgeMs = 5 * 60 * 1000;
+    if (!force && cache && cache.writeGeneration === this._eventWriteGeneration && Date.now() - cache.loadedAt < maxAgeMs) {
+      if (onProgress) cache.listeners.add(onProgress);
+      return cache.promise;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - searchConfig.daysBack);
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + searchConfig.daysAhead + 1);
+    const chunks = this.getDateRangeChunks(startDate, endDate, 30);
+    const entities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    const queue = [];
+    entities.forEach((entityId, index) => chunks.forEach((chunk) => queue.push({ entityId, index, chunk })));
+    const state = {
+      byCalendar: {},
+      failed: false,
+      done: 0,
+      total: queue.length,
+      complete: false,
+      loadedAt: Date.now(),
+      writeGeneration: this._eventWriteGeneration,
+      listeners: new Set(onProgress ? [onProgress] : [])
+    };
+    const notify = () => state.listeners.forEach((listener) => {
+      try { listener(state); } catch (error) { console.error('Search progress listener failed:', error); }
+    });
+    const run = async () => {
+      for (const { entityId, index, chunk } of queue) {
+        if (this._eventSearchCache !== state) return state; // superseded by a forced reload
+        let result = null;
+        try {
+          result = await this.fetchEventsForCalendar(entityId, index, [chunk]);
+        } catch (error) {
+          console.error(`Search fetch for ${entityId} failed:`, error?.message || error);
+        }
+        if (result?.success) state.byCalendar[entityId] = [...(state.byCalendar[entityId] || []), ...(result.events || [])];
+        else state.failed = true;
+        state.done += 1;
+        notify();
+        if (pauseMs > 0 && state.done < state.total) await new Promise((resolve) => setTimeout(resolve, pauseMs));
+      }
+      state.complete = true;
+      notify();
+      return state;
+    };
+    this._eventSearchCache = state;
+    state.promise = run();
+    return state.promise;
+  }
+
+  // Loaded view events plus whatever the search window has fetched so far, without duplicates.
+  // Calendars hidden through their header badge stay out of the results, as in the views.
+  getEventSearchPool(state = null) {
+    const byKey = new Map();
+    [...this.getLoadedEventsForSearch(), ...Object.values(state?.byCalendar || {}).flat()].forEach((event) => {
+      if (this._hiddenCalendars?.has(event.entityId)) return;
+      byKey.set(this.getEventIdentityKey(event.entityId, event), event);
+    });
+    return Array.from(byKey.values());
+  }
+
+  getEventSearchResults(events, query) {
+    const terms = getSearchTerms(query);
+    if (terms.join('').length < MIN_EVENT_SEARCH_LENGTH) return null;
+    return collapseSearchResults(events.filter((event) => eventMatchesSearchTerms(event, terms)), {
+      getEventStartDate: (event) => this.getEventStartDate(event)
+    });
+  }
+
+  renderEventSearchResult({ event, isRecurring }, isPast) {
+    const { eventStart: start, isAllDay } = this.getEventDateTimeInfo(event);
+    const dateLabel = `${this.formatDisplayDate(start)}${isAllDay ? '' : ` · ${this.formatEventTime(start)}`}`;
+    const eventStyle = this.getEventStyle(event, { withBorderAccent: true });
+    return `
+          <div class="day-event day-modal-event event-search-result${isPast ? ' is-past' : ''}" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+            <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
+            <div class="day-modal-event-meta">${this.escapeHtml(dateLabel)}${isRecurring ? ` <span class="event-search-result-recurring">↻ ${this.t('searchRecurring')}</span>` : ''}</div>
+            ${event.location ? `<div class="day-modal-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
+          </div>`;
+  }
+
+  showEventSearchModal(query = '', { force = false } = {}) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    if (!modal || !content) return;
+    this.applyEventModalSizeClass(content);
+    const helpers = { escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value), t: (key, params) => this.t(key, params) };
+    content.innerHTML = renderEventSearchModal({ query, helpers });
+    modal.classList.add('show');
+    this._activeModalBackHandler = null;
+
+    const input = this.getRootElementById('event-search-input');
+    const status = this.getRootElementById('event-search-status');
+    const resultsContainer = this.getRootElementById('event-search-results');
+    let searchState = null;
+    const reopen = () => this.showEventSearchModal(input?.value || '', { force: true });
+    const isOpen = () => modal.classList.contains('show') && this.getRootElementById('event-search-input') === input;
+
+    const render = () => {
+      if (!resultsContainer || !status || !isOpen()) return;
+      const results = this.getEventSearchResults(this.getEventSearchPool(searchState), input?.value || '');
+      const loading = !searchState || !searchState.complete;
+      const loadingLabel = this.t('searchLoading', { done: searchState?.done || 0, total: searchState?.total ?? (this._config?.entities?.length || 0) });
+      if (!results) {
+        status.textContent = loading ? loadingLabel : (searchState?.failed ? this.t('searchFailed') : this.t('searchHint'));
+        resultsContainer.innerHTML = '';
+        return;
+      }
+      const empty = results.upcoming.length === 0 && results.past.length === 0;
+      status.textContent = loading ? loadingLabel : (searchState?.failed ? this.t('searchFailed') : (empty ? this.t('searchNoResults') : ''));
+      resultsContainer.innerHTML = renderEventSearchResults({
+        upcoming: results.upcoming.map((result) => ({ ...result, isPast: false })),
+        past: results.past.map((result) => ({ ...result, isPast: true })),
+        renderResult: (result) => this.renderEventSearchResult(result, result.isPast),
+        helpers
+      });
+      resultsContainer.querySelectorAll('.event-search-result').forEach((el) => {
+        el.addEventListener('click', () => {
+          const eventData = JSON.parse(el.getAttribute('data-event'));
+          this.showEventModal(eventData, reopen, { onSaved: reopen });
+        });
+      });
+    };
+
+    let debounceTimer = null;
+    input?.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 150);
+    });
+    this.getRootElementById('close-modal')?.addEventListener('click', () => {
+      clearTimeout(debounceTimer);
+      this._activeModalBackHandler = null;
+      modal.classList.remove('show');
+    });
+
+    const onProgress = (state) => {
+      if (!isOpen()) {
+        state?.listeners?.delete(onProgress);
+        return;
+      }
+      searchState = state;
+      render();
+    };
+    render();
+    this.loadEventSearchEvents({ force, onProgress })
+      .then(onProgress)
+      .catch((error) => {
+        console.error('Loading events for search failed:', error?.message || error);
+        searchState = { byCalendar: {}, failed: true, done: 0, total: 0, complete: true };
+        render();
+      });
+    setTimeout(() => input?.focus(), 100);
   }
 
   showDayModal(date, events) {

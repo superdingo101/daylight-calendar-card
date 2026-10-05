@@ -166,6 +166,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
   disable_event_creation: 'disable_event_creation blocks every new-event UI path while preserving existing-event actions',
   event_time_step: 'event_time_step normalizes to the supported steps and renders stepped time controls',
+  event_search: 'event_search is off by default and normalizes the search window',
   event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
   hide_event_actions: 'hide_event_actions hides configured event detail actions without changing capabilities',
   readonly_calendars: 'readonly calendars suppress event management actions',
@@ -10495,4 +10496,139 @@ test('setupSteppedDateTimeInputs converts 12-hour controls to and from the 24-ho
   assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'PM');
   // The 12-hour hour list never grows extra options.
   assert.equal(endGroup.parts['[data-stepped-part="hour"]'].options.length, 12);
+});
+
+test('event_search is off by default and normalizes the search window', () => {
+  assert.equal(makeCard({ entities: ['calendar.family'] }).getEventSearchConfig(), null);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_search: false }).getEventSearchConfig(), null);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_search: 'yes' }).getEventSearchConfig(), null);
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], event_search: true }).getEventSearchConfig(), { daysBack: 30, daysAhead: 120 });
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], event_search: { days_back: 10 } }).getEventSearchConfig(), { daysBack: 10, daysAhead: 120 });
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], event_search: { days_back: -1, days_ahead: 99999 } }).getEventSearchConfig(), { daysBack: 30, daysAhead: 1825 });
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], event_search: { days_back: 0, days_ahead: '60' } }).getEventSearchConfig(), { daysBack: 0, daysAhead: 60 });
+  assert.equal(makeCard({ entities: ['calendar.family'] })._config.event_search, false);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_search: true })._config.event_search, true);
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], event_search: { days_ahead: 60, extra: 1 } })._config.event_search, { days_ahead: 60 });
+});
+
+test('editor toggles event_search and keeps a configured search window when switched back on', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._hass = { states: {}, themes: { darkMode: false } };
+  editor.setConfig({ entities: [] });
+  assert.match(editor.innerHTML, /<input type="checkbox" data-field="event_search" > Show event search button/);
+  editor.dispatchEvent = () => true;
+
+  editor.handleChange({ target: { type: 'checkbox', dataset: { field: 'event_search' }, checked: true } });
+  assert.equal(editor._config.event_search, true);
+  editor.handleChange({ target: { type: 'checkbox', dataset: { field: 'event_search' }, checked: false } });
+  assert.equal(editor._config.event_search, false);
+
+  const windowed = new Editor();
+  windowed._hass = { states: {}, themes: { darkMode: false } };
+  windowed.setConfig({ entities: [], event_search: { days_back: 7, days_ahead: 60 } });
+  assert.match(windowed.innerHTML, /data-field="event_search" checked> Show event search button/);
+  windowed.dispatchEvent = () => true;
+  windowed.handleChange({ target: { type: 'checkbox', dataset: { field: 'event_search' }, checked: true } });
+  assert.deepEqual(windowed._config.event_search, { days_back: 7, days_ahead: 60 });
+});
+
+test('event_search leaves calendars hidden through their badge out of the results', () => {
+  const card = makeCard({ entities: ['calendar.family', 'calendar.work'], event_search: true });
+  card._eventsByCalendar = {
+    'calendar.family': [{ entityId: 'calendar.family', uid: 'f1', summary: 'Dentist', start: { dateTime: '2026-03-20T10:00:00Z' } }],
+    'calendar.work': [{ entityId: 'calendar.work', uid: 'w1', summary: 'Dentist review', start: { dateTime: '2026-03-21T10:00:00Z' } }]
+  };
+  assert.equal(card.getEventSearchPool().length, 2);
+  card._hiddenCalendars = new Set(['calendar.work']);
+  const pool = card.getEventSearchPool({ byCalendar: { 'calendar.work': [{ entityId: 'calendar.work', uid: 'w2', summary: 'Dentist', start: { dateTime: '2026-03-22T10:00:00Z' } }] } });
+  assert.deepEqual(pool.map((event) => event.uid), ['f1']);
+});
+
+test('event_search renders a header button only when enabled', () => {
+  const off = makeCard({ entities: ['calendar.family'] });
+  assert.doesNotMatch(off.renderStandardHeader(), /search-events-btn/);
+  assert.doesNotMatch(off.renderCompactHeader(), /search-events-btn/);
+  const on = makeCard({ entities: ['calendar.family'], event_search: true });
+  assert.match(on.renderStandardHeader(), /class="add-event-button search-events-button" id="search-events-btn" aria-label="Search"/);
+  assert.match(on.renderCompactHeader(), /class="compact-add-event-button search-events-button" id="search-events-btn" aria-label="Search" title="Search"/);
+  const hiddenControls = makeCard({ entities: ['calendar.family'], event_search: true, hide_controls: true });
+  assert.doesNotMatch(hiddenControls.renderCompactHeader(), /search-events-btn/);
+});
+
+test('event_search matches all terms accent-insensitively and shows each series once', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_search: true });
+  const now = Date.now();
+  const at = (days) => new Date(now + days * 86400000).toISOString();
+  const events = [
+    { entityId: 'calendar.family', uid: 'swim', summary: 'Zwemles Pepijn', start: { dateTime: at(-14) }, end: { dateTime: at(-14) } },
+    { entityId: 'calendar.family', uid: 'swim', summary: 'Zwemles Pepijn', start: { dateTime: at(-7) }, end: { dateTime: at(-7) } },
+    { entityId: 'calendar.family', uid: 'swim', summary: 'Zwemles Pepijn', start: { dateTime: at(7) }, end: { dateTime: at(7) } },
+    { entityId: 'calendar.family', uid: 'swim', summary: 'Zwemles Pepijn', start: { dateTime: at(14) }, end: { dateTime: at(14) } },
+    { entityId: 'calendar.family', uid: 'cafe', summary: 'Koffie', location: 'Café de Zon', start: { dateTime: at(-30) }, end: { dateTime: at(-30) } },
+    { entityId: 'calendar.family', uid: 'dentist', summary: 'Tandarts', description: 'controle Pepijn', start: { dateTime: at(3) }, end: { dateTime: at(3) } }
+  ];
+  assert.equal(card.getEventSearchResults(events, 'z'), null);
+  assert.equal(card.getEventSearchResults(events, '  '), null);
+
+  const swim = card.getEventSearchResults(events, 'zwemles');
+  assert.equal(swim.upcoming.length, 1);
+  assert.equal(swim.upcoming[0].event.start.dateTime, at(7));
+  assert.equal(swim.upcoming[0].isRecurring, true);
+  assert.equal(swim.past.length, 0);
+
+  const pepijn = card.getEventSearchResults(events, 'PEPIJN');
+  assert.deepEqual(pepijn.upcoming.map((result) => result.event.uid), ['dentist', 'swim']);
+
+  const cafe = card.getEventSearchResults(events, 'cafe zon');
+  assert.equal(cafe.upcoming.length, 0);
+  assert.deepEqual(cafe.past.map((result) => result.event.uid), ['cafe']);
+  assert.equal(cafe.past[0].isRecurring, false);
+  assert.equal(card.getEventSearchResults(events, 'cafe maan').total, 0);
+});
+
+test('event_search fetches the window in 30-day chunks one request at a time, reports progress and reuses it', async () => {
+  const entities = ['calendar.a', 'calendar.b', 'calendar.c'];
+  const card = makeCard({ entities, event_search: { days_back: 10, days_ahead: 50 } });
+  card._hass = {};
+  const calls = [];
+  let inFlight = 0;
+  let maxInFlight = 0;
+  card.fetchEventsForCalendar = async (entityId, index, chunks) => {
+    calls.push({ entityId, index, chunks });
+    inFlight += 1;
+    maxInFlight = Math.max(maxInFlight, inFlight);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    inFlight -= 1;
+    return entityId === 'calendar.c'
+      ? { success: false, events: [] }
+      : { success: true, events: [{ entityId, uid: `${entityId}-${calls.length}`, summary: 'A', start: { dateTime: new Date().toISOString() } }] };
+  };
+  const progress = [];
+  const state = await card.loadEventSearchEvents({ pauseMs: 0, onProgress: (current) => progress.push(current.done) });
+  const chunkCount = calls.filter((call) => call.entityId === 'calendar.a').length;
+  assert.ok(chunkCount >= 2 && chunkCount <= 3, `chunks ${chunkCount}`);
+  assert.equal(calls.length, chunkCount * 3);
+  assert.equal(maxInFlight, 1);
+  assert.ok(calls.every((call) => call.chunks.length === 1));
+  const spanDays = (call) => (call.chunks[0].endDate - call.chunks[0].startDate) / 86400000;
+  assert.ok(calls.every((call) => spanDays(call) <= 31), 'chunks stay within 30 days');
+  assert.equal(state.total, calls.length);
+  assert.deepEqual(progress.slice(0, calls.length), Array.from({ length: calls.length }, (_, i) => i + 1));
+  assert.equal(state.complete, true);
+  assert.equal(state.failed, true);
+  assert.equal(state.byCalendar['calendar.a'].length, chunkCount);
+
+  // Already loaded view events are part of the pool; duplicates collapse on identity.
+  const fetched = state.byCalendar['calendar.a'][0];
+  card._eventsByCalendar = { 'calendar.a': [{ ...fetched }, { entityId: 'calendar.a', uid: 'view-only', summary: 'B', start: { dateTime: new Date().toISOString() } }] };
+  const pool = card.getEventSearchPool(state);
+  assert.equal(pool.length, chunkCount * 2 + 1);
+  assert.ok(pool.some((event) => event.uid === 'view-only'));
+
+  const before = calls.length;
+  await card.loadEventSearchEvents({ pauseMs: 0 });
+  assert.equal(calls.length, before);
+  await card.loadEventSearchEvents({ force: true, pauseMs: 0 });
+  assert.equal(calls.length, before * 2);
 });

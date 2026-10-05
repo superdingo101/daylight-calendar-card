@@ -2081,6 +2081,101 @@ test('daily forecasts default on and header-only weather hides forecasts in ever
 });
 
 
+const searchEvents = {
+  'calendar.family': [
+    { uid: 'swim-series', summary: 'Swim lesson', start: '2026-03-08T16:00:00Z', end: '2026-03-08T17:00:00Z', location: 'Pool', rrule: 'FREQ=WEEKLY' },
+    { uid: 'swim-series', summary: 'Swim lesson', start: '2026-03-22T16:00:00Z', end: '2026-03-22T17:00:00Z', location: 'Pool', rrule: 'FREQ=WEEKLY' },
+    { uid: 'swim-series', summary: 'Swim lesson', start: '2026-03-29T16:00:00Z', end: '2026-03-29T17:00:00Z', location: 'Pool', rrule: 'FREQ=WEEKLY' },
+    { uid: 'dentist', summary: 'Dentist', start: '2026-03-02T09:00:00Z', end: '2026-03-02T09:30:00Z', location: 'Café Plaza' }
+  ],
+  'calendar.work': [
+    { uid: 'review', summary: 'Quarterly review', start: '2026-03-25T13:00:00Z', end: '2026-03-25T14:00:00Z', description: 'Bring the swim club budget' }
+  ]
+};
+
+for (const compactHeader of [false, true]) {
+  test(`event_search button stays inside the ${compactHeader ? 'compact' : 'standard'} header`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Search Header',
+        default_view: 'week-compact',
+        compact_header: compactHeader,
+        event_search: { days_back: 0, days_ahead: 20 }
+      },
+      events: searchEvents,
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const header = card.locator(compactHeader ? '.header-compact' : '.header').first();
+    const button = card.locator('#search-events-btn');
+    await expect(button).toBeVisible();
+    await expect(button.locator('svg.search-icon')).toBeVisible();
+    await expectBoxWithin(button, header);
+    await assertNoHorizontalOverflow(header);
+  });
+}
+
+test('event_search finds events across calendars, groups them and opens the event', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Search Flow',
+      default_view: 'week-compact',
+      event_search: { days_back: 0, days_ahead: 20 }
+    },
+    events: searchEvents,
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await card.locator('#search-events-btn').click();
+  const input = card.locator('#event-search-input');
+  await expect(input).toBeVisible();
+  await expect(input).toBeFocused();
+
+  const status = card.locator('#event-search-status');
+  const results = card.locator('#event-search-results');
+  await input.fill('s');
+  await expect(results.locator('.event-search-result')).toHaveCount(0);
+
+  await input.fill('swim');
+  await expect(status).toHaveText('', { timeout: 10000 });
+  const upcoming = results.locator('.event-search-section').first();
+  await expect(upcoming.locator('.event-search-section-title')).toHaveText('Upcoming');
+  // The weekly series is listed once, at its next occurrence; the description match comes from the other calendar.
+  await expect(upcoming.locator('.event-search-result')).toHaveCount(2);
+  await expect(upcoming.locator('.event-search-result').first()).toContainText('Swim lesson');
+  await expect(upcoming.locator('.event-search-result').first()).toContainText('Repeats');
+  await expect(upcoming.locator('.event-search-result').nth(1)).toContainText('Quarterly review');
+
+  await input.fill('cafe');
+  await expect(results.locator('.event-search-section-title')).toHaveText(['Earlier']);
+  await expect(results.locator('.event-search-result.is-past')).toHaveCount(1);
+  await expect(results.locator('.event-search-result')).toContainText('Dentist');
+
+  await input.fill('nothing like this');
+  await expect(status).toHaveText('No events found');
+
+  await input.fill('swim');
+  await expect(results.locator('.event-search-result')).toHaveCount(2);
+  await expect(card.locator('#modal-content')).toHaveScreenshot('event-search-results-light.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01
+  });
+
+  await results.locator('.event-search-result').first().click();
+  await expect(card.locator('#event-search-input')).toHaveCount(0);
+  await expect(card.locator('#modal-content')).toContainText('Swim lesson');
+});
+
 test('regression issue 321: compact wrapped header rows stay centered at medium width', async ({ page }) => {
   await page.setViewportSize({ width: 980, height: 820 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;

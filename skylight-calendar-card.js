@@ -63,6 +63,10 @@ const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
 const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
 const DEFAULT_EVENT_TIME_STEP = 1;
 const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
+// Window searched by event_search, in days before and after today.
+const DEFAULT_EVENT_SEARCH_DAYS_BACK = 30;
+const DEFAULT_EVENT_SEARCH_DAYS_AHEAD = 120;
+const MAX_EVENT_SEARCH_DAYS = 1825;
 
 const EVENT_TITLE_PREFIX_ALIASES = {
   icon: 'badge_icon',
@@ -112,6 +116,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
+  event_search: false,
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
@@ -664,6 +669,32 @@ function normalizeEventTimeStep(value) {
   return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
 }
 
+function normalizeSearchDays(value, fallback) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) return fallback;
+  return Math.min(numeric, MAX_EVENT_SEARCH_DAYS);
+}
+
+// Keeps the YAML shape of event_search for the stored config: true, an object with the window keys, or false.
+function normalizeEventSearchConfigValue(value) {
+  if (value === true) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const window = {};
+  if (value.days_back !== undefined) window.days_back = value.days_back;
+  if (value.days_ahead !== undefined) window.days_ahead = value.days_ahead;
+  return window;
+}
+
+// event_search: true enables the default window; an object can move either edge. Anything else is off.
+function normalizeEventSearch(value) {
+  if (value === true) return { daysBack: DEFAULT_EVENT_SEARCH_DAYS_BACK, daysAhead: DEFAULT_EVENT_SEARCH_DAYS_AHEAD };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return {
+    daysBack: normalizeSearchDays(value.days_back, DEFAULT_EVENT_SEARCH_DAYS_BACK),
+    daysAhead: normalizeSearchDays(value.days_ahead, DEFAULT_EVENT_SEARCH_DAYS_AHEAD)
+  };
+}
+
 function createConfigNormalizationSchema({
   hasCustomTitle,
   normalizeDashboardPath,
@@ -723,6 +754,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
+      { key: 'event_search', defaultValue: ({ rawConfig }) => normalizeEventSearchConfigValue(rawConfig.event_search), normalize: ({ rawConfig }) => normalizeEventSearchConfigValue(rawConfig.event_search) },
       { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || DEFAULT_CONFIG_VALUES.hide_view_selector },
       { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || DEFAULT_CONFIG_VALUES.hide_dark_mode_toggle },
       { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || DEFAULT_CONFIG_VALUES.show_dashboard_nav_button },
@@ -2446,6 +2478,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
+        <label><input type="checkbox" data-field="event_search" ${this._config.event_search ? 'checked' : ''}> Show event search button</label>
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
       </div>
@@ -3542,6 +3575,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.week_days = selectedWeekdays;
     } else if (event.target.type === 'checkbox') {
       nextConfig[field] = event.target.checked;
+      // A configured search window (event_search object) survives switching the checkbox back on.
+      if (field === 'event_search' && event.target.checked && this._config.event_search && typeof this._config.event_search === 'object') {
+        nextConfig.event_search = this._config.event_search;
+      }
       if (field === 'background_transparent') {
         nextConfig.background_opacity = event.target.checked ? 100 : 0;
       } else if (field === 'header_background_transparent') {
@@ -4172,6 +4209,55 @@ function getCardStyles() {
         line-height: 1;
         transition: all 0.2s;
         padding: 0;
+      }
+
+      .search-events-button .search-icon {
+        display: block;
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+      }
+
+      .add-event-button.search-events-button .search-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .event-search-input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .event-search-status {
+        margin: 8px 0 4px;
+        font-size: 12px;
+        opacity: 0.75;
+      }
+
+      .event-search-status:empty {
+        display: none;
+      }
+
+      .event-search-section {
+        margin-top: 12px;
+      }
+
+      .event-search-section-title {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        opacity: 0.7;
+        margin-bottom: 6px;
+      }
+
+      .event-search-result.is-past {
+        opacity: 0.7;
+      }
+
+      .event-search-result-recurring {
+        font-size: 11px;
+        opacity: 0.75;
       }
 
       .month-year {
@@ -6782,7 +6868,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}',
+      searchEvents: 'Search',
+      searchPlaceholder: 'Search title, location or description',
+      searchLoading: 'Loading events… ({done}/{total})',
+      searchNoResults: 'No events found',
+      searchUpcoming: 'Upcoming',
+      searchPast: 'Earlier',
+      searchFailed: 'Could not load all calendars; results may be incomplete',
+      searchRecurring: 'Repeats',
+      searchHint: 'Type at least 2 characters'
     }
   },
 
@@ -6910,7 +7005,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
       monthWeekAriaLabel: 'Semaine {week}',
-      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}',
+      searchEvents: 'Rechercher',
+      searchPlaceholder: 'Rechercher un titre, un lieu ou une description',
+      searchLoading: 'Chargement des événements… ({done}/{total})',
+      searchNoResults: 'Aucun événement trouvé',
+      searchUpcoming: 'À venir',
+      searchPast: 'Plus tôt',
+      searchFailed: 'Impossible de charger tous les calendriers ; les résultats peuvent être incomplets',
+      searchRecurring: 'Récurrent',
+      searchHint: 'Saisissez au moins 2 caractères'
     }
   },
 
@@ -7038,7 +7142,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
       monthWeekAriaLabel: 'Woche {week}',
-      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden',
+      searchEvents: 'Suchen',
+      searchPlaceholder: 'Titel, Ort oder Beschreibung suchen',
+      searchLoading: 'Termine werden geladen… ({done}/{total})',
+      searchNoResults: 'Keine Termine gefunden',
+      searchUpcoming: 'Demnächst',
+      searchPast: 'Früher',
+      searchFailed: 'Nicht alle Kalender konnten geladen werden; die Ergebnisse sind möglicherweise unvollständig',
+      searchRecurring: 'Wiederholt sich',
+      searchHint: 'Mindestens 2 Zeichen eingeben'
     }
   },
 
@@ -7166,7 +7279,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'wk',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}',
+      searchEvents: 'Zoeken',
+      searchPlaceholder: 'Zoek op titel, locatie of omschrijving',
+      searchLoading: 'Afspraken laden… ({done}/{total})',
+      searchNoResults: 'Geen afspraken gevonden',
+      searchUpcoming: 'Komend',
+      searchPast: 'Eerder',
+      searchFailed: 'Niet alle agenda’s konden worden geladen; de resultaten zijn mogelijk onvolledig',
+      searchRecurring: 'Herhaalt',
+      searchHint: 'Typ minstens 2 tekens'
     }
   },
   es: {
@@ -7293,7 +7415,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
       monthWeekAriaLabel: 'Semana {week}',
-      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}',
+      searchEvents: 'Buscar',
+      searchPlaceholder: 'Buscar título, ubicación o descripción',
+      searchLoading: 'Cargando eventos… ({done}/{total})',
+      searchNoResults: 'No se encontraron eventos',
+      searchUpcoming: 'Próximos',
+      searchPast: 'Anteriores',
+      searchFailed: 'No se pudieron cargar todos los calendarios; los resultados pueden estar incompletos',
+      searchRecurring: 'Se repite',
+      searchHint: 'Escribe al menos 2 caracteres'
     }
   },
   
@@ -7421,7 +7552,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
       monthWeekAriaLabel: 'Nädal {week}',
-      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}',
+      searchEvents: 'Otsi',
+      searchPlaceholder: 'Otsi pealkirja, asukohta või kirjeldust',
+      searchLoading: 'Sündmuste laadimine… ({done}/{total})',
+      searchNoResults: 'Sündmusi ei leitud',
+      searchUpcoming: 'Tulemas',
+      searchPast: 'Varem',
+      searchFailed: 'Kõiki kalendreid ei õnnestunud laadida; tulemused võivad olla puudulikud',
+      searchRecurring: 'Kordub',
+      searchHint: 'Sisesta vähemalt 2 tähemärki'
     }
   },
 
@@ -7549,7 +7689,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
       monthWeekAriaLabel: 'Setmana {week}',
-      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}',
+      searchEvents: 'Cerca',
+      searchPlaceholder: 'Cerca títol, ubicació o descripció',
+      searchLoading: 'Carregant esdeveniments… ({done}/{total})',
+      searchNoResults: "No s'han trobat esdeveniments",
+      searchUpcoming: 'Propers',
+      searchPast: 'Anteriors',
+      searchFailed: "No s'han pogut carregar tots els calendaris; els resultats poden ser incomplets",
+      searchRecurring: 'Es repeteix',
+      searchHint: 'Escriviu almenys 2 caràcters'
     }
   },
 
@@ -7677,7 +7826,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
       monthWeekAriaLabel: 'Uge {week}',
-      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}',
+      searchEvents: 'Søg',
+      searchPlaceholder: 'Søg i titel, sted eller beskrivelse',
+      searchLoading: 'Indlæser begivenheder… ({done}/{total})',
+      searchNoResults: 'Ingen begivenheder fundet',
+      searchUpcoming: 'Kommende',
+      searchPast: 'Tidligere',
+      searchFailed: 'Ikke alle kalendere kunne indlæses; resultaterne kan være ufuldstændige',
+      searchRecurring: 'Gentages',
+      searchHint: 'Skriv mindst 2 tegn'
     }
   },
 
@@ -7805,7 +7963,16 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
       monthWeekAriaLabel: 'Vecka {week}',
-      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}',
+      searchEvents: 'Sök',
+      searchPlaceholder: 'Sök titel, plats eller beskrivning',
+      searchLoading: 'Läser in händelser… ({done}/{total})',
+      searchNoResults: 'Inga händelser hittades',
+      searchUpcoming: 'Kommande',
+      searchPast: 'Tidigare',
+      searchFailed: 'Alla kalendrar kunde inte läsas in; resultaten kan vara ofullständiga',
+      searchRecurring: 'Upprepas',
+      searchHint: 'Skriv minst 2 tecken'
     }
   }
 };
@@ -10620,8 +10787,105 @@ ${renderEventFields({
     `;
 }
 
+// Markup for the event_search button and modal. The card owns fetching, filtering and wiring.
+
+const SEARCH_ICON = '<svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.16 10.45l5.2 5.2-1.42 1.41-5.2-5.2A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>';
+
+function renderSearchButton({ compact = false, helpers }) {
+  const label = helpers.escapeHtmlAttribute(helpers.t('searchEvents'));
+  return compact
+    ? `<button class="compact-add-event-button search-events-button" id="search-events-btn" aria-label="${label}" title="${label}">${SEARCH_ICON}</button>`
+    : `<button class="add-event-button search-events-button" id="search-events-btn" aria-label="${label}">${SEARCH_ICON}${helpers.t('searchEvents')}</button>`;
+}
+
+function renderEventSearchModal({ query = '', helpers }) {
+  const { escapeHtmlAttribute, t } = helpers;
+  return `
+      <div class="modal-header">
+        <h3 class="modal-title">${t('searchEvents')}</h3>
+        <button class="modal-close" id="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-input event-search-input" id="event-search-input" autocomplete="off"
+               placeholder="${escapeHtmlAttribute(t('searchPlaceholder'))}" aria-label="${escapeHtmlAttribute(t('searchEvents'))}"
+               value="${escapeHtmlAttribute(query)}" />
+        <div class="event-search-status" id="event-search-status"></div>
+        <div class="event-search-results" id="event-search-results"></div>
+      </div>
+    `;
+}
+
+function renderEventSearchResults({ upcoming = [], past = [], renderResult, helpers }) {
+  const { t } = helpers;
+  const section = (title, results) => (results.length === 0 ? '' : `
+        <div class="event-search-section">
+          <div class="event-search-section-title">${title}</div>
+          ${results.map((result, index) => renderResult(result, index)).join('')}
+        </div>`);
+  return `${section(t('searchUpcoming'), upcoming)}${section(t('searchPast'), past)}`;
+}
+
+// Client-side search over events fetched for the event_search window.
+
+const MIN_EVENT_SEARCH_LENGTH = 2;
+const MAX_EVENT_SEARCH_RESULTS = 50;
+
+// Lowercase and strip diacritics so "cafe" finds "Café".
+function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function getSearchTerms(query) {
+  return normalizeSearchText(query).split(/\s+/).filter(Boolean);
+}
+
+// Every term must occur somewhere in the summary, location or description.
+function eventMatchesSearchTerms(event, terms) {
+  if (!terms.length) return false;
+  const haystack = normalizeSearchText([event?.summary, event?.location, event?.description].filter(Boolean).join(' '));
+  return terms.every((term) => haystack.includes(term));
+}
+
+// Recurring events come back as one entry per occurrence; show each series once, at its next
+// occurrence, or at its latest one when the whole series lies in the past.
+function collapseSearchResults(events, { now = new Date(), getEventStartDate, limit = MAX_EVENT_SEARCH_RESULTS } = {}) {
+  const nowMs = now.getTime();
+  const bySeries = new Map();
+  events.forEach((event) => {
+    const start = getEventStartDate(event);
+    const startMs = typeof start?.getTime === 'function' ? start.getTime() : NaN;
+    if (Number.isNaN(startMs)) return;
+    const key = event.uid ? `${event.entityId}|${event.uid}` : `${event.entityId}|${event.summary}|${startMs}`;
+    const existing = bySeries.get(key);
+    const isUpcoming = startMs >= nowMs;
+    if (!existing) {
+      bySeries.set(key, { event, startMs, isUpcoming, occurrences: 1 });
+      return;
+    }
+    existing.occurrences += 1;
+    const better = isUpcoming
+      ? (!existing.isUpcoming || startMs < existing.startMs)
+      : (!existing.isUpcoming && startMs > existing.startMs);
+    if (better) Object.assign(existing, { event, startMs, isUpcoming });
+  });
+
+  const entries = Array.from(bySeries.values());
+  const upcoming = entries.filter((entry) => entry.isUpcoming).sort((a, b) => a.startMs - b.startMs);
+  const past = entries.filter((entry) => !entry.isUpcoming).sort((a, b) => b.startMs - a.startMs);
+  const toResult = (entry) => ({ event: entry.event, isRecurring: entry.occurrences > 1 || !!entry.event.rrule });
+  return {
+    upcoming: upcoming.slice(0, limit).map(toResult),
+    past: past.slice(0, limit).map(toResult),
+    total: entries.length
+  };
+}
+
 function renderStandardHeader({
   canAddEvents,
+  canSearch = false,
   shouldShowControls,
   helpers
 }) {
@@ -10640,6 +10904,7 @@ function renderStandardHeader({
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
+            ${canSearch ? helpers.renderSearchButton({ compact: false }) : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
@@ -10656,6 +10921,7 @@ function renderStandardHeader({
 
 function renderCompactHeader({
   canAddEvents,
+  canSearch = false,
   shouldShowCalendars,
   shouldShowControls,
   helpers
@@ -10683,6 +10949,7 @@ function renderCompactHeader({
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
+            ${canSearch ? helpers.renderSearchButton({ compact: true }) : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
           </div>
@@ -14795,6 +15062,10 @@ class SkylightCalendarCard extends HTMLElement {
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
+      renderSearchButton: ({ compact }) => renderSearchButton({
+        compact,
+        helpers: { escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value), t: (key, params) => this.t(key, params) }
+      }),
       t: (key, params) => this.t(key, params)
     };
   }
@@ -14805,6 +15076,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return renderStandardHeader({
       canAddEvents,
+      canSearch: !!this.getEventSearchConfig(),
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -14817,6 +15089,7 @@ class SkylightCalendarCard extends HTMLElement {
 
     return renderCompactHeader({
       canAddEvents,
+      canSearch: !!this.getEventSearchConfig(),
       shouldShowCalendars,
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
@@ -16743,6 +17016,10 @@ class SkylightCalendarCard extends HTMLElement {
     // Add event button
     addEventButton?.addEventListener('click', () => {
       this.showCreateEventModal();
+    });
+
+    this.getRootElementById('search-events-btn')?.addEventListener('click', () => {
+      this.showEventSearchModal();
     });
 
     themeToggleButton?.addEventListener('click', () => {
@@ -18831,6 +19108,180 @@ class SkylightCalendarCard extends HTMLElement {
         this.showEventModal(eventData, () => this.showDayCompactModal(date, events));
       });
     });
+  }
+
+  getEventSearchConfig() {
+    return normalizeEventSearch(this._config?.event_search);
+  }
+
+  // Events the card already holds for the visible range; searched instantly while the wider window loads.
+  getLoadedEventsForSearch() {
+    return Object.values(this._eventsByCalendar || {}).flat();
+  }
+
+  // Fetches the search window in the same 30-day chunks the views use, one request at a time with a
+  // short pause, and keeps the result for a few minutes. Measured on CalDAV: a single long window per
+  // calendar costs far more than its chunks (recurrence expansion) and several at once stalled Home
+  // Assistant for ~18 s, while one 30-day chunk takes under a second without stalling. onProgress fires
+  // after every chunk so results can fill in.
+  loadEventSearchEvents({ force = false, onProgress = null, pauseMs = 400 } = {}) {
+    const searchConfig = this.getEventSearchConfig();
+    if (!searchConfig || !this._hass) return Promise.resolve({ byCalendar: {}, failed: false, done: 0, total: 0, complete: true });
+    const cache = this._eventSearchCache;
+    const maxAgeMs = 5 * 60 * 1000;
+    if (!force && cache && cache.writeGeneration === this._eventWriteGeneration && Date.now() - cache.loadedAt < maxAgeMs) {
+      if (onProgress) cache.listeners.add(onProgress);
+      return cache.promise;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - searchConfig.daysBack);
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + searchConfig.daysAhead + 1);
+    const chunks = this.getDateRangeChunks(startDate, endDate, 30);
+    const entities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    const queue = [];
+    entities.forEach((entityId, index) => chunks.forEach((chunk) => queue.push({ entityId, index, chunk })));
+    const state = {
+      byCalendar: {},
+      failed: false,
+      done: 0,
+      total: queue.length,
+      complete: false,
+      loadedAt: Date.now(),
+      writeGeneration: this._eventWriteGeneration,
+      listeners: new Set(onProgress ? [onProgress] : [])
+    };
+    const notify = () => state.listeners.forEach((listener) => {
+      try { listener(state); } catch (error) { console.error('Search progress listener failed:', error); }
+    });
+    const run = async () => {
+      for (const { entityId, index, chunk } of queue) {
+        if (this._eventSearchCache !== state) return state; // superseded by a forced reload
+        let result = null;
+        try {
+          result = await this.fetchEventsForCalendar(entityId, index, [chunk]);
+        } catch (error) {
+          console.error(`Search fetch for ${entityId} failed:`, error?.message || error);
+        }
+        if (result?.success) state.byCalendar[entityId] = [...(state.byCalendar[entityId] || []), ...(result.events || [])];
+        else state.failed = true;
+        state.done += 1;
+        notify();
+        if (pauseMs > 0 && state.done < state.total) await new Promise((resolve) => setTimeout(resolve, pauseMs));
+      }
+      state.complete = true;
+      notify();
+      return state;
+    };
+    this._eventSearchCache = state;
+    state.promise = run();
+    return state.promise;
+  }
+
+  // Loaded view events plus whatever the search window has fetched so far, without duplicates.
+  // Calendars hidden through their header badge stay out of the results, as in the views.
+  getEventSearchPool(state = null) {
+    const byKey = new Map();
+    [...this.getLoadedEventsForSearch(), ...Object.values(state?.byCalendar || {}).flat()].forEach((event) => {
+      if (this._hiddenCalendars?.has(event.entityId)) return;
+      byKey.set(this.getEventIdentityKey(event.entityId, event), event);
+    });
+    return Array.from(byKey.values());
+  }
+
+  getEventSearchResults(events, query) {
+    const terms = getSearchTerms(query);
+    if (terms.join('').length < MIN_EVENT_SEARCH_LENGTH) return null;
+    return collapseSearchResults(events.filter((event) => eventMatchesSearchTerms(event, terms)), {
+      getEventStartDate: (event) => this.getEventStartDate(event)
+    });
+  }
+
+  renderEventSearchResult({ event, isRecurring }, isPast) {
+    const { eventStart: start, isAllDay } = this.getEventDateTimeInfo(event);
+    const dateLabel = `${this.formatDisplayDate(start)}${isAllDay ? '' : ` · ${this.formatEventTime(start)}`}`;
+    const eventStyle = this.getEventStyle(event, { withBorderAccent: true });
+    return `
+          <div class="day-event day-modal-event event-search-result${isPast ? ' is-past' : ''}" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+            <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
+            <div class="day-modal-event-meta">${this.escapeHtml(dateLabel)}${isRecurring ? ` <span class="event-search-result-recurring">↻ ${this.t('searchRecurring')}</span>` : ''}</div>
+            ${event.location ? `<div class="day-modal-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
+          </div>`;
+  }
+
+  showEventSearchModal(query = '', { force = false } = {}) {
+    const modal = this.getRootElementById('event-modal');
+    const content = this.getRootElementById('modal-content');
+    if (!modal || !content) return;
+    this.applyEventModalSizeClass(content);
+    const helpers = { escapeHtmlAttribute: (value) => this.escapeHtmlAttribute(value), t: (key, params) => this.t(key, params) };
+    content.innerHTML = renderEventSearchModal({ query, helpers });
+    modal.classList.add('show');
+    this._activeModalBackHandler = null;
+
+    const input = this.getRootElementById('event-search-input');
+    const status = this.getRootElementById('event-search-status');
+    const resultsContainer = this.getRootElementById('event-search-results');
+    let searchState = null;
+    const reopen = () => this.showEventSearchModal(input?.value || '', { force: true });
+    const isOpen = () => modal.classList.contains('show') && this.getRootElementById('event-search-input') === input;
+
+    const render = () => {
+      if (!resultsContainer || !status || !isOpen()) return;
+      const results = this.getEventSearchResults(this.getEventSearchPool(searchState), input?.value || '');
+      const loading = !searchState || !searchState.complete;
+      const loadingLabel = this.t('searchLoading', { done: searchState?.done || 0, total: searchState?.total ?? (this._config?.entities?.length || 0) });
+      if (!results) {
+        status.textContent = loading ? loadingLabel : (searchState?.failed ? this.t('searchFailed') : this.t('searchHint'));
+        resultsContainer.innerHTML = '';
+        return;
+      }
+      const empty = results.upcoming.length === 0 && results.past.length === 0;
+      status.textContent = loading ? loadingLabel : (searchState?.failed ? this.t('searchFailed') : (empty ? this.t('searchNoResults') : ''));
+      resultsContainer.innerHTML = renderEventSearchResults({
+        upcoming: results.upcoming.map((result) => ({ ...result, isPast: false })),
+        past: results.past.map((result) => ({ ...result, isPast: true })),
+        renderResult: (result) => this.renderEventSearchResult(result, result.isPast),
+        helpers
+      });
+      resultsContainer.querySelectorAll('.event-search-result').forEach((el) => {
+        el.addEventListener('click', () => {
+          const eventData = JSON.parse(el.getAttribute('data-event'));
+          this.showEventModal(eventData, reopen, { onSaved: reopen });
+        });
+      });
+    };
+
+    let debounceTimer = null;
+    input?.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 150);
+    });
+    this.getRootElementById('close-modal')?.addEventListener('click', () => {
+      clearTimeout(debounceTimer);
+      this._activeModalBackHandler = null;
+      modal.classList.remove('show');
+    });
+
+    const onProgress = (state) => {
+      if (!isOpen()) {
+        state?.listeners?.delete(onProgress);
+        return;
+      }
+      searchState = state;
+      render();
+    };
+    render();
+    this.loadEventSearchEvents({ force, onProgress })
+      .then(onProgress)
+      .catch((error) => {
+        console.error('Loading events for search failed:', error?.message || error);
+        searchState = { byCalendar: {}, failed: true, done: 0, total: 0, complete: true };
+        render();
+      });
+    setTimeout(() => input?.focus(), 100);
   }
 
   showDayModal(date, events) {

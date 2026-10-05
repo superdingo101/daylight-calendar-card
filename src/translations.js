@@ -132,7 +132,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}',
+      searchEvents: 'Search',
+      searchPlaceholder: 'Search title, location or description',
+      searchLoading: 'Loading events… ({done}/{total})',
+      searchNoResults: 'No events found',
+      searchUpcoming: 'Upcoming',
+      searchPast: 'Earlier',
+      searchFailed: 'Could not load all calendars; results may be incomplete',
+      searchRecurring: 'Repeats',
+      searchHint: 'Type at least 2 characters'
     }
   },
 
@@ -260,7 +269,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
       monthWeekAriaLabel: 'Semaine {week}',
-      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}',
+      searchEvents: 'Rechercher',
+      searchPlaceholder: 'Rechercher un titre, un lieu ou une description',
+      searchLoading: 'Chargement des événements… ({done}/{total})',
+      searchNoResults: 'Aucun événement trouvé',
+      searchUpcoming: 'À venir',
+      searchPast: 'Plus tôt',
+      searchFailed: 'Impossible de charger tous les calendriers ; les résultats peuvent être incomplets',
+      searchRecurring: 'Récurrent',
+      searchHint: 'Saisissez au moins 2 caractères'
     }
   },
 
@@ -388,7 +406,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
       monthWeekAriaLabel: 'Woche {week}',
-      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden',
+      searchEvents: 'Suchen',
+      searchPlaceholder: 'Titel, Ort oder Beschreibung suchen',
+      searchLoading: 'Termine werden geladen… ({done}/{total})',
+      searchNoResults: 'Keine Termine gefunden',
+      searchUpcoming: 'Demnächst',
+      searchPast: 'Früher',
+      searchFailed: 'Nicht alle Kalender konnten geladen werden; die Ergebnisse sind möglicherweise unvollständig',
+      searchRecurring: 'Wiederholt sich',
+      searchHint: 'Mindestens 2 Zeichen eingeben'
     }
   },
 
@@ -516,7 +543,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'wk',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}',
+      searchEvents: 'Zoeken',
+      searchPlaceholder: 'Zoek op titel, locatie of omschrijving',
+      searchLoading: 'Afspraken laden… ({done}/{total})',
+      searchNoResults: 'Geen afspraken gevonden',
+      searchUpcoming: 'Komend',
+      searchPast: 'Eerder',
+      searchFailed: 'Niet alle agenda’s konden worden geladen; de resultaten zijn mogelijk onvolledig',
+      searchRecurring: 'Herhaalt',
+      searchHint: 'Typ minstens 2 tekens'
     }
   },
   es: {
@@ -643,7 +679,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
       monthWeekAriaLabel: 'Semana {week}',
-      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}',
+      searchEvents: 'Buscar',
+      searchPlaceholder: 'Buscar título, ubicación o descripción',
+      searchLoading: 'Cargando eventos… ({done}/{total})',
+      searchNoResults: 'No se encontraron eventos',
+      searchUpcoming: 'Próximos',
+      searchPast: 'Anteriores',
+      searchFailed: 'No se pudieron cargar todos los calendarios; los resultados pueden estar incompletos',
+      searchRecurring: 'Se repite',
+      searchHint: 'Escribe al menos 2 caracteres'
     }
   },
   
@@ -771,7 +816,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
       monthWeekAriaLabel: 'Nädal {week}',
-      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}',
+      searchEvents: 'Otsi',
+      searchPlaceholder: 'Otsi pealkirja, asukohta või kirjeldust',
+      searchLoading: 'Sündmuste laadimine… ({done}/{total})',
+      searchNoResults: 'Sündmusi ei leitud',
+      searchUpcoming: 'Tulemas',
+      searchPast: 'Varem',
+      searchFailed: 'Kõiki kalendreid ei õnnestunud laadida; tulemused võivad olla puudulikud',
+      searchRecurring: 'Kordub',
+      searchHint: 'Sisesta vähemalt 2 tähemärki'
     }
   },
 
@@ -899,7 +953,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
       monthWeekAriaLabel: 'Setmana {week}',
-      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}',
+      searchEvents: 'Cerca',
+      searchPlaceholder: 'Cerca títol, ubicació o descripció',
+      searchLoading: 'Carregant esdeveniments… ({done}/{total})',
+      searchNoResults: "No s'han trobat esdeveniments",
+      searchUpcoming: 'Propers',
+      searchPast: 'Anteriors',
+      searchFailed: "No s'han pogut carregar tots els calendaris; els resultats poden ser incomplets",
+      searchRecurring: 'Es repeteix',
+      searchHint: 'Escriviu almenys 2 caràcters'
     }
   },
 
@@ -1027,7 +1090,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
       monthWeekAriaLabel: 'Uge {week}',
-      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}',
+      searchEvents: 'Søg',
+      searchPlaceholder: 'Søg i titel, sted eller beskrivelse',
+      searchLoading: 'Indlæser begivenheder… ({done}/{total})',
+      searchNoResults: 'Ingen begivenheder fundet',
+      searchUpcoming: 'Kommende',
+      searchPast: 'Tidligere',
+      searchFailed: 'Ikke alle kalendere kunne indlæses; resultaterne kan være ufuldstændige',
+      searchRecurring: 'Gentages',
+      searchHint: 'Skriv mindst 2 tegn'
     }
   },
 
@@ -1155,7 +1227,16 @@ export const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
       monthWeekAriaLabel: 'Vecka {week}',
-      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}',
+      searchEvents: 'Sök',
+      searchPlaceholder: 'Sök titel, plats eller beskrivning',
+      searchLoading: 'Läser in händelser… ({done}/{total})',
+      searchNoResults: 'Inga händelser hittades',
+      searchUpcoming: 'Kommande',
+      searchPast: 'Tidigare',
+      searchFailed: 'Alla kalendrar kunde inte läsas in; resultaten kan vara ofullständiga',
+      searchRecurring: 'Upprepas',
+      searchHint: 'Skriv minst 2 tecken'
     }
   }
 };

@@ -7,6 +7,8 @@ import {
   DEFAULT_DAY_BADGE_LAYOUT_WEEK,
   DEFAULT_EVENT_COLOR_MODE,
   DEFAULT_EVENT_MODAL_SIZE,
+  DEFAULT_EVENT_SEARCH_DAYS_AHEAD,
+  DEFAULT_EVENT_SEARCH_DAYS_BACK,
   DEFAULT_EVENT_TIME_STEP,
   DEFAULT_EVENT_TITLE_PREFIX,
   DEFAULT_PAST_EVENT_MODE,
@@ -18,6 +20,7 @@ import {
   EVENT_TITLE_PREFIX_ALIASES,
   EVENT_TITLE_PREFIX_OPTIONS,
   HIDDEN_CALENDAR_VISIBILITY_VALUES,
+  MAX_EVENT_SEARCH_DAYS,
   PAST_EVENT_MODE_OPTIONS,
   THEME_MODE_OPTIONS,
   VISIBLE_CALENDAR_VISIBILITY_VALUES
@@ -138,4 +141,30 @@ export function normalizeEventTimeStep(value) {
   if (value === undefined || value === null || value === '') return DEFAULT_EVENT_TIME_STEP;
   const numeric = Number(value);
   return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
+}
+
+function normalizeSearchDays(value, fallback) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) return fallback;
+  return Math.min(numeric, MAX_EVENT_SEARCH_DAYS);
+}
+
+// Keeps the YAML shape of event_search for the stored config: true, an object with the window keys, or false.
+export function normalizeEventSearchConfigValue(value) {
+  if (value === true) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const window = {};
+  if (value.days_back !== undefined) window.days_back = value.days_back;
+  if (value.days_ahead !== undefined) window.days_ahead = value.days_ahead;
+  return window;
+}
+
+// event_search: true enables the default window; an object can move either edge. Anything else is off.
+export function normalizeEventSearch(value) {
+  if (value === true) return { daysBack: DEFAULT_EVENT_SEARCH_DAYS_BACK, daysAhead: DEFAULT_EVENT_SEARCH_DAYS_AHEAD };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return {
+    daysBack: normalizeSearchDays(value.days_back, DEFAULT_EVENT_SEARCH_DAYS_BACK),
+    daysAhead: normalizeSearchDays(value.days_ahead, DEFAULT_EVENT_SEARCH_DAYS_AHEAD)
+  };
 }
