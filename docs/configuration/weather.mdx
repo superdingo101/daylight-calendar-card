@@ -21,6 +21,19 @@ The Daylight Calendar Card can pull current conditions and, when available, a da
   Controls whether daily forecasts appear inside calendar days. Set this to `false` to keep the current condition, icon, and temperature in the header without requesting or displaying daily forecast data.
 </ParamField>
 
+<ParamField path="weather_icon_style" type="string" default="mdi">
+  Chooses how weather icons are drawn in the header and in the daily forecasts.
+
+  - `mdi` (default): monochrome MDI icons that follow the card's text color.
+  - `colored`: multi-colour icons in the style of Home Assistant's own weather card (yellow sun, grey/white clouds, blue rain). The header icon shows a moon for clear or partly cloudy nights when `sun.sun` is below the horizon. Conditions without colored artwork (such as `exceptional`) fall back to the MDI icon.
+
+  The colors can be themed with the same CSS variables Home Assistant uses: `--weather-icon-sun-color`, `--weather-icon-moon-color`, `--weather-icon-rain-color`, `--weather-icon-cloud-back-color`, `--weather-icon-cloud-front-color`, `--weather-icon-snow-color` and `--weather-icon-snow-stroke-color`.
+
+  ```yaml
+  weather_icon_style: colored
+  ```
+</ParamField>
+
 ### Requirements
 
 To display weather data you need:
@@ -55,7 +68,7 @@ show_daily_weather_forecast: false
 </Tip>
 
 <Note>
-  Weather icons in the card are rendered using MDI (Material Design Icons), not emoji. They scale crisply at any display size and automatically respect your card's light or dark color scheme without any extra configuration.
+  By default, weather icons in the card are rendered using MDI (Material Design Icons), not emoji. They scale crisply at any display size and automatically respect your card's light or dark color scheme without any extra configuration. Set `weather_icon_style: colored` for multi-colour icons.
 </Note>
 
 ### Troubleshooting

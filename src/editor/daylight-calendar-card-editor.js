@@ -1210,6 +1210,13 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         Show daily weather forecasts
       </label>
       <div class="field field-inline">
+        <label for="weather_icon_style">Weather icon style</label>
+        <select id="weather_icon_style" data-field="weather_icon_style">
+          <option value="mdi" ${this._config.weather_icon_style !== 'colored' ? 'selected' : ''}>Monochrome (MDI)</option>
+          <option value="colored" ${this._config.weather_icon_style === 'colored' ? 'selected' : ''}>Colored</option>
+        </select>
+      </div>
+      <div class="field field-inline">
         <label for="preference_storage_key">Preference storage key</label>
         <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
       </div>
