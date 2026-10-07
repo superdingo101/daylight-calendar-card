@@ -904,6 +904,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
         <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
         <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
+        <label><input type="checkbox" data-field="hide_calendar_badge_person_state" ${this._config.hide_calendar_badge_person_state ? 'checked' : ''}> Header badges: hide linked person state</label>
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
@@ -1208,6 +1209,13 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
         Show daily weather forecasts
       </label>
+      <div class="field field-inline">
+        <label for="weather_icon_style">Weather icon style</label>
+        <select id="weather_icon_style" data-field="weather_icon_style">
+          <option value="mdi" ${this._config.weather_icon_style !== 'colored' ? 'selected' : ''}>Monochrome (MDI)</option>
+          <option value="colored" ${this._config.weather_icon_style === 'colored' ? 'selected' : ''}>Colored</option>
+        </select>
+      </div>
       <div class="field field-inline">
         <label for="preference_storage_key">Preference storage key</label>
         <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">

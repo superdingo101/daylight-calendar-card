@@ -62,6 +62,16 @@ The calendar list lets users toggle individual calendars on or off from inside t
   Hide the text name next to each calendar's colored dot in the calendar list, showing only the color indicators.
 </ParamField>
 
+<ParamField path="hide_calendar_badge_person_state" default="false" type="boolean">
+  Hide the person state line (for example "Home", "Away", or a zone name) under the calendar name in badges linked through [`calendar_person_entities`](/configuration/basic). The badge still shows the person's picture and the calendar name. Use this on wall-mounted dashboards where you want a cleaner header without location details. In the visual editor, select **Header badges: hide linked person state**.
+
+  ```yaml
+  calendar_person_entities:
+    calendar.ian: person.ian
+  hide_calendar_badge_person_state: true
+  ```
+</ParamField>
+
 <ParamField path="default_hidden_calendars" type="list">
   A list of calendar entity IDs that should be hidden when the card loads for the first time. The user can still reveal them using the calendar toggle list. Once the user changes their selection it is saved in browser storage and overrides this initial default for that browser.
 

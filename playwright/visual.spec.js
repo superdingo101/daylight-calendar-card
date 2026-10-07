@@ -2081,6 +2081,53 @@ test('daily forecasts default on and header-only weather hides forecasts in ever
 });
 
 
+for (const darkMode of [false, true]) {
+  const themeName = darkMode ? 'dark' : 'light';
+  test(`visual: colored weather icons in header and daily forecast (${themeName})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    const conditions = ['sunny', 'partlycloudy', 'cloudy', 'rainy', 'pouring', 'snowy', 'lightning-rainy'];
+    const forecast = conditions.map((condition, index) => ({
+      datetime: `2026-03-${String(15 + index).padStart(2, '0')}T12:00:00Z`,
+      condition,
+      temperature: 60 + index,
+      templow: 45 + index
+    }));
+
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Colored Weather',
+        default_view: 'week-compact',
+        header_weather_sensor: 'weather.mock',
+        weather_icon_style: 'colored',
+        hide_dark_mode_toggle: true
+      },
+      events: baseEvents,
+      weather: { 'weather.mock': { temperature: 62, condition: 'partlycloudy', forecast } },
+      states: { 'sun.sun': { entity_id: 'sun.sun', state: 'above_horizon', attributes: {} } },
+      darkMode
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const headerWeather = card.locator('.header-weather');
+    await expect(headerWeather.locator('svg.weather-svg-icon')).toBeVisible();
+    await expect(headerWeather.locator('svg.weather-svg-icon path.sun')).toHaveCount(1);
+    await expect(headerWeather.locator('ha-icon')).toHaveCount(0);
+
+    const dayForecasts = card.locator('.week-day-forecast');
+    await expect(dayForecasts).toHaveCount(7);
+    await expect(dayForecasts.locator('svg.weather-svg-icon')).toHaveCount(7);
+    await expect(dayForecasts.locator('ha-icon')).toHaveCount(0);
+
+    await expect(card).toHaveScreenshot(`colored-weather-week-compact-${themeName}.png`, {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01
+    });
+  });
+}
+
 test('regression issue 321: compact wrapped header rows stay centered at medium width', async ({ page }) => {
   await page.setViewportSize({ width: 980, height: 820 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
@@ -2156,6 +2203,47 @@ test('regression issue 572: wrapped compact header stays wrapped during a calend
   });
 
   expect(wrapStateImmediatelyAfterRender).toBe(true);
+});
+
+test('hide_calendar_badge_person_state keeps compact inline badge name and picture without the person state', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Hide Person State Compact',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true,
+      calendar_person_entities: { 'calendar.family': 'person.ian' },
+      hide_calendar_badge_person_state: true
+    },
+    events: baseEvents,
+    states: {
+      'person.ian': {
+        entity_id: 'person.ian',
+        state: 'home',
+        attributes: { friendly_name: 'Ian', entity_picture: INLINE_BACKGROUND_SVG }
+      }
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const header = card.locator('.header-compact');
+  const badge = card.locator('.calendar-badges-inline .calendar-badge-inline[data-entity="calendar.family"]');
+
+  await expect(header).toBeVisible();
+  await expect(badge).toBeVisible();
+  await expect(badge.locator('.calendar-badge-name')).toHaveText('Family');
+  await expect(badge.locator('.calendar-badge-person-icon.calendar-badge-photo img')).toBeVisible();
+  await expect(badge.locator('.calendar-badge-person-icon img')).toHaveJSProperty('complete', true);
+  await expect(card.locator('.calendar-badge-person-state')).toHaveCount(0);
+
+  await expectBoxWithin(badge, card.locator('.calendar-badges-inline'));
+  await expectBoxWithin(badge, header);
+  await assertNoHorizontalOverflow(header);
 });
 
 test('regression issue 572: hidden header does not commit a zero-width wrapped state', async ({ page }) => {

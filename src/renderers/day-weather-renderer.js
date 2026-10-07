@@ -40,7 +40,8 @@ export function getDayForecastClass(viewMode = 'week-compact') {
         : 'week-day-forecast';
 }
 
-export function renderWeatherIcon(icon, { escapeHtml }) {
+export function renderWeatherIcon(icon, { escapeHtml }, iconHtml = '') {
+  if (iconHtml) return `<span class="forecast-condition">${iconHtml}</span>`;
   return `<span class="forecast-condition"><ha-icon icon="${escapeHtml(icon)}"></ha-icon></span>`;
 }
 
@@ -58,7 +59,7 @@ export function renderDayForecast(date, viewMode = 'week-compact', { escapeHtml,
 
   return `
       <div class="${forecastClass}">
-        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml })}
+        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml }, forecast.iconHtml)}
         ${renderForecastTemperatures(forecast, { escapeHtml })}
       </div>
     `;
