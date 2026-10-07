@@ -21,6 +21,31 @@ The Daylight Calendar Card can pull current conditions and, when available, a da
   Controls whether daily forecasts appear inside calendar days. Set this to `false` to keep the current condition, icon, and temperature in the header without requesting or displaying daily forecast data.
 </ParamField>
 
+<ParamField path="weather_icon_style" type="string" default="mdi">
+  Sets how the card draws weather icons in the header and in daily forecasts. You can also change this in the visual editor with the **Weather icon style** option.
+
+  - `mdi` (default): monochrome MDI icons that follow the card's text color.
+  - `colored`: multi-color icons in the style of Home Assistant's weather card, with a yellow sun, gray and white clouds, blue rain, and yellow lightning. Use this on wall displays where you want the forecast to stand out at a glance.
+
+  With `colored`, the header icon shows a moon for clear or partly cloudy nights when `sun.sun` is below the horizon. Conditions without colored artwork, such as `exceptional`, fall back to the MDI icon. In light mode, clouds use darker grays so they stay visible on light backgrounds.
+
+  ```yaml
+  weather_icon_style: colored
+  ```
+
+  The colored icons use the same CSS variables as Home Assistant, so themes that already set them apply to the card too:
+
+  | Variable | Colors |
+  | --- | --- |
+  | `--weather-icon-sun-color` | Sun and lightning |
+  | `--weather-icon-moon-color` | Moon |
+  | `--weather-icon-rain-color` | Rain and hail |
+  | `--weather-icon-cloud-back-color` | Rear cloud and wind lines |
+  | `--weather-icon-cloud-front-color` | Front cloud |
+  | `--weather-icon-snow-color` | Snowflake fill |
+  | `--weather-icon-snow-stroke-color` | Snowflake outline |
+</ParamField>
+
 ### Requirements
 
 To display weather data you need:
@@ -55,7 +80,7 @@ show_daily_weather_forecast: false
 </Tip>
 
 <Note>
-  Weather icons in the card are rendered using MDI (Material Design Icons), not emoji. They scale crisply at any display size and automatically respect your card's light or dark color scheme without any extra configuration.
+  By default, weather icons in the card are rendered using MDI (Material Design Icons), not emoji. They scale crisply at any display size and automatically respect your card's light or dark color scheme without any extra configuration. Set `weather_icon_style: colored` for multi-color icons.
 </Note>
 
 ### Troubleshooting
