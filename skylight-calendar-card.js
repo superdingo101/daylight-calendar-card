@@ -6826,6 +6826,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Failed to create event',
       deleteEventServiceError: 'Failed to delete event',
       updateEventServiceError: 'Failed to update event. The calendar may not support modifications.',
+      updateEventNotConfirmed: 'The change could not be confirmed. The calendar has been reloaded, please check the event before trying again.',
       durationHour: '{count} hour',
       durationHours: '{count} hours',
       durationMinute: '{count} minute',
@@ -6954,6 +6955,7 @@ const TRANSLATIONS = {
       createEventServiceError: "Impossible de créer l'événement",
       deleteEventServiceError: "Impossible de supprimer l'événement",
       updateEventServiceError: "Impossible de modifier l'événement. Le calendrier ne prend peut-être pas en charge les modifications.",
+      updateEventNotConfirmed: "La modification n'a pas pu être confirmée. Le calendrier a été rechargé, vérifiez l'événement avant de réessayer.",
       durationHour: '{count} heure',
       durationHours: '{count} heures',
       durationMinute: '{count} minute',
@@ -7082,6 +7084,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Termin konnte nicht erstellt werden',
       deleteEventServiceError: 'Termin konnte nicht gelöscht werden',
       updateEventServiceError: 'Termin konnte nicht aktualisiert werden. Der Kalender unterstützt möglicherweise keine Änderungen.',
+      updateEventNotConfirmed: 'Die Änderung konnte nicht bestätigt werden. Der Kalender wurde neu geladen, bitte prüfe den Termin, bevor du es erneut versuchst.',
       durationHour: '{count} Stunde',
       durationHours: '{count} Stunden',
       durationMinute: '{count} Minute',
@@ -7210,6 +7213,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Niet gelukt om afspraak aan te maken',
       deleteEventServiceError: 'Niet gelukt om afspraak te verwijderen',
       updateEventServiceError: 'Niet gelukt om afspraak bij te werken. Mogelijk wordt dit niet ondersteund.',
+      updateEventNotConfirmed: 'De wijziging kon niet worden bevestigd. De agenda is opnieuw geladen, controleer de afspraak voordat je het opnieuw probeert.',
       durationHour: '{count} uur',
       durationHours: '{count} uren',
       durationMinute: '{count} minuut',
@@ -7337,6 +7341,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Error al crear el evento',
       deleteEventServiceError: 'Error al eliminar el evento',
       updateEventServiceError: 'Error al actualizar el evento. Es posible que el calendario no admita modificaciones.',
+      updateEventNotConfirmed: 'No se pudo confirmar el cambio. El calendario se ha recargado, comprueba el evento antes de volver a intentarlo.',
       durationHour: '{count} hora',
       durationHours: '{count} horas',
       durationMinute: '{count} minuto',
@@ -7465,6 +7470,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Sündmuse loomine ebaõnnestus',
       deleteEventServiceError: 'Sündmuse kustutamine ebaõnnestus',
       updateEventServiceError: 'Sündmuse muutmine ebaõnnestus. Kalender ei pruugi muutmist toetada.',
+      updateEventNotConfirmed: 'Muudatust ei õnnestunud kinnitada. Kalender laaditi uuesti, kontrolli sündmust enne uuesti proovimist.',
       durationHour: '{count} tund',
       durationHours: '{count} tundi',
       durationMinute: '{count} minut',
@@ -7593,6 +7599,7 @@ const TRANSLATIONS = {
       createEventServiceError: "Error en crear l'esdeveniment",
       deleteEventServiceError: "Error en eliminar l'esdeveniment",
       updateEventServiceError: "Error en actualitzar l'esdeveniment. És possible que el calendari no admeti modificacions.",
+      updateEventNotConfirmed: "No s'ha pogut confirmar el canvi. El calendari s'ha tornat a carregar, comprova l'esdeveniment abans de tornar-ho a provar.",
       durationHour: '{count} hora',
       durationHours: '{count} hores',
       durationMinute: '{count} minut',
@@ -7721,6 +7728,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Kunne ikke oprette begivenhed',
       deleteEventServiceError: 'Kunne ikke slette begivenhed',
       updateEventServiceError: 'Kunne ikke opdatere begivenhed. Kalenderen understøtter muligvis ikke ændringer.',
+      updateEventNotConfirmed: 'Ændringen kunne ikke bekræftes. Kalenderen er genindlæst, tjek begivenheden, før du prøver igen.',
       durationHour: '{count} time',
       durationHours: '{count} timer',
       durationMinute: '{count} minut',
@@ -7849,6 +7857,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Skapa händelse misslyckades',
       deleteEventServiceError: 'Ta bort händelse misslyckades',
       updateEventServiceError: 'Uppdatera händelse misslyckades. Kalendern kanske inte har stöd för ändringar.',
+      updateEventNotConfirmed: 'Ändringen kunde inte bekräftas. Kalendern har lästs in igen, kontrollera händelsen innan du försöker igen.',
       durationHour: '{count} timme',
       durationHours: '{count} timmar',
       durationMinute: '{count} minut',
@@ -9304,6 +9313,52 @@ const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId = null, 
   type: 'calendar/event/delete',
   ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
 });
+
+// Home Assistant error codes that mean the request was rejected before the calendar changed
+// anything, so replacing the event with create+delete cannot duplicate it or lose its UID.
+// Anything else (connection lost, timeout, "failed" from the integration) leaves the outcome unknown.
+const DEFINITIVE_REJECTION_CODES = new Set([
+  'unknown_command',
+  'not_supported',
+  'not_found',
+  'unauthorized',
+  'invalid_format',
+  'service_validation_error'
+]);
+
+const isDefinitiveUpdateRejection = (error) => DEFINITIVE_REJECTION_CODES.has(error?.code);
+
+// Every field buildUpdateEventServiceData can send for a plain event. The card picks the date or
+// date-time pair per event, so a usable service has to accept both pairs, not just the one in
+// the current payload. Spook's calendar.update_event shares uid/summary/start_date_time/
+// end_date_time but uses them as lookup filters and has no date-only pair, so it is excluded.
+const UPDATE_EVENT_SERVICE_FIELDS = ['uid', 'summary', 'start_date_time', 'end_date_time', 'start_date', 'end_date'];
+
+const collectServiceFieldNames = (fields, names = new Set()) => {
+  if (!fields || typeof fields !== 'object') {
+    return names;
+  }
+  for (const [name, field] of Object.entries(fields)) {
+    // Collapsible sections in services.yaml nest their own fields one level deeper.
+    if (field && typeof field === 'object' && field.fields && typeof field.fields === 'object') {
+      collectServiceFieldNames(field.fields, names);
+    } else {
+      names.add(name);
+    }
+  }
+  return names;
+};
+
+// A calendar.update_event service is only usable when it declares every field the card sends.
+const isCompatibleUpdateEventService = (service, serviceData) => {
+  const names = collectServiceFieldNames(service?.fields);
+  if (names.size === 0) {
+    return false;
+  }
+  const required = new Set([...UPDATE_EVENT_SERVICE_FIELDS, ...Object.keys(serviceData)]);
+  required.delete('entity_id');
+  return [...required].every((key) => names.has(key));
+};
 
 function getVisibleCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVirtualBadgeForEvent, normalizeSingleColor, configColors = {} } = {}) {
   const virtualCalendar = getVirtualBadgeForEvent?.(event);
@@ -18003,6 +18058,13 @@ class SkylightCalendarCard extends HTMLElement {
       } catch (error) {
         console.error('Failed to update event:', error);
 
+        // The calendar may hold the edit already; reload it so the user sees what was saved.
+        if (error.updateNotConfirmed) {
+          this._lastFetch = null;
+          this.updateEvents({ preserveScroll: this._viewMode === 'agenda' })
+            .catch((refreshError) => console.error('Failed to refresh after unconfirmed update:', refreshError));
+        }
+
         // Safety net: if edit was blocked by capability detection, still try create+delete.
         // Some integrations misreport update/delete support even though create+delete works.
         if (error.message === this.t('calendarNoModifyError')) {
@@ -18049,27 +18111,38 @@ class SkylightCalendarCard extends HTMLElement {
 
     const { isRecurringUpdate, recurrenceId, recurrenceRange } = getRecurringUpdateControls(originalEvent, eventData, editScope);
 
-    if (isRecurringUpdate && !movingCalendar && this._hass.connection?.sendMessagePromise) {
+    // Prefer the Calendar WebSocket API (the one the HA calendar panel uses) for every in-place
+    // edit on a calendar that supports UPDATE_EVENT. It keeps the event UID and does not depend
+    // on whichever integration happens to own the calendar.update_event service name.
+    const useWebSocketUpdate = (isRecurringUpdate || capabilities.canUpdate) && !movingCalendar;
+    if (useWebSocketUpdate && this._hass.connection?.sendMessagePromise) {
       const wsPayload = buildUpdateEventWebSocketPayload(originalEvent, eventData, recurrenceId, recurrenceRange);
 
       try {
         await this._hass.connection.sendMessagePromise(wsPayload);
         return;
       } catch (error) {
-        console.error('Recurring update via WebSocket failed, falling back:', error?.message || error);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('WebSocket', error);
+        }
+        console.error('Update via WebSocket rejected, falling back:', error?.message || error);
       }
     }
 
-    // If calendar supports UPDATE, we're not moving calendars, and service exists, use update service
-    const hasUpdateService = !!this._hass.services?.calendar?.update_event;
+    // If calendar supports UPDATE, we're not moving calendars, and a compatible service exists, use it.
+    // Spook (5.11+) registers its own calendar.update_event with a lookup-style schema
+    // (new_summary/new_start/new_end/shift), so the service must declare the card's full schema.
+    const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
+    const hasUpdateService = isCompatibleUpdateEventService(this._hass.services?.calendar?.update_event, serviceData);
     if (capabilities.canUpdate && !movingCalendar && hasUpdateService) {
       try {
-        const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
-
         await this._hass.callService('calendar', 'update_event', serviceData);
         return;
       } catch (error) {
-        console.error('Update service failed, trying create+delete fallback:', error.message);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('Update service', error);
+        }
+        console.error('Update service rejected, trying create+delete fallback:', error?.message || error);
         // Fall through to create+delete pattern
       }
     } else if (capabilities.canUpdate && !movingCalendar && !hasUpdateService) {
@@ -18091,6 +18164,15 @@ class SkylightCalendarCard extends HTMLElement {
       console.error('Create+Delete fallback failed:', error);
       throw new Error(error.message || this.t('updateEventServiceError'));
     }
+  }
+
+  // The update may already be applied when its result is lost, so never replace the event then.
+  createUpdateNotConfirmedError(source, cause) {
+    console.error(`${source} update not confirmed, skipping create+delete fallback:`, cause?.message || cause);
+    const error = new Error(this.t('updateEventNotConfirmed'));
+    error.updateNotConfirmed = true;
+    error.cause = cause;
+    return error;
   }
 
   async deleteEvent(calendarId, uid, recurrenceId = null, recurrenceRange = null) {

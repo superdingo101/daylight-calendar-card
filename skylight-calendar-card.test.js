@@ -7203,16 +7203,14 @@ for (const calendarType of [
 
       await card.updateEvent(originalEvent, calendarType.id, eventData, 'future');
 
+      assert.equal(calls.length, 0);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].entity_id, calendarType.id);
+      assert.equal(sent[0].uid, 'uid-1');
       if (recurrence.rrule) {
-        assert.equal(sent.length, 1);
-        assert.equal(sent[0].type, 'calendar/event/update');
-        assert.equal(sent[0].entity_id, calendarType.id);
         assert.equal(sent[0].event.rrule, recurrence.rrule);
         assert.equal(sent[0].recurrence_range, 'THISANDFUTURE');
-      } else {
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0][1], 'update_event');
-        assert.equal(calls[0][2].entity_id, calendarType.id);
       }
     });
 
@@ -7247,6 +7245,214 @@ for (const calendarType of [
     });
   }
 }
+
+const makeUpdateEventCard = ({ wsError = null, serviceError = null, updateService, connection = true } = {}) => {
+  const card = makeCard();
+  const sent = [];
+  const calls = [];
+  card._calendarCapabilities['calendar.caldav_work'] = { canUpdate: true };
+  card._hass = {
+    connection: connection ? {
+      sendMessagePromise: async (payload) => {
+        sent.push(payload);
+        if (wsError && payload.type === 'calendar/event/update') {
+          throw wsError;
+        }
+      }
+    } : undefined,
+    services: { calendar: updateService ? { update_event: updateService } : {} },
+    callService: async (...args) => {
+      calls.push(args);
+      if (serviceError && args[1] === 'update_event') {
+        throw serviceError;
+      }
+    }
+  };
+  return { card, sent, calls };
+};
+
+const singleEventUpdate = {
+  originalEvent: { entityId: 'calendar.caldav_work', uid: 'uid-1' },
+  eventData: {
+    summary: 'Updated',
+    start: { dateTime: '2026-05-01T15:00:00Z' },
+    end: { dateTime: '2026-05-01T16:00:00Z' }
+  }
+};
+
+const compatibleUpdateService = {
+  fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} }
+};
+
+// Spook's calendar.update_event (5.11+): the first four keys are lookup filters, the rest are changes.
+const spookUpdateService = {
+  fields: {
+    summary: {}, uid: {}, start_date_time: {}, end_date_time: {}, duration: {},
+    new_summary: {}, description: {}, location: {}, new_start: {}, new_end: {}, shift: {}
+  }
+};
+
+// Error shapes as rejected by home-assistant-js-websocket.
+const unknownCommandError = { code: 'unknown_command', message: 'Unknown command.' };
+const notSupportedError = { code: 'not_supported', message: 'Calendar does not support event update' };
+const connectionLostError = { code: 3, message: 'Connection lost' };
+
+const withSilencedConsole = async (fn) => {
+  const originalError = console.error;
+  const originalLog = console.log;
+  const originalDebug = console.debug;
+  console.error = () => {};
+  console.log = () => {};
+  console.debug = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.error = originalError;
+    console.log = originalLog;
+    console.debug = originalDebug;
+  }
+};
+
+const runSingleEventUpdate = (card) => withSilencedConsole(() => card.updateEvent(
+  singleEventUpdate.originalEvent, 'calendar.caldav_work', singleEventUpdate.eventData
+));
+
+const wasReplaced = (calls, sent) => calls.some((call) => call[1] === 'create_event')
+  || sent.some((payload) => payload.type === 'calendar/event/create' || payload.type === 'calendar/event/delete');
+
+test('updateEvent ignores a Spook-style calendar.update_event service', async () => {
+  const { card, sent, calls } = makeUpdateEventCard({ wsError: notSupportedError, updateService: spookUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(sent.some((payload) => payload.type === 'calendar/event/delete'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service that lacks a field the card sends', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: { fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {} } }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service without field metadata', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: {} });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+});
+
+test('updateEvent accepts a compatible update_event service whose fields sit in collapsible sections', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: {
+      fields: {
+        uid: {}, summary: {},
+        timing: { collapsed: true, fields: { start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} } }
+      }
+    }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent requires the update_event service to declare fields only present in this payload', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: compatibleUpdateService });
+
+  await withSilencedConsole(() => card.updateEvent(
+    singleEventUpdate.originalEvent, 'calendar.caldav_work', { ...singleEventUpdate.eventData, location: 'Office' }
+  ));
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+for (const [label, wsError] of [['unknown command', unknownCommandError], ['unsupported update', notSupportedError]]) {
+  test(`updateEvent falls back to a compatible update_event service after an ${label} WebSocket error`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await runSingleEventUpdate(card);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][1], 'update_event');
+    assert.equal(calls[0][2].uid, 'uid-1');
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent uses the update service when there is no WebSocket connection', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false, updateService: compatibleUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent falls back to create+delete when there is no WebSocket connection or update service', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(calls.some((call) => call[1] === 'delete_event'), true);
+});
+
+for (const [label, wsError] of [
+  ['a lost connection', connectionLostError],
+  ['a timeout', { code: 'timeout', message: 'Timeout' }],
+  ['a client-side error without a code', new Error('Timeout waiting for response')],
+  ['an integration error', { code: 'failed', message: 'CalDAV server returned 502' }]
+]) {
+  test(`updateEvent does not replace the event after ${label} on the WebSocket update`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await assert.rejects(runSingleEventUpdate(card), (error) => {
+      assert.equal(error.updateNotConfirmed, true);
+      assert.equal(error.cause, wsError);
+      return true;
+    });
+
+    assert.equal(calls.length, 0);
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent does not replace the event when the update service result is lost', async () => {
+  const { card, calls, sent } = makeUpdateEventCard({
+    connection: false,
+    serviceError: connectionLostError,
+    updateService: compatibleUpdateService
+  });
+
+  await assert.rejects(runSingleEventUpdate(card), (error) => error.updateNotConfirmed === true);
+
+  assert.equal(calls.length, 1);
+  assert.equal(wasReplaced(calls, sent), false);
+});
+
+test('updateEvent replaces the event when the update service rejects the request', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    serviceError: { code: 'service_validation_error', message: 'Invalid' },
+    updateService: compatibleUpdateService
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
 
 test('calendar colors prefer configured values before default palette', () => {
   const card = makeCard({
