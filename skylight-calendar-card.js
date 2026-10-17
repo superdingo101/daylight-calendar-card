@@ -113,6 +113,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
+  countdown: false,
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
@@ -390,6 +391,169 @@ function getHeaderItemsRenderSignature(items, hass) {
       unitOfMeasurement: state?.attributes?.unit_of_measurement ?? null,
       icon: state?.attributes?.icon ?? null
     };
+  }));
+}
+
+// Countdown events: events marked as a countdown show "<title> · <n> days" in a bar below the header.
+// An event is marked by a marker line in its description (set via the event form toggle),
+// or by living in one of the configured countdown calendars.
+
+const DEFAULT_COUNTDOWN_MARKER = '⏳ Countdown';
+const DEFAULT_COUNTDOWN_DAYS_AHEAD = 90;
+const MAX_COUNTDOWN_DAYS_AHEAD = 366;
+const DEFAULT_COUNTDOWN_MAX_ITEMS = 3;
+const COUNTDOWN_ICON = 'mdi:timer-sand';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Duck-typed on purpose: a replaced global Date (test fixtures) breaks `instanceof Date`.
+function isValidDate(value) {
+  return typeof value?.getTime === 'function' && !Number.isNaN(value.getTime());
+}
+
+function toPositiveInteger(value, fallback, max = Infinity) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function normalizeCountdownConfig(rawCountdown) {
+  if (rawCountdown === true) rawCountdown = {};
+  if (!rawCountdown || typeof rawCountdown !== 'object' || Array.isArray(rawCountdown)) return null;
+  if (rawCountdown.enabled === false) return null;
+
+  const marker = typeof rawCountdown.marker === 'string' && rawCountdown.marker.trim()
+    ? rawCountdown.marker.trim()
+    : DEFAULT_COUNTDOWN_MARKER;
+  const calendars = Array.isArray(rawCountdown.calendars)
+    ? rawCountdown.calendars.filter((entityId) => typeof entityId === 'string' && entityId.trim()).map((entityId) => entityId.trim())
+    : [];
+
+  return {
+    marker,
+    days_ahead: toPositiveInteger(rawCountdown.days_ahead, DEFAULT_COUNTDOWN_DAYS_AHEAD, MAX_COUNTDOWN_DAYS_AHEAD),
+    max_items: toPositiveInteger(rawCountdown.max_items, DEFAULT_COUNTDOWN_MAX_ITEMS),
+    calendars,
+    show_toggle: rawCountdown.show_toggle !== false
+  };
+}
+
+// Normalized `countdown` config value: false, true, or an object with only the known, valid keys.
+function normalizeCountdownConfigValue(rawCountdown) {
+  if (rawCountdown === true) return true;
+  if (!rawCountdown || typeof rawCountdown !== 'object' || Array.isArray(rawCountdown)) return false;
+  if (rawCountdown.enabled === false) return false;
+  const normalized = normalizeCountdownConfig(rawCountdown);
+  const value = {};
+  if (typeof rawCountdown.marker === 'string' && rawCountdown.marker.trim()) value.marker = normalized.marker;
+  if (rawCountdown.days_ahead !== undefined) value.days_ahead = normalized.days_ahead;
+  if (rawCountdown.max_items !== undefined) value.max_items = normalized.max_items;
+  if (normalized.calendars.length) value.calendars = normalized.calendars;
+  if (rawCountdown.show_toggle === false) value.show_toggle = false;
+  return Object.keys(value).length ? value : true;
+}
+
+function isMarkerLine(line, marker) {
+  return String(line).trim().toLowerCase() === String(marker).trim().toLowerCase();
+}
+
+function hasCountdownMarker(description, marker) {
+  if (!description || !marker) return false;
+  return String(description).split(/\r?\n/).some((line) => isMarkerLine(line, marker));
+}
+
+function stripCountdownMarker(description, marker) {
+  if (!description) return '';
+  if (!marker) return String(description);
+  return String(description)
+    .split(/\r?\n/)
+    .filter((line) => !isMarkerLine(line, marker))
+    .join('\n')
+    .trim();
+}
+
+function applyCountdownMarker(description, marker, enabled) {
+  const stripped = stripCountdownMarker(description, marker);
+  if (!enabled || !marker) return stripped;
+  return stripped ? `${stripped}\n\n${marker}` : marker;
+}
+
+function isCountdownEvent(event, countdownConfig) {
+  if (!event || !countdownConfig) return false;
+  if (countdownConfig.calendars.includes(event.entityId)) return true;
+  return hasCountdownMarker(event.description, countdownConfig.marker);
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getCountdownDays(eventStart, now = new Date()) {
+  // Round instead of floor so a DST shift (23h/25h day) never skews the day count.
+  return Math.round((startOfLocalDay(eventStart) - startOfLocalDay(now)) / MS_PER_DAY);
+}
+
+// The look-ahead window, minus the part the card already loaded for the visible range.
+// Returns null when the loaded range already covers the whole window.
+function getCountdownFetchRange(countdownConfig, now = new Date(), loadedRange = null) {
+  let startDate = startOfLocalDay(now);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + countdownConfig.days_ahead + 1);
+  if (isValidDate(loadedRange?.startDate) && isValidDate(loadedRange?.endDate)
+    && loadedRange.startDate <= startDate && loadedRange.endDate > startDate) {
+    startDate = new Date(loadedRange.endDate);
+  }
+  return startDate < endDate ? { startDate, endDate } : null;
+}
+
+// Returns the upcoming countdown events (one per recurring series), soonest first.
+function selectCountdownEvents(events, countdownConfig, { getEventStartDate, now = new Date() } = {}) {
+  if (!countdownConfig || !Array.isArray(events)) return [];
+  const bySeries = new Map();
+
+  events.forEach((event) => {
+    if (!isCountdownEvent(event, countdownConfig)) return;
+    const start = getEventStartDate(event);
+    if (!isValidDate(start)) return;
+    const days = getCountdownDays(start, now);
+    if (days < 0 || days > countdownConfig.days_ahead) return;
+
+    const seriesKey = `${event.entityId}|${event.uid || event.summary || ''}`;
+    const existing = bySeries.get(seriesKey);
+    if (!existing || start < existing.start) {
+      bySeries.set(seriesKey, { event, start, days });
+    }
+  });
+
+  return Array.from(bySeries.values())
+    .sort((a, b) => a.start - b.start || String(a.event.summary || '').localeCompare(String(b.event.summary || '')))
+    .slice(0, countdownConfig.max_items);
+}
+
+function formatCountdownLabel(days, t) {
+  if (days === 0) return t('countdownToday');
+  if (days === 1) return t('countdownTomorrow');
+  return t('countdownDays', { count: days });
+}
+
+// Flat multi-colour hourglass for `weather_icon_style: colored`, drawn to match the colored weather icons.
+function renderColoredHourglassSvg() {
+  return '<svg class="countdown-svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17" aria-hidden="true">'
+    + '<path class="hourglass-glass" d="M4.2 3H12.8C12.8 6 10 7.5 9 8.5C10 9.5 12.8 11 12.8 14H4.2C4.2 11 7 9.5 8 8.5C7 7.5 4.2 6 4.2 3Z"/>'
+    + '<path class="hourglass-sand" d="M5.6 5H11.4C10.6 6.4 9.2 7.3 8.5 8C7.8 7.3 6.4 6.4 5.6 5Z"/>'
+    + '<rect class="hourglass-sand" x="8.3" y="8" width="0.4" height="4"/>'
+    + '<path class="hourglass-sand" d="M5 13.6C5.6 11.9 7.4 11.3 8.5 11.2C9.6 11.3 11.4 11.9 12 13.6Z"/>'
+    + '<rect class="hourglass-frame" x="3" y="1.6" width="11" height="1.6" rx="0.6"/>'
+    + '<rect class="hourglass-frame" x="3" y="13.8" width="11" height="1.6" rx="0.6"/>'
+    + '</svg>';
+}
+
+function getCountdownBarItems(countdownEntries, t, { iconHtml = '' } = {}) {
+  return countdownEntries.map(({ event, days }) => ({
+    icon: COUNTDOWN_ICON,
+    iconHtml,
+    title: String(event.summary || '').trim(),
+    label: formatCountdownLabel(days, t)
   }));
 }
 
@@ -728,6 +892,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
+      { key: 'countdown', defaultValue: ({ rawConfig }) => normalizeCountdownConfigValue(rawConfig.countdown), normalize: ({ rawConfig }) => normalizeCountdownConfigValue(rawConfig.countdown) },
       { key: 'hide_view_selector', defaultValue: ({ rawConfig }) => rawConfig.hide_view_selector || DEFAULT_CONFIG_VALUES.hide_view_selector },
       { key: 'hide_dark_mode_toggle', defaultValue: ({ rawConfig }) => rawConfig.hide_dark_mode_toggle || DEFAULT_CONFIG_VALUES.hide_dark_mode_toggle },
       { key: 'show_dashboard_nav_button', defaultValue: ({ rawConfig }) => rawConfig.show_dashboard_nav_button || DEFAULT_CONFIG_VALUES.show_dashboard_nav_button },
@@ -2453,6 +2618,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
+        <label><input type="checkbox" data-field="countdown" ${this._config.countdown ? 'checked' : ''}> Show countdown bar</label>
         <label><input type="checkbox" data-field="hide_view_selector" ${this._config.hide_view_selector ? 'checked' : ''}> Hide view selector</label>
         <label><input type="checkbox" data-field="show_dashboard_nav_button" ${this._config.show_dashboard_nav_button ? 'checked' : ''}> Show left dashboard navigation button</label>
       </div>
@@ -3556,6 +3722,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
       nextConfig.week_days = selectedWeekdays;
     } else if (event.target.type === 'checkbox') {
       nextConfig[field] = event.target.checked;
+      // Configured countdown options (countdown object) survive switching the checkbox back on.
+      if (field === 'countdown' && event.target.checked && this._config.countdown && typeof this._config.countdown === 'object') {
+        nextConfig.countdown = this._config.countdown;
+      }
       if (field === 'background_transparent') {
         nextConfig.background_opacity = event.target.checked ? 100 : 0;
       } else if (field === 'header_background_transparent') {
@@ -3717,7 +3887,8 @@ function getCardStyles() {
       }
 
       .header,
-      .header-compact {
+      .header-compact,
+      .countdown-bar {
         position: relative;
         flex: 0 0 auto;
         background: transparent;
@@ -3725,7 +3896,8 @@ function getCardStyles() {
       }
 
       .header::before,
-      .header-compact::before {
+      .header-compact::before,
+      .countdown-bar::before {
         content: '';
         position: absolute;
         inset: 0;
@@ -3736,7 +3908,8 @@ function getCardStyles() {
       }
 
       .header > *,
-      .header-compact > * {
+      .header-compact > *,
+      .countdown-bar > * {
         position: relative;
         z-index: 1;
       }
@@ -3953,6 +4126,64 @@ function getCardStyles() {
         opacity: 0.95;
         line-height: 1;
         white-space: nowrap;
+      }
+
+      .countdown-bar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow: hidden;
+        padding: 0 24px 12px;
+      }
+
+      .countdown-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        max-width: 420px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+        border: none;
+        color: inherit;
+        font-family: inherit;
+        cursor: pointer;
+        --mdc-icon-size: 18px;
+      }
+
+      .countdown-chip:hover,
+      .countdown-chip:focus-visible {
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      .countdown-chip ha-icon,
+      .countdown-svg-icon {
+        flex: 0 0 auto;
+      }
+
+      .countdown-svg-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .countdown-svg-icon .hourglass-frame { fill: var(--countdown-icon-frame-color, #b07d4f); }
+      .countdown-svg-icon .hourglass-glass { fill: var(--countdown-icon-glass-color, #dff1fb); }
+      .countdown-svg-icon .hourglass-sand { fill: var(--countdown-icon-sand-color, var(--weather-icon-sun-color, #fdd93c)); }
+
+      .countdown-chip-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .countdown-chip-label {
+        flex: 0 0 auto;
+        opacity: 0.85;
       }
 
       .header-weather,
@@ -6835,7 +7066,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'CW',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}'
+      eventRefreshStaleWarning: 'Unable to refresh calendar data since {time}',
+      countdown: 'Countdown',
+      countdownToday: 'Today',
+      countdownTomorrow: 'Tomorrow',
+      countdownDays: '{count} days'
     }
   },
 
@@ -6964,7 +7199,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem',
       monthWeekAriaLabel: 'Semaine {week}',
-      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}'
+      eventRefreshStaleWarning: 'Impossible d’actualiser les données du calendrier depuis {time}',
+      countdown: 'Compte à rebours',
+      countdownToday: "Aujourd'hui",
+      countdownTomorrow: 'Demain',
+      countdownDays: '{count} jours'
     }
   },
 
@@ -7093,7 +7332,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'KW',
       monthWeekAriaLabel: 'Woche {week}',
-      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden'
+      eventRefreshStaleWarning: 'Kalenderdaten konnten seit {time} nicht aktualisiert werden',
+      countdown: 'Countdown',
+      countdownToday: 'Heute',
+      countdownTomorrow: 'Morgen',
+      countdownDays: '{count} Tage'
     }
   },
 
@@ -7222,7 +7465,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'wk',
       monthWeekAriaLabel: 'Week {week}',
-      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}'
+      eventRefreshStaleWarning: 'Kan agendagegevens niet vernieuwen sinds {time}',
+      countdown: 'Aftellen',
+      countdownToday: 'Vandaag',
+      countdownTomorrow: 'Morgen',
+      countdownDays: 'nog {count} dagen'
     }
   },
   es: {
@@ -7350,7 +7597,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Sem.',
       monthWeekAriaLabel: 'Semana {week}',
-      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}'
+      eventRefreshStaleWarning: 'No se pueden actualizar los datos del calendario desde {time}',
+      countdown: 'Cuenta atrás',
+      countdownToday: 'Hoy',
+      countdownTomorrow: 'Mañana',
+      countdownDays: '{count} días'
     }
   },
   
@@ -7479,7 +7730,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Nädal',
       monthWeekAriaLabel: 'Nädal {week}',
-      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}'
+      eventRefreshStaleWarning: 'Kalendriandmeid ei saanud värskendada alates {time}',
+      countdown: 'Loendur',
+      countdownToday: 'Täna',
+      countdownTomorrow: 'Homme',
+      countdownDays: '{count} päeva'
     }
   },
 
@@ -7608,7 +7863,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Set.',
       monthWeekAriaLabel: 'Setmana {week}',
-      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}'
+      eventRefreshStaleWarning: 'No es poden actualitzar les dades del calendari des de {time}',
+      countdown: 'Compte enrere',
+      countdownToday: 'Avui',
+      countdownTomorrow: 'Demà',
+      countdownDays: '{count} dies'
     }
   },
 
@@ -7737,7 +7996,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'Uge',
       monthWeekAriaLabel: 'Uge {week}',
-      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}'
+      eventRefreshStaleWarning: 'Kan ikke opdatere kalenderdata siden {time}',
+      countdown: 'Nedtælling',
+      countdownToday: 'I dag',
+      countdownTomorrow: 'I morgen',
+      countdownDays: '{count} dage'
     }
   },
 
@@ -7866,7 +8129,11 @@ const TRANSLATIONS = {
       eventTitleWithStartTime: '{title}, {time}',
       monthWeekPrefix: 'v.',
       monthWeekAriaLabel: 'Vecka {week}',
-      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}'
+      eventRefreshStaleWarning: 'Det går inte att uppdatera kalenderdata sedan {time}',
+      countdown: 'Nedräkning',
+      countdownToday: 'Idag',
+      countdownTomorrow: 'Imorgon',
+      countdownDays: '{count} dagar'
     }
   }
 };
@@ -9937,6 +10204,7 @@ function renderEventDetailsModal({
   locationLinks = false,
   locationActionsExpanded = false,
   locationMapUrl = '',
+  countdownLabel = '',
   helpers
 }) {
   const {
@@ -10023,6 +10291,12 @@ function renderEventDetailsModal({
           </div>
         ` : ''}
         ${locationHtml}
+        ${countdownLabel ? `
+          <div class="modal-row modal-row-countdown">
+            <div class="modal-label">⏳ ${t('countdown')}</div>
+            <div class="modal-value">${escapeHtml(countdownLabel)}</div>
+          </div>
+        ` : ''}
         ${event.description ? `
           <div class="modal-row modal-row-description">
             <div class="modal-label">📝 ${t('description')}</div>
@@ -10564,6 +10838,8 @@ function renderEventFields({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
@@ -10596,6 +10872,13 @@ function renderEventFields({
                     <label class="form-checkbox-label" for="event-recurring">${t('recurring')}</label>
                   </div>
                 </div>
+${showCountdownToggle ? `
+                <div class="form-group">
+                  <div class="form-checkbox-group">
+                    <input type="checkbox" class="form-checkbox" id="event-countdown" ${isCountdown ? 'checked' : ''} />
+                    <label class="form-checkbox-label" for="event-countdown">${t('countdown')}</label>
+                  </div>
+                </div>` : ''}
               </div>
             </div>
           </div>
@@ -10678,6 +10961,8 @@ function renderCreateEventForm({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10726,6 +11011,8 @@ ${renderEventFields({
     eventTimeStep,
     eventTimeHour12,
     eventTimeDayPeriods,
+    showCountdownToggle,
+    isCountdown,
     helpers
   })}
 
@@ -10752,6 +11039,8 @@ function renderEditEventForm({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -10792,6 +11081,8 @@ ${renderEventFields({
     eventTimeStep,
     eventTimeHour12,
     eventTimeDayPeriods,
+    showCountdownToggle,
+    isCountdown,
     helpers
   })}
 
@@ -10943,6 +11234,15 @@ function renderViewModeButtons({ hideViewSelector, viewMode, helpers }) {
 function renderThemeToggle({ hideDarkModeToggle, isDarkMode }) {
   if (hideDarkModeToggle) return '';
   return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${isDarkMode ? '☀︎' : '☾'}</button>`;
+}
+
+function renderCountdownBar({ items = [], helpers }) {
+  if (items.length === 0) return '';
+  return `
+      <div class="countdown-bar">
+        ${items.map((item, index) => `<button type="button" class="countdown-chip" data-countdown-index="${index}" title="${helpers.escapeHtmlAttribute(`${item.title} · ${item.label}`)}">${item.iconHtml || `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>`}<span class="countdown-chip-title">${helpers.escapeHtml(item.title)}</span><span class="countdown-chip-label">· ${helpers.escapeHtml(item.label)}</span></button>`).join('')}
+      </div>
+    `;
 }
 
 function renderDayCellHeader({
@@ -11589,6 +11889,10 @@ class SkylightCalendarCard extends HTMLElement {
     this._lastSuccessfulEventRefresh = null;
     this._lastEventRefreshFailed = false;
     this._calendarEventMetadata = {};
+    this._countdownEntries = [];
+    this._countdownLastFetch = 0;
+    this._countdownFetching = false;
+    this._countdownFetchedEvents = [];
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
@@ -12231,6 +12535,7 @@ class SkylightCalendarCard extends HTMLElement {
       throw new Error('You need to define calendar entities');
     }
     const language = resolveLanguage(config.language || this._hass?.language || this._hass?.locale?.language);
+    this._countdownLastFetch = 0;
     this._hasCustomTitle = config.title !== undefined && config.title !== null;
     this._config = this.normalizeConfig(config, language);
     this._viewMode = this._config.default_view;
@@ -13300,6 +13605,8 @@ class SkylightCalendarCard extends HTMLElement {
     this.recomputeLastSuccessfulEventRefresh();
     this.recomputeEventRefreshFailure();
     this.scheduleEventRefreshWarningTimer();
+    // Deferred so the current apply/render cycle finishes before countdown entries are recomputed.
+    Promise.resolve().then(() => this.refreshCountdownEvents());
   }
 
   applyEventsByCalendar(eventsByCalendar = {}, { startDate, endDate, lastSuccessfulRefresh = null, successfulEntityIds = null, failedEntityIds = [], source = 'network', requestId = null, coverageMode = 'replace', perCalendarMetadata = {} } = {}) {
@@ -14925,6 +15232,7 @@ class SkylightCalendarCard extends HTMLElement {
 
       <div class="calendar-container ${this._isDarkMode ? 'dark-mode' : ''} ${hasCustomBackground ? 'custom-background' : ''} ${this._config.hide_year ? 'hide-year' : ''} ${this._config.agenda_compact_events ? 'agenda-compact-events' : ''}" style="${containerStyle}">
         ${this._config.hide_header ? '' : (this._config.compact_header ? this.renderCompactHeader() : this.renderStandardHeader())}
+        ${this.renderCountdownBar()}
         ${this.renderEventRefreshWarning()}
         <div class="calendar-body">
           ${this.renderCalendarView()}
@@ -15046,6 +15354,15 @@ class SkylightCalendarCard extends HTMLElement {
       headerWeather,
       weekNumberLabel,
       headerItems,
+      helpers: this.getHeaderRenderHelpers()
+    });
+  }
+
+  renderCountdownBar() {
+    return renderCountdownBar({
+      items: getCountdownBarItems(this._countdownEntries, (key, params) => this.t(key, params), {
+        iconHtml: this._config?.weather_icon_style === 'colored' ? renderColoredHourglassSvg() : ''
+      }),
       helpers: this.getHeaderRenderHelpers()
     });
   }
@@ -16930,6 +17247,15 @@ class SkylightCalendarCard extends HTMLElement {
       });
     });
 
+    // Countdown chips open the event they count down to
+    this._root.querySelectorAll('.countdown-chip').forEach((chip) => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const entry = this._countdownEntries[Number(chip.dataset.countdownIndex)];
+        if (entry) this.showEventModal(entry.event);
+      });
+    });
+
     // Add event button
     addEventButton?.addEventListener('click', () => {
       this.showCreateEventModal();
@@ -17696,6 +18022,7 @@ class SkylightCalendarCard extends HTMLElement {
       recurrenceData,
       isPrefilledRecurring,
       isPrefilledAllDay,
+      ...this.getCountdownFormOptions(prefill?.description),
       recurrenceEndMode: this.getRecurrenceEndMode(recurrenceData),
       recurrenceWeekdayOptions: this.getRecurrenceWeekdayOptions(),
       eventTimeStep: this.getEventTimeStep(),
@@ -17774,7 +18101,7 @@ class SkylightCalendarCard extends HTMLElement {
       const title = this.getRootElementById('event-title').value.trim();
       const isAllDay = this.getRootElementById('event-all-day').checked;
       const location = this.getRootElementById('event-location').value.trim();
-      const description = this.getRootElementById('event-description').value.trim();
+      const description = this.applyCountdownToggle(this.getRootElementById('event-description').value.trim());
 
       if (selectedCalendarIds.length === 0) {
         this.showFormError(errorDiv, this.t('noWritableCalendars'));
@@ -17848,6 +18175,7 @@ class SkylightCalendarCard extends HTMLElement {
 
         // Refresh events
         this._lastFetch = null;
+        this._countdownLastFetch = 0;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
         this.safeReturnToList(options?.onSaved);
       } catch (error) {
@@ -17888,8 +18216,12 @@ class SkylightCalendarCard extends HTMLElement {
     const isSingleOccurrenceEdit = editScope === 'this' && isRecurring;
     const recurringSelectedByDefault = isRecurring && !isSingleOccurrenceEdit;
 
+    const countdownFormOptions = this.getCountdownFormOptions(event.description);
     content.innerHTML = renderEditEventForm({
-      event,
+      event: countdownFormOptions.showCountdownToggle
+        ? { ...event, description: stripCountdownMarker(event.description, this.getCountdownConfig().marker) }
+        : event,
+      ...countdownFormOptions,
       startDate,
       endDate,
       isAllDay,
@@ -17974,7 +18306,7 @@ class SkylightCalendarCard extends HTMLElement {
       const title = this.getRootElementById('event-title').value.trim();
       const isAllDayChecked = this.getRootElementById('event-all-day').checked;
       const location = this.getRootElementById('event-location').value.trim();
-      const description = this.getRootElementById('event-description').value.trim();
+      const description = this.applyCountdownToggle(this.getRootElementById('event-description').value.trim());
 
       const formResult = normalizeEventFormData({
         title,
@@ -18053,6 +18385,7 @@ class SkylightCalendarCard extends HTMLElement {
 
         // Refresh events
         this._lastFetch = null;
+        this._countdownLastFetch = 0;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
         this.safeReturnToList(onSaved);
       } catch (error) {
@@ -18073,7 +18406,8 @@ class SkylightCalendarCard extends HTMLElement {
             await this.deleteEvent(event.entityId, event.uid, event.recurrence_id);
             modal.classList.remove('show');
             this._lastFetch = null;
-            await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
+            this._countdownLastFetch = 0;
+        await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
             this.safeReturnToList(onSaved);
             return;
           } catch (fallbackError) {
@@ -18659,6 +18993,7 @@ class SkylightCalendarCard extends HTMLElement {
 
         // Refresh events
         this._lastFetch = null;
+        this._countdownLastFetch = 0;
         await this.updateEvents({ preserveScroll: this._viewMode === 'agenda' });
         this.safeReturnToList(onSaved);
       } catch (error) {
@@ -18786,8 +19121,10 @@ class SkylightCalendarCard extends HTMLElement {
     const canDelete = canModify; // WebSocket delete works for all calendars including Google
     const canForward = this.canCreateEvents();
 
+    const countdownModal = this.getCountdownModalData(event, startDate);
     content.innerHTML = renderEventDetailsModal({
-      event,
+      event: countdownModal.event,
+      countdownLabel: countdownModal.label,
       startDate,
       endDate,
       isAllDay,
@@ -19205,6 +19542,96 @@ class SkylightCalendarCard extends HTMLElement {
     if (!weatherData || this._config?.weather_icon_style !== 'colored') return weatherData;
     const nightTime = this._hass?.states?.['sun.sun']?.state === 'below_horizon';
     return { ...weatherData, iconHtml: renderColoredWeatherSvg(weatherData.condition, { nightTime }) };
+  }
+
+  getCountdownFormOptions(description) {
+    const countdownConfig = this.getCountdownConfig();
+    if (!countdownConfig?.show_toggle) return { showCountdownToggle: false, isCountdown: false };
+    return { showCountdownToggle: true, isCountdown: hasCountdownMarker(description, countdownConfig.marker) };
+  }
+
+  applyCountdownToggle(description) {
+    const countdownConfig = this.getCountdownConfig();
+    const toggle = this.getRootElementById('event-countdown');
+    if (!countdownConfig || !toggle) return description;
+    return applyCountdownMarker(description, countdownConfig.marker, toggle.checked);
+  }
+
+  getCountdownModalData(event, startDate) {
+    const countdownConfig = this.getCountdownConfig();
+    if (!countdownConfig || !isCountdownEvent(event, countdownConfig)) return { event, label: '' };
+    const days = getCountdownDays(startDate);
+    return {
+      event: { ...event, description: stripCountdownMarker(event.description, countdownConfig.marker) },
+      label: days >= 0 ? formatCountdownLabel(days, (key, params) => this.t(key, params)) : ''
+    };
+  }
+
+  getCountdownConfig() {
+    return normalizeCountdownConfig(this._config?.countdown);
+  }
+
+  // Countdowns look further ahead than the visible range. Already loaded events are used
+  // immediately; the rest is fetched gently: one calendar and one 30-day chunk at a time with
+  // a pause, because parallel long-range fetches stall CalDAV-backed Home Assistant instances.
+  // The network part is throttled to once per hour; create/update/delete resets it.
+  getCountdownEntityIds(countdownConfig = this.getCountdownConfig()) {
+    if (!countdownConfig) return [];
+    return Array.from(new Set([...this.getWritableCalendars(), ...countdownConfig.calendars]));
+  }
+
+  updateCountdownEntries(countdownConfig = this.getCountdownConfig()) {
+    const eventsByKey = new Map();
+    [...(this._countdownFetchedEvents || []), ...(this._events || [])].forEach((event) => {
+      eventsByKey.set(this.getEventIdentityKey(event.entityId, event), event);
+    });
+    const nextEntries = selectCountdownEvents(Array.from(eventsByKey.values()), countdownConfig, {
+      getEventStartDate: (event) => this.getEventStartDate(event)
+    });
+    const signature = (entries) => entries.map(({ event, days }) => `${event.entityId}|${event.summary}|${days}`).join('\n');
+    const changed = signature(nextEntries) !== signature(this._countdownEntries);
+    this._countdownEntries = nextEntries;
+    if (changed) this.renderAfterEventDataChange();
+  }
+
+  async refreshCountdownEvents({ force = false } = {}) {
+    const countdownConfig = this.getCountdownConfig();
+    if (!countdownConfig) {
+      this._countdownFetchedEvents = [];
+      if (this._countdownEntries.length) {
+        this._countdownEntries = [];
+        this.renderAfterEventDataChange();
+      }
+      return;
+    }
+    this.updateCountdownEntries(countdownConfig);
+    if (!this._hass || this._countdownFetching) return;
+    if (!force && Date.now() - this._countdownLastFetch < 60 * 60 * 1000) return;
+
+    this._countdownFetching = true;
+    this._countdownLastFetch = Date.now();
+    try {
+      const fetchRange = getCountdownFetchRange(countdownConfig, new Date(), this._loadedEventRange);
+      const chunks = fetchRange ? this.getDateRangeChunks(fetchRange.startDate, fetchRange.endDate, 30) : [];
+      const fetchedEvents = [];
+      const entityIds = this.getCountdownEntityIds(countdownConfig);
+      for (const [index, entityId] of entityIds.entries()) {
+        const color = this.getCalendarColor(entityId, index);
+        for (const chunk of chunks) {
+          const result = await this.fetchEventsForChunk(entityId, chunk);
+          if (result?.success) {
+            result.events.forEach((event) => fetchedEvents.push(normalizeCalendarEvent(event, { entityId, color })));
+          }
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
+      }
+      this._countdownFetchedEvents = fetchedEvents;
+      this.updateCountdownEntries(countdownConfig);
+    } catch (error) {
+      console.warn('Daylight Calendar Card: countdown refresh failed', error);
+    } finally {
+      this._countdownFetching = false;
+    }
   }
 
   resolveHeaderItems() {

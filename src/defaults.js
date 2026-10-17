@@ -80,6 +80,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
+  countdown: false,
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,

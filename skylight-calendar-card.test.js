@@ -121,6 +121,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   hide_controls: 'calendar render includes header controls and modal container',
   hide_navigation_buttons: 'hide_navigation_buttons hides previous, next, and today controls only',
   hide_add_event_button: 'hide_add_event_button hides add event control only',
+  countdown: 'countdown is off by default and normalizes its options',
   hide_view_selector: 'hide_view_selector hides only the selector control',
   hide_dark_mode_toggle: 'hide_dark_mode_toggle hides only the theme toggle',
   show_dashboard_nav_button: 'setConfig applies visual layout and styling options',
@@ -698,7 +699,7 @@ function createSteppedGroupFactory({ hour12 = false } = {}) {
   return { makeGroup, hourValues };
 }
 
-function createEventFormHarness({ mode = 'create', config = {} } = {}) {
+function createEventFormHarness({ mode = 'create', config = {}, extraElements = {}, editEvent = null } = {}) {
   const card = makeCard({ entities: ['calendar.family'], enable_event_management: true, ...config });
   card.getWritableCalendars = () => ['calendar.family'];
   card.getCalendarName = () => 'Family';
@@ -735,7 +736,8 @@ function createEventFormHarness({ mode = 'create', config = {} } = {}) {
     'event-end-date': { value: '2026-05-01' },
     'event-start': { value: '2026-05-01T09:00' },
     'event-end': { value: '2026-05-01T10:00' },
-    'submit-btn': { disabled: false, textContent: '' }
+    'submit-btn': { disabled: false, textContent: '' },
+    ...extraElements
   };
   card.getRootElementById = (id) => elements[id] || null;
   const checkedCalendar = { value: 'calendar.family' };
@@ -753,7 +755,7 @@ function createEventFormHarness({ mode = 'create', config = {} } = {}) {
   };
   if (mode === 'edit') {
     card.showEditEventModal(
-      { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } },
+      editEvent || { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } },
       new Date('2026-05-01T09:00:00Z'),
       new Date('2026-05-01T10:00:00Z'),
       false
@@ -3675,6 +3677,104 @@ test('hide_navigation_buttons hides previous, next, and today controls only', ()
   assert.doesNotMatch(html, /id="today"/);
   assert.match(html, /class="month-year"/);
   assert.match(html, /id="view-mode-select"/);
+});
+
+test('countdown is off by default and normalizes its options', () => {
+  assert.equal(makeCard({ entities: ['calendar.family'] })._config.countdown, false);
+  assert.equal(makeCard({ entities: ['calendar.family'] }).getCountdownConfig(), null);
+  assert.equal(makeCard({ entities: ['calendar.family'], countdown: 'yes' })._config.countdown, false);
+  assert.equal(makeCard({ entities: ['calendar.family'], countdown: true })._config.countdown, true);
+  assert.equal(makeCard({ entities: ['calendar.family'], countdown: { enabled: false } })._config.countdown, false);
+  assert.deepEqual(
+    makeCard({ entities: ['calendar.family'], countdown: { marker: ' ⏳ Aftellen ', days_ahead: 999, max_items: 2, calendars: ['calendar.trips', ''], show_toggle: false, extra: 1 } })._config.countdown,
+    { marker: '⏳ Aftellen', days_ahead: 366, max_items: 2, calendars: ['calendar.trips'], show_toggle: false }
+  );
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], countdown: true }).getCountdownConfig(), {
+    marker: '⏳ Countdown', days_ahead: 90, max_items: 3, calendars: [], show_toggle: true
+  });
+});
+
+test('editor toggles countdown and keeps configured countdown options when switched back on', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._hass = { states: {} };
+  editor.setConfig({ entities: [] });
+  assert.match(editor.innerHTML, /<input type="checkbox" data-field="countdown" > Show countdown bar/);
+  editor._fireConfigChanged = () => {};
+  editor.handleChange({ target: { type: 'checkbox', dataset: { field: 'countdown' }, checked: true } });
+  assert.equal(editor._config.countdown, true);
+  editor.handleChange({ target: { type: 'checkbox', dataset: { field: 'countdown' }, checked: false } });
+  assert.equal(editor._config.countdown, false);
+
+  const configured = new Editor();
+  configured._hass = { states: {} };
+  configured.setConfig({ entities: [], countdown: { marker: '⏳ Aftellen' } });
+  assert.match(configured.innerHTML, /data-field="countdown" checked> Show countdown bar/);
+  configured._fireConfigChanged = () => {};
+  configured.handleChange({ target: { type: 'checkbox', dataset: { field: 'countdown' }, checked: true } });
+  assert.deepEqual(configured._config.countdown, { marker: '⏳ Aftellen' });
+});
+
+test('countdown toggle in the event form writes and removes the marker line', async () => {
+  const off = createEventFormHarness();
+  assert.doesNotMatch(off.content.innerHTML, /id="event-countdown"/);
+
+  const created = [];
+  const create = createEventFormHarness({
+    config: { countdown: { marker: '⏳ Aftellen' } },
+    extraElements: {
+      'event-description': { value: 'Bring snacks' },
+      'event-countdown': { checked: true }
+    }
+  });
+  assert.match(create.content.innerHTML, /<input type="checkbox" class="form-checkbox" id="event-countdown"  \/>/);
+  create.card.createEvent = async (calendarId, eventData) => { created.push(eventData); };
+  await create.handlers.submit({ preventDefault: () => {} });
+  assert.equal(created[0].description, 'Bring snacks\n\n⏳ Aftellen');
+
+  const updated = [];
+  const edit = createEventFormHarness({
+    mode: 'edit',
+    config: { countdown: { marker: '⏳ Aftellen' } },
+    editEvent: { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', description: 'Bring snacks\n\n⏳ Aftellen', start: { dateTime: '2026-05-01T09:00:00Z' }, end: { dateTime: '2026-05-01T10:00:00Z' } },
+    extraElements: {
+      'event-description': { value: 'Bring snacks' },
+      'event-countdown': { checked: false }
+    }
+  });
+  assert.match(edit.content.innerHTML, /id="event-countdown" checked/);
+  assert.doesNotMatch(edit.content.innerHTML, /⏳ Aftellen<\/textarea>/);
+  edit.card.updateEvent = async (event, calendarId, eventData) => { updated.push(eventData); };
+  await edit.handlers.submit({ preventDefault: () => {} });
+  assert.equal(updated[0].description, 'Bring snacks');
+});
+
+test('countdown bar lists marked events and the modal hides the marker', async () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({ entities: ['calendar.family'], countdown: true, weather_icon_style: 'colored' });
+  const today = new Date();
+  const inDays = (days) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  card._events = [
+    { entityId: 'calendar.family', uid: 'trip', summary: 'Trip', description: 'Pack\n⏳ Countdown', start: { date: inDays(5) }, end: { date: inDays(6) } },
+    { entityId: 'calendar.family', uid: 'plain', summary: 'Plain', start: { date: inDays(2) }, end: { date: inDays(3) } }
+  ];
+  card.renderAfterEventDataChange = () => true;
+  card.updateCountdownEntries();
+  assert.deepEqual(card._countdownEntries.map(({ event, days }) => [event.summary, days]), [['Trip', 5]]);
+
+  originalCardRender.call(card);
+  const html = card._root.innerHTML;
+  assert.match(html, /class="countdown-bar"/);
+  assert.match(html, /<span class="countdown-chip-title">Trip<\/span><span class="countdown-chip-label">· 5 days<\/span>/);
+  assert.match(html, /class="countdown-svg-icon"/);
+
+  const modal = card.getCountdownModalData(card._countdownEntries[0].event, card.getEventStartDate(card._countdownEntries[0].event));
+  assert.equal(modal.event.description, 'Pack');
+  assert.equal(modal.label, '5 days');
 });
 
 test('hide_add_event_button hides add event control only', () => {

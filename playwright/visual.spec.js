@@ -2502,3 +2502,128 @@ test('Week Compact editor controls stay contained at mobile editor width', async
     controlsDoNotOverlap: true
   });
 });
+
+const countdownEvents = {
+  'calendar.family': [
+    { uid: 'gala', summary: 'Swim gala', start: '2026-03-20', end: '2026-03-21', description: 'Bring towels\n\n⏳ Countdown' },
+    { uid: 'trip', summary: 'Spring holiday trip to the grandparents by the sea', start: '2026-03-17', end: '2026-03-19', description: '⏳ Countdown' },
+    { uid: 'plain', summary: 'Dentist', start: '2026-03-16T09:00:00Z', end: '2026-03-16T09:30:00Z' }
+  ],
+  'calendar.work': [
+    { uid: 'review', summary: 'Quarterly review', start: '2026-03-18T13:00:00Z', end: '2026-03-18T14:00:00Z' }
+  ]
+};
+
+for (const compactHeader of [false, true]) {
+  test(`countdown bar sits below the ${compactHeader ? 'compact' : 'standard'} header without overflow`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Countdown Header',
+        default_view: 'week-compact',
+        compact_header: compactHeader,
+        countdown: true
+      },
+      events: countdownEvents,
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const bar = card.locator('.countdown-bar');
+    await expect(bar).toBeVisible();
+    const chips = bar.locator('.countdown-chip');
+    await expect(chips).toHaveCount(2);
+    await expect(chips.nth(0).locator('.countdown-chip-label')).toHaveText('· 2 days');
+    await expect(chips.nth(1).locator('.countdown-chip-title')).toHaveText('Swim gala');
+    await expect(chips.nth(1).locator('.countdown-chip-label')).toHaveText('· 5 days');
+    await expect(chips.nth(0).locator('ha-icon')).toHaveAttribute('icon', 'mdi:timer-sand');
+
+    const header = card.locator(compactHeader ? '.header-compact' : '.header').first();
+    const headerBox = await header.boundingBox();
+    const barBox = await bar.boundingBox();
+    expect(barBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 1);
+    await expectBoxWithin(bar, card.locator('.calendar-container'));
+    await assertNoHorizontalOverflow(bar);
+  });
+}
+
+test('countdown bar is absent without countdown events and truncates long titles on mobile', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family', 'calendar.work'], default_view: 'week-compact', countdown: true },
+    events: { 'calendar.family': [countdownEvents['calendar.family'][2]], 'calendar.work': countdownEvents['calendar.work'] },
+    darkMode: false
+  });
+  const card = page.locator('skylight-calendar-card');
+  await expect(card.locator('.week-compact-event, .event').first()).toBeVisible();
+  await expect(card.locator('.countdown-bar')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family', 'calendar.work'], default_view: 'week-compact', compact_header: true, countdown: true },
+    events: countdownEvents,
+    darkMode: false
+  });
+  const bar = card.locator('.countdown-bar');
+  await expect(bar.locator('.countdown-chip')).toHaveCount(2);
+  const title = bar.locator('.countdown-chip-title').first();
+  const isTruncated = await title.evaluate((el) => el.scrollWidth > el.clientWidth);
+  expect(isTruncated).toBe(true);
+  await expectBoxWithinViewport(bar, { width: 390, height: 844 });
+});
+
+test('tapping a countdown opens the event with its countdown and without the marker line', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family', 'calendar.work'], default_view: 'week-compact', countdown: true },
+    events: countdownEvents,
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await card.locator('.countdown-chip').filter({ hasText: 'Swim gala' }).click();
+  const modal = card.locator('#event-modal');
+  await expect(modal).toHaveClass(/show/);
+  await expect(card.locator('.modal-title')).toHaveText('Swim gala');
+  await expect(card.locator('.modal-row-countdown .modal-value')).toHaveText('5 days');
+  await expect(card.locator('.event-description-content')).toHaveText('Bring towels');
+});
+
+test('event form shows the countdown checkbox only when countdown is enabled', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  for (const countdown of [false, true]) {
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: { entities: ['calendar.family'], default_view: 'week-compact', enable_event_management: true, countdown },
+      events: countdownEvents,
+      darkMode: false
+    });
+    const card = page.locator('skylight-calendar-card');
+    await card.locator('#add-event-btn').click();
+    await expect(card.locator('#create-event-form')).toBeVisible();
+    await expect(card.locator('#event-countdown')).toHaveCount(countdown ? 1 : 0);
+  }
+});
+
+for (const darkMode of [false, true]) {
+  test(`countdown bar with colored hourglass matches the ${darkMode ? 'dark' : 'light'} baseline`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: { entities: ['calendar.family', 'calendar.work'], default_view: 'week-compact', countdown: true, weather_icon_style: 'colored' },
+      events: countdownEvents,
+      darkMode
+    });
+    const bar = page.locator('skylight-calendar-card .countdown-bar');
+    await expect(bar.locator('svg.countdown-svg-icon')).toHaveCount(2);
+    await expect(bar).toHaveScreenshot(`countdown-bar-colored-${darkMode ? 'dark' : 'light'}.png`, { animations: 'disabled', maxDiffPixelRatio: 0.01 });
+  });
+}

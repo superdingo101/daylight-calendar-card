@@ -18,6 +18,7 @@ export function renderEventDetailsModal({
   locationLinks = false,
   locationActionsExpanded = false,
   locationMapUrl = '',
+  countdownLabel = '',
   helpers
 }) {
   const {
@@ -104,6 +105,12 @@ export function renderEventDetailsModal({
           </div>
         ` : ''}
         ${locationHtml}
+        ${countdownLabel ? `
+          <div class="modal-row modal-row-countdown">
+            <div class="modal-label">⏳ ${t('countdown')}</div>
+            <div class="modal-value">${escapeHtml(countdownLabel)}</div>
+          </div>
+        ` : ''}
         ${event.description ? `
           <div class="modal-row modal-row-description">
             <div class="modal-label">📝 ${t('description')}</div>

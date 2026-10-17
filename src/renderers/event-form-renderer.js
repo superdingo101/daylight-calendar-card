@@ -151,6 +151,8 @@ function renderEventFields({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, escapeHtmlAttribute, t } = helpers;
@@ -183,6 +185,13 @@ function renderEventFields({
                     <label class="form-checkbox-label" for="event-recurring">${t('recurring')}</label>
                   </div>
                 </div>
+${showCountdownToggle ? `
+                <div class="form-group">
+                  <div class="form-checkbox-group">
+                    <input type="checkbox" class="form-checkbox" id="event-countdown" ${isCountdown ? 'checked' : ''} />
+                    <label class="form-checkbox-label" for="event-countdown">${t('countdown')}</label>
+                  </div>
+                </div>` : ''}
               </div>
             </div>
           </div>
@@ -265,6 +274,8 @@ export function renderCreateEventForm({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -313,6 +324,8 @@ ${renderEventFields({
     eventTimeStep,
     eventTimeHour12,
     eventTimeDayPeriods,
+    showCountdownToggle,
+    isCountdown,
     helpers
   })}
 
@@ -339,6 +352,8 @@ export function renderEditEventForm({
   eventTimeStep = 1,
   eventTimeHour12 = false,
   eventTimeDayPeriods = {},
+  showCountdownToggle = false,
+  isCountdown = false,
   helpers
 }) {
   const { escapeHtml, getCalendarName, t } = helpers;
@@ -379,6 +394,8 @@ ${renderEventFields({
     eventTimeStep,
     eventTimeHour12,
     eventTimeDayPeriods,
+    showCountdownToggle,
+    isCountdown,
     helpers
   })}
 

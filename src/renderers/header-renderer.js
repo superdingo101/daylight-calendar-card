@@ -138,3 +138,12 @@ export function renderThemeToggle({ hideDarkModeToggle, isDarkMode }) {
   if (hideDarkModeToggle) return '';
   return `<button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">${isDarkMode ? '☀︎' : '☾'}</button>`;
 }
+
+export function renderCountdownBar({ items = [], helpers }) {
+  if (items.length === 0) return '';
+  return `
+      <div class="countdown-bar">
+        ${items.map((item, index) => `<button type="button" class="countdown-chip" data-countdown-index="${index}" title="${helpers.escapeHtmlAttribute(`${item.title} · ${item.label}`)}">${item.iconHtml || `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>`}<span class="countdown-chip-title">${helpers.escapeHtml(item.title)}</span><span class="countdown-chip-label">· ${helpers.escapeHtml(item.label)}</span></button>`).join('')}
+      </div>
+    `;
+}

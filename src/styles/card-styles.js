@@ -65,7 +65,8 @@ export function getCardStyles() {
       }
 
       .header,
-      .header-compact {
+      .header-compact,
+      .countdown-bar {
         position: relative;
         flex: 0 0 auto;
         background: transparent;
@@ -73,7 +74,8 @@ export function getCardStyles() {
       }
 
       .header::before,
-      .header-compact::before {
+      .header-compact::before,
+      .countdown-bar::before {
         content: '';
         position: absolute;
         inset: 0;
@@ -84,7 +86,8 @@ export function getCardStyles() {
       }
 
       .header > *,
-      .header-compact > * {
+      .header-compact > *,
+      .countdown-bar > * {
         position: relative;
         z-index: 1;
       }
@@ -301,6 +304,64 @@ export function getCardStyles() {
         opacity: 0.95;
         line-height: 1;
         white-space: nowrap;
+      }
+
+      .countdown-bar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow: hidden;
+        padding: 0 24px 12px;
+      }
+
+      .countdown-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        max-width: 420px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.2;
+        white-space: nowrap;
+        border: none;
+        color: inherit;
+        font-family: inherit;
+        cursor: pointer;
+        --mdc-icon-size: 18px;
+      }
+
+      .countdown-chip:hover,
+      .countdown-chip:focus-visible {
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      .countdown-chip ha-icon,
+      .countdown-svg-icon {
+        flex: 0 0 auto;
+      }
+
+      .countdown-svg-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .countdown-svg-icon .hourglass-frame { fill: var(--countdown-icon-frame-color, #b07d4f); }
+      .countdown-svg-icon .hourglass-glass { fill: var(--countdown-icon-glass-color, #dff1fb); }
+      .countdown-svg-icon .hourglass-sand { fill: var(--countdown-icon-sand-color, var(--weather-icon-sun-color, #fdd93c)); }
+
+      .countdown-chip-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .countdown-chip-label {
+        flex: 0 0 auto;
+        opacity: 0.85;
       }
 
       .header-weather,

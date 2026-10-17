@@ -30,6 +30,31 @@ The header sits at the top of the card and contains the title, navigation arrows
   Hide the **Add Event** button from the header. This only hides the control; it does not disable creation from day or time-slot taps. Use [`disable_event_creation`](/configuration/event-management) to block new-event creation everywhere.
 </ParamField>
 
+<ParamField path="countdown" default="false" type="boolean | object">
+  Show a **countdown bar** below the header with the upcoming events you count down to, as `<title> · <n> days` ("Today" and "Tomorrow" for the last two days). Tapping a countdown opens the event. The bar only appears when there is something to count down to, and a recurring series is listed once, at its next occurrence.
+
+  Mark an event as a countdown with the **Countdown** checkbox in the add/edit event form. The card stores this as a marker line at the end of the event description (the line is hidden in the card itself, so other calendar apps show it as a note). Every event in a calendar listed under `calendars` counts as a countdown without a marker; use this for read-only calendars that the form cannot edit. With [`weather_icon_style: colored`](/configuration/weather), the hourglass is drawn in color.
+
+  Events the card has already loaded show up immediately. Further ahead, the card fetches the writable calendars (plus `calendars`) in the same 30-day chunks the views use, one request at a time, at most once an hour and again right after an event is created, changed or deleted in the card.
+
+  | Option | Default | Description |
+  |---|---|---|
+  | `marker` | `⏳ Countdown` | Text of the marker line in the description. Matching ignores case. |
+  | `days_ahead` | `90` | How far ahead countdowns are shown, in days (1–366). |
+  | `max_items` | `3` | Maximum number of countdowns in the bar. |
+  | `calendars` | `[]` | Calendars whose events all count as countdowns. |
+  | `show_toggle` | `true` | Show the **Countdown** checkbox in the event form. |
+
+  ```yaml
+  countdown:
+    marker: "⏳ Aftellen"
+    days_ahead: 120
+    max_items: 4
+    calendars:
+      - calendar.holidays
+  ```
+</ParamField>
+
 <ParamField path="hide_dark_mode_toggle" default="false" type="boolean">
   Hide the light/dark mode toggle button.
 </ParamField>
