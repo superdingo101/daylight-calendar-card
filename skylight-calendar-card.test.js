@@ -10837,3 +10837,28 @@ test('setupSteppedDateTimeInputs converts 12-hour controls to and from the 24-ho
   // The 12-hour hour list never grows extra options.
   assert.equal(endGroup.parts['[data-stepped-part="hour"]'].options.length, 12);
 });
+
+
+test('header clock editor warns for missing, unavailable and invalid sensors, and accepts custom times', () => {
+  const Editor = customElements.get('daylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._config = { header_time_sensor: 'sensor.custom_clock' };
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+  editor._hass = { states: {} };
+  assert.match(editor.getHeaderTimeSensorWarning(), /not found/);
+  for (const state of ['unknown', 'unavailable', '', null]) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /no available value/);
+  }
+  for (const state of ['garbage', '24:00', '13:10 PM', '2026-10-20', 'October 20, 2026']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /invalid time/);
+  }
+  for (const state of ['14:30', '14:30:12', '2:30 PM', '2026-10-20T14:30:00Z']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.equal(editor.getHeaderTimeSensorWarning(), '');
+    assert.ok(Card.prototype.parseTimeValue(state));
+  }
+  editor._config.header_time_sensor = '';
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+});
