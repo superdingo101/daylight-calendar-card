@@ -10509,7 +10509,7 @@ test('header clock editor warns for missing, unavailable and invalid sensors, an
     editor._hass.states['sensor.custom_clock'] = { state };
     assert.match(editor.getHeaderTimeSensorWarning(), /no available value/);
   }
-  for (const state of ['garbage', '24:00', '13:10 PM']) {
+  for (const state of ['garbage', '24:00', '13:10 PM', '2026-10-20', 'October 20, 2026']) {
     editor._hass.states['sensor.custom_clock'] = { state };
     assert.match(editor.getHeaderTimeSensorWarning(), /invalid time/);
   }

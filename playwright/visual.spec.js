@@ -2446,11 +2446,26 @@ test('header clock editor sensor selection, validation and live recovery', async
     editor.hass = { states: { 'sensor.time': { state: 'bad value' } } };
   });
   await expect(warning).toContainText('invalid time');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: '2026-10-20' } } };
+    window.fallbackTimeOption = editor.querySelector('#header-time-sensors').firstElementChild;
+  });
+  await expect(warning).toContainText('invalid time');
   // Simulate HA loading its shared control after the editor has rendered.
   await page.evaluate(() => customElements.define('ha-entity-picker', class extends HTMLElement {}));
   await expect(editor.locator('#header_time_sensor')).toBeHidden();
   const picker = editor.locator('#header-time-picker');
   await expect(picker).not.toHaveAttribute('hidden');
+  expect(await editor.evaluate(element => {
+    // The native path must neither enumerate states nor replace hidden options.
+    element._hass = { states: new Proxy({ 'sensor.time': { state: '14:30' } }, {
+      ownKeys() { throw new Error('Native clock picker enumerated all states'); }
+    }) };
+    element.updateHeaderTimeSensor();
+    return element.querySelector('#header-time-sensors').firstElementChild === window.fallbackTimeOption;
+  })).toBe(true);
+  await expect(warning).toBeHidden();
   expect(await picker.evaluate(el => ({ value: el.value, domains: el.includeDomains, custom: el.allowCustomEntity })))
     .toEqual({ value: 'sensor.time', domains: ['sensor'], custom: true });
   await picker.evaluate(el => el.dispatchEvent(new CustomEvent('value-changed', { detail: { value: '' }, bubbles: true, composed: true })));
