@@ -2459,11 +2459,16 @@ test('header clock editor sensor selection, validation and live recovery', async
   await expect(picker).not.toHaveAttribute('hidden');
   expect(await editor.evaluate(element => {
     // The native path must neither enumerate states nor replace hidden options.
-    element._hass = { states: new Proxy({ 'sensor.time': { state: '14:30' } }, {
-      ownKeys() { throw new Error('Native clock picker enumerated all states'); }
-    }) };
-    element.updateHeaderTimeSensor();
-    return element.querySelector('#header-time-sensors').firstElementChild === window.fallbackTimeOption;
+    const previousHass = element._hass;
+    try {
+      element._hass = { states: new Proxy({ 'sensor.time': { state: '14:30' } }, {
+        ownKeys() { throw new Error('Native clock picker enumerated all states'); }
+      }) };
+      element.updateHeaderTimeSensor();
+      return element.querySelector('#header-time-sensors').firstElementChild === window.fallbackTimeOption;
+    } finally {
+      element._hass = previousHass;
+    }
   })).toBe(true);
   await expect(warning).toBeHidden();
   expect(await picker.evaluate(el => ({ value: el.value, domains: el.includeDomains, custom: el.allowCustomEntity })))
