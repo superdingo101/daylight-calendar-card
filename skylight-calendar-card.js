@@ -3368,7 +3368,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     if (!state || state === 'unknown' || state === 'unavailable') {
       return 'Time sensor has no available value. Check the sensor in Home Assistant or select another time sensor.';
     }
-    if (!parseTimeValue(state)) return 'Time sensor has an invalid time value. Choose a sensor with a time such as 14:30, 2:30 PM, or an ISO date and time.';
+    if (!/\d{1,2}:\d{2}/.test(state) || !parseTimeValue(state)) return 'Time sensor has an invalid time value. Choose a sensor with a time such as 14:30, 2:30 PM, or an ISO date and time.';
     return '';
   }
 
@@ -3391,7 +3391,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
       if (document.activeElement !== input) input.value = this._config.header_time_sensor || '';
     }
     const options = this.querySelector('#header-time-sensors');
-    if (options) options.innerHTML = Object.entries(this._hass?.states || {})
+    if (options && !nativePickerReady) options.innerHTML = Object.entries(this._hass?.states || {})
       .filter(([id]) => id.startsWith('sensor.'))
       .map(([id, entity]) => `<option value="${this.escapeHtml(id)}">${this.escapeHtml(entity.attributes?.friendly_name || id)}</option>`).join('');
     const warning = this.querySelector('#header-time-warning');
