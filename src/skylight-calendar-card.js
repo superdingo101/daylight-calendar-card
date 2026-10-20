@@ -1,4 +1,3 @@
-import { parseTimeValue } from './utils/date-utils.js';
 import { COMMON_NAMED_COLORS } from './constants.js';
 import { registerDaylightCalendarCardEditor } from './editor/daylight-calendar-card-editor.js';
 import './components/daylight-color-picker.js';
@@ -7904,7 +7903,37 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   parseTimeValue(value) {
-    return parseTimeValue(value);
+    if (value === undefined || value === null) return null;
+    const raw = String(value).trim();
+    if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
+
+    const dateCandidate = new Date(raw);
+    if (!Number.isNaN(dateCandidate.getTime())) {
+      return dateCandidate;
+    }
+
+    const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
+    if (!timeMatch) return null;
+
+    let hours = Number(timeMatch[1]);
+    const minutes = Number(timeMatch[2]);
+    const seconds = Number(timeMatch[3] || 0);
+    const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
+    if (minutes > 59 || seconds > 59) return null;
+
+    if (meridiem) {
+      if (hours < 1 || hours > 12) return null;
+      if (meridiem === 'pm' && hours !== 12) hours += 12;
+      if (meridiem === 'am' && hours === 12) hours = 0;
+    } else if (hours > 23) {
+      return null;
+    }
+
+    const parsed = new Date();
+    parsed.setHours(hours, minutes, seconds, 0);
+    return parsed;
   }
 
   teardownWeatherForecastSubscription() {

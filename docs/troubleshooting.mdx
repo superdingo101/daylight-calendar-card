@@ -7,15 +7,6 @@ description: "Fix common problems with the Daylight Calendar Card including miss
 The Daylight Calendar Card is designed to work out of the box with any Home Assistant calendar integration, but a few common configuration issues can cause unexpected behavior. This page walks you through the most frequently encountered problems and how to resolve them. Work through the section that matches your symptom, and if nothing here helps, see the bug report guidance at the bottom of this page.
 
 <AccordionGroup>
-  <Accordion title="Clock not showing in the header">
-    Open **Localization & preferences** in the card editor and check **Header time sensor**. Select an existing sensor with a time value such as `14:30`. The editor warns if the entity is missing, unavailable, or invalid.
-
-    If you need a time sensor, open **Settings → Devices & services → Add Integration → Time & Date** and choose **Time**. Select the created entity in the card editor, or set `header_time_sensor: sensor.time` in YAML using its actual entity ID. Entering an entity ID does not create a sensor.
-
-    Check the sensor's state under **Developer tools → States**. Custom time sensors also work; Time & Date is optional when you already have a suitable sensor. Ensure `hide_header` is `false`.
-
-    See [live time display](/configuration/weather#live-time-display) for setup details.
-  </Accordion>
   <Accordion title="Card shows: Custom element does not exist (daylight-calendar-card)">
     This error means Home Assistant has not loaded the card's JavaScript file as a dashboard resource. The card UI will not render at all until the resource is registered.
 
