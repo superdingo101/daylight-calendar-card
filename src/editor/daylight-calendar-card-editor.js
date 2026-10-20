@@ -1,3 +1,4 @@
+import { parseTimeValue } from '../utils/date-utils.js';
 import {
   COMBINE_BACKGROUND_MODE_OPTIONS,
   COMBINE_STYLE_OPTIONS,
@@ -205,6 +206,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    this.updateHeaderTimeSensor();
     const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
     weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
@@ -422,6 +424,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
 
   emitConfigChanged(nextConfig) {
     this._config = nextConfig;
+    this.updateHeaderTimeSensor();
     this.dispatchEvent(
       new CustomEvent('config-changed', {
         detail: { config: nextConfig },
@@ -1193,9 +1196,15 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         </div>
       </div>
       <div class="field-row">
-        <div class="field field-inline">
+        <div class="field header-time-field">
           <label for="header_time_sensor">Header time sensor</label>
-          <input id="header_time_sensor" data-field="header_time_sensor" type="text" value="${this._config.header_time_sensor || ''}" placeholder="sensor.current_time">
+          <ha-entity-picker id="header-time-picker" aria-describedby="header-time-help header-time-warning" hidden></ha-entity-picker>
+          <input id="header_time_sensor" data-field="header_time_sensor" type="text" list="header-time-sensors" placeholder="sensor.time" aria-describedby="header-time-help header-time-warning">
+          <datalist id="header-time-sensors"></datalist>
+          <p class="helper" id="header-time-help">Select a sensor with a time such as 14:30. Leave empty to hide the clock.
+            <a href="https://www.home-assistant.io/integrations/time_date/" target="_blank" rel="noopener noreferrer">How to configure a time sensor</a>
+          </p>
+          <p class="helper" id="header-time-warning" role="status" hidden></p>
         </div>
       </div>
       <div class="field-row">
@@ -1255,6 +1264,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
           align-items: center;
           gap: 8px;
         }
+
+        .header-time-field { min-width: 0; }
+        .header-time-field [hidden] { display: none !important; }
+        .header-time-field ha-entity-picker { width: 100%; min-width: 0; }
+        #header-time-warning { color: var(--warning-color, #b56a00); }
 
         .field-row {
           display: grid;
@@ -1700,6 +1714,23 @@ export class SkylightCalendarCardEditor extends HTMLElement {
       button.addEventListener('click', () => this.closeColorPicker());
     });
 
+    const timePicker = this.querySelector('#header-time-picker');
+    timePicker?.addEventListener('value-changed', (event) => {
+      event.stopPropagation();
+      const value = String(event.detail?.value || '').trim();
+      if (value === (this._config.header_time_sensor || '')) return;
+      this.emitConfigChanged({ ...this.value, header_time_sensor: value });
+    });
+    this.updateHeaderTimeSensor();
+    if (!customElements.get('ha-entity-picker') && !this._timePickerLoading) {
+      this._timePickerLoading = true;
+      customElements.whenDefined?.('ha-entity-picker').then(() => this.updateHeaderTimeSensor());
+      // Loading a built-in editor also loads HA's shared entity controls.
+      window.loadCardHelpers?.().then(async (helpers) => {
+        const card = helpers.createCardElement({ type: 'entities', entities: [] });
+        await card.constructor.getConfigElement?.();
+      }).catch(() => { /* The searchable text fallback remains available. */ });
+    }
     this._rendered = true;
   }
 
@@ -1756,7 +1787,50 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     });
   }
 
+  getHeaderTimeSensorWarning() {
+    const entityId = String(this._config.header_time_sensor || '').trim();
+    if (!entityId || !this._hass?.states) return '';
+    const entity = this._hass.states[entityId];
+    if (!entity) return 'Time sensor not found. Select an existing sensor or add the Time & Date integration and choose its Time sensor.';
+    const state = String(entity.state ?? '').trim();
+    if (!state || state === 'unknown' || state === 'unavailable') {
+      return 'Time sensor has no available value. Check the sensor in Home Assistant or select another time sensor.';
+    }
+    if (!parseTimeValue(state)) return 'Time sensor has an invalid time value. Choose a sensor with a time such as 14:30, 2:30 PM, or an ISO date and time.';
+    return '';
+  }
+
+  updateHeaderTimeSensor() {
+    const picker = this.querySelector('#header-time-picker');
+    const input = this.querySelector('#header_time_sensor');
+    const nativePickerReady = !!customElements.get('ha-entity-picker');
+    if (picker) {
+      picker.hidden = !nativePickerReady;
+      if (nativePickerReady) {
+        picker.hass = this._hass;
+        picker.label = 'Header time sensor';
+        picker.includeDomains = ['sensor'];
+        picker.allowCustomEntity = true;
+        picker.value = this._config.header_time_sensor || '';
+      }
+    }
+    if (input) {
+      input.hidden = nativePickerReady;
+      if (document.activeElement !== input) input.value = this._config.header_time_sensor || '';
+    }
+    const options = this.querySelector('#header-time-sensors');
+    if (options) options.innerHTML = Object.entries(this._hass?.states || {})
+      .filter(([id]) => id.startsWith('sensor.'))
+      .map(([id, entity]) => `<option value="${this.escapeHtml(id)}">${this.escapeHtml(entity.attributes?.friendly_name || id)}</option>`).join('');
+    const warning = this.querySelector('#header-time-warning');
+    if (warning) {
+      warning.textContent = this.getHeaderTimeSensorWarning();
+      warning.hidden = !warning.textContent;
+    }
+  }
+
   updateFieldValues() {
+    this.updateHeaderTimeSensor();
     const titleInput = this.querySelector('input[data-field="title"]');
     if (titleInput && document.activeElement !== titleInput) {
       titleInput.value = this._config.title || '';
@@ -1892,6 +1966,11 @@ export class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'header_time_sensor') {
+      this.emitConfigChanged({ ...nextConfig, header_time_sensor: event.target.value.trim() });
+      return;
+    }
 
     if (field === 'week_number_prefix_mode') {
       if (event.target.value === 'default') delete nextConfig.week_number_prefix;

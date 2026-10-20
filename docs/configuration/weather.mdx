@@ -78,16 +78,13 @@ In addition to weather, you can display a real-time clock in the card header by 
 
 ### Setting Up `sensor.time`
 
-If you have not already added the Time & Date integration, enable `sensor.time` by adding the following to your `configuration.yaml`:
+1. Open **Settings → Devices & services → Add Integration**.
+2. Select **Time & Date**, then choose the **Time** sensor type.
+3. In the card editor, open **Localization & preferences** and select the created entity under **Header time sensor**. Its entity ID is usually `sensor.time`; check the actual ID in your installation.
 
-```yaml
-sensor:
-  - platform: time_date
-    display_options:
-      - time
-```
+The editor warns when the selected entity is missing, unavailable, or has an invalid time value. Custom sensors remain supported, including `HH:MM`, `HH:MM:SS`, AM/PM times, and ISO date/time values. Clear the field to hide the clock. The clock updates when its sensor updates.
 
-Then restart Home Assistant and use the sensor in the card:
+For YAML configuration, use the actual entity ID:
 
 ```yaml
 type: custom:daylight-calendar-card
