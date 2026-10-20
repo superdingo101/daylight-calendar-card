@@ -1,4 +1,105 @@
 // This file is generated from src/ by npm run build. Do not edit directly.
+function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
+  const chunks = [];
+  let cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+
+  while (cursor <= endDate) {
+    const chunkStart = new Date(cursor);
+    const chunkEnd = new Date(cursor);
+    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+    if (chunkEnd > endDate) {
+      chunkEnd.setTime(endDate.getTime());
+    }
+    chunkEnd.setHours(23, 59, 59, 999);
+
+    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
+
+    cursor = new Date(chunkEnd);
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return chunks;
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+  return new Date(year, month - 1, day);
+}
+
+function parsePossiblyLocalDateTime(value) {
+  if (!value || typeof value !== 'string') return new Date(value);
+
+  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
+  if (hasTimezone) return new Date(value);
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return new Date(value);
+
+  const [, year, month, day, hour, minute, second = '0'] = match;
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+}
+
+function formatLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getIsoWeekNumber(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+function parseTimeValue(value) {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
+
+  const dateCandidate = new Date(raw);
+  if (!Number.isNaN(dateCandidate.getTime())) {
+    return dateCandidate;
+  }
+
+  const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
+  if (!timeMatch) return null;
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = Number(timeMatch[3] || 0);
+  const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
+  if (minutes > 59 || seconds > 59) return null;
+
+  if (meridiem) {
+    if (hours < 1 || hours > 12) return null;
+    if (meridiem === 'pm' && hours !== 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+  } else if (hours > 23) {
+    return null;
+  }
+
+  const parsed = new Date();
+  parsed.setHours(hours, minutes, seconds, 0);
+  return parsed;
+}
+
 const COMMON_NAMED_COLORS = {
   black: '#000000',
   white: '#FFFFFF',
@@ -215,73 +316,6 @@ const createDefaultStubConfig = () => ({
   header_items: [...DEFAULT_STUB_CONFIG.header_items],
   hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });
-
-function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
-  const chunks = [];
-  let cursor = new Date(startDate);
-  cursor.setHours(0, 0, 0, 0);
-
-  while (cursor <= endDate) {
-    const chunkStart = new Date(cursor);
-    const chunkEnd = new Date(cursor);
-    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
-    if (chunkEnd > endDate) {
-      chunkEnd.setTime(endDate.getTime());
-    }
-    chunkEnd.setHours(23, 59, 59, 999);
-
-    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
-
-    cursor = new Date(chunkEnd);
-    cursor.setDate(cursor.getDate() + 1);
-    cursor.setHours(0, 0, 0, 0);
-  }
-
-  return chunks;
-}
-
-function parseLocalDate(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
-  return new Date(year, month - 1, day);
-}
-
-function parsePossiblyLocalDateTime(value) {
-  if (!value || typeof value !== 'string') return new Date(value);
-
-  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
-  if (hasTimezone) return new Date(value);
-
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) return new Date(value);
-
-  const [, year, month, day, hour, minute, second = '0'] = match;
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second)
-  );
-}
-
-function formatLocalDate(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getIsoWeekNumber(date) {
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNumber = utcDate.getUTCDay() || 7;
-  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
-  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
-}
 
 const HEADER_ITEM_FORMATS = new Set(['auto', 'raw', 'time', 'date', 'datetime']);
 const EMPTY_STATES = new Set(['', 'unknown', 'unavailable']);
@@ -1744,6 +1778,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    this.updateHeaderTimeSensor();
     const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
     weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
@@ -1961,6 +1996,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
   emitConfigChanged(nextConfig) {
     this._config = nextConfig;
+    this.updateHeaderTimeSensor();
     this.dispatchEvent(
       new CustomEvent('config-changed', {
         detail: { config: nextConfig },
@@ -2732,9 +2768,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
         </div>
       </div>
       <div class="field-row">
-        <div class="field field-inline">
+        <div class="field header-time-field">
           <label for="header_time_sensor">Header time sensor</label>
-          <input id="header_time_sensor" data-field="header_time_sensor" type="text" value="${this._config.header_time_sensor || ''}" placeholder="sensor.current_time">
+          <ha-entity-picker id="header-time-picker" aria-describedby="header-time-help header-time-warning" hidden></ha-entity-picker>
+          <input id="header_time_sensor" data-field="header_time_sensor" type="text" list="header-time-sensors" placeholder="sensor.time" aria-describedby="header-time-help header-time-warning">
+          <datalist id="header-time-sensors"></datalist>
+          <p class="helper" id="header-time-help">Select a sensor with a time such as 14:30. Leave empty to hide the clock.
+            <a href="https://www.home-assistant.io/integrations/time_date/" target="_blank" rel="noopener noreferrer">How to configure a time sensor</a>
+          </p>
+          <p class="helper" id="header-time-warning" role="status" hidden></p>
         </div>
       </div>
       <div class="field-row">
@@ -2794,6 +2836,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
           align-items: center;
           gap: 8px;
         }
+
+        .header-time-field { min-width: 0; }
+        .header-time-field [hidden] { display: none !important; }
+        .header-time-field ha-entity-picker { width: 100%; min-width: 0; }
+        #header-time-warning { color: var(--warning-color, #b56a00); }
 
         .field-row {
           display: grid;
@@ -3239,6 +3286,23 @@ class SkylightCalendarCardEditor extends HTMLElement {
       button.addEventListener('click', () => this.closeColorPicker());
     });
 
+    const timePicker = this.querySelector('#header-time-picker');
+    timePicker?.addEventListener('value-changed', (event) => {
+      event.stopPropagation();
+      const value = String(event.detail?.value || '').trim();
+      if (value === (this._config.header_time_sensor || '')) return;
+      this.emitConfigChanged({ ...this.value, header_time_sensor: value });
+    });
+    this.updateHeaderTimeSensor();
+    if (!customElements.get('ha-entity-picker') && !this._timePickerLoading) {
+      this._timePickerLoading = true;
+      customElements.whenDefined?.('ha-entity-picker').then(() => this.updateHeaderTimeSensor());
+      // Loading a built-in editor also loads HA's shared entity controls.
+      window.loadCardHelpers?.().then(async (helpers) => {
+        const card = helpers.createCardElement({ type: 'entities', entities: [] });
+        await card.constructor.getConfigElement?.();
+      }).catch(() => { /* The searchable text fallback remains available. */ });
+    }
     this._rendered = true;
   }
 
@@ -3295,7 +3359,50 @@ class SkylightCalendarCardEditor extends HTMLElement {
     });
   }
 
+  getHeaderTimeSensorWarning() {
+    const entityId = String(this._config.header_time_sensor || '').trim();
+    if (!entityId || !this._hass?.states) return '';
+    const entity = this._hass.states[entityId];
+    if (!entity) return 'Time sensor not found. Select an existing sensor or add the Time & Date integration and choose its Time sensor.';
+    const state = String(entity.state ?? '').trim();
+    if (!state || state === 'unknown' || state === 'unavailable') {
+      return 'Time sensor has no available value. Check the sensor in Home Assistant or select another time sensor.';
+    }
+    if (!parseTimeValue(state)) return 'Time sensor has an invalid time value. Choose a sensor with a time such as 14:30, 2:30 PM, or an ISO date and time.';
+    return '';
+  }
+
+  updateHeaderTimeSensor() {
+    const picker = this.querySelector('#header-time-picker');
+    const input = this.querySelector('#header_time_sensor');
+    const nativePickerReady = !!customElements.get('ha-entity-picker');
+    if (picker) {
+      picker.hidden = !nativePickerReady;
+      if (nativePickerReady) {
+        picker.hass = this._hass;
+        picker.label = 'Header time sensor';
+        picker.includeDomains = ['sensor'];
+        picker.allowCustomEntity = true;
+        picker.value = this._config.header_time_sensor || '';
+      }
+    }
+    if (input) {
+      input.hidden = nativePickerReady;
+      if (document.activeElement !== input) input.value = this._config.header_time_sensor || '';
+    }
+    const options = this.querySelector('#header-time-sensors');
+    if (options) options.innerHTML = Object.entries(this._hass?.states || {})
+      .filter(([id]) => id.startsWith('sensor.'))
+      .map(([id, entity]) => `<option value="${this.escapeHtml(id)}">${this.escapeHtml(entity.attributes?.friendly_name || id)}</option>`).join('');
+    const warning = this.querySelector('#header-time-warning');
+    if (warning) {
+      warning.textContent = this.getHeaderTimeSensorWarning();
+      warning.hidden = !warning.textContent;
+    }
+  }
+
   updateFieldValues() {
+    this.updateHeaderTimeSensor();
     const titleInput = this.querySelector('input[data-field="title"]');
     if (titleInput && document.activeElement !== titleInput) {
       titleInput.value = this._config.title || '';
@@ -3431,6 +3538,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'header_time_sensor') {
+      this.emitConfigChanged({ ...nextConfig, header_time_sensor: event.target.value.trim() });
+      return;
+    }
 
     if (field === 'week_number_prefix_mode') {
       if (event.target.value === 'default') delete nextConfig.week_number_prefix;
@@ -18913,37 +19025,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   parseTimeValue(value) {
-    if (value === undefined || value === null) return null;
-    const raw = String(value).trim();
-    if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
-
-    const dateCandidate = new Date(raw);
-    if (!Number.isNaN(dateCandidate.getTime())) {
-      return dateCandidate;
-    }
-
-    const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
-    if (!timeMatch) return null;
-
-    let hours = Number(timeMatch[1]);
-    const minutes = Number(timeMatch[2]);
-    const seconds = Number(timeMatch[3] || 0);
-    const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
-    if (minutes > 59 || seconds > 59) return null;
-
-    if (meridiem) {
-      if (hours < 1 || hours > 12) return null;
-      if (meridiem === 'pm' && hours !== 12) hours += 12;
-      if (meridiem === 'am' && hours === 12) hours = 0;
-    } else if (hours > 23) {
-      return null;
-    }
-
-    const parsed = new Date();
-    parsed.setHours(hours, minutes, seconds, 0);
-    return parsed;
+    return parseTimeValue(value);
   }
 
   teardownWeatherForecastSubscription() {
