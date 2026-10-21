@@ -49,7 +49,7 @@ Week Compact is the right choice when you want:
 <ParamField path="rolling_days_week_compact">
   Used by **Week** only.
 
-  By default Week Compact snaps to full calendar weeks. Set `rolling_days_week_compact` to a positive integer to switch to a rolling window of that many days starting from today, rather than aligning to week boundaries. When set, `week_days` and `first_day_of_week` are ignored in this view.
+  By default Week Compact snaps to full calendar weeks. Set `rolling_days_week_compact` to a positive integer to switch to a rolling window of that many days starting from today, rather than aligning to week boundaries. When set, `week_days` and `first_day_of_week` are ignored in this view. A view following today advances automatically at local midnight, including on always-on dashboards. Previous/Next pauses auto-follow until you select Today.
 </ParamField>
 
 <ParamField path="show_week_numbers_week" default="false" type="boolean">

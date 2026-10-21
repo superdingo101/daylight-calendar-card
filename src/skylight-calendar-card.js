@@ -402,6 +402,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
+    this._calendarFollowsToday = true;
     this._fetching = false;
     this._activeEventFetchRange = null;
     this._lastFetch = null;
@@ -441,7 +442,13 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaVisibleStartDate = null;
     this._agendaVisibleEndDate = null;
     this._agendaFollowsToday = true;
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
+    this._pendingCalendarDayRolloverRefresh = false;
+    this._handleCalendarVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') return;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
+    };
     this._agendaDaysPerScrollLoad = 7;
     this._agendaScrollLoadLock = false;
     this._agendaSuppressScrollHandling = false;
@@ -1068,10 +1075,11 @@ class SkylightCalendarCard extends HTMLElement {
       : null;
     this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
-    this.setWeekStart();
     this.resetAgendaWindowToToday();
+    this.setWeekStart();
+    this._calendarFollowsToday = true;
     if (this.isConnected) {
-      this.scheduleAgendaDayRollover();
+      this.scheduleCalendarDayRollover();
     }
     this.render();
     this._activeLanguage = language;
@@ -1084,7 +1092,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._hass = hass;
     let shouldRender = false;
 
-    if (this.advanceAgendaWindowToCurrentDay()) {
+    if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
     }
 
@@ -2849,8 +2857,9 @@ class SkylightCalendarCard extends HTMLElement {
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
-    const agendaWindowAdvanced = this.advanceAgendaWindowToCurrentDay();
-    this.scheduleAgendaDayRollover();
+    document.addEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
+    const dateWindowAdvanced = this.advanceCalendarWindowToCurrentDay();
+    this.scheduleCalendarDayRollover();
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
       this._eventLoadingInvalidatedWhileDisconnected = false;
@@ -2859,7 +2868,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.loadEventCacheForCurrentConfig();
       }
       if (this._hass) this.ensureEventsForCurrentRange({ force: true });
-    } else if (agendaWindowAdvanced && this._hass) {
+    } else if (dateWindowAdvanced && this._hass) {
       this.ensureEventsForCurrentRange();
     }
   }
@@ -2868,6 +2877,7 @@ class SkylightCalendarCard extends HTMLElement {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    document.removeEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
     this._eventCacheLoadingInvalidatedWhileDisconnected = this._eventCacheLoadingInvalidatedWhileDisconnected
       || this._eventCacheLoadInFlight
       || !this._loadedEventRange;
@@ -2876,7 +2886,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration += 1;
     this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
-    this.clearAgendaDayRolloverTimer();
+    this.clearCalendarDayRolloverTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();
@@ -3420,70 +3430,69 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaFollowsToday = true;
   }
 
-  getNextAgendaLocalMidnight(now = new Date()) {
+  getNextCalendarLocalMidnight(now = new Date()) {
     const nextMidnight = new Date(now);
     nextMidnight.setDate(nextMidnight.getDate() + 1);
     nextMidnight.setHours(0, 0, 0, 0);
     return nextMidnight;
   }
 
-  clearAgendaDayRolloverTimer() {
-    if (this._agendaDayRolloverTimer) {
-      clearTimeout(this._agendaDayRolloverTimer);
+  clearCalendarDayRolloverTimer() {
+    if (this._calendarDayRolloverTimer) {
+      clearTimeout(this._calendarDayRolloverTimer);
     }
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
   }
 
-  scheduleAgendaDayRollover(now = new Date()) {
-    this.clearAgendaDayRolloverTimer();
-    if (!this._config || this.getAgendaRollingDays() === null) return;
-
+  scheduleCalendarDayRollover(now = new Date()) {
+    this.clearCalendarDayRolloverTimer();
+    if (!this._config?.entities) return;
     const currentTime = new Date(now);
-    const nextMidnight = this.getNextAgendaLocalMidnight(currentTime);
-    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime());
-
-    this._agendaDayRolloverTimer = setTimeout(() => {
-      this._agendaDayRolloverTimer = null;
-      this.handleAgendaDayRollover();
-      this.scheduleAgendaDayRollover();
+    const nextMidnight = this.getNextCalendarLocalMidnight(currentTime);
+    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime() + 10);
+    this._calendarDayRolloverTimer = setTimeout(() => {
+      this._calendarDayRolloverTimer = null;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
     }, delay);
-    this._agendaDayRolloverTimer?.unref?.();
+    this._calendarDayRolloverTimer?.unref?.();
   }
 
   advanceAgendaWindowToCurrentDay(now = new Date()) {
-    if (
-      this._viewMode !== 'agenda' ||
-      this.getAgendaRollingDays() === null ||
-      !this._agendaFollowsToday
-    ) {
+    if (this._viewMode !== 'agenda' || !this._agendaFollowsToday) {
       return false;
     }
-
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    if (this._agendaStartDate?.getTime() === today.getTime()) {
-      return false;
-    }
-
+    if (this._agendaStartDate?.getTime() === today.getTime()) return false;
     this.resetAgendaWindowToToday(today);
     return true;
   }
 
-  handleAgendaDayRollover(now = new Date()) {
-    if (!this.advanceAgendaWindowToCurrentDay(now)) {
-      return false;
-    }
+  advanceCalendarWindowToCurrentDay(now = new Date()) {
+    if (!this._config?.entities) return false;
+    if (this._viewMode === 'agenda') return this.advanceAgendaWindowToCurrentDay(now);
+    if (!this._calendarFollowsToday) return false;
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const anchor = new Date(this._currentDate);
+    anchor.setHours(0, 0, 0, 0);
+    if (anchor.getTime() === today.getTime()) return false;
+    this._currentDate = today;
+    this.setWeekStart();
+    return true;
+  }
 
+  handleCalendarDayRollover(now = new Date()) {
+    if (!this.advanceCalendarWindowToCurrentDay(now)) return false;
     if (this.isEventManagementDialogOpen()) {
       this._pendingHeaderSensorRender = true;
+      this._pendingCalendarDayRolloverRefresh = true;
       return true;
     }
-
-    if (this._hass) {
-      this.ensureEventsForCurrentRange({ renderIfCovered: true });
-    } else {
-      this.render();
-    }
+    // Render the new grid immediately, independent of the calendar API.
+    this.renderPreservingAgendaScroll();
+    if (this._hass) this.ensureEventsForCurrentRange();
     return true;
   }
 
@@ -5705,10 +5714,12 @@ class SkylightCalendarCard extends HTMLElement {
     // View mode selector
     const viewModeSelect = this.getRootElementById('view-mode-select');
     viewModeSelect?.addEventListener('change', () => {
+      const previousViewMode = this._viewMode;
       this._viewMode = viewModeSelect.value;
       if (this._viewMode === 'agenda') {
         this.resetAgendaWindowToToday();
       } else {
+        if (previousViewMode === 'agenda') this._calendarFollowsToday = this._agendaFollowsToday;
         this.setWeekStart();
       }
       this.ensureEventsForCurrentRange({ renderIfCovered: true });
@@ -5761,6 +5772,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.resetAgendaWindowToToday();
       } else {
         this._currentDate = new Date();
+        this._calendarFollowsToday = true;
       }
       if (this._viewMode !== 'agenda' && this.getRollingDaysForView() === null) {
         this.setWeekStart();
@@ -5957,10 +5969,13 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHeaderTimeRender() {
+    const refreshForRollover = this._pendingCalendarDayRolloverRefresh;
+    this._pendingCalendarDayRolloverRefresh = false;
     if (this._pendingHeaderSensorRender) {
       this._pendingHeaderSensorRender = false;
       this.renderPreservingAgendaScroll();
     }
+    if (refreshForRollover && this._hass) this.ensureEventsForCurrentRange();
     if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
       const renderIfCovered = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRefreshAfterCurrentFetch = false;
@@ -5974,6 +5989,7 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
@@ -6024,6 +6040,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   navigateToNextPeriod() {
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
