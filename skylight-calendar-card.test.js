@@ -4050,6 +4050,9 @@ test('scrolling upward into non-rolling Agenda history disables auto-follow', as
   card.observeModalVisibility = () => {};
   card.updateAgendaVisibleDateRangeFromDom = () => {};
   card.canNavigateToPreviousPeriod = () => true;
+  // The scroll-retention animation is browser-only; keep this unit test
+  // focused on the history expansion and follow state.
+  card.setAgendaScrollTopWithoutTriggeringLoad = () => {};
   card.ensureEventsForCurrentRange = async () => {};
   card.attachEventListeners();
   await handlers.scroll();
