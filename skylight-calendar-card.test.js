@@ -4022,6 +4022,77 @@ test('midnight scheduling uses 25-hour local calendar days at autumn DST', () =>
   }
 });
 
+
+test('non-rolling Agenda does not interpret loaded earlier days as a new day', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  const today = new Date(2026, 9, 20, 10);
+  card.resetAgendaWindowToToday(today);
+  card._agendaStartDate.setDate(card._agendaStartDate.getDate() - 7);
+  const expandedStart = localDateKey(card._agendaStartDate);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 20, 18)), false);
+  assert.equal(localDateKey(card._agendaStartDate), expandedStart);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-10-21');
+});
+
+test('scrolling upward into non-rolling Agenda history disables auto-follow', async () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card.resetAgendaWindowToToday();
+  const previousStart = new Date(card._agendaStartDate);
+  const handlers = {};
+  const container = {
+    scrollTop: 0, clientHeight: 300, scrollHeight: 1000,
+    addEventListener: (event, callback) => { handlers[event] = callback; },
+    querySelectorAll: () => []
+  };
+  card.getRootElementById = id => id === 'agenda-container' ? container : null;
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.observeModalVisibility = () => {};
+  card.updateAgendaVisibleDateRangeFromDom = () => {};
+  card.canNavigateToPreviousPeriod = () => true;
+  card.ensureEventsForCurrentRange = async () => {};
+  card.attachEventListeners();
+  await handlers.scroll();
+  assert.equal(card._agendaFollowsToday, false);
+  assert.equal(localDateKey(card._agendaStartDate),
+    localDateKey(new Date(previousStart.getFullYear(), previousStart.getMonth(), previousStart.getDate() - card._agendaDaysPerScrollLoad)));
+  const expandedStart = card._agendaStartDate.getTime();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(Date.now() + 2 * 86400000)), false);
+  assert.equal(card._agendaStartDate.getTime(), expandedStart);
+});
+
+test('hass-triggered midnight rollover queues stale refresh while event dialog is open', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 2 });
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  card._currentDate = yesterday;
+  card.setWeekStart();
+  const hass = { states: {}, themes: { darkMode: false }, language: 'en' };
+  card._hass = hass;
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.loadEventCacheForCurrentConfig = () => {};
+  card.isEventManagementDialogOpen = () => true;
+  let renders = 0, refreshes = 0;
+  card.renderPreservingAgendaScroll = () => { renders++; };
+  // Reflect the normal stale-event refresh guard while the modal is open.
+  card.ensureEventsForCurrentRange = () => {
+    if (!card.isEventManagementDialogOpen()) refreshes++;
+  };
+
+  card.hass = { ...hass, states: {} };
+  assert.equal(localDateKey(card._currentDate), localDateKey(new Date()));
+  assert.equal(card._pendingCalendarDayRolloverRefresh, true);
+  assert.equal(renders, 0);
+  assert.equal(refreshes, 0);
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+  assert.equal(renders, 1);
+  assert.equal(refreshes, 1);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, false);
+});
+
 test('agenda vertical scroll loading is disabled in rolling-days mode', async () => {
   const card = makeCard({ entities: ['calendar.family'], rolling_days_agenda: 2 });
   const handlers = {};

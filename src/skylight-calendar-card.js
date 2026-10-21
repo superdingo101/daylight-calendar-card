@@ -1094,6 +1094,11 @@ class SkylightCalendarCard extends HTMLElement {
 
     if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
+      // The ordinary stale-range check returns early while the event dialog
+      // is open. Keep the rollover's fetch pending until it closes.
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingCalendarDayRolloverRefresh = true;
+      }
     }
 
     // Check calendar capabilities when hass is set
@@ -3427,6 +3432,9 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaEndDate = agendaWindow.endDate;
     this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
     this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
+    // This is the day the follow window was last anchored to, independent of
+    // an expanded non-rolling Agenda's mutable _agendaStartDate.
+    this._agendaFollowDay = new Date(today);
     this._agendaFollowsToday = true;
   }
 
@@ -3464,7 +3472,7 @@ class SkylightCalendarCard extends HTMLElement {
     }
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    if (this._agendaStartDate?.getTime() === today.getTime()) return false;
+    if (this._agendaFollowDay?.getTime() === today.getTime()) return false;
     this.resetAgendaWindowToToday(today);
     return true;
   }
@@ -5799,6 +5807,8 @@ class SkylightCalendarCard extends HTMLElement {
         this._agendaPendingScrollTop = agendaContainer.scrollTop;
         this._agendaEndDate.setDate(this._agendaEndDate.getDate() + this._agendaDaysPerScrollLoad);
       } else if (nearTop && canLoadPastAgendaDays) {
+        // Loading history is deliberate navigation; don't discard it at midnight.
+        this._agendaFollowsToday = false;
         this._agendaPendingScrollTop = null;
         this._agendaStartDate.setDate(this._agendaStartDate.getDate() - this._agendaDaysPerScrollLoad);
       }
