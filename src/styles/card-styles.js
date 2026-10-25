@@ -2905,7 +2905,8 @@ export function getCardStyles() {
       .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
         content: '';
         position: absolute;
-        inset: 0 -1px -1px 0;
+        /* Keep separators inside the cell so they cannot enlarge the scroll area. */
+        inset: 0;
         border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         pointer-events: none;

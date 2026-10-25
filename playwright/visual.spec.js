@@ -957,6 +957,63 @@ test('regression 535: transparent month and compact-week grids reveal the dashbo
   });
 });
 
+// Geometry assertions deliberately use no pixel tolerance: a single extra pixel
+// produces visible scrollbars on systems with non-overlay scrollbars (#631).
+for (const view of ['month', 'week-compact']) {
+  for (const width of [390, 980]) {
+    test(`regression 631: ${view} custom backgrounds stay within the grid at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1800 });
+      await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+      const card = page.locator('skylight-calendar-card');
+      const selector = view === 'month' ? '.calendar-grid' : '.week-compact-container';
+      for (const opacity of [0, 25, 100]) {
+        for (const compactHeight of [false, true]) {
+          await page.evaluate((params) => window.renderCalendarCard(params), {
+            config: {
+              entities: ['calendar.family'], default_view: view,
+              background_opacity: opacity, compact_height: compactHeight,
+              rolling_days_week_compact: 6, show_week_numbers_month: compactHeight,
+              grid_color: 'rgba(0, 0, 255, 0.5)'
+            },
+            events: baseEvents, darkMode: compactHeight
+          });
+          const grid = card.locator(selector);
+          await expect(grid).toBeVisible();
+          await expect.poll(() => grid.evaluate(el => ({
+            x: el.scrollWidth - el.clientWidth,
+            y: el.scrollHeight - el.clientHeight
+          })), { message: `${view}, opacity ${opacity}, compact height ${compactHeight}` })
+            .toEqual({ x: 0, y: 0 });
+          // Keep scrolling enabled for genuinely overflowing content.
+          await expect(grid).toHaveCSS('overflow-x', 'auto');
+          await expect(grid).toHaveCSS('overflow-y', 'auto');
+        }
+      }
+    });
+  }
+}
+
+test('regression 631: custom backgrounds preserve genuine vertical scrolling', async ({ page }) => {
+  await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+  for (const view of ['month', 'week-compact']) {
+    await page.evaluate((view) => window.renderCalendarCard({
+      config: {
+        entities: ['calendar.family'], default_view: view,
+        background_opacity: 25, compact_height: true
+      },
+      events: {},
+      parentStyle: 'height: 240px; width: 360px; display: grid; grid-template-columns: minmax(0, 1fr);'
+    }), view);
+    const grid = page.locator('skylight-calendar-card').locator(
+      view === 'month' ? '.calendar-grid' : '.week-compact-container'
+    );
+    await expect.poll(() => grid.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    expect(await grid.evaluate(el => el.scrollWidth - el.clientWidth)).toBe(0);
+    await grid.evaluate(el => { el.scrollTop = 30; });
+    await expect.poll(() => grid.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  }
+});
+
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
