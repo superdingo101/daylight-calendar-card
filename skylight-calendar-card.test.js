@@ -11060,3 +11060,21 @@ test('header clock editor warns for missing, unavailable and invalid sensors, an
   editor._config.header_time_sensor = '';
   assert.equal(editor.getHeaderTimeSensorWarning(), '');
 });
+
+
+test('event title ampersands decode once for display without changing source data', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  for (const [source, escaped] of [
+    ['Music & Art', 'Music &amp; Art'],
+    ['Music &amp; Art', 'Music &amp; Art'],
+    ['Music &#38; Art', 'Music &amp; Art'],
+    ['Music &#x26; Art', 'Music &amp; Art'],
+    ['Music &amp;amp; Art', 'Music &amp;amp; Art'],
+    ['<img src=x onerror=alert(1)> &amp; Art', '&lt;img src=x onerror=alert(1)&gt; &amp; Art'],
+    ['&lt;b&gt; &amp; Art', '&amp;lt;b&amp;gt; &amp; Art']
+  ]) {
+    const event = { entityId: 'calendar.family', summary: source };
+    assert.equal(card.renderEventTitleWithPrefix(event, source), escaped);
+    assert.equal(event.summary, source);
+  }
+});
