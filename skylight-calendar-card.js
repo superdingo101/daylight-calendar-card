@@ -9379,12 +9379,14 @@ const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recurrenceId
     dtend
   };
 
-  if (eventData.location) {
-    eventPayload.location = eventData.location;
+  // Form normalization keeps cleared optional fields as own properties with undefined values.
+  // Partial-update calendars need explicit empty strings to remove their previous values.
+  if (Object.prototype.hasOwnProperty.call(eventData, 'location')) {
+    eventPayload.location = eventData.location ?? '';
   }
 
-  if (eventData.description) {
-    eventPayload.description = eventData.description;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'description')) {
+    eventPayload.description = eventData.description ?? '';
   }
 
   if (eventData.rrule) {
