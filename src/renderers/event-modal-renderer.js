@@ -1,3 +1,5 @@
+import { decodeTitleAmpersands } from '../utils/string-utils.js';
+
 export function renderEventDetailsModal({
   event,
   startDate,
@@ -79,7 +81,7 @@ export function renderEventDetailsModal({
   return `
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">${escapeHtml(event.summary || t('untitledEvent'))}</h3>
+          <h3 class="modal-title">${escapeHtml(decodeTitleAmpersands(event.summary || t('untitledEvent')))}</h3>
           ${combinedBadgeHtml}
         </div>
         <button class="modal-close" id="close-modal">×</button>

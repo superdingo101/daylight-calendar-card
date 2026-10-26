@@ -14,6 +14,8 @@ import {
   DEFAULT_EVENT_TINT_OPACITY,
   DEFAULT_VIEW
 } from '../defaults.js';
+const normalizeWeatherIconStyle = (value) => (value === 'colored' ? 'colored' : 'mdi');
+
 export function createConfigNormalizationSchema({
   hasCustomTitle,
   normalizeDashboardPath,
@@ -70,6 +72,7 @@ export function createConfigNormalizationSchema({
       { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
       { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
       { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'hide_calendar_badge_person_state', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_badge_person_state || DEFAULT_CONFIG_VALUES.hide_calendar_badge_person_state },
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
@@ -80,6 +83,7 @@ export function createConfigNormalizationSchema({
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
       { key: 'show_daily_weather_forecast', defaultValue: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast, normalize: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast },
+      { key: 'weather_icon_style', defaultValue: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style), normalize: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style) },
       { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },

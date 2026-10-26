@@ -1,4 +1,105 @@
 // This file is generated from src/ by npm run build. Do not edit directly.
+function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
+  const chunks = [];
+  let cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+
+  while (cursor <= endDate) {
+    const chunkStart = new Date(cursor);
+    const chunkEnd = new Date(cursor);
+    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+    if (chunkEnd > endDate) {
+      chunkEnd.setTime(endDate.getTime());
+    }
+    chunkEnd.setHours(23, 59, 59, 999);
+
+    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
+
+    cursor = new Date(chunkEnd);
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return chunks;
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
+  return new Date(year, month - 1, day);
+}
+
+function parsePossiblyLocalDateTime(value) {
+  if (!value || typeof value !== 'string') return new Date(value);
+
+  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
+  if (hasTimezone) return new Date(value);
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return new Date(value);
+
+  const [, year, month, day, hour, minute, second = '0'] = match;
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second)
+  );
+}
+
+function formatLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getIsoWeekNumber(date) {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+}
+
+function parseTimeValue(value) {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
+
+  const dateCandidate = new Date(raw);
+  if (!Number.isNaN(dateCandidate.getTime())) {
+    return dateCandidate;
+  }
+
+  const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
+  if (!timeMatch) return null;
+
+  let hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const seconds = Number(timeMatch[3] || 0);
+  const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
+  if (minutes > 59 || seconds > 59) return null;
+
+  if (meridiem) {
+    if (hours < 1 || hours > 12) return null;
+    if (meridiem === 'pm' && hours !== 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+  } else if (hours > 23) {
+    return null;
+  }
+
+  const parsed = new Date();
+  parsed.setHours(hours, minutes, seconds, 0);
+  return parsed;
+}
+
 const COMMON_NAMED_COLORS = {
   black: '#000000',
   white: '#FFFFFF',
@@ -109,6 +210,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_calendars: false,
   hide_header: false,
   hide_calendar_names: false,
+  hide_calendar_badge_person_state: false,
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
@@ -116,6 +218,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
   show_daily_weather_forecast: true,
+  weather_icon_style: 'mdi',
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,
@@ -215,73 +318,6 @@ const createDefaultStubConfig = () => ({
   header_items: [...DEFAULT_STUB_CONFIG.header_items],
   hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });
-
-function getDateRangeChunks(startDate, endDate, chunkDays = 30) {
-  const chunks = [];
-  let cursor = new Date(startDate);
-  cursor.setHours(0, 0, 0, 0);
-
-  while (cursor <= endDate) {
-    const chunkStart = new Date(cursor);
-    const chunkEnd = new Date(cursor);
-    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
-    if (chunkEnd > endDate) {
-      chunkEnd.setTime(endDate.getTime());
-    }
-    chunkEnd.setHours(23, 59, 59, 999);
-
-    chunks.push({ startDate: chunkStart, endDate: chunkEnd });
-
-    cursor = new Date(chunkEnd);
-    cursor.setDate(cursor.getDate() + 1);
-    cursor.setHours(0, 0, 0, 0);
-  }
-
-  return chunks;
-}
-
-function parseLocalDate(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return new Date(dateStr);
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (![year, month, day].every(Number.isFinite)) return new Date(dateStr);
-  return new Date(year, month - 1, day);
-}
-
-function parsePossiblyLocalDateTime(value) {
-  if (!value || typeof value !== 'string') return new Date(value);
-
-  const hasTimezone = /(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value);
-  if (hasTimezone) return new Date(value);
-
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) return new Date(value);
-
-  const [, year, month, day, hour, minute, second = '0'] = match;
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second)
-  );
-}
-
-function formatLocalDate(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getIsoWeekNumber(date) {
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNumber = utcDate.getUTCDay() || 7;
-  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
-  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
-}
 
 const HEADER_ITEM_FORMATS = new Set(['auto', 'raw', 'time', 'date', 'datetime']);
 const EMPTY_STATES = new Set(['', 'unknown', 'unavailable']);
@@ -664,6 +700,8 @@ function normalizeEventTimeStep(value) {
   return EVENT_TIME_STEP_OPTIONS.includes(numeric) ? numeric : DEFAULT_EVENT_TIME_STEP;
 }
 
+const normalizeWeatherIconStyle = (value) => (value === 'colored' ? 'colored' : 'mdi');
+
 function createConfigNormalizationSchema({
   hasCustomTitle,
   normalizeDashboardPath,
@@ -720,6 +758,7 @@ function createConfigNormalizationSchema({
       { key: 'hide_calendars', defaultValue: ({ rawConfig }) => rawConfig.hide_calendars || DEFAULT_CONFIG_VALUES.hide_calendars },
       { key: 'hide_header', defaultValue: ({ rawConfig }) => rawConfig.hide_header || DEFAULT_CONFIG_VALUES.hide_header },
       { key: 'hide_calendar_names', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_names || DEFAULT_CONFIG_VALUES.hide_calendar_names },
+      { key: 'hide_calendar_badge_person_state', defaultValue: ({ rawConfig }) => rawConfig.hide_calendar_badge_person_state || DEFAULT_CONFIG_VALUES.hide_calendar_badge_person_state },
       { key: 'hide_controls', defaultValue: ({ rawConfig }) => rawConfig.hide_controls || DEFAULT_CONFIG_VALUES.hide_controls },
       { key: 'hide_navigation_buttons', defaultValue: ({ rawConfig }) => rawConfig.hide_navigation_buttons || DEFAULT_CONFIG_VALUES.hide_navigation_buttons },
       { key: 'hide_add_event_button', defaultValue: ({ rawConfig }) => rawConfig.hide_add_event_button || DEFAULT_CONFIG_VALUES.hide_add_event_button },
@@ -730,6 +769,7 @@ function createConfigNormalizationSchema({
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
       { key: 'show_daily_weather_forecast', defaultValue: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast, normalize: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast },
+      { key: 'weather_icon_style', defaultValue: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style), normalize: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style) },
       { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
       { key: 'hide_event_calendar_bubble', defaultValue: ({ rawConfig }) => rawConfig.hide_event_calendar_bubble || DEFAULT_CONFIG_VALUES.hide_event_calendar_bubble },
       { key: 'show_event_location', defaultValue: ({ rawConfig }) => rawConfig.show_event_location || DEFAULT_CONFIG_VALUES.show_event_location },
@@ -920,7 +960,7 @@ function normalizeHeaderWeatherData(weatherEntity) {
   );
 
   if (!conditionIcon || !temperature) return null;
-  return { conditionIcon, temperature };
+  return { conditionIcon, condition, temperature };
 }
 
 function normalizeForecastForDate(forecasts, date, getDateKey) {
@@ -942,7 +982,7 @@ function normalizeForecastForDate(forecasts, date, getDateKey) {
   const conditionIcon = mapWeatherConditionToIcon(match.condition);
 
   if (!conditionIcon || !highTemp) return null;
-  return { conditionIcon, highTemp, lowTemp };
+  return { conditionIcon, condition: match.condition, highTemp, lowTemp };
 }
 
 function getWeatherEntityForecast(weatherEntity, wsForecast) {
@@ -1059,7 +1099,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v4.13.0';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
@@ -1744,6 +1784,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.refreshCalendarEntities();
+    this.updateHeaderTimeSensor();
     const weekdayColorSwatch = this.querySelector('[data-color-field="week_compact_weekday_color"]');
     weekdayColorSwatch?.style.setProperty('--selected-color', this.getWeekCompactWeekdayColorPreview());
   }
@@ -1961,6 +2002,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
 
   emitConfigChanged(nextConfig) {
     this._config = nextConfig;
+    this.updateHeaderTimeSensor();
     this.dispatchEvent(
       new CustomEvent('config-changed', {
         detail: { config: nextConfig },
@@ -2443,6 +2485,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="hide_calendars" ${this._config.hide_calendars ? 'checked' : ''}> Hide calendar badges</label>
         <label><input type="checkbox" data-field="hide_header" ${this._config.hide_header ? 'checked' : ''}> Hide entire header</label>
         <label><input type="checkbox" data-field="hide_calendar_names" ${this._config.hide_calendar_names ? 'checked' : ''}> Header badges: hide calendar names</label>
+        <label><input type="checkbox" data-field="hide_calendar_badge_person_state" ${this._config.hide_calendar_badge_person_state ? 'checked' : ''}> Header badges: hide linked person state</label>
         <label><input type="checkbox" data-field="hide_controls" ${this._config.hide_controls ? 'checked' : ''}> Hide all header controls</label>
         <label><input type="checkbox" data-field="hide_navigation_buttons" ${this._config.hide_navigation_buttons ? 'checked' : ''}> Hide previous/next and today buttons</label>
         <label><input type="checkbox" data-field="hide_add_event_button" ${this._config.hide_add_event_button ? 'checked' : ''}> Hide add event button</label>
@@ -2732,9 +2775,15 @@ class SkylightCalendarCardEditor extends HTMLElement {
         </div>
       </div>
       <div class="field-row">
-        <div class="field field-inline">
+        <div class="field header-time-field">
           <label for="header_time_sensor">Header time sensor</label>
-          <input id="header_time_sensor" data-field="header_time_sensor" type="text" value="${this._config.header_time_sensor || ''}" placeholder="sensor.current_time">
+          <ha-entity-picker id="header-time-picker" aria-describedby="header-time-help header-time-warning" hidden></ha-entity-picker>
+          <input id="header_time_sensor" data-field="header_time_sensor" type="text" list="header-time-sensors" placeholder="sensor.time" aria-describedby="header-time-help header-time-warning">
+          <datalist id="header-time-sensors"></datalist>
+          <p class="helper" id="header-time-help">Select a sensor with a time such as 14:30. Leave empty to hide the clock.
+            <a href="https://www.home-assistant.io/integrations/time_date/" target="_blank" rel="noopener noreferrer">How to configure a time sensor</a>
+          </p>
+          <p class="helper" id="header-time-warning" role="status" hidden></p>
         </div>
       </div>
       <div class="field-row">
@@ -2747,6 +2796,13 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
         Show daily weather forecasts
       </label>
+      <div class="field field-inline">
+        <label for="weather_icon_style">Weather icon style</label>
+        <select id="weather_icon_style" data-field="weather_icon_style">
+          <option value="mdi" ${this._config.weather_icon_style !== 'colored' ? 'selected' : ''}>Monochrome (MDI)</option>
+          <option value="colored" ${this._config.weather_icon_style === 'colored' ? 'selected' : ''}>Colored</option>
+        </select>
+      </div>
       <div class="field field-inline">
         <label for="preference_storage_key">Preference storage key</label>
         <input id="preference_storage_key" data-field="preference_storage_key" type="text" value="${this._config.preference_storage_key || ''}" placeholder="Optional custom key">
@@ -2794,6 +2850,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
           align-items: center;
           gap: 8px;
         }
+
+        .header-time-field { min-width: 0; }
+        .header-time-field [hidden] { display: none !important; }
+        .header-time-field ha-entity-picker { width: 100%; min-width: 0; }
+        #header-time-warning { color: var(--warning-color, #b56a00); }
 
         .field-row {
           display: grid;
@@ -3239,6 +3300,23 @@ class SkylightCalendarCardEditor extends HTMLElement {
       button.addEventListener('click', () => this.closeColorPicker());
     });
 
+    const timePicker = this.querySelector('#header-time-picker');
+    timePicker?.addEventListener('value-changed', (event) => {
+      event.stopPropagation();
+      const value = String(event.detail?.value || '').trim();
+      if (value === (this._config.header_time_sensor || '')) return;
+      this.emitConfigChanged({ ...this.value, header_time_sensor: value });
+    });
+    this.updateHeaderTimeSensor();
+    if (!customElements.get('ha-entity-picker') && !this._timePickerLoading) {
+      this._timePickerLoading = true;
+      customElements.whenDefined?.('ha-entity-picker').then(() => this.updateHeaderTimeSensor());
+      // Loading a built-in editor also loads HA's shared entity controls.
+      window.loadCardHelpers?.().then(async (helpers) => {
+        const card = helpers.createCardElement({ type: 'entities', entities: [] });
+        await card.constructor.getConfigElement?.();
+      }).catch(() => { /* The searchable text fallback remains available. */ });
+    }
     this._rendered = true;
   }
 
@@ -3295,7 +3373,50 @@ class SkylightCalendarCardEditor extends HTMLElement {
     });
   }
 
+  getHeaderTimeSensorWarning() {
+    const entityId = String(this._config.header_time_sensor || '').trim();
+    if (!entityId || !this._hass?.states) return '';
+    const entity = this._hass.states[entityId];
+    if (!entity) return 'Time sensor not found. Select an existing sensor or add the Time & Date integration and choose its Time sensor.';
+    const state = String(entity.state ?? '').trim();
+    if (!state || state === 'unknown' || state === 'unavailable') {
+      return 'Time sensor has no available value. Check the sensor in Home Assistant or select another time sensor.';
+    }
+    if (!/\d{1,2}:\d{2}/.test(state) || !parseTimeValue(state)) return 'Time sensor has an invalid time value. Choose a sensor with a time such as 14:30, 2:30 PM, or an ISO date and time.';
+    return '';
+  }
+
+  updateHeaderTimeSensor() {
+    const picker = this.querySelector('#header-time-picker');
+    const input = this.querySelector('#header_time_sensor');
+    const nativePickerReady = !!customElements.get('ha-entity-picker');
+    if (picker) {
+      picker.hidden = !nativePickerReady;
+      if (nativePickerReady) {
+        picker.hass = this._hass;
+        picker.label = 'Header time sensor';
+        picker.includeDomains = ['sensor'];
+        picker.allowCustomEntity = true;
+        picker.value = this._config.header_time_sensor || '';
+      }
+    }
+    if (input) {
+      input.hidden = nativePickerReady;
+      if (document.activeElement !== input) input.value = this._config.header_time_sensor || '';
+    }
+    const options = this.querySelector('#header-time-sensors');
+    if (options && !nativePickerReady) options.innerHTML = Object.entries(this._hass?.states || {})
+      .filter(([id]) => id.startsWith('sensor.'))
+      .map(([id, entity]) => `<option value="${this.escapeHtml(id)}">${this.escapeHtml(entity.attributes?.friendly_name || id)}</option>`).join('');
+    const warning = this.querySelector('#header-time-warning');
+    if (warning) {
+      warning.textContent = this.getHeaderTimeSensorWarning();
+      warning.hidden = !warning.textContent;
+    }
+  }
+
   updateFieldValues() {
+    this.updateHeaderTimeSensor();
     const titleInput = this.querySelector('input[data-field="title"]');
     if (titleInput && document.activeElement !== titleInput) {
       titleInput.value = this._config.title || '';
@@ -3431,6 +3552,11 @@ class SkylightCalendarCardEditor extends HTMLElement {
   handleChange(event) {
     const field = event.target.dataset.field;
     const nextConfig = { ...this.value };
+
+    if (field === 'header_time_sensor') {
+      this.emitConfigChanged({ ...nextConfig, header_time_sensor: event.target.value.trim() });
+      return;
+    }
 
     if (field === 'week_number_prefix_mode') {
       if (event.target.value === 'default') delete nextConfig.week_number_prefix;
@@ -3957,6 +4083,44 @@ function getCardStyles() {
       .header-item ha-icon {
         --mdc-icon-size: 28px;
       }
+
+      .weather-svg-icon {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+
+      .header-weather .weather-svg-icon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .month-day-forecast .forecast-condition .weather-svg-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .agenda-day-forecast .forecast-condition .weather-svg-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .weather-svg-icon .sun { fill: var(--weather-icon-sun-color, #fdd93c); }
+      .weather-svg-icon .moon { fill: var(--weather-icon-moon-color, #fcf497); }
+      .weather-svg-icon .rain { fill: var(--weather-icon-rain-color, #30b3ff); }
+      .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #d4d4d4); }
+      .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #f9f9f9); }
+      .weather-svg-icon .snow {
+        fill: var(--weather-icon-snow-color, #f9f9f9);
+        stroke: var(--weather-icon-snow-stroke-color, #d4d4d4);
+        stroke-width: 1;
+        paint-order: stroke;
+      }
+
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #9aa4ae); }
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #cfd6dd); }
 
       .header-item-value {
         display: inline-block;
@@ -6505,7 +6669,8 @@ function getCardStyles() {
       .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
         content: '';
         position: absolute;
-        inset: 0 -1px -1px 0;
+        /* Keep separators inside the cell so they cannot enlarge the scroll area. */
+        inset: 0;
         border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         pointer-events: none;
@@ -6774,6 +6939,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Failed to create event',
       deleteEventServiceError: 'Failed to delete event',
       updateEventServiceError: 'Failed to update event. The calendar may not support modifications.',
+      updateEventNotConfirmed: 'The change could not be confirmed. The calendar has been reloaded, please check the event before trying again.',
       durationHour: '{count} hour',
       durationHours: '{count} hours',
       durationMinute: '{count} minute',
@@ -6902,6 +7068,7 @@ const TRANSLATIONS = {
       createEventServiceError: "Impossible de créer l'événement",
       deleteEventServiceError: "Impossible de supprimer l'événement",
       updateEventServiceError: "Impossible de modifier l'événement. Le calendrier ne prend peut-être pas en charge les modifications.",
+      updateEventNotConfirmed: "La modification n'a pas pu être confirmée. Le calendrier a été rechargé, vérifiez l'événement avant de réessayer.",
       durationHour: '{count} heure',
       durationHours: '{count} heures',
       durationMinute: '{count} minute',
@@ -7030,6 +7197,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Termin konnte nicht erstellt werden',
       deleteEventServiceError: 'Termin konnte nicht gelöscht werden',
       updateEventServiceError: 'Termin konnte nicht aktualisiert werden. Der Kalender unterstützt möglicherweise keine Änderungen.',
+      updateEventNotConfirmed: 'Die Änderung konnte nicht bestätigt werden. Der Kalender wurde neu geladen, bitte prüfe den Termin, bevor du es erneut versuchst.',
       durationHour: '{count} Stunde',
       durationHours: '{count} Stunden',
       durationMinute: '{count} Minute',
@@ -7158,6 +7326,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Niet gelukt om afspraak aan te maken',
       deleteEventServiceError: 'Niet gelukt om afspraak te verwijderen',
       updateEventServiceError: 'Niet gelukt om afspraak bij te werken. Mogelijk wordt dit niet ondersteund.',
+      updateEventNotConfirmed: 'De wijziging kon niet worden bevestigd. De agenda is opnieuw geladen, controleer de afspraak voordat je het opnieuw probeert.',
       durationHour: '{count} uur',
       durationHours: '{count} uren',
       durationMinute: '{count} minuut',
@@ -7285,6 +7454,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Error al crear el evento',
       deleteEventServiceError: 'Error al eliminar el evento',
       updateEventServiceError: 'Error al actualizar el evento. Es posible que el calendario no admita modificaciones.',
+      updateEventNotConfirmed: 'No se pudo confirmar el cambio. El calendario se ha recargado, comprueba el evento antes de volver a intentarlo.',
       durationHour: '{count} hora',
       durationHours: '{count} horas',
       durationMinute: '{count} minuto',
@@ -7413,6 +7583,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Sündmuse loomine ebaõnnestus',
       deleteEventServiceError: 'Sündmuse kustutamine ebaõnnestus',
       updateEventServiceError: 'Sündmuse muutmine ebaõnnestus. Kalender ei pruugi muutmist toetada.',
+      updateEventNotConfirmed: 'Muudatust ei õnnestunud kinnitada. Kalender laaditi uuesti, kontrolli sündmust enne uuesti proovimist.',
       durationHour: '{count} tund',
       durationHours: '{count} tundi',
       durationMinute: '{count} minut',
@@ -7541,6 +7712,7 @@ const TRANSLATIONS = {
       createEventServiceError: "Error en crear l'esdeveniment",
       deleteEventServiceError: "Error en eliminar l'esdeveniment",
       updateEventServiceError: "Error en actualitzar l'esdeveniment. És possible que el calendari no admeti modificacions.",
+      updateEventNotConfirmed: "No s'ha pogut confirmar el canvi. El calendari s'ha tornat a carregar, comprova l'esdeveniment abans de tornar-ho a provar.",
       durationHour: '{count} hora',
       durationHours: '{count} hores',
       durationMinute: '{count} minut',
@@ -7669,6 +7841,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Kunne ikke oprette begivenhed',
       deleteEventServiceError: 'Kunne ikke slette begivenhed',
       updateEventServiceError: 'Kunne ikke opdatere begivenhed. Kalenderen understøtter muligvis ikke ændringer.',
+      updateEventNotConfirmed: 'Ændringen kunne ikke bekræftes. Kalenderen er genindlæst, tjek begivenheden, før du prøver igen.',
       durationHour: '{count} time',
       durationHours: '{count} timer',
       durationMinute: '{count} minut',
@@ -7797,6 +7970,7 @@ const TRANSLATIONS = {
       createEventServiceError: 'Skapa händelse misslyckades',
       deleteEventServiceError: 'Ta bort händelse misslyckades',
       updateEventServiceError: 'Uppdatera händelse misslyckades. Kalendern kanske inte har stöd för ändringar.',
+      updateEventNotConfirmed: 'Ändringen kunde inte bekräftas. Kalendern har lästs in igen, kontrollera händelsen innan du försöker igen.',
       durationHour: '{count} timme',
       durationHours: '{count} timmar',
       durationMinute: '{count} minut',
@@ -7809,6 +7983,78 @@ const TRANSLATIONS = {
     }
   }
 };
+
+// Multi-colour weather icons for `weather_icon_style: colored`.
+/*!
+ * The SVG path data below is adapted from the Home Assistant frontend
+ * (https://github.com/home-assistant/frontend, src/data/weather.ts).
+ * Copyright Home Assistant contributors.
+ * Licensed under the Apache License, Version 2.0; you may obtain a copy at
+ * https://www.apache.org/licenses/LICENSE-2.0 (also in LICENSES/Apache-2.0.txt).
+ * Modified: path data regrouped per condition and given CSS classes for theming.
+ * See THIRD_PARTY_NOTICES.md.
+ */
+
+const SUN = 'm 14.39303,8.4033507 c 0,3.3114723 -2.684145,5.9956173 -5.9956169,5.9956173 -3.3114716,0 -5.9956168,-2.684145 -5.9956168,-5.9956173 0,-3.311471 2.6841452,-5.995617 5.9956168,-5.995617 3.3114719,0 5.9956169,2.684146 5.9956169,5.995617';
+const MOON = 'm 13.502891,11.382935 c -1.011285,1.859223 -2.976664,3.121381 -5.2405751,3.121381 -3.289929,0 -5.953329,-2.663833 -5.953329,-5.9537625 0,-2.263911 1.261724,-4.228856 3.120948,-5.240575 -0.452782,0.842738 -0.712753,1.806363 -0.712753,2.832381 0,3.289928 2.663833,5.9533275 5.9533291,5.9533275 1.026017,0 1.989641,-0.259969 2.83238,-0.712752';
+const SMALL_ORB = 'm14.981 4.2112c0 1.9244-1.56 3.4844-3.484 3.4844-1.9244 0-3.4844-1.56-3.4844-3.4844s1.56-3.484 3.4844-3.484c1.924 0 3.484 1.5596 3.484 3.484';
+const CLOUD_BACK = 'm3.8863 5.035c-0.54892 0.16898-1.04 0.46637-1.4372 0.8636-0.63077 0.63041-1.0206 1.4933-1.0206 2.455 0 1.9251 1.5589 3.4682 3.4837 3.4682h6.9688c1.9251 0 3.484-1.5981 3.484-3.5232 0-1.9251-1.5589-3.5232-3.484-3.5232h-1.0834c-0.25294-1.6916-1.6986-2.9083-3.4463-2.9083-1.7995 0-3.2805 1.4153-3.465 3.1679';
+const CLOUD_FRONT = 'm4.1996 7.6995c-0.33902 0.10407-0.64276 0.28787-0.88794 0.5334-0.39017 0.38982-0.63147 0.92322-0.63147 1.5176 0 1.1896 0.96414 2.1431 2.1537 2.1431h4.3071c1.1896 0 2.153-0.98742 2.153-2.1777 0-1.1896-0.96344-2.1777-2.153-2.1777h-0.66992c-0.15593-1.0449-1.0499-1.7974-2.1297-1.7974-1.112 0-2.0274 0.87524-2.1417 1.9586';
+const RAIN = [
+  'm5.2852 14.734c-0.22401 0.24765-0.57115 0.2988-0.77505 0.11395-0.20391-0.1845-0.18732-0.53481 0.036689-0.78281 0.14817-0.16298 0.59126-0.32914 0.87559-0.42369 0.12453-0.04092 0.22684 0.05186 0.19791 0.17956-0.065617 0.2921-0.18732 0.74965-0.33514 0.91299',
+  'm11.257 14.163c-0.22437 0.24765-0.57115 0.2988-0.77505 0.11395-0.2039-0.1845-0.18768-0.53481 0.03669-0.78281 0.14817-0.16298 0.59126-0.32914 0.8756-0.42369 0.12453-0.04092 0.22684 0.05186 0.19791 0.17956-0.06562 0.2921-0.18732 0.74965-0.33514 0.91299',
+  'm8.432 15.878c-0.15452 0.17039-0.3937 0.20567-0.53446 0.07867-0.14041-0.12735-0.12876-0.36865 0.025753-0.53975 0.10195-0.11218 0.40711-0.22684 0.60325-0.29175 0.085725-0.02858 0.15628 0.03563 0.13652 0.12382-0.045508 0.20108-0.12912 0.51647-0.23107 0.629',
+  'm7.9991 14.118c-0.19226 0.21237-0.49001 0.25612-0.66499 0.09737-0.17462-0.15804-0.16051-0.45861 0.03175-0.67098 0.12665-0.14005 0.50729-0.28293 0.75071-0.36336 0.10689-0.03563 0.19473 0.0441 0.17004 0.15346-0.056092 0.25082-0.16051 0.64347-0.28751 0.78352'
+];
+const POURING = [
+  'm10.648 16.448c-0.19226 0.21449-0.49001 0.25894-0.66499 0.09878-0.17498-0.16016-0.16087-0.4639 0.03175-0.67874 0.12665-0.14146 0.50694-0.2854 0.75071-0.36724 0.10689-0.03563 0.19473 0.0448 0.17004 0.15558-0.05645 0.25365-0.16051 0.65017-0.28751 0.79163',
+  'm5.9383 16.658c-0.22437 0.25012-0.5715 0.30162-0.77505 0.11501-0.20391-0.18627-0.18768-0.54046 0.036689-0.79093 0.14817-0.1651 0.59126-0.33267 0.87559-0.42827 0.12418-0.04127 0.22648 0.05221 0.19791 0.18168-0.065617 0.29528-0.18732 0.75741-0.33514 0.92251'
+];
+const WIND = [
+  'm 13.59616,15.30968 c 0,0 -0.09137,-0.0071 -0.250472,-0.0187 -0.158045,-0.01235 -0.381353,-0.02893 -0.64382,-0.05715 -0.262466,-0.02716 -0.564444,-0.06385 -0.877358,-0.124531 -0.156986,-0.03034 -0.315383,-0.06844 -0.473781,-0.111478 -0.157691,-0.04551 -0.313266,-0.09842 -0.463902,-0.161219 l -0.267406,-0.0949 c -0.09984,-0.02646 -0.205669,-0.04904 -0.305153,-0.06738 -0.193322,-0.02716 -0.3838218,-0.03316 -0.5640912,-0.02011 -0.3626556,0.02611 -0.6847417,0.119239 -0.94615,0.226483 -0.2617611,0.108656 -0.4642556,0.230364 -0.600075,0.324203 -0.1358195,0.09419 -0.2049639,0.160514 -0.2049639,0.160514 0,0 0.089958,-0.01623 0.24765,-0.04445 0.1559278,-0.02575 0.3764139,-0.06174 0.6367639,-0.08714 0.2596444,-0.02646 0.5591527,-0.0441 0.8678333,-0.02328 0.076905,0.0035 0.1538111,0.01658 0.2321278,0.02293 0.077611,0.01058 0.1534581,0.02893 0.2314221,0.04022 0.07267,0.01834 0.1397,0.03986 0.213078,0.05644 l 0.238125,0.08925 c 0.09207,0.03281 0.183444,0.07055 0.275872,0.09878 0.09243,0.0261 0.185208,0.05327 0.277636,0.07161 0.184856,0.0388 0.367947,0.06174 0.543983,0.0702 0.353131,0.01905 0.678745,-0.01341 0.951442,-0.06456 0.27305,-0.05292 0.494595,-0.123119 0.646642,-0.181681 0.152047,-0.05785 0.234597,-0.104069 0.234597,-0.104069',
+  'm 4.7519154,13.905801 c 0,0 0.091369,-0.0032 0.2511778,-0.0092 0.1580444,-0.0064 0.3820583,-0.01446 0.6455833,-0.03281 0.2631722,-0.01729 0.5662083,-0.04269 0.8812389,-0.09137 0.1576916,-0.02434 0.3175,-0.05609 0.4776611,-0.09384 0.1591027,-0.03951 0.3167944,-0.08643 0.4699,-0.14358 l 0.2702277,-0.08467 c 0.1008945,-0.02222 0.2074334,-0.04127 0.3072695,-0.05574 0.1943805,-0.01976 0.3848805,-0.0187 0.5651499,0.0014 0.3608917,0.03951 0.67945,0.144639 0.936625,0.261761 0.2575278,0.118534 0.4554364,0.247297 0.5873754,0.346781 0.132291,0.09913 0.198966,0.168275 0.198966,0.168275 0,0 -0.08925,-0.01976 -0.245886,-0.05397 C 9.9423347,14.087088 9.7232597,14.042988 9.4639681,14.00736 9.2057347,13.97173 8.9072848,13.94245 8.5978986,13.95162 c -0.077258,7.06e-4 -0.1541638,0.01058 -0.2328333,0.01411 -0.077964,0.0078 -0.1545166,0.02328 -0.2331861,0.03175 -0.073025,0.01588 -0.1404055,0.03422 -0.2141361,0.04798 l -0.2420055,0.08008 c -0.093486,0.02963 -0.1859139,0.06421 -0.2794,0.0889 C 7.3028516,14.23666 7.2093653,14.2603 7.116232,14.27512 6.9303181,14.30722 6.7465209,14.3231 6.5697792,14.32486 6.2166487,14.33046 5.8924459,14.28605 5.6218654,14.224318 5.3505793,14.161565 5.1318571,14.082895 4.9822793,14.01869 4.8327015,13.95519 4.7519154,13.905801 4.7519154,13.905801'
+];
+const SNOW = [
+  'm 8.4319893,15.348341 c 0,0.257881 -0.209197,0.467079 -0.467078,0.467079 -0.258586,0 -0.46743,-0.209198 -0.46743,-0.467079 0,-0.258233 0.208844,-0.467431 0.46743,-0.467431 0.257881,0 0.467078,0.209198 0.467078,0.467431',
+  'm 11.263878,14.358553 c 0,0.364067 -0.295275,0.659694 -0.659695,0.659694 -0.364419,0 -0.6596937,-0.295627 -0.6596937,-0.659694 0,-0.364419 0.2952747,-0.659694 0.6596937,-0.659694 0.36442,0 0.659695,0.295275 0.659695,0.659694',
+  'm 5.3252173,13.69847 c 0,0.364419 -0.295275,0.660047 -0.659695,0.660047 -0.364067,0 -0.659694,-0.295628 -0.659694,-0.660047 0,-0.364067 0.295627,-0.659694 0.659694,-0.659694 0.36442,0 0.659695,0.295627 0.659695,0.659694'
+];
+const LIGHTNING = 'm 9.9252695,10.935875 -1.6483986,2.341014 1.1170184,0.05929 -1.2169864,2.02141 3.0450261,-2.616159 H 9.8864918 L 10.97937,11.294651 10.700323,10.79794 h -0.508706 l -0.2663475,0.137936';
+
+const CLOUDY = new Set(['partlycloudy', 'cloudy', 'fog', 'windy', 'windy-variant', 'hail', 'rainy', 'snowy', 'snowy-rainy', 'pouring', 'lightning', 'lightning-rainy']);
+const RAINY = new Set(['hail', 'rainy', 'pouring', 'lightning-rainy']);
+const WINDY = new Set(['windy', 'windy-variant']);
+const SNOWY = new Set(['snowy', 'snowy-rainy']);
+const STORMY = new Set(['lightning', 'lightning-rainy']);
+
+const COLORED_WEATHER_CONDITIONS = new Set(['sunny', 'clear', 'clear-night', ...CLOUDY]);
+
+function normalizeWeatherCondition(conditionValue) {
+  return String(conditionValue || '').trim().toLowerCase().replace(/_/g, '-');
+}
+
+const path = (cls, d) => `<path class="${cls}" d="${d}"/>`;
+
+// Returns inline SVG markup, or '' when the condition has no coloured icon
+// (callers then fall back to the regular MDI icon).
+function renderColoredWeatherSvg(conditionValue, { nightTime = false } = {}) {
+  let condition = normalizeWeatherCondition(conditionValue);
+  if (condition === 'clear') condition = nightTime ? 'clear-night' : 'sunny';
+  if (!COLORED_WEATHER_CONDITIONS.has(condition)) return '';
+
+  const parts = [];
+  if (condition === 'sunny') parts.push(path('sun', SUN));
+  if (condition === 'clear-night') parts.push(path('moon', MOON));
+  if (condition === 'partlycloudy') parts.push(path(nightTime ? 'moon' : 'sun', SMALL_ORB));
+  if (CLOUDY.has(condition)) parts.push(path('cloud-back', CLOUD_BACK), path('cloud-front', CLOUD_FRONT));
+  if (RAINY.has(condition)) RAIN.forEach((d) => parts.push(path('rain', d)));
+  if (condition === 'pouring') POURING.forEach((d) => parts.push(path('rain', d)));
+  if (WINDY.has(condition)) WIND.forEach((d) => parts.push(path('cloud-back', d)));
+  if (SNOWY.has(condition)) SNOW.forEach((d) => parts.push(path('snow', d)));
+  if (STORMY.has(condition)) parts.push(path('sun', LIGHTNING));
+
+  return `<svg class="weather-svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17" aria-hidden="true">${parts.join('')}</svg>`;
+}
 
 function renderDayBadge(badge, { escapeHtml, registerDayBadgeAction } = {}) {
   const style = [
@@ -7852,7 +8098,8 @@ function getDayForecastClass(viewMode = 'week-compact') {
         : 'week-day-forecast';
 }
 
-function renderWeatherIcon(icon, { escapeHtml }) {
+function renderWeatherIcon(icon, { escapeHtml }, iconHtml = '') {
+  if (iconHtml) return `<span class="forecast-condition">${iconHtml}</span>`;
   return `<span class="forecast-condition"><ha-icon icon="${escapeHtml(icon)}"></ha-icon></span>`;
 }
 
@@ -7870,7 +8117,7 @@ function renderDayForecast(date, viewMode = 'week-compact', { escapeHtml, getFor
 
   return `
       <div class="${forecastClass}">
-        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml })}
+        ${renderWeatherIcon(forecast.conditionIcon, { escapeHtml }, forecast.iconHtml)}
         ${renderForecastTemperatures(forecast, { escapeHtml })}
       </div>
     `;
@@ -8117,6 +8364,12 @@ function escapeHtmlAttribute(text) {
     "'": '&#39;'
   };
   return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
+}
+
+// Some calendar feeds HTML-encode ampersands in otherwise plain-text titles.
+// Decode one layer for display only; callers must still escape the result.
+function decodeTitleAmpersands(value) {
+  return String(value ?? '').replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
 }
 
 const serializeRecurrenceValue = (value, seen = new WeakSet()) => {
@@ -9126,12 +9379,14 @@ const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recurrenceId
     dtend
   };
 
-  if (eventData.location) {
-    eventPayload.location = eventData.location;
+  // Form normalization keeps cleared optional fields as own properties with undefined values.
+  // Partial-update calendars need explicit empty strings to remove their previous values.
+  if (Object.prototype.hasOwnProperty.call(eventData, 'location')) {
+    eventPayload.location = eventData.location ?? '';
   }
 
-  if (eventData.description) {
-    eventPayload.description = eventData.description;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'description')) {
+    eventPayload.description = eventData.description ?? '';
   }
 
   if (eventData.rrule) {
@@ -9179,6 +9434,52 @@ const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId = null, 
   type: 'calendar/event/delete',
   ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
 });
+
+// Home Assistant error codes that mean the request was rejected before the calendar changed
+// anything, so replacing the event with create+delete cannot duplicate it or lose its UID.
+// Anything else (connection lost, timeout, "failed" from the integration) leaves the outcome unknown.
+const DEFINITIVE_REJECTION_CODES = new Set([
+  'unknown_command',
+  'not_supported',
+  'not_found',
+  'unauthorized',
+  'invalid_format',
+  'service_validation_error'
+]);
+
+const isDefinitiveUpdateRejection = (error) => DEFINITIVE_REJECTION_CODES.has(error?.code);
+
+// Every field buildUpdateEventServiceData can send for a plain event. The card picks the date or
+// date-time pair per event, so a usable service has to accept both pairs, not just the one in
+// the current payload. Spook's calendar.update_event shares uid/summary/start_date_time/
+// end_date_time but uses them as lookup filters and has no date-only pair, so it is excluded.
+const UPDATE_EVENT_SERVICE_FIELDS = ['uid', 'summary', 'start_date_time', 'end_date_time', 'start_date', 'end_date'];
+
+const collectServiceFieldNames = (fields, names = new Set()) => {
+  if (!fields || typeof fields !== 'object') {
+    return names;
+  }
+  for (const [name, field] of Object.entries(fields)) {
+    // Collapsible sections in services.yaml nest their own fields one level deeper.
+    if (field && typeof field === 'object' && field.fields && typeof field.fields === 'object') {
+      collectServiceFieldNames(field.fields, names);
+    } else {
+      names.add(name);
+    }
+  }
+  return names;
+};
+
+// A calendar.update_event service is only usable when it declares every field the card sends.
+const isCompatibleUpdateEventService = (service, serviceData) => {
+  const names = collectServiceFieldNames(service?.fields);
+  if (names.size === 0) {
+    return false;
+  }
+  const required = new Set([...UPDATE_EVENT_SERVICE_FIELDS, ...Object.keys(serviceData)]);
+  required.delete('entity_id');
+  return [...required].every((key) => names.has(key));
+};
 
 function getVisibleCalendarBadgesForEvent(event, { hiddenCalendars = new Set(), getVirtualBadgeForEvent, normalizeSingleColor, configColors = {} } = {}) {
   const virtualCalendar = getVirtualBadgeForEvent?.(event);
@@ -9713,7 +10014,7 @@ function renderAgendaView({
                 : agendaEventMinHeight;
 
               return `
-                <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${helpers.getEventBubbleFontSize(event)}; --event-time-font-size: ${helpers.getEventTimeFontSize(event)}; --event-location-font-size: ${helpers.getEventLocationFontSize(event)}; --event-bubble-text-color: ${helpers.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                <div class="agenda-event" style="${eventStyle} --agenda-event-min-height: ${eventAgendaMinHeight}; --event-bubble-font-size: ${helpers.getEventBubbleFontSize(event)}; --event-time-font-size: ${helpers.getEventTimeFontSize(event)}; --event-location-font-size: ${helpers.getEventLocationFontSize(event)}; --event-bubble-text-color: ${helpers.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
                   <div class="agenda-event-title">${helpers.renderEventTitleWithPrefix(event, helpers.getEventDisplayTitle(event))}</div>
                   ${helpers.shouldShowEventTime(event) ? `<div class="agenda-event-time">${timeLabel}</div>` : ''}
                   ${helpers.shouldShowEventLocation(event) ? `<div class="agenda-event-location">📍 ${helpers.escapeHtml(helpers.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -9818,7 +10119,7 @@ function renderEventDetailsModal({
   return `
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">${escapeHtml(event.summary || t('untitledEvent'))}</h3>
+          <h3 class="modal-title">${escapeHtml(decodeTitleAmpersands(event.summary || t('untitledEvent')))}</h3>
           ${combinedBadgeHtml}
         </div>
         <button class="modal-close" id="close-modal">×</button>
@@ -10102,7 +10403,7 @@ function renderEventTitleWithPrefix(event, title, {
   getCalendarBadgeIcon,
   normalizeBackgroundImageUrl
 }) {
-  const titleText = escapeHtml(title || t('untitledEvent'));
+  const titleText = escapeHtml(decodeTitleAmpersands(title || t('untitledEvent')));
   const styleOverrides = getEventStyleOverrides(event);
   const titleIcon = renderEventStyleIcon(getEventStyleIconConfig(event), { position: 'before_title', escapeHtml });
   const titleHtml = titleIcon ? `${titleIcon}<span>${titleText}</span>` : titleText;
@@ -10140,7 +10441,7 @@ function renderEventTitleWithPrefix(event, title, {
   return `<span class="event-title-with-prefix"><span class="event-title-prefix-badges">${badgesHtml}</span>${titleHtml}</span>`;
 }
 
-function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }) {
+function renderCalendarBadges({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -10149,6 +10450,7 @@ function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }
           ${badgeItems.map((badgeItem) => renderCalendarBadge({
             badgeItem,
             hideCalendarNames,
+            hidePersonState,
             inline: false,
             helpers
           })).join('')}
@@ -10157,7 +10459,7 @@ function renderCalendarBadges({ badgeItems, hideCalendarNames = false, helpers }
     `;
 }
 
-function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, helpers }) {
+function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hidePersonState = false, helpers }) {
   if (badgeItems.length === 0) return '';
 
   return `
@@ -10165,6 +10467,7 @@ function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hel
         ${badgeItems.map((badgeItem) => renderCalendarBadge({
           badgeItem,
           hideCalendarNames,
+          hidePersonState,
           inline: true,
           helpers
         })).join('')}
@@ -10172,7 +10475,7 @@ function renderCalendarBadgesInline({ badgeItems, hideCalendarNames = false, hel
     `;
 }
 
-function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) {
+function renderCalendarBadge({ badgeItem, hideCalendarNames, hidePersonState = false, inline, helpers }) {
   const badgeBackground = badgeItem.isHidden ? '#f3f4f6' : helpers.lightenColor(badgeItem.color, 0.85);
   const badgeTextColor = badgeItem.isHidden ? '#9ca3af' : helpers.getContractColor(badgeBackground);
   const inlineClass = inline ? ' calendar-badge-inline' : '';
@@ -10191,13 +10494,15 @@ function renderCalendarBadge({ badgeItem, hideCalendarNames, inline, helpers }) 
                 iconOverride: badgeItem.icon,
                 helpers
               })}
-              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers })}
+              ${hideCalendarNames ? '' : renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState, helpers })}
             </div>
           `;
 }
 
-function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, helpers }) {
-  const personStateLabel = helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
+function renderCalendarBadgeLabel({ badgeItem, badgeTextColor, hidePersonState = false, helpers }) {
+  const personStateLabel = hidePersonState
+    ? ''
+    : helpers.formatPersonStateLabel(helpers.getCalendarBadgePersonState(badgeItem.entityId));
   return `
       <span class="calendar-badge-label" style="color: ${badgeTextColor}">
         <span class="calendar-badge-name">${helpers.escapeHtml(badgeItem.name)}</span>
@@ -10706,7 +11011,7 @@ function renderHeaderTitle({
       <div class="header-title-wrap">
         ${hasTitle ? `<h2 class="header-title">${helpers.escapeHtml(title)}</h2>` : ''}
         ${headerTime ? `<span class="header-time">${helpers.escapeHtml(headerTime)}</span>` : ''}
-        ${headerWeather ? `<span class="header-weather"><ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
+        ${headerWeather ? `<span class="header-weather">${headerWeather.iconHtml || `<ha-icon icon="${helpers.escapeHtml(headerWeather.conditionIcon)}"></ha-icon>`}${helpers.escapeHtml(headerWeather.temperature)}</span>` : ''}
         ${weekNumberLabel ? `<span class="header-item header-week-number"><span class="header-item-value">${helpers.escapeHtml(weekNumberLabel)}</span></span>` : ''}
         ${headerItems.map((item) => `<span class="header-item">${item.icon ? `<ha-icon icon="${helpers.escapeHtmlAttribute(item.icon)}"></ha-icon>` : ''}<span class="header-item-value">${helpers.escapeHtml(item.value)}</span></span>`).join('')}
       </div>
@@ -11408,6 +11713,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
+    this._calendarFollowsToday = true;
     this._fetching = false;
     this._activeEventFetchRange = null;
     this._lastFetch = null;
@@ -11447,7 +11753,13 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaVisibleStartDate = null;
     this._agendaVisibleEndDate = null;
     this._agendaFollowsToday = true;
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
+    this._pendingCalendarDayRolloverRefresh = false;
+    this._handleCalendarVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') return;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
+    };
     this._agendaDaysPerScrollLoad = 7;
     this._agendaScrollLoadLock = false;
     this._agendaSuppressScrollHandling = false;
@@ -12074,10 +12386,11 @@ class SkylightCalendarCard extends HTMLElement {
       : null;
     this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
-    this.setWeekStart();
     this.resetAgendaWindowToToday();
+    this.setWeekStart();
+    this._calendarFollowsToday = true;
     if (this.isConnected) {
-      this.scheduleAgendaDayRollover();
+      this.scheduleCalendarDayRollover();
     }
     this.render();
     this._activeLanguage = language;
@@ -12090,8 +12403,13 @@ class SkylightCalendarCard extends HTMLElement {
     this._hass = hass;
     let shouldRender = false;
 
-    if (this.advanceAgendaWindowToCurrentDay()) {
+    if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
+      // The ordinary stale-range check returns early while the event dialog
+      // is open. Keep the rollover's fetch pending until it closes.
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingCalendarDayRolloverRefresh = true;
+      }
     }
 
     // Check calendar capabilities when hass is set
@@ -12137,8 +12455,12 @@ class SkylightCalendarCard extends HTMLElement {
       previousHeaderItemsState !== nextHeaderItemsState;
     const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
       this.getCalendarBadgePersonRenderSignature(hass);
+    // Colored weather icons pick the day/night artwork from sun.sun.
+    const headerWeatherSunChanged = !!configuredHeaderWeatherSensor &&
+      this._config?.weather_icon_style === 'colored' &&
+      oldHass?.states?.['sun.sun']?.state !== hass?.states?.['sun.sun']?.state;
 
-    if (headerSensorChanged || badgePersonStateChanged) {
+    if (headerSensorChanged || badgePersonStateChanged || headerWeatherSunChanged) {
       if (this.isEventManagementDialogOpen()) {
         this._pendingHeaderSensorRender = true;
       } else {
@@ -13851,8 +14173,9 @@ class SkylightCalendarCard extends HTMLElement {
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
-    const agendaWindowAdvanced = this.advanceAgendaWindowToCurrentDay();
-    this.scheduleAgendaDayRollover();
+    document.addEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
+    const dateWindowAdvanced = this.advanceCalendarWindowToCurrentDay();
+    this.scheduleCalendarDayRollover();
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
       this._eventLoadingInvalidatedWhileDisconnected = false;
@@ -13861,7 +14184,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.loadEventCacheForCurrentConfig();
       }
       if (this._hass) this.ensureEventsForCurrentRange({ force: true });
-    } else if (agendaWindowAdvanced && this._hass) {
+    } else if (dateWindowAdvanced && this._hass) {
       this.ensureEventsForCurrentRange();
     }
   }
@@ -13870,6 +14193,7 @@ class SkylightCalendarCard extends HTMLElement {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    document.removeEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
     this._eventCacheLoadingInvalidatedWhileDisconnected = this._eventCacheLoadingInvalidatedWhileDisconnected
       || this._eventCacheLoadInFlight
       || !this._loadedEventRange;
@@ -13878,7 +14202,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration += 1;
     this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
-    this.clearAgendaDayRolloverTimer();
+    this.clearCalendarDayRolloverTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();
@@ -14419,73 +14743,75 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaEndDate = agendaWindow.endDate;
     this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
     this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
+    // This is the day the follow window was last anchored to, independent of
+    // an expanded non-rolling Agenda's mutable _agendaStartDate.
+    this._agendaFollowDay = new Date(today);
     this._agendaFollowsToday = true;
   }
 
-  getNextAgendaLocalMidnight(now = new Date()) {
+  getNextCalendarLocalMidnight(now = new Date()) {
     const nextMidnight = new Date(now);
     nextMidnight.setDate(nextMidnight.getDate() + 1);
     nextMidnight.setHours(0, 0, 0, 0);
     return nextMidnight;
   }
 
-  clearAgendaDayRolloverTimer() {
-    if (this._agendaDayRolloverTimer) {
-      clearTimeout(this._agendaDayRolloverTimer);
+  clearCalendarDayRolloverTimer() {
+    if (this._calendarDayRolloverTimer) {
+      clearTimeout(this._calendarDayRolloverTimer);
     }
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
   }
 
-  scheduleAgendaDayRollover(now = new Date()) {
-    this.clearAgendaDayRolloverTimer();
-    if (!this._config || this.getAgendaRollingDays() === null) return;
-
+  scheduleCalendarDayRollover(now = new Date()) {
+    this.clearCalendarDayRolloverTimer();
+    if (!this._config?.entities) return;
     const currentTime = new Date(now);
-    const nextMidnight = this.getNextAgendaLocalMidnight(currentTime);
-    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime());
-
-    this._agendaDayRolloverTimer = setTimeout(() => {
-      this._agendaDayRolloverTimer = null;
-      this.handleAgendaDayRollover();
-      this.scheduleAgendaDayRollover();
+    const nextMidnight = this.getNextCalendarLocalMidnight(currentTime);
+    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime() + 10);
+    this._calendarDayRolloverTimer = setTimeout(() => {
+      this._calendarDayRolloverTimer = null;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
     }, delay);
-    this._agendaDayRolloverTimer?.unref?.();
+    this._calendarDayRolloverTimer?.unref?.();
   }
 
   advanceAgendaWindowToCurrentDay(now = new Date()) {
-    if (
-      this._viewMode !== 'agenda' ||
-      this.getAgendaRollingDays() === null ||
-      !this._agendaFollowsToday
-    ) {
+    if (this._viewMode !== 'agenda' || !this._agendaFollowsToday) {
       return false;
     }
-
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    if (this._agendaStartDate?.getTime() === today.getTime()) {
-      return false;
-    }
-
+    if (this._agendaFollowDay?.getTime() === today.getTime()) return false;
     this.resetAgendaWindowToToday(today);
     return true;
   }
 
-  handleAgendaDayRollover(now = new Date()) {
-    if (!this.advanceAgendaWindowToCurrentDay(now)) {
-      return false;
-    }
+  advanceCalendarWindowToCurrentDay(now = new Date()) {
+    if (!this._config?.entities) return false;
+    if (this._viewMode === 'agenda') return this.advanceAgendaWindowToCurrentDay(now);
+    if (!this._calendarFollowsToday) return false;
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const anchor = new Date(this._currentDate);
+    anchor.setHours(0, 0, 0, 0);
+    if (anchor.getTime() === today.getTime()) return false;
+    this._currentDate = today;
+    this.setWeekStart();
+    return true;
+  }
 
+  handleCalendarDayRollover(now = new Date()) {
+    if (!this.advanceCalendarWindowToCurrentDay(now)) return false;
     if (this.isEventManagementDialogOpen()) {
       this._pendingHeaderSensorRender = true;
+      this._pendingCalendarDayRolloverRefresh = true;
       return true;
     }
-
-    if (this._hass) {
-      this.ensureEventsForCurrentRange({ renderIfCovered: true });
-    } else {
-      this.render();
-    }
+    // Render the new grid immediately, independent of the calendar API.
+    this.renderPreservingAgendaScroll();
+    if (this._hass) this.ensureEventsForCurrentRange();
     return true;
   }
 
@@ -14842,6 +15168,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgesInline({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -15246,6 +15573,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadges({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -15278,7 +15606,7 @@ class SkylightCalendarCard extends HTMLElement {
           return `
             <div class="all-day-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
                  style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute}
-                 data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                 data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
               <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event)) : ''}</div>
               ${this.renderEventStyleCornerIcon(event)}
             </div>
@@ -15400,7 +15728,7 @@ class SkylightCalendarCard extends HTMLElement {
       return `
         <div class="week-standard-event"
              style="top: ${top}px; height: ${height}px; width: ${width}; left: ${left}; ${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};"
-             data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+             data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
           <div class="week-standard-event-title">${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}</div>
           ${this.shouldShowEventTime(event) ? `<div class="week-standard-event-time">${this.formatEventTimeRange(eventStart, eventEnd, { schedule: true })}</div>` : ''}
           ${this.shouldShowEventLocation(event) ? `<div class="week-standard-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -16054,7 +16382,7 @@ class SkylightCalendarCard extends HTMLElement {
     const spanDataAttribute = visibleDaySpan > 1 ? ` data-month-span-days="${visibleDaySpan}"` : '';
 
     return `
-      <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
         ${this.renderCombinedCornerBubbles(event)}
@@ -16080,7 +16408,7 @@ class SkylightCalendarCard extends HTMLElement {
     const eventStyle = this.getEventStyle(event);
 
     return `
-      <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}
         <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
         ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -16097,7 +16425,7 @@ class SkylightCalendarCard extends HTMLElement {
     const eventStyle = this.getEventStyle(event);
 
     return `
-      <div class="event" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="event" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${!isAllDaySegment && this.shouldShowEventTime(event) ? `<span class="event-time">${this.formatEventTime(segmentStart)}</span>` : ''}
         ${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
@@ -16705,10 +17033,12 @@ class SkylightCalendarCard extends HTMLElement {
     // View mode selector
     const viewModeSelect = this.getRootElementById('view-mode-select');
     viewModeSelect?.addEventListener('change', () => {
+      const previousViewMode = this._viewMode;
       this._viewMode = viewModeSelect.value;
       if (this._viewMode === 'agenda') {
         this.resetAgendaWindowToToday();
       } else {
+        if (previousViewMode === 'agenda') this._calendarFollowsToday = this._agendaFollowsToday;
         this.setWeekStart();
       }
       this.ensureEventsForCurrentRange({ renderIfCovered: true });
@@ -16761,6 +17091,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.resetAgendaWindowToToday();
       } else {
         this._currentDate = new Date();
+        this._calendarFollowsToday = true;
       }
       if (this._viewMode !== 'agenda' && this.getRollingDaysForView() === null) {
         this.setWeekStart();
@@ -16787,6 +17118,8 @@ class SkylightCalendarCard extends HTMLElement {
         this._agendaPendingScrollTop = agendaContainer.scrollTop;
         this._agendaEndDate.setDate(this._agendaEndDate.getDate() + this._agendaDaysPerScrollLoad);
       } else if (nearTop && canLoadPastAgendaDays) {
+        // Loading history is deliberate navigation; don't discard it at midnight.
+        this._agendaFollowsToday = false;
         this._agendaPendingScrollTop = null;
         this._agendaStartDate.setDate(this._agendaStartDate.getDate() - this._agendaDaysPerScrollLoad);
       }
@@ -16957,10 +17290,13 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHeaderTimeRender() {
+    const refreshForRollover = this._pendingCalendarDayRolloverRefresh;
+    this._pendingCalendarDayRolloverRefresh = false;
     if (this._pendingHeaderSensorRender) {
       this._pendingHeaderSensorRender = false;
       this.renderPreservingAgendaScroll();
     }
+    if (refreshForRollover && this._hass) this.ensureEventsForCurrentRange();
     if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
       const renderIfCovered = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRefreshAfterCurrentFetch = false;
@@ -16974,6 +17310,7 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
@@ -17024,6 +17361,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   navigateToNextPeriod() {
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
@@ -17868,6 +18206,13 @@ class SkylightCalendarCard extends HTMLElement {
       } catch (error) {
         console.error('Failed to update event:', error);
 
+        // The calendar may hold the edit already; reload it so the user sees what was saved.
+        if (error.updateNotConfirmed) {
+          this._lastFetch = null;
+          this.updateEvents({ preserveScroll: this._viewMode === 'agenda' })
+            .catch((refreshError) => console.error('Failed to refresh after unconfirmed update:', refreshError));
+        }
+
         // Safety net: if edit was blocked by capability detection, still try create+delete.
         // Some integrations misreport update/delete support even though create+delete works.
         if (error.message === this.t('calendarNoModifyError')) {
@@ -17914,27 +18259,38 @@ class SkylightCalendarCard extends HTMLElement {
 
     const { isRecurringUpdate, recurrenceId, recurrenceRange } = getRecurringUpdateControls(originalEvent, eventData, editScope);
 
-    if (isRecurringUpdate && !movingCalendar && this._hass.connection?.sendMessagePromise) {
+    // Prefer the Calendar WebSocket API (the one the HA calendar panel uses) for every in-place
+    // edit on a calendar that supports UPDATE_EVENT. It keeps the event UID and does not depend
+    // on whichever integration happens to own the calendar.update_event service name.
+    const useWebSocketUpdate = (isRecurringUpdate || capabilities.canUpdate) && !movingCalendar;
+    if (useWebSocketUpdate && this._hass.connection?.sendMessagePromise) {
       const wsPayload = buildUpdateEventWebSocketPayload(originalEvent, eventData, recurrenceId, recurrenceRange);
 
       try {
         await this._hass.connection.sendMessagePromise(wsPayload);
         return;
       } catch (error) {
-        console.error('Recurring update via WebSocket failed, falling back:', error?.message || error);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('WebSocket', error);
+        }
+        console.error('Update via WebSocket rejected, falling back:', error?.message || error);
       }
     }
 
-    // If calendar supports UPDATE, we're not moving calendars, and service exists, use update service
-    const hasUpdateService = !!this._hass.services?.calendar?.update_event;
+    // If calendar supports UPDATE, we're not moving calendars, and a compatible service exists, use it.
+    // Spook (5.11+) registers its own calendar.update_event with a lookup-style schema
+    // (new_summary/new_start/new_end/shift), so the service must declare the card's full schema.
+    const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
+    const hasUpdateService = isCompatibleUpdateEventService(this._hass.services?.calendar?.update_event, serviceData);
     if (capabilities.canUpdate && !movingCalendar && hasUpdateService) {
       try {
-        const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
-
         await this._hass.callService('calendar', 'update_event', serviceData);
         return;
       } catch (error) {
-        console.error('Update service failed, trying create+delete fallback:', error.message);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('Update service', error);
+        }
+        console.error('Update service rejected, trying create+delete fallback:', error?.message || error);
         // Fall through to create+delete pattern
       }
     } else if (capabilities.canUpdate && !movingCalendar && !hasUpdateService) {
@@ -17956,6 +18312,15 @@ class SkylightCalendarCard extends HTMLElement {
       console.error('Create+Delete fallback failed:', error);
       throw new Error(error.message || this.t('updateEventServiceError'));
     }
+  }
+
+  // The update may already be applied when its result is lost, so never replace the event then.
+  createUpdateNotConfirmedError(source, cause) {
+    console.error(`${source} update not confirmed, skipping create+delete fallback:`, cause?.message || cause);
+    const error = new Error(this.t('updateEventNotConfirmed'));
+    error.updateNotConfirmed = true;
+    error.cause = cause;
+    return error;
   }
 
   async deleteEvent(calendarId, uid, recurrenceId = null, recurrenceRange = null) {
@@ -18802,7 +19167,7 @@ class SkylightCalendarCard extends HTMLElement {
               const timeLabel = isAllDaySegment ? this.t('allDay') : this.formatEventTime(segmentStart);
               const eventStyle = this.getEventStyle(event);
               return `
-                <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
                   ${this.shouldShowEventTime(event) ? `${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}` : ''}
                   <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
                   ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -18854,7 +19219,7 @@ class SkylightCalendarCard extends HTMLElement {
           const eventStyle = this.getEventStyle(event, { withBorderAccent: true });
 
           return `
-            <div class="day-event day-modal-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+            <div class="day-event day-modal-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
               <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
               ${this.shouldShowEventTime(event) ? `<div class="day-modal-event-meta">${isAllDaySegment ? this.t('allDay') : this.formatEventTimeRange(segmentStart, segmentEnd)}</div>` : ''}
               ${this.shouldShowEventLocation(event) ? `<div class="day-modal-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -18913,37 +19278,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   parseTimeValue(value) {
-    if (value === undefined || value === null) return null;
-    const raw = String(value).trim();
-    if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
-
-    const dateCandidate = new Date(raw);
-    if (!Number.isNaN(dateCandidate.getTime())) {
-      return dateCandidate;
-    }
-
-    const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
-    if (!timeMatch) return null;
-
-    let hours = Number(timeMatch[1]);
-    const minutes = Number(timeMatch[2]);
-    const seconds = Number(timeMatch[3] || 0);
-    const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
-    if (minutes > 59 || seconds > 59) return null;
-
-    if (meridiem) {
-      if (hours < 1 || hours > 12) return null;
-      if (meridiem === 'pm' && hours !== 12) hours += 12;
-      if (meridiem === 'am' && hours === 12) hours = 0;
-    } else if (hours > 23) {
-      return null;
-    }
-
-    const parsed = new Date();
-    parsed.setHours(hours, minutes, seconds, 0);
-    return parsed;
+    return parseTimeValue(value);
   }
 
   teardownWeatherForecastSubscription() {
@@ -18984,7 +19319,10 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    const weatherData = getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    if (!weatherData || this._config?.weather_icon_style !== 'colored') return weatherData;
+    const nightTime = this._hass?.states?.['sun.sun']?.state === 'below_horizon';
+    return { ...weatherData, iconHtml: renderColoredWeatherSvg(weatherData.condition, { nightTime }) };
   }
 
   resolveHeaderItems() {
@@ -19009,7 +19347,9 @@ class SkylightCalendarCard extends HTMLElement {
     const weatherEntity = this._hass?.states?.[sensorEntityId];
     const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
     const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
-    return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    const forecast = normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    if (!forecast || this._config?.weather_icon_style !== 'colored') return forecast;
+    return { ...forecast, iconHtml: renderColoredWeatherSvg(forecast.condition) };
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
@@ -19096,6 +19436,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgeLabel({
       badgeItem,
       badgeTextColor,
+      hidePersonState: !!this._config?.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }

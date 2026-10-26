@@ -55,6 +55,7 @@ test('header time and weather helpers format data from Home Assistant state', ()
   assert.equal(getFormattedHeaderSensorTime(hass, 'sensor.unknown', parseTimeValue, formatTime), '');
   assert.deepEqual(getHeaderWeatherDisplayData(hass, 'weather.home'), {
     conditionIcon: 'mdi:weather-sunny',
+    condition: 'sunny',
     temperature: '72°'
   });
   assert.equal(getHeaderWeatherDisplayData(hass, 'weather.missing'), null);

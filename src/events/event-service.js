@@ -79,12 +79,14 @@ export const buildUpdateEventWebSocketPayload = (originalEvent, eventData, recur
     dtend
   };
 
-  if (eventData.location) {
-    eventPayload.location = eventData.location;
+  // Form normalization keeps cleared optional fields as own properties with undefined values.
+  // Partial-update calendars need explicit empty strings to remove their previous values.
+  if (Object.prototype.hasOwnProperty.call(eventData, 'location')) {
+    eventPayload.location = eventData.location ?? '';
   }
 
-  if (eventData.description) {
-    eventPayload.description = eventData.description;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'description')) {
+    eventPayload.description = eventData.description ?? '';
   }
 
   if (eventData.rrule) {
@@ -132,3 +134,49 @@ export const buildDeleteEventWebSocketPayload = (calendarId, uid, recurrenceId =
   type: 'calendar/event/delete',
   ...buildDeleteEventPayload(calendarId, uid, recurrenceId, recurrenceRange)
 });
+
+// Home Assistant error codes that mean the request was rejected before the calendar changed
+// anything, so replacing the event with create+delete cannot duplicate it or lose its UID.
+// Anything else (connection lost, timeout, "failed" from the integration) leaves the outcome unknown.
+const DEFINITIVE_REJECTION_CODES = new Set([
+  'unknown_command',
+  'not_supported',
+  'not_found',
+  'unauthorized',
+  'invalid_format',
+  'service_validation_error'
+]);
+
+export const isDefinitiveUpdateRejection = (error) => DEFINITIVE_REJECTION_CODES.has(error?.code);
+
+// Every field buildUpdateEventServiceData can send for a plain event. The card picks the date or
+// date-time pair per event, so a usable service has to accept both pairs, not just the one in
+// the current payload. Spook's calendar.update_event shares uid/summary/start_date_time/
+// end_date_time but uses them as lookup filters and has no date-only pair, so it is excluded.
+const UPDATE_EVENT_SERVICE_FIELDS = ['uid', 'summary', 'start_date_time', 'end_date_time', 'start_date', 'end_date'];
+
+const collectServiceFieldNames = (fields, names = new Set()) => {
+  if (!fields || typeof fields !== 'object') {
+    return names;
+  }
+  for (const [name, field] of Object.entries(fields)) {
+    // Collapsible sections in services.yaml nest their own fields one level deeper.
+    if (field && typeof field === 'object' && field.fields && typeof field.fields === 'object') {
+      collectServiceFieldNames(field.fields, names);
+    } else {
+      names.add(name);
+    }
+  }
+  return names;
+};
+
+// A calendar.update_event service is only usable when it declares every field the card sends.
+export const isCompatibleUpdateEventService = (service, serviceData) => {
+  const names = collectServiceFieldNames(service?.fields);
+  if (names.size === 0) {
+    return false;
+  }
+  const required = new Set([...UPDATE_EVENT_SERVICE_FIELDS, ...Object.keys(serviceData)]);
+  required.delete('entity_id');
+  return [...required].every((key) => names.has(key));
+};

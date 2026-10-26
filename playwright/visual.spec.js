@@ -957,6 +957,63 @@ test('regression 535: transparent month and compact-week grids reveal the dashbo
   });
 });
 
+// Geometry assertions deliberately use no pixel tolerance: a single extra pixel
+// produces visible scrollbars on systems with non-overlay scrollbars (#631).
+for (const view of ['month', 'week-compact']) {
+  for (const width of [390, 980]) {
+    test(`regression 631: ${view} custom backgrounds stay within the grid at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1800 });
+      await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+      const card = page.locator('skylight-calendar-card');
+      const selector = view === 'month' ? '.calendar-grid' : '.week-compact-container';
+      for (const opacity of [0, 25, 100]) {
+        for (const compactHeight of [false, true]) {
+          await page.evaluate((params) => window.renderCalendarCard(params), {
+            config: {
+              entities: ['calendar.family'], default_view: view,
+              background_opacity: opacity, compact_height: compactHeight,
+              rolling_days_week_compact: 6, show_week_numbers_month: compactHeight,
+              grid_color: 'rgba(0, 0, 255, 0.5)'
+            },
+            events: baseEvents, darkMode: compactHeight
+          });
+          const grid = card.locator(selector);
+          await expect(grid).toBeVisible();
+          await expect.poll(() => grid.evaluate(el => ({
+            x: el.scrollWidth - el.clientWidth,
+            y: el.scrollHeight - el.clientHeight
+          })), { message: `${view}, opacity ${opacity}, compact height ${compactHeight}` })
+            .toEqual({ x: 0, y: 0 });
+          // Keep scrolling enabled for genuinely overflowing content.
+          await expect(grid).toHaveCSS('overflow-x', 'auto');
+          await expect(grid).toHaveCSS('overflow-y', 'auto');
+        }
+      }
+    });
+  }
+}
+
+test('regression 631: custom backgrounds preserve genuine vertical scrolling', async ({ page }) => {
+  await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+  for (const view of ['month', 'week-compact']) {
+    await page.evaluate((view) => window.renderCalendarCard({
+      config: {
+        entities: ['calendar.family'], default_view: view,
+        background_opacity: 25, compact_height: true
+      },
+      events: {},
+      parentStyle: 'height: 240px; width: 360px; display: grid; grid-template-columns: minmax(0, 1fr);'
+    }), view);
+    const grid = page.locator('skylight-calendar-card').locator(
+      view === 'month' ? '.calendar-grid' : '.week-compact-container'
+    );
+    await expect.poll(() => grid.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    expect(await grid.evaluate(el => el.scrollWidth - el.clientWidth)).toBe(0);
+    await grid.evaluate(el => { el.scrollTop = 30; });
+    await expect.poll(() => grid.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  }
+});
+
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
@@ -2081,6 +2138,53 @@ test('daily forecasts default on and header-only weather hides forecasts in ever
 });
 
 
+for (const darkMode of [false, true]) {
+  const themeName = darkMode ? 'dark' : 'light';
+  test(`visual: colored weather icons in header and daily forecast (${themeName})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    const conditions = ['sunny', 'partlycloudy', 'cloudy', 'rainy', 'pouring', 'snowy', 'lightning-rainy'];
+    const forecast = conditions.map((condition, index) => ({
+      datetime: `2026-03-${String(15 + index).padStart(2, '0')}T12:00:00Z`,
+      condition,
+      temperature: 60 + index,
+      templow: 45 + index
+    }));
+
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Colored Weather',
+        default_view: 'week-compact',
+        header_weather_sensor: 'weather.mock',
+        weather_icon_style: 'colored',
+        hide_dark_mode_toggle: true
+      },
+      events: baseEvents,
+      weather: { 'weather.mock': { temperature: 62, condition: 'partlycloudy', forecast } },
+      states: { 'sun.sun': { entity_id: 'sun.sun', state: 'above_horizon', attributes: {} } },
+      darkMode
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const headerWeather = card.locator('.header-weather');
+    await expect(headerWeather.locator('svg.weather-svg-icon')).toBeVisible();
+    await expect(headerWeather.locator('svg.weather-svg-icon path.sun')).toHaveCount(1);
+    await expect(headerWeather.locator('ha-icon')).toHaveCount(0);
+
+    const dayForecasts = card.locator('.week-day-forecast');
+    await expect(dayForecasts).toHaveCount(7);
+    await expect(dayForecasts.locator('svg.weather-svg-icon')).toHaveCount(7);
+    await expect(dayForecasts.locator('ha-icon')).toHaveCount(0);
+
+    await expect(card).toHaveScreenshot(`colored-weather-week-compact-${themeName}.png`, {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01
+    });
+  });
+}
+
 test('regression issue 321: compact wrapped header rows stay centered at medium width', async ({ page }) => {
   await page.setViewportSize({ width: 980, height: 820 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
@@ -2156,6 +2260,47 @@ test('regression issue 572: wrapped compact header stays wrapped during a calend
   });
 
   expect(wrapStateImmediatelyAfterRender).toBe(true);
+});
+
+test('hide_calendar_badge_person_state keeps compact inline badge name and picture without the person state', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Hide Person State Compact',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true,
+      calendar_person_entities: { 'calendar.family': 'person.ian' },
+      hide_calendar_badge_person_state: true
+    },
+    events: baseEvents,
+    states: {
+      'person.ian': {
+        entity_id: 'person.ian',
+        state: 'home',
+        attributes: { friendly_name: 'Ian', entity_picture: INLINE_BACKGROUND_SVG }
+      }
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const header = card.locator('.header-compact');
+  const badge = card.locator('.calendar-badges-inline .calendar-badge-inline[data-entity="calendar.family"]');
+
+  await expect(header).toBeVisible();
+  await expect(badge).toBeVisible();
+  await expect(badge.locator('.calendar-badge-name')).toHaveText('Family');
+  await expect(badge.locator('.calendar-badge-person-icon.calendar-badge-photo img')).toBeVisible();
+  await expect(badge.locator('.calendar-badge-person-icon img')).toHaveJSProperty('complete', true);
+  await expect(card.locator('.calendar-badge-person-state')).toHaveCount(0);
+
+  await expectBoxWithin(badge, card.locator('.calendar-badges-inline'));
+  await expectBoxWithin(badge, header);
+  await assertNoHorizontalOverflow(header);
 });
 
 test('regression issue 572: hidden header does not commit a zero-width wrapped state', async ({ page }) => {
@@ -2414,3 +2559,110 @@ test('Week Compact editor controls stay contained at mobile editor width', async
     controlsDoNotOverlap: true
   });
 });
+
+
+test('header clock editor sensor selection, validation and live recovery', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+  await page.evaluate(() => {
+    const editor = document.createElement('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: '14:30', attributes: { friendly_name: 'Time' } } } };
+    editor.setConfig({ entities: [], header_time_sensor: 'sensor.current_time' });
+    document.getElementById('app').appendChild(editor);
+    Array.from(editor.querySelectorAll('details')).find(el => el.querySelector('summary')?.textContent.includes('Localization')).open = true;
+    editor.addEventListener('config-changed', event => { window.lastClockConfig = event.detail.config; });
+  });
+  const editor = page.locator('daylight-calendar-card-editor');
+  const warning = editor.locator('#header-time-warning');
+  await expect(warning).toContainText('not found');
+  await expect(editor.locator('#header-time-sensors option')).toHaveAttribute('value', 'sensor.time');
+  await editor.locator('#header_time_sensor').fill('sensor.time');
+  await expect(warning).toBeHidden();
+  expect(await page.evaluate(() => window.lastClockConfig.header_time_sensor)).toBe('sensor.time');
+  const field = editor.locator('.header-time-field');
+  expect(await field.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: 'unavailable' } } };
+  });
+  await expect(warning).toContainText('no available value');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: 'bad value' } } };
+  });
+  await expect(warning).toContainText('invalid time');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: '2026-10-20' } } };
+    window.fallbackTimeOption = editor.querySelector('#header-time-sensors').firstElementChild;
+  });
+  await expect(warning).toContainText('invalid time');
+  // Simulate HA loading its shared control after the editor has rendered.
+  await page.evaluate(() => customElements.define('ha-entity-picker', class extends HTMLElement {}));
+  await expect(editor.locator('#header_time_sensor')).toBeHidden();
+  const picker = editor.locator('#header-time-picker');
+  await expect(picker).not.toHaveAttribute('hidden');
+  expect(await editor.evaluate(element => {
+    // The native path must neither enumerate states nor replace hidden options.
+    const previousHass = element._hass;
+    try {
+      element._hass = { states: new Proxy({ 'sensor.time': { state: '14:30' } }, {
+        ownKeys() { throw new Error('Native clock picker enumerated all states'); }
+      }) };
+      element.updateHeaderTimeSensor();
+      return element.querySelector('#header-time-sensors').firstElementChild === window.fallbackTimeOption;
+    } finally {
+      element._hass = previousHass;
+    }
+  })).toBe(true);
+  await expect(warning).toBeHidden();
+  expect(await picker.evaluate(el => ({ value: el.value, domains: el.includeDomains, custom: el.allowCustomEntity })))
+    .toEqual({ value: 'sensor.time', domains: ['sensor'], custom: true });
+  await picker.evaluate(el => el.dispatchEvent(new CustomEvent('value-changed', { detail: { value: '' }, bubbles: true, composed: true })));
+  await expect(warning).toBeHidden();
+  expect(await page.evaluate(() => window.lastClockConfig.header_time_sensor)).toBe('');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.setConfig({ entities: [], header_time_sensor: 'sensor.custom' });
+    editor.hass = { states: { 'sensor.custom': { state: '2:30 PM' } } };
+  });
+  await expect(warning).toBeHidden();
+  expect(await picker.evaluate(el => el.value)).toBe('sensor.custom');
+});
+
+
+for (const view of ['month', 'week-compact', 'week-standard', 'agenda']) {
+  test(`regression 631: ampersands render safely in ${view} titles and details`, async ({ page }) => {
+    await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+    const cases = [
+      ['Literal & title', 'Literal & title'],
+      ['Encoded &amp; title', 'Encoded & title'],
+      ['Decimal &#38; title', 'Decimal & title'],
+      ['Hex &#x26; title', 'Hex & title'],
+      ['Once &amp;amp; title', 'Once &amp; title'],
+      ['All-day &amp; span', 'All-day & span'],
+      ['<img src=x onerror="window.titleInjected=true"> &amp; title', '<img src=x onerror="window.titleInjected=true"> & title']
+    ];
+    await page.evaluate(({ view, cases }) => window.renderCalendarCard({
+      config: { entities: ['calendar.family'], default_view: view, show_all_events_month: true, enable_event_management: true },
+      events: { 'calendar.family': cases.map(([summary], i) => ({
+        summary, uid: `amp-${i}`,
+        start: i === 5 ? '2026-03-15' : `2026-03-15T${String(11 + i).padStart(2, '0')}:00:00Z`,
+        end: i === 5 ? '2026-03-17' : `2026-03-15T${String(11 + i).padStart(2, '0')}:30:00Z`
+      })) }
+    }), { view, cases });
+    const card = page.locator('skylight-calendar-card');
+    for (const [source, display] of cases) {
+      const title = card.locator(eventSelectorByView[view]).filter({ hasText: display }).first();
+      await expect(title).toBeVisible();
+      await title.click();
+      await expect(card.locator('.modal-title')).toHaveText(display);
+      await card.locator('#edit-event-btn').click();
+      await expect(card.locator('#event-title')).toHaveValue(source);
+      await card.locator('.modal-close').click();
+    }
+    await expect(card.locator('img[src="x"]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.titleInjected)).toBeUndefined();
+    expect(await card.evaluate(el => el._events.map(event => event.summary).sort())).toEqual(cases.map(([source]) => source).sort());
+  });
+}

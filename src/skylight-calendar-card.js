@@ -1,3 +1,4 @@
+import { parseTimeValue } from './utils/date-utils.js';
 import { COMMON_NAMED_COLORS } from './constants.js';
 import { registerDaylightCalendarCardEditor } from './editor/daylight-calendar-card-editor.js';
 import './components/daylight-color-picker.js';
@@ -15,6 +16,7 @@ import {
   DEFAULT_VIEW
 } from './defaults.js';
 import { TRANSLATIONS } from './translations.js';
+import { renderColoredWeatherSvg } from './weather/weather-svg-icons.js';
 import { createConfigNormalizationSchema } from './editor/editor-schema.js';
 import {
   renderDayBadges as renderDayBadgesHtml,
@@ -131,7 +133,9 @@ import {
   buildEventServiceData,
   buildUpdateEventServiceData,
   buildUpdateEventWebSocketPayload,
-  getRecurringUpdateControls
+  getRecurringUpdateControls,
+  isCompatibleUpdateEventService,
+  isDefinitiveUpdateRejection
 } from './events/event-service.js';
 import {
   getDisplayLocation as getDisplayLocationHelper,
@@ -398,6 +402,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._currentDate = new Date();
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
+    this._calendarFollowsToday = true;
     this._fetching = false;
     this._activeEventFetchRange = null;
     this._lastFetch = null;
@@ -437,7 +442,13 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaVisibleStartDate = null;
     this._agendaVisibleEndDate = null;
     this._agendaFollowsToday = true;
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
+    this._pendingCalendarDayRolloverRefresh = false;
+    this._handleCalendarVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') return;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
+    };
     this._agendaDaysPerScrollLoad = 7;
     this._agendaScrollLoadLock = false;
     this._agendaSuppressScrollHandling = false;
@@ -1064,10 +1075,11 @@ class SkylightCalendarCard extends HTMLElement {
       : null;
     this._weatherForecastController.handleConfigChanged(previousForecastWeatherSensor, nextForecastWeatherSensor);
     this.ensureWeatherForecastSubscription();
-    this.setWeekStart();
     this.resetAgendaWindowToToday();
+    this.setWeekStart();
+    this._calendarFollowsToday = true;
     if (this.isConnected) {
-      this.scheduleAgendaDayRollover();
+      this.scheduleCalendarDayRollover();
     }
     this.render();
     this._activeLanguage = language;
@@ -1080,8 +1092,13 @@ class SkylightCalendarCard extends HTMLElement {
     this._hass = hass;
     let shouldRender = false;
 
-    if (this.advanceAgendaWindowToCurrentDay()) {
+    if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
+      // The ordinary stale-range check returns early while the event dialog
+      // is open. Keep the rollover's fetch pending until it closes.
+      if (this.isEventManagementDialogOpen()) {
+        this._pendingCalendarDayRolloverRefresh = true;
+      }
     }
 
     // Check calendar capabilities when hass is set
@@ -1127,8 +1144,12 @@ class SkylightCalendarCard extends HTMLElement {
       previousHeaderItemsState !== nextHeaderItemsState;
     const badgePersonStateChanged = this.getCalendarBadgePersonRenderSignature(oldHass) !==
       this.getCalendarBadgePersonRenderSignature(hass);
+    // Colored weather icons pick the day/night artwork from sun.sun.
+    const headerWeatherSunChanged = !!configuredHeaderWeatherSensor &&
+      this._config?.weather_icon_style === 'colored' &&
+      oldHass?.states?.['sun.sun']?.state !== hass?.states?.['sun.sun']?.state;
 
-    if (headerSensorChanged || badgePersonStateChanged) {
+    if (headerSensorChanged || badgePersonStateChanged || headerWeatherSunChanged) {
       if (this.isEventManagementDialogOpen()) {
         this._pendingHeaderSensorRender = true;
       } else {
@@ -2841,8 +2862,9 @@ class SkylightCalendarCard extends HTMLElement {
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
     this.attachSystemThemeListener();
     this.observeHostAndParentResize();
-    const agendaWindowAdvanced = this.advanceAgendaWindowToCurrentDay();
-    this.scheduleAgendaDayRollover();
+    document.addEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
+    const dateWindowAdvanced = this.advanceCalendarWindowToCurrentDay();
+    this.scheduleCalendarDayRollover();
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
       this._eventLoadingInvalidatedWhileDisconnected = false;
@@ -2851,7 +2873,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.loadEventCacheForCurrentConfig();
       }
       if (this._hass) this.ensureEventsForCurrentRange({ force: true });
-    } else if (agendaWindowAdvanced && this._hass) {
+    } else if (dateWindowAdvanced && this._hass) {
       this.ensureEventsForCurrentRange();
     }
   }
@@ -2860,6 +2882,7 @@ class SkylightCalendarCard extends HTMLElement {
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
+    document.removeEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
     this._eventCacheLoadingInvalidatedWhileDisconnected = this._eventCacheLoadingInvalidatedWhileDisconnected
       || this._eventCacheLoadInFlight
       || !this._loadedEventRange;
@@ -2868,7 +2891,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._eventFetchGeneration += 1;
     this._eventLoadingInvalidatedWhileDisconnected = true;
     this.clearEventRefreshWarningTimer();
-    this.clearAgendaDayRolloverTimer();
+    this.clearCalendarDayRolloverTimer();
     this.cancelMonthCompactMeasurement();
     if (this._monthGridResizeObserver) {
       this._monthGridResizeObserver.disconnect();
@@ -3409,73 +3432,75 @@ class SkylightCalendarCard extends HTMLElement {
     this._agendaEndDate = agendaWindow.endDate;
     this._agendaVisibleStartDate = agendaWindow.visibleStartDate;
     this._agendaVisibleEndDate = agendaWindow.visibleEndDate;
+    // This is the day the follow window was last anchored to, independent of
+    // an expanded non-rolling Agenda's mutable _agendaStartDate.
+    this._agendaFollowDay = new Date(today);
     this._agendaFollowsToday = true;
   }
 
-  getNextAgendaLocalMidnight(now = new Date()) {
+  getNextCalendarLocalMidnight(now = new Date()) {
     const nextMidnight = new Date(now);
     nextMidnight.setDate(nextMidnight.getDate() + 1);
     nextMidnight.setHours(0, 0, 0, 0);
     return nextMidnight;
   }
 
-  clearAgendaDayRolloverTimer() {
-    if (this._agendaDayRolloverTimer) {
-      clearTimeout(this._agendaDayRolloverTimer);
+  clearCalendarDayRolloverTimer() {
+    if (this._calendarDayRolloverTimer) {
+      clearTimeout(this._calendarDayRolloverTimer);
     }
-    this._agendaDayRolloverTimer = null;
+    this._calendarDayRolloverTimer = null;
   }
 
-  scheduleAgendaDayRollover(now = new Date()) {
-    this.clearAgendaDayRolloverTimer();
-    if (!this._config || this.getAgendaRollingDays() === null) return;
-
+  scheduleCalendarDayRollover(now = new Date()) {
+    this.clearCalendarDayRolloverTimer();
+    if (!this._config?.entities) return;
     const currentTime = new Date(now);
-    const nextMidnight = this.getNextAgendaLocalMidnight(currentTime);
-    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime());
-
-    this._agendaDayRolloverTimer = setTimeout(() => {
-      this._agendaDayRolloverTimer = null;
-      this.handleAgendaDayRollover();
-      this.scheduleAgendaDayRollover();
+    const nextMidnight = this.getNextCalendarLocalMidnight(currentTime);
+    const delay = Math.max(1, nextMidnight.getTime() - currentTime.getTime() + 10);
+    this._calendarDayRolloverTimer = setTimeout(() => {
+      this._calendarDayRolloverTimer = null;
+      this.handleCalendarDayRollover();
+      this.scheduleCalendarDayRollover();
     }, delay);
-    this._agendaDayRolloverTimer?.unref?.();
+    this._calendarDayRolloverTimer?.unref?.();
   }
 
   advanceAgendaWindowToCurrentDay(now = new Date()) {
-    if (
-      this._viewMode !== 'agenda' ||
-      this.getAgendaRollingDays() === null ||
-      !this._agendaFollowsToday
-    ) {
+    if (this._viewMode !== 'agenda' || !this._agendaFollowsToday) {
       return false;
     }
-
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-    if (this._agendaStartDate?.getTime() === today.getTime()) {
-      return false;
-    }
-
+    if (this._agendaFollowDay?.getTime() === today.getTime()) return false;
     this.resetAgendaWindowToToday(today);
     return true;
   }
 
-  handleAgendaDayRollover(now = new Date()) {
-    if (!this.advanceAgendaWindowToCurrentDay(now)) {
-      return false;
-    }
+  advanceCalendarWindowToCurrentDay(now = new Date()) {
+    if (!this._config?.entities) return false;
+    if (this._viewMode === 'agenda') return this.advanceAgendaWindowToCurrentDay(now);
+    if (!this._calendarFollowsToday) return false;
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const anchor = new Date(this._currentDate);
+    anchor.setHours(0, 0, 0, 0);
+    if (anchor.getTime() === today.getTime()) return false;
+    this._currentDate = today;
+    this.setWeekStart();
+    return true;
+  }
 
+  handleCalendarDayRollover(now = new Date()) {
+    if (!this.advanceCalendarWindowToCurrentDay(now)) return false;
     if (this.isEventManagementDialogOpen()) {
       this._pendingHeaderSensorRender = true;
+      this._pendingCalendarDayRolloverRefresh = true;
       return true;
     }
-
-    if (this._hass) {
-      this.ensureEventsForCurrentRange({ renderIfCovered: true });
-    } else {
-      this.render();
-    }
+    // Render the new grid immediately, independent of the calendar API.
+    this.renderPreservingAgendaScroll();
+    if (this._hass) this.ensureEventsForCurrentRange();
     return true;
   }
 
@@ -3832,6 +3857,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgesInlineMarkup({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -4236,6 +4262,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgesMarkup({
       badgeItems: this.getVirtualBadgeItems(),
       hideCalendarNames: !!this._config.hide_calendar_names,
+      hidePersonState: !!this._config.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }
@@ -4268,7 +4295,7 @@ class SkylightCalendarCard extends HTMLElement {
           return `
             <div class="all-day-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''} ${showTitle && visibleDaySpan > 1 ? 'leading-span-title' : ''}"
                  style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute}
-                 data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                 data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
               <div class="all-day-event-title ${showTitle && visibleDaySpan > 1 ? 'spans-multiple-days' : ''}">${showTitle ? this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event)) : ''}</div>
               ${this.renderEventStyleCornerIcon(event)}
             </div>
@@ -4390,7 +4417,7 @@ class SkylightCalendarCard extends HTMLElement {
       return `
         <div class="week-standard-event"
              style="top: ${top}px; height: ${height}px; width: ${width}; left: ${left}; ${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};"
-             data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+             data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
           <div class="week-standard-event-title">${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}</div>
           ${this.shouldShowEventTime(event) ? `<div class="week-standard-event-time">${this.formatEventTimeRange(eventStart, eventEnd, { schedule: true })}</div>` : ''}
           ${this.shouldShowEventLocation(event) ? `<div class="week-standard-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -5044,7 +5071,7 @@ class SkylightCalendarCard extends HTMLElement {
     const spanDataAttribute = visibleDaySpan > 1 ? ` data-month-span-days="${visibleDaySpan}"` : '';
 
     return `
-      <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="event month-span-event ${extendsBeforeVisibleRange ? 'continues-prev' : ''} ${extendsAfterVisibleRange ? 'continues-next' : ''}" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};${spanStyle}"${spanDataAttribute} data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${this.renderEventTitleWithPrefix(event, displayTitle || this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
         ${this.renderCombinedCornerBubbles(event)}
@@ -5070,7 +5097,7 @@ class SkylightCalendarCard extends HTMLElement {
     const eventStyle = this.getEventStyle(event);
 
     return `
-      <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}
         <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
         ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -5087,7 +5114,7 @@ class SkylightCalendarCard extends HTMLElement {
     const eventStyle = this.getEventStyle(event);
 
     return `
-      <div class="event" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+      <div class="event" style="${eventStyle}; --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
         ${!isAllDaySegment && this.shouldShowEventTime(event) ? `<span class="event-time">${this.formatEventTime(segmentStart)}</span>` : ''}
         ${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}
         ${this.renderEventStyleCornerIcon(event)}
@@ -5695,10 +5722,12 @@ class SkylightCalendarCard extends HTMLElement {
     // View mode selector
     const viewModeSelect = this.getRootElementById('view-mode-select');
     viewModeSelect?.addEventListener('change', () => {
+      const previousViewMode = this._viewMode;
       this._viewMode = viewModeSelect.value;
       if (this._viewMode === 'agenda') {
         this.resetAgendaWindowToToday();
       } else {
+        if (previousViewMode === 'agenda') this._calendarFollowsToday = this._agendaFollowsToday;
         this.setWeekStart();
       }
       this.ensureEventsForCurrentRange({ renderIfCovered: true });
@@ -5751,6 +5780,7 @@ class SkylightCalendarCard extends HTMLElement {
         this.resetAgendaWindowToToday();
       } else {
         this._currentDate = new Date();
+        this._calendarFollowsToday = true;
       }
       if (this._viewMode !== 'agenda' && this.getRollingDaysForView() === null) {
         this.setWeekStart();
@@ -5777,6 +5807,8 @@ class SkylightCalendarCard extends HTMLElement {
         this._agendaPendingScrollTop = agendaContainer.scrollTop;
         this._agendaEndDate.setDate(this._agendaEndDate.getDate() + this._agendaDaysPerScrollLoad);
       } else if (nearTop && canLoadPastAgendaDays) {
+        // Loading history is deliberate navigation; don't discard it at midnight.
+        this._agendaFollowsToday = false;
         this._agendaPendingScrollTop = null;
         this._agendaStartDate.setDate(this._agendaStartDate.getDate() - this._agendaDaysPerScrollLoad);
       }
@@ -5947,10 +5979,13 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   flushPendingHeaderTimeRender() {
+    const refreshForRollover = this._pendingCalendarDayRolloverRefresh;
+    this._pendingCalendarDayRolloverRefresh = false;
     if (this._pendingHeaderSensorRender) {
       this._pendingHeaderSensorRender = false;
       this.renderPreservingAgendaScroll();
     }
+    if (refreshForRollover && this._hass) this.ensureEventsForCurrentRange();
     if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
       const renderIfCovered = this._pendingEventRenderAfterCurrentFetch;
       this._pendingEventRefreshAfterCurrentFetch = false;
@@ -5964,6 +5999,7 @@ class SkylightCalendarCard extends HTMLElement {
       return;
     }
 
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
@@ -6014,6 +6050,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   navigateToNextPeriod() {
+    if (this._viewMode !== 'agenda') this._calendarFollowsToday = false;
     if (this._viewMode === 'agenda') {
       this.ensureAgendaWindowInitialized();
       this._agendaFollowsToday = false;
@@ -6858,6 +6895,13 @@ class SkylightCalendarCard extends HTMLElement {
       } catch (error) {
         console.error('Failed to update event:', error);
 
+        // The calendar may hold the edit already; reload it so the user sees what was saved.
+        if (error.updateNotConfirmed) {
+          this._lastFetch = null;
+          this.updateEvents({ preserveScroll: this._viewMode === 'agenda' })
+            .catch((refreshError) => console.error('Failed to refresh after unconfirmed update:', refreshError));
+        }
+
         // Safety net: if edit was blocked by capability detection, still try create+delete.
         // Some integrations misreport update/delete support even though create+delete works.
         if (error.message === this.t('calendarNoModifyError')) {
@@ -6904,27 +6948,38 @@ class SkylightCalendarCard extends HTMLElement {
 
     const { isRecurringUpdate, recurrenceId, recurrenceRange } = getRecurringUpdateControls(originalEvent, eventData, editScope);
 
-    if (isRecurringUpdate && !movingCalendar && this._hass.connection?.sendMessagePromise) {
+    // Prefer the Calendar WebSocket API (the one the HA calendar panel uses) for every in-place
+    // edit on a calendar that supports UPDATE_EVENT. It keeps the event UID and does not depend
+    // on whichever integration happens to own the calendar.update_event service name.
+    const useWebSocketUpdate = (isRecurringUpdate || capabilities.canUpdate) && !movingCalendar;
+    if (useWebSocketUpdate && this._hass.connection?.sendMessagePromise) {
       const wsPayload = buildUpdateEventWebSocketPayload(originalEvent, eventData, recurrenceId, recurrenceRange);
 
       try {
         await this._hass.connection.sendMessagePromise(wsPayload);
         return;
       } catch (error) {
-        console.error('Recurring update via WebSocket failed, falling back:', error?.message || error);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('WebSocket', error);
+        }
+        console.error('Update via WebSocket rejected, falling back:', error?.message || error);
       }
     }
 
-    // If calendar supports UPDATE, we're not moving calendars, and service exists, use update service
-    const hasUpdateService = !!this._hass.services?.calendar?.update_event;
+    // If calendar supports UPDATE, we're not moving calendars, and a compatible service exists, use it.
+    // Spook (5.11+) registers its own calendar.update_event with a lookup-style schema
+    // (new_summary/new_start/new_end/shift), so the service must declare the card's full schema.
+    const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
+    const hasUpdateService = isCompatibleUpdateEventService(this._hass.services?.calendar?.update_event, serviceData);
     if (capabilities.canUpdate && !movingCalendar && hasUpdateService) {
       try {
-        const serviceData = buildUpdateEventServiceData(originalEvent, eventData, recurrenceId, recurrenceRange);
-
         await this._hass.callService('calendar', 'update_event', serviceData);
         return;
       } catch (error) {
-        console.error('Update service failed, trying create+delete fallback:', error.message);
+        if (!isDefinitiveUpdateRejection(error)) {
+          throw this.createUpdateNotConfirmedError('Update service', error);
+        }
+        console.error('Update service rejected, trying create+delete fallback:', error?.message || error);
         // Fall through to create+delete pattern
       }
     } else if (capabilities.canUpdate && !movingCalendar && !hasUpdateService) {
@@ -6946,6 +7001,15 @@ class SkylightCalendarCard extends HTMLElement {
       console.error('Create+Delete fallback failed:', error);
       throw new Error(error.message || this.t('updateEventServiceError'));
     }
+  }
+
+  // The update may already be applied when its result is lost, so never replace the event then.
+  createUpdateNotConfirmedError(source, cause) {
+    console.error(`${source} update not confirmed, skipping create+delete fallback:`, cause?.message || cause);
+    const error = new Error(this.t('updateEventNotConfirmed'));
+    error.updateNotConfirmed = true;
+    error.cause = cause;
+    return error;
   }
 
   async deleteEvent(calendarId, uid, recurrenceId = null, recurrenceRange = null) {
@@ -7792,7 +7856,7 @@ class SkylightCalendarCard extends HTMLElement {
               const timeLabel = isAllDaySegment ? this.t('allDay') : this.formatEventTime(segmentStart);
               const eventStyle = this.getEventStyle(event);
               return `
-                <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+                <div class="week-compact-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
                   ${this.shouldShowEventTime(event) ? `${this.shouldShowEventTime(event) ? `<div class="week-compact-event-time">${timeLabel}</div>` : ''}` : ''}
                   <div class="week-compact-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
                   ${this.shouldShowEventLocation(event) ? `<div class="week-compact-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -7844,7 +7908,7 @@ class SkylightCalendarCard extends HTMLElement {
           const eventStyle = this.getEventStyle(event, { withBorderAccent: true });
 
           return `
-            <div class="day-event day-modal-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/'/g, "&#39;")}'>
+            <div class="day-event day-modal-event" style="${eventStyle} --event-bubble-font-size: ${this.getEventBubbleFontSize(event)}; --event-time-font-size: ${this.getEventTimeFontSize(event)}; --event-location-font-size: ${this.getEventLocationFontSize(event)}; --event-bubble-text-color: ${this.getEventBubbleFontColor(event)};" data-event='${JSON.stringify(event).replace(/&/g, "&amp;").replace(/'/g, "&#39;")}'>
               <div class="day-modal-event-title">${this.renderEventTitleWithPrefix(event, this.getEventDisplayTitle(event))}</div>
               ${this.shouldShowEventTime(event) ? `<div class="day-modal-event-meta">${isAllDaySegment ? this.t('allDay') : this.formatEventTimeRange(segmentStart, segmentEnd)}</div>` : ''}
               ${this.shouldShowEventLocation(event) ? `<div class="day-modal-event-location">📍 ${this.escapeHtml(this.getDisplayLocation(event.location, event))}</div>` : ''}
@@ -7903,37 +7967,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   parseTimeValue(value) {
-    if (value === undefined || value === null) return null;
-    const raw = String(value).trim();
-    if (!raw || raw === 'unknown' || raw === 'unavailable') return null;
-
-    const dateCandidate = new Date(raw);
-    if (!Number.isNaN(dateCandidate.getTime())) {
-      return dateCandidate;
-    }
-
-    const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp][Mm]))?$/);
-    if (!timeMatch) return null;
-
-    let hours = Number(timeMatch[1]);
-    const minutes = Number(timeMatch[2]);
-    const seconds = Number(timeMatch[3] || 0);
-    const meridiem = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
-    if (minutes > 59 || seconds > 59) return null;
-
-    if (meridiem) {
-      if (hours < 1 || hours > 12) return null;
-      if (meridiem === 'pm' && hours !== 12) hours += 12;
-      if (meridiem === 'am' && hours === 12) hours = 0;
-    } else if (hours > 23) {
-      return null;
-    }
-
-    const parsed = new Date();
-    parsed.setHours(hours, minutes, seconds, 0);
-    return parsed;
+    return parseTimeValue(value);
   }
 
   teardownWeatherForecastSubscription() {
@@ -7974,7 +8008,10 @@ class SkylightCalendarCard extends HTMLElement {
   getHeaderWeatherData() {
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
-    return getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    const weatherData = getHeaderWeatherDisplayData(this._hass, sensorEntityId);
+    if (!weatherData || this._config?.weather_icon_style !== 'colored') return weatherData;
+    const nightTime = this._hass?.states?.['sun.sun']?.state === 'below_horizon';
+    return { ...weatherData, iconHtml: renderColoredWeatherSvg(weatherData.condition, { nightTime }) };
   }
 
   resolveHeaderItems() {
@@ -7999,7 +8036,9 @@ class SkylightCalendarCard extends HTMLElement {
     const weatherEntity = this._hass?.states?.[sensorEntityId];
     const wsForecast = this._weatherForecastController.getForecastForEntity(sensorEntityId);
     const forecasts = getWeatherEntityForecast(weatherEntity, wsForecast);
-    return normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    const forecast = normalizeForecastForDate(forecasts, date, (forecastDate) => this.getDateKey(forecastDate));
+    if (!forecast || this._config?.weather_icon_style !== 'colored') return forecast;
+    return { ...forecast, iconHtml: renderColoredWeatherSvg(forecast.condition) };
   }
 
   renderDayForecast(date, viewMode = 'week-compact') {
@@ -8086,6 +8125,7 @@ class SkylightCalendarCard extends HTMLElement {
     return renderCalendarBadgeLabelMarkup({
       badgeItem,
       badgeTextColor,
+      hidePersonState: !!this._config?.hide_calendar_badge_person_state,
       helpers: this.getCalendarBadgeRenderHelpers()
     });
   }

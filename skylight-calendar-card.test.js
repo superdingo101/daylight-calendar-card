@@ -82,6 +82,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   calendar_names: 'calendar_names overrides displayed calendar labels',
   calendar_badge_icons: 'calendar badge can show linked person location and picture',
   calendar_person_entities: 'calendar badge can show linked person location and picture',
+  hide_calendar_badge_person_state: 'hide_calendar_badge_person_state hides linked person state but keeps name and picture',
   max_events: 'max_events limits rendered agenda events',
   default_view: 'setConfig normalizes fallback values and aliases',
   week_days: 'week_days filters configured week rendering days',
@@ -127,6 +128,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
   show_daily_weather_forecast: 'daily weather forecasts default on and can be disabled without hiding header weather',
+  weather_icon_style: 'weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback',
   header_items: 'header_items normalize supported item shapes and formats',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
@@ -3047,6 +3049,34 @@ test('calendar badge can show linked person location and picture', () => {
   assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
 });
 
+test('hide_calendar_badge_person_state hides linked person state but keeps name and picture', () => {
+  const card = new Card();
+  card._hass = {
+    states: {
+      'calendar.family': { entity_id: 'calendar.family', attributes: { friendly_name: 'Ian' } },
+      'person.ian': { entity_id: 'person.ian', state: 'home', attributes: { friendly_name: 'Ian', entity_picture: '/api/image/serve/ian/original' } }
+    },
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card.setConfig({
+    entities: ['calendar.family'],
+    calendar_person_entities: { 'calendar.family': 'person.ian' },
+    hide_calendar_badge_person_state: true
+  });
+
+  originalCardRender.call(card);
+  const html = card._root.innerHTML;
+
+  assert.equal(card._config.hide_calendar_badge_person_state, true);
+  assert.match(html, /calendar-badge-name/);
+  assert.match(html, /calendar-badge-person-icon/);
+  assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
+  assert.doesNotMatch(html, /class="calendar-badge-person-state"/);
+  assert.doesNotMatch(html, />Home</);
+});
+
 
 test('event modal overlay CSS uses viewport-fixed coverage and high stacking', () => {
   const card = makeCard();
@@ -3291,6 +3321,110 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
 });
 
+test('weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback', () => {
+  const states = {
+    'weather.home': {
+      state: 'partlycloudy',
+      attributes: {
+        temperature: 21,
+        forecast: [
+          { datetime: '2026-05-14T12:00:00Z', condition: 'rainy', temperature: 24, templow: 12 },
+          { datetime: '2026-05-15T12:00:00Z', condition: 'exceptional', temperature: 20, templow: 10 }
+        ]
+      }
+    },
+    'sun.sun': { state: 'below_horizon', attributes: {} }
+  };
+
+  const defaultCard = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  defaultCard._hass = { states };
+  assert.equal(defaultCard._config.weather_icon_style, 'mdi');
+  assert.match(defaultCard.renderHeaderTitle(), /<ha-icon icon="mdi:weather-partly-cloudy"><\/ha-icon>/);
+  assert.doesNotMatch(defaultCard.renderDayForecast(new Date('2026-05-14T00:00:00Z')), /weather-svg-icon/);
+
+  const invalidCard = makeCard({ entities: ['calendar.family'], weather_icon_style: 'rainbow' });
+  assert.equal(invalidCard._config.weather_icon_style, 'mdi');
+
+  const card = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home', weather_icon_style: 'colored' });
+  card._hass = { states };
+  const headerHtml = card.renderHeaderTitle();
+  assert.match(headerHtml, /<svg class="weather-svg-icon"/);
+  assert.match(headerHtml, /class="moon"/, 'partly cloudy at night shows the moon');
+  assert.match(headerHtml, /class="cloud-front"/);
+  assert.doesNotMatch(headerHtml, /<ha-icon icon="mdi:weather-partly-cloudy">/);
+
+  const rainyHtml = card.renderDayForecast(new Date('2026-05-14T00:00:00Z'));
+  assert.match(rainyHtml, /<span class="forecast-condition"><svg class="weather-svg-icon"/);
+  assert.match(rainyHtml, /class="rain"/);
+
+  const fallbackHtml = card.renderDayForecast(new Date('2026-05-15T00:00:00Z'));
+  assert.match(fallbackHtml, /<ha-icon icon="mdi:alert-circle-outline"><\/ha-icon>/);
+  assert.doesNotMatch(fallbackHtml, /weather-svg-icon/);
+});
+
+test('colored header weather rerenders when only sun.sun changes', () => {
+  const makeHass = (sunState) => ({
+    states: {
+      'weather.home': { state: 'partlycloudy', attributes: { temperature: 21 } },
+      'sun.sun': { state: sunState, attributes: {} }
+    },
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  });
+  const prepare = (config) => {
+    const card = makeCard(config);
+    card._hass = makeHass('above_horizon');
+    card._activeLanguage = 'en';
+    card._isDarkMode = false;
+    card.checkAllCalendarCapabilities = () => {};
+    card.ensureWeatherForecastSubscription = () => {};
+    card.refreshWeatherForecastData = () => {};
+    card.ensureEventsForCurrentRange = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card.renderCount = 0;
+    card.renderPreservingAgendaScroll = () => { card.renderCount += 1; };
+    return card;
+  };
+
+  const card = prepare({ entities: ['calendar.family'], header_weather_sensor: 'weather.home', weather_icon_style: 'colored' });
+  assert.match(card.renderHeaderTitle(), /class="sun"/);
+  card.hass = makeHass('below_horizon');
+  assert.equal(card.renderCount, 1);
+  assert.match(card.renderHeaderTitle(), /class="moon"/);
+  assert.doesNotMatch(card.renderHeaderTitle(), /class="sun"/);
+  card.hass = makeHass('above_horizon');
+  assert.equal(card.renderCount, 2);
+  assert.match(card.renderHeaderTitle(), /class="sun"/);
+
+  const mdiCard = prepare({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  mdiCard.hass = makeHass('below_horizon');
+  assert.equal(mdiCard.renderCount, 0, 'default MDI icons do not depend on sun.sun');
+});
+
+test('colored weather clear alias follows nightTime', async () => {
+  const { renderColoredWeatherSvg } = await import('./src/weather/weather-svg-icons.js');
+  assert.match(renderColoredWeatherSvg('clear'), /class="sun"/);
+  assert.doesNotMatch(renderColoredWeatherSvg('clear'), /class="moon"/);
+  assert.match(renderColoredWeatherSvg('clear', { nightTime: true }), /class="moon"/);
+  assert.doesNotMatch(renderColoredWeatherSvg('clear', { nightTime: true }), /class="sun"/);
+  assert.equal(renderColoredWeatherSvg('clear', { nightTime: true }), renderColoredWeatherSvg('clear-night'));
+});
+
+test('colored weather SVG covers every Home Assistant condition that has artwork', async () => {
+  const { renderColoredWeatherSvg } = await import('./src/weather/weather-svg-icons.js');
+  const conditions = ['sunny', 'clear-night', 'partlycloudy', 'cloudy', 'fog', 'hail', 'lightning', 'lightning-rainy', 'pouring', 'rainy', 'snowy', 'snowy-rainy', 'windy', 'windy-variant'];
+  for (const condition of conditions) {
+    assert.match(renderColoredWeatherSvg(condition), /^<svg class="weather-svg-icon"[^>]*viewBox="0 0 17 17"/, condition);
+  }
+  assert.match(renderColoredWeatherSvg('sunny'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('partlycloudy'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('snowy'), /class="snow"/);
+  assert.equal(renderColoredWeatherSvg('exceptional'), '');
+  assert.equal(renderColoredWeatherSvg('unknown'), '');
+  assert.equal(renderColoredWeatherSvg(''), '');
+});
+
 test('daily weather forecasts default on and can be disabled without hiding header weather', () => {
   const weatherState = {
     state: 'sunny',
@@ -3446,11 +3580,11 @@ test('weather utility normalizes header weather data and preserves temperature u
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'sunny',
     attributes: { temperature: 21.4 }
-  }), { conditionIcon: 'mdi:weather-sunny', temperature: '21°' });
+  }), { conditionIcon: 'mdi:weather-sunny', condition: 'sunny', temperature: '21°' });
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'cloudy',
     attributes: { condition: 'rainy', current_temperature: 18.6 }
-  }), { conditionIcon: 'mdi:weather-rainy', temperature: '19°' });
+  }), { conditionIcon: 'mdi:weather-rainy', condition: 'rainy', temperature: '19°' });
   assert.equal(normalizeHeaderWeatherData({ state: 'unavailable', attributes: { temperature: 20 } }), null);
   assert.equal(normalizeHeaderWeatherData({ state: 'sunny', attributes: {} }), null);
   assert.equal(normalizeHeaderWeatherData(null), null);
@@ -3465,6 +3599,7 @@ test('weather utility normalizes forecast items and handles missing or empty dat
     { date: '2026-05-14', condition: 'partlycloudy', temphigh: 24.2, temperature_low: 12.4 }
   ], new Date('2026-05-14T00:00:00Z'), getDateKey), {
     conditionIcon: 'mdi:weather-partly-cloudy',
+    condition: 'partlycloudy',
     highTemp: '24°',
     lowTemp: '12°'
   });
@@ -3714,7 +3849,7 @@ test('agenda rollover target is browser-local midnight and follows DST calendar 
   try {
     const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
     const dstStartMidnight = new Date(2026, 2, 8, 0, 0, 0, 0);
-    const nextMidnight = card.getNextAgendaLocalMidnight(dstStartMidnight);
+    const nextMidnight = card.getNextCalendarLocalMidnight(dstStartMidnight);
 
     assert.equal(nextMidnight.getFullYear(), 2026);
     assert.equal(nextMidnight.getMonth(), 2);
@@ -3753,14 +3888,212 @@ test('agenda local-midnight rollover refreshes the visible range', () => {
   card.resetAgendaWindowToToday(new Date(2026, 8, 18, 10, 30));
   card.isEventManagementDialogOpen = () => false;
 
-  let refreshOptions = null;
-  card.ensureEventsForCurrentRange = (options) => { refreshOptions = options; };
-
-  const advanced = card.handleAgendaDayRollover(new Date(2026, 8, 19, 0, 0, 1));
-
+  let renderCount = 0;
+  let refreshCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.ensureEventsForCurrentRange = () => { refreshCount += 1; };
+  const advanced = card.handleCalendarDayRollover(new Date(2026, 8, 19, 0, 0, 1));
   assert.equal(advanced, true);
-  assert.deepEqual(refreshOptions, { renderIfCovered: true });
+  assert.equal(renderCount, 1);
+  assert.equal(refreshCount, 1);
   assert.equal(localDateKey(card._agendaStartDate), '2026-09-19');
+});
+
+
+test('rolling Week and Schedule date columns advance after local midnight', () => {
+  for (const [view, option] of [
+    ['week-compact', 'rolling_days_week_compact'],
+    ['week-standard', 'rolling_days_schedule']
+  ]) {
+    const card = makeCard({ entities: ['calendar.family'], default_view: view, [option]: 3 });
+    card._currentDate = new Date(2026, 9, 20, 12);
+    card.setWeekStart();
+    assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23']);
+    let renders = 0;
+    let refreshes = 0;
+    card._hass = {};
+    card.isEventManagementDialogOpen = () => false;
+    card.renderPreservingAgendaScroll = () => { renders++; };
+    card.ensureEventsForCurrentRange = () => { refreshes++; };
+    assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 0, 0, 1)), true);
+    assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24']);
+    assert.equal(renders, 1, view + ' must render without waiting for events');
+    assert.equal(refreshes, 1);
+    assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 1)), false);
+    assert.equal(renders, 1);
+  }
+});
+
+test('rolling Month and standard week views advance at the next week boundary', () => {
+  for (const [view, extra] of [
+    ['month', { rolling_weeks: 2 }],
+    ['week-compact', {}],
+    ['week-standard', {}]
+  ]) {
+    const card = makeCard({ entities: ['calendar.family'], default_view: view, first_day_of_week: 0, ...extra });
+    card._currentDate = new Date(2026, 9, 24, 12);
+    card.setWeekStart();
+    assert.equal(localDateKey(card.getVisibleDateRange().startDate), '2026-10-18');
+    assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 25, 0, 0, 1)), true);
+    assert.equal(localDateKey(card.getVisibleDateRange().startDate), '2026-10-25');
+  }
+});
+
+test('standard Month stays in the month until its boundary', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'month' });
+  card._currentDate = new Date(2026, 9, 30, 12);
+  card.setWeekStart();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 31, 12)), true);
+  assert.equal(card._currentDate.getMonth(), 9);
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 10, 1, 0, 0, 1)), true);
+  assert.equal(card._currentDate.getMonth(), 10);
+});
+
+test('non-rolling Agenda advances when still following today', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card.resetAgendaWindowToToday(new Date(2026, 9, 20, 12));
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-10-21');
+  assert.equal(card.getAgendaDays().length, 15);
+});
+
+test('manual period navigation opts out of rollover until Today is pressed', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 2 });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  card.navigateToNextPeriod();
+  assert.equal(card._calendarFollowsToday, false);
+  const chosenStart = localDateKey(card.getWeekDays()[0]);
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), false);
+  assert.equal(localDateKey(card.getWeekDays()[0]), chosenStart);
+  const handlers = {};
+  card.getRootElementById = id => id === 'today' ? {
+    addEventListener: (name, callback) => { handlers[name] = callback; }
+  } : null;
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.observeModalVisibility = () => {};
+  card.attachEventListeners();
+  handlers.click();
+  assert.equal(card._calendarFollowsToday, true);
+  assert.equal(localDateKey(card.getWeekDays()[0]), localDateKey(new Date()));
+});
+
+test('missed midnight rollover catches up multiple days in one update', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 1 });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 23, 12)), true);
+  assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-23', '2026-10-24']);
+});
+
+test('a modal opened across midnight defers rendering and refresh until close', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  card._hass = {};
+  let rendered = 0;
+  let refreshed = 0;
+  card.renderPreservingAgendaScroll = () => { rendered++; };
+  card.ensureEventsForCurrentRange = () => { refreshed++; };
+  card.isEventManagementDialogOpen = () => true;
+  assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(rendered, 0);
+  assert.equal(refreshed, 0);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, true);
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+  assert.equal(rendered, 1);
+  assert.equal(refreshed, 1);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, false);
+});
+
+test('midnight scheduling uses 25-hour local calendar days at autumn DST', () => {
+  const originalTimeZone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+    const before = new Date(2026, 10, 1, 0, 0);
+    const after = card.getNextCalendarLocalMidnight(before);
+    assert.equal(localDateKey(after), '2026-11-02');
+    assert.equal(after.getTime() - before.getTime(), 25 * 60 * 60 * 1000);
+  } finally {
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
+  }
+});
+
+
+test('non-rolling Agenda does not interpret loaded earlier days as a new day', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  const today = new Date(2026, 9, 20, 10);
+  card.resetAgendaWindowToToday(today);
+  card._agendaStartDate.setDate(card._agendaStartDate.getDate() - 7);
+  const expandedStart = localDateKey(card._agendaStartDate);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 20, 18)), false);
+  assert.equal(localDateKey(card._agendaStartDate), expandedStart);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-10-21');
+});
+
+test('scrolling upward into non-rolling Agenda history disables auto-follow', async () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card.resetAgendaWindowToToday();
+  const previousStart = new Date(card._agendaStartDate);
+  const handlers = {};
+  const container = {
+    scrollTop: 0, clientHeight: 300, scrollHeight: 1000,
+    addEventListener: (event, callback) => { handlers[event] = callback; },
+    querySelectorAll: () => []
+  };
+  card.getRootElementById = id => id === 'agenda-container' ? container : null;
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.observeModalVisibility = () => {};
+  card.updateAgendaVisibleDateRangeFromDom = () => {};
+  card.canNavigateToPreviousPeriod = () => true;
+  // The scroll-retention animation is browser-only; keep this unit test
+  // focused on the history expansion and follow state.
+  card.setAgendaScrollTopWithoutTriggeringLoad = () => {};
+  card.ensureEventsForCurrentRange = async () => {};
+  card.attachEventListeners();
+  await handlers.scroll();
+  assert.equal(card._agendaFollowsToday, false);
+  assert.equal(localDateKey(card._agendaStartDate),
+    localDateKey(new Date(previousStart.getFullYear(), previousStart.getMonth(), previousStart.getDate() - card._agendaDaysPerScrollLoad)));
+  const expandedStart = card._agendaStartDate.getTime();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(Date.now() + 2 * 86400000)), false);
+  assert.equal(card._agendaStartDate.getTime(), expandedStart);
+});
+
+test('hass-triggered midnight rollover queues stale refresh while event dialog is open', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 2 });
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  card._currentDate = yesterday;
+  card.setWeekStart();
+  const hass = { states: {}, themes: { darkMode: false }, language: 'en' };
+  card._hass = hass;
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.loadEventCacheForCurrentConfig = () => {};
+  card.isEventManagementDialogOpen = () => true;
+  let renders = 0, refreshes = 0;
+  card.renderPreservingAgendaScroll = () => { renders++; };
+  // Reflect the normal stale-event refresh guard while the modal is open.
+  card.ensureEventsForCurrentRange = () => {
+    if (!card.isEventManagementDialogOpen()) refreshes++;
+  };
+
+  card.hass = { ...hass, states: {} };
+  assert.equal(localDateKey(card._currentDate), localDateKey(new Date()));
+  assert.equal(card._pendingCalendarDayRolloverRefresh, true);
+  assert.equal(renders, 0);
+  assert.equal(refreshes, 0);
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+  assert.equal(renders, 1);
+  assert.equal(refreshes, 1);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, false);
 });
 
 test('agenda vertical scroll loading is disabled in rolling-days mode', async () => {
@@ -7068,16 +7401,14 @@ for (const calendarType of [
 
       await card.updateEvent(originalEvent, calendarType.id, eventData, 'future');
 
+      assert.equal(calls.length, 0);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].entity_id, calendarType.id);
+      assert.equal(sent[0].uid, 'uid-1');
       if (recurrence.rrule) {
-        assert.equal(sent.length, 1);
-        assert.equal(sent[0].type, 'calendar/event/update');
-        assert.equal(sent[0].entity_id, calendarType.id);
         assert.equal(sent[0].event.rrule, recurrence.rrule);
         assert.equal(sent[0].recurrence_range, 'THISANDFUTURE');
-      } else {
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0][1], 'update_event');
-        assert.equal(calls[0][2].entity_id, calendarType.id);
       }
     });
 
@@ -7112,6 +7443,214 @@ for (const calendarType of [
     });
   }
 }
+
+const makeUpdateEventCard = ({ wsError = null, serviceError = null, updateService, connection = true } = {}) => {
+  const card = makeCard();
+  const sent = [];
+  const calls = [];
+  card._calendarCapabilities['calendar.caldav_work'] = { canUpdate: true };
+  card._hass = {
+    connection: connection ? {
+      sendMessagePromise: async (payload) => {
+        sent.push(payload);
+        if (wsError && payload.type === 'calendar/event/update') {
+          throw wsError;
+        }
+      }
+    } : undefined,
+    services: { calendar: updateService ? { update_event: updateService } : {} },
+    callService: async (...args) => {
+      calls.push(args);
+      if (serviceError && args[1] === 'update_event') {
+        throw serviceError;
+      }
+    }
+  };
+  return { card, sent, calls };
+};
+
+const singleEventUpdate = {
+  originalEvent: { entityId: 'calendar.caldav_work', uid: 'uid-1' },
+  eventData: {
+    summary: 'Updated',
+    start: { dateTime: '2026-05-01T15:00:00Z' },
+    end: { dateTime: '2026-05-01T16:00:00Z' }
+  }
+};
+
+const compatibleUpdateService = {
+  fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} }
+};
+
+// Spook's calendar.update_event (5.11+): the first four keys are lookup filters, the rest are changes.
+const spookUpdateService = {
+  fields: {
+    summary: {}, uid: {}, start_date_time: {}, end_date_time: {}, duration: {},
+    new_summary: {}, description: {}, location: {}, new_start: {}, new_end: {}, shift: {}
+  }
+};
+
+// Error shapes as rejected by home-assistant-js-websocket.
+const unknownCommandError = { code: 'unknown_command', message: 'Unknown command.' };
+const notSupportedError = { code: 'not_supported', message: 'Calendar does not support event update' };
+const connectionLostError = { code: 3, message: 'Connection lost' };
+
+const withSilencedConsole = async (fn) => {
+  const originalError = console.error;
+  const originalLog = console.log;
+  const originalDebug = console.debug;
+  console.error = () => {};
+  console.log = () => {};
+  console.debug = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.error = originalError;
+    console.log = originalLog;
+    console.debug = originalDebug;
+  }
+};
+
+const runSingleEventUpdate = (card) => withSilencedConsole(() => card.updateEvent(
+  singleEventUpdate.originalEvent, 'calendar.caldav_work', singleEventUpdate.eventData
+));
+
+const wasReplaced = (calls, sent) => calls.some((call) => call[1] === 'create_event')
+  || sent.some((payload) => payload.type === 'calendar/event/create' || payload.type === 'calendar/event/delete');
+
+test('updateEvent ignores a Spook-style calendar.update_event service', async () => {
+  const { card, sent, calls } = makeUpdateEventCard({ wsError: notSupportedError, updateService: spookUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(sent.some((payload) => payload.type === 'calendar/event/delete'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service that lacks a field the card sends', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: { fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {} } }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service without field metadata', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: {} });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+});
+
+test('updateEvent accepts a compatible update_event service whose fields sit in collapsible sections', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: {
+      fields: {
+        uid: {}, summary: {},
+        timing: { collapsed: true, fields: { start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} } }
+      }
+    }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent requires the update_event service to declare fields only present in this payload', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: compatibleUpdateService });
+
+  await withSilencedConsole(() => card.updateEvent(
+    singleEventUpdate.originalEvent, 'calendar.caldav_work', { ...singleEventUpdate.eventData, location: 'Office' }
+  ));
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+for (const [label, wsError] of [['unknown command', unknownCommandError], ['unsupported update', notSupportedError]]) {
+  test(`updateEvent falls back to a compatible update_event service after an ${label} WebSocket error`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await runSingleEventUpdate(card);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][1], 'update_event');
+    assert.equal(calls[0][2].uid, 'uid-1');
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent uses the update service when there is no WebSocket connection', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false, updateService: compatibleUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent falls back to create+delete when there is no WebSocket connection or update service', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(calls.some((call) => call[1] === 'delete_event'), true);
+});
+
+for (const [label, wsError] of [
+  ['a lost connection', connectionLostError],
+  ['a timeout', { code: 'timeout', message: 'Timeout' }],
+  ['a client-side error without a code', new Error('Timeout waiting for response')],
+  ['an integration error', { code: 'failed', message: 'CalDAV server returned 502' }]
+]) {
+  test(`updateEvent does not replace the event after ${label} on the WebSocket update`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await assert.rejects(runSingleEventUpdate(card), (error) => {
+      assert.equal(error.updateNotConfirmed, true);
+      assert.equal(error.cause, wsError);
+      return true;
+    });
+
+    assert.equal(calls.length, 0);
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent does not replace the event when the update service result is lost', async () => {
+  const { card, calls, sent } = makeUpdateEventCard({
+    connection: false,
+    serviceError: connectionLostError,
+    updateService: compatibleUpdateService
+  });
+
+  await assert.rejects(runSingleEventUpdate(card), (error) => error.updateNotConfirmed === true);
+
+  assert.equal(calls.length, 1);
+  assert.equal(wasReplaced(calls, sent), false);
+});
+
+test('updateEvent replaces the event when the update service rejects the request', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    serviceError: { code: 'service_validation_error', message: 'Invalid' },
+    updateService: compatibleUpdateService
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
 
 test('calendar colors prefer configured values before default palette', () => {
   const card = makeCard({
@@ -10495,4 +11034,91 @@ test('setupSteppedDateTimeInputs converts 12-hour controls to and from the 24-ho
   assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'PM');
   // The 12-hour hour list never grows extra options.
   assert.equal(endGroup.parts['[data-stepped-part="hour"]'].options.length, 12);
+});
+
+
+test('header clock editor warns for missing, unavailable and invalid sensors, and accepts custom times', () => {
+  const Editor = customElements.get('daylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._config = { header_time_sensor: 'sensor.custom_clock' };
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+  editor._hass = { states: {} };
+  assert.match(editor.getHeaderTimeSensorWarning(), /not found/);
+  for (const state of ['unknown', 'unavailable', '', null]) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /no available value/);
+  }
+  for (const state of ['garbage', '24:00', '13:10 PM', '2026-10-20', 'October 20, 2026']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /invalid time/);
+  }
+  for (const state of ['14:30', '14:30:12', '2:30 PM', '2026-10-20T14:30:00Z']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.equal(editor.getHeaderTimeSensorWarning(), '');
+    assert.ok(Card.prototype.parseTimeValue(state));
+  }
+  editor._config.header_time_sensor = '';
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+});
+
+
+test('event title ampersands decode once for display without changing source data', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  for (const [source, escaped] of [
+    ['Music & Art', 'Music &amp; Art'],
+    ['Music &amp; Art', 'Music &amp; Art'],
+    ['Music &#38; Art', 'Music &amp; Art'],
+    ['Music &#x26; Art', 'Music &amp; Art'],
+    ['Music &amp;amp; Art', 'Music &amp;amp; Art'],
+    ['<img src=x onerror=alert(1)> &amp; Art', '&lt;img src=x onerror=alert(1)&gt; &amp; Art'],
+    ['&lt;b&gt; &amp; Art', '&amp;lt;b&amp;gt; &amp; Art']
+  ]) {
+    const event = { entityId: 'calendar.family', summary: source };
+    assert.equal(card.renderEventTitleWithPrefix(event, source), escaped);
+    assert.equal(event.summary, source);
+  }
+});
+
+
+for (const isAllDay of [false, true]) {
+  test(`WebSocket edits clear location and description on ${isAllDay ? 'all-day' : 'timed'} events`, async () => {
+    const { normalizeEventFormData } = await import('./src/events/event-form.js');
+    for (const [location, description] of [['', ''], ['', 'Keep notes'], ['Keep room', '']]) {
+      const result = normalizeEventFormData({
+        title: 'Edited', location, description, isAllDay,
+        startDate: '2026-05-01', endDate: '2026-05-01',
+        startDateTime: '2026-05-01T10:00:00', endDateTime: '2026-05-01T11:00:00'
+      });
+      assert.equal(result.valid, true);
+      const original = {
+        ...singleEventUpdate.originalEvent,
+        location: 'Old room', description: 'Old notes'
+      };
+      const { card, sent, calls } = makeUpdateEventCard();
+      // Model Local Calendar's partial-update semantics: missing fields stay unchanged.
+      const stored = { location: original.location, description: original.description };
+      card._hass.connection.sendMessagePromise = async (payload) => {
+        sent.push(payload);
+        Object.assign(stored, JSON.parse(JSON.stringify(payload.event)));
+      };
+      await withSilencedConsole(() => card.updateEvent(original, original.entityId, result.eventData));
+      assert.equal(stored.location, location);
+      assert.equal(stored.description, description);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].uid, original.uid);
+      assert.equal(sent[0].event.dtstart, result.eventData.start.date || result.eventData.start.dateTime);
+      assert.equal(sent[0].event.dtend, result.eventData.end.date || result.eventData.end.dateTime);
+      assert.equal(wasReplaced(calls, sent), false);
+    }
+  });
+}
+
+test('WebSocket update leaves absent optional fields unspecified', async () => {
+  const { buildUpdateEventWebSocketPayload } = await import('./src/events/event-service.js');
+  const payload = buildUpdateEventWebSocketPayload(singleEventUpdate.originalEvent, {
+    summary: 'Title only', start: { date: '2026-05-01' }, end: { date: '2026-05-02' }
+  });
+  assert.equal(Object.hasOwn(payload.event, 'location'), false);
+  assert.equal(Object.hasOwn(payload.event, 'description'), false);
 });
