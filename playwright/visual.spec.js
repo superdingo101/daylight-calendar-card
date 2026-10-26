@@ -2629,3 +2629,40 @@ test('header clock editor sensor selection, validation and live recovery', async
   await expect(warning).toBeHidden();
   expect(await picker.evaluate(el => el.value)).toBe('sensor.custom');
 });
+
+
+for (const view of ['month', 'week-compact', 'week-standard', 'agenda']) {
+  test(`regression 631: ampersands render safely in ${view} titles and details`, async ({ page }) => {
+    await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+    const cases = [
+      ['Literal & title', 'Literal & title'],
+      ['Encoded &amp; title', 'Encoded & title'],
+      ['Decimal &#38; title', 'Decimal & title'],
+      ['Hex &#x26; title', 'Hex & title'],
+      ['Once &amp;amp; title', 'Once &amp; title'],
+      ['All-day &amp; span', 'All-day & span'],
+      ['<img src=x onerror="window.titleInjected=true"> &amp; title', '<img src=x onerror="window.titleInjected=true"> & title']
+    ];
+    await page.evaluate(({ view, cases }) => window.renderCalendarCard({
+      config: { entities: ['calendar.family'], default_view: view, show_all_events_month: true, enable_event_management: true },
+      events: { 'calendar.family': cases.map(([summary], i) => ({
+        summary, uid: `amp-${i}`,
+        start: i === 5 ? '2026-03-15' : `2026-03-15T${String(11 + i).padStart(2, '0')}:00:00Z`,
+        end: i === 5 ? '2026-03-17' : `2026-03-15T${String(11 + i).padStart(2, '0')}:30:00Z`
+      })) }
+    }), { view, cases });
+    const card = page.locator('skylight-calendar-card');
+    for (const [source, display] of cases) {
+      const title = card.locator(eventSelectorByView[view]).filter({ hasText: display }).first();
+      await expect(title).toBeVisible();
+      await title.click();
+      await expect(card.locator('.modal-title')).toHaveText(display);
+      await card.locator('#edit-event-btn').click();
+      await expect(card.locator('#event-title')).toHaveValue(source);
+      await card.locator('.modal-close').click();
+    }
+    await expect(card.locator('img[src="x"]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.titleInjected)).toBeUndefined();
+    expect(await card.evaluate(el => el._events.map(event => event.summary).sort())).toEqual(cases.map(([source]) => source).sort());
+  });
+}
