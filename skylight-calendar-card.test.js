@@ -11078,3 +11078,47 @@ test('event title ampersands decode once for display without changing source dat
     assert.equal(event.summary, source);
   }
 });
+
+
+for (const isAllDay of [false, true]) {
+  test(`WebSocket edits clear location and description on ${isAllDay ? 'all-day' : 'timed'} events`, async () => {
+    const { normalizeEventFormData } = await import('./src/events/event-form.js');
+    for (const [location, description] of [['', ''], ['', 'Keep notes'], ['Keep room', '']]) {
+      const result = normalizeEventFormData({
+        title: 'Edited', location, description, isAllDay,
+        startDate: '2026-05-01', endDate: '2026-05-01',
+        startDateTime: '2026-05-01T10:00:00', endDateTime: '2026-05-01T11:00:00'
+      });
+      assert.equal(result.valid, true);
+      const original = {
+        ...singleEventUpdate.originalEvent,
+        location: 'Old room', description: 'Old notes'
+      };
+      const { card, sent, calls } = makeUpdateEventCard();
+      // Model Local Calendar's partial-update semantics: missing fields stay unchanged.
+      const stored = { location: original.location, description: original.description };
+      card._hass.connection.sendMessagePromise = async (payload) => {
+        sent.push(payload);
+        Object.assign(stored, JSON.parse(JSON.stringify(payload.event)));
+      };
+      await withSilencedConsole(() => card.updateEvent(original, original.entityId, result.eventData));
+      assert.equal(stored.location, location);
+      assert.equal(stored.description, description);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].uid, original.uid);
+      assert.equal(sent[0].event.dtstart, result.eventData.start.date || result.eventData.start.dateTime);
+      assert.equal(sent[0].event.dtend, result.eventData.end.date || result.eventData.end.dateTime);
+      assert.equal(wasReplaced(calls, sent), false);
+    }
+  });
+}
+
+test('WebSocket update leaves absent optional fields unspecified', async () => {
+  const { buildUpdateEventWebSocketPayload } = await import('./src/events/event-service.js');
+  const payload = buildUpdateEventWebSocketPayload(singleEventUpdate.originalEvent, {
+    summary: 'Title only', start: { date: '2026-05-01' }, end: { date: '2026-05-02' }
+  });
+  assert.equal(Object.hasOwn(payload.event, 'location'), false);
+  assert.equal(Object.hasOwn(payload.event, 'description'), false);
+});
