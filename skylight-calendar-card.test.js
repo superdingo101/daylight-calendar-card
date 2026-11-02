@@ -3630,6 +3630,75 @@ test('weather service builds Home Assistant forecast websocket payloads', async 
   assert.equal(isWeatherEntityId('sensor.home'), false);
   assert.equal(isWeatherEntityId(''), false);
 });
+
+function renderAgendaForMonthBannerTest({ dates, eventDates = [], hideHeader = true, hideEmptyDays = true }) {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    default_view: 'agenda',
+    language: 'en',
+    locale: 'en-US',
+    hide_header: hideHeader,
+    hide_empty_days: hideEmptyDays
+  });
+  const eventDateSet = new Set(eventDates);
+  card.ensureAgendaWindowInitialized = () => {};
+  card.getAgendaDays = () => dates;
+  card.getAgendaEventMinHeight = () => '68px';
+  card.getEventsForDay = (date) => eventDateSet.has(localDateKey(date))
+    ? [{ entityId: 'calendar.family', summary: 'Test event' }]
+    : [];
+  card.sortEventsForDate = (events) => events;
+  card.getEventDaySegment = () => null;
+  return card.renderAgenda();
+}
+
+function agendaMonthBanners(html) {
+  return Array.from(html.matchAll(/class="agenda-month-banner">([^<]+)<\/div>/g), (match) => match[1]);
+}
+
+test('regression 639: headerless Agenda identifies the first event month after hidden empty days', () => {
+  const dates = [new Date(2026, 9, 28), new Date(2026, 10, 25), new Date(2026, 11, 1)];
+  const eventDates = ['2026-11-25', '2026-12-01'];
+  const hidden = renderAgendaForMonthBannerTest({ dates, eventDates });
+  assert.deepEqual(agendaMonthBanners(hidden), ['November 2026', 'December 2026']);
+  assert.ok(hidden.indexOf('November 2026') < hidden.indexOf('agenda-day-row'));
+
+  const visible = renderAgendaForMonthBannerTest({ dates, eventDates, hideHeader: false });
+  assert.deepEqual(agendaMonthBanners(visible), ['December 2026']);
+
+  const withOctoberEvent = renderAgendaForMonthBannerTest({
+    dates,
+    eventDates: ['2026-10-28', ...eventDates]
+  });
+  assert.deepEqual(agendaMonthBanners(withOctoberEvent), ['October 2026', 'November 2026', 'December 2026']);
+});
+
+test('regression 639: Agenda preserves month changes, year rollover, and empty-day behavior', () => {
+  const dates = [new Date(2026, 11, 31), new Date(2027, 0, 5)];
+  const eventDates = ['2026-12-31', '2027-01-05'];
+  assert.deepEqual(
+    agendaMonthBanners(renderAgendaForMonthBannerTest({ dates, eventDates })),
+    ['December 2026', 'January 2027']
+  );
+  assert.deepEqual(
+    agendaMonthBanners(renderAgendaForMonthBannerTest({ dates, eventDates, hideHeader: false })),
+    ['January 2027']
+  );
+  assert.deepEqual(
+    agendaMonthBanners(renderAgendaForMonthBannerTest({ dates, eventDates: [] })),
+    []
+  );
+  assert.deepEqual(
+    agendaMonthBanners(renderAgendaForMonthBannerTest({ dates, eventDates: [], hideEmptyDays: false })),
+    ['December 2026', 'January 2027']
+  );
+  assert.deepEqual(
+    agendaMonthBanners(renderAgendaForMonthBannerTest({ dates, eventDates: [], hideEmptyDays: false, hideHeader: false })),
+    ['January 2027']
+  );
+});
+
+
 test('agenda view renders daily weather forecast', () => {
   const card = makeCard({
     entities: ['calendar.family'],
