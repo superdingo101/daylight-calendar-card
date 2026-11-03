@@ -539,7 +539,7 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
-test('regression 543: agenda events expand for wrapped content while compact events stay content-sized', async ({ page }) => {
+test('regression 543: agenda events expand to contain wrapped content in standard and compact layouts', async ({ page }) => {
   await page.setViewportSize({ width: 500, height: 900 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
   await page.goto(fixtureUrl);
@@ -602,15 +602,110 @@ test('regression 543: agenda events expand for wrapped content while compact eve
 
   await render(true);
   const compactGeometry = await event.evaluate((eventElement) => {
+    const eventRect = eventElement.getBoundingClientRect();
     const style = getComputedStyle(eventElement);
+    const content = [...eventElement.querySelectorAll('.agenda-event-time, .agenda-event-title, .agenda-event-location')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      });
+    const title = eventElement.querySelector('.agenda-event-title');
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(title);
+    const location = eventElement.querySelector('.agenda-event-location');
+    const locationRect = location.getBoundingClientRect();
     return {
-      height: eventElement.getBoundingClientRect().height,
+      eventTop: eventRect.top,
+      eventBottom: eventRect.bottom,
+      eventHeight: eventRect.height,
       minHeight: style.minHeight,
-      baseline: Number.parseFloat(style.getPropertyValue('--agenda-event-min-height'))
+      content,
+      titleLineCount: titleRange.getClientRects().length,
+      bottomClearance: eventRect.bottom - locationRect.bottom
     };
   });
   expect(compactGeometry.minHeight).toBe('0px');
-  expect(compactGeometry.height).toBeLessThan(compactGeometry.baseline);
+  expect(compactGeometry.titleLineCount).toBeGreaterThan(1);
+  for (const contentRect of compactGeometry.content) {
+    expect(contentRect.top).toBeGreaterThanOrEqual(compactGeometry.eventTop - 1);
+    expect(contentRect.bottom).toBeLessThanOrEqual(compactGeometry.eventBottom + 1);
+  }
+  expect(compactGeometry.bottomClearance).toBeGreaterThanOrEqual(7);
+});
+
+test('compact agenda titles wrap without widening the shared event column', async ({ page }) => {
+  await page.setViewportSize({ width: 500, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'agenda',
+      agenda_compact_events: true,
+      rolling_days_agenda: 1,
+      event_font_size: 34,
+      hide_header: true
+    },
+    events: {
+      'calendar.family': [
+        {
+          summary: 'Family curriculum night and classroom orientation with an intentionally long agenda title',
+          start: '2026-03-15T11:00:00Z',
+          end: '2026-03-15T12:00:00Z'
+        },
+        {
+          summary: 'Short sibling event',
+          start: '2026-03-15T13:00:00Z',
+          end: '2026-03-15T14:00:00Z'
+        }
+      ]
+    }
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const dayRow = card.locator('.agenda-day-row').filter({ hasText: 'Family curriculum night' }).first();
+  const longEvent = dayRow.locator('.agenda-event').filter({ hasText: 'Family curriculum night' });
+  const shortEvent = dayRow.locator('.agenda-event').filter({ hasText: 'Short sibling event' });
+  const longTitle = longEvent.locator('.agenda-event-title');
+
+  await expect(longTitle).toBeVisible();
+  await expect(shortEvent).toBeVisible();
+
+  const geometry = await dayRow.evaluate((row) => {
+    const container = row.closest('.agenda-container');
+    const dayEvents = row.querySelector('.agenda-day-events');
+    const events = [...dayEvents.querySelectorAll('.agenda-event')];
+    const title = events[0].querySelector('.agenda-event-title');
+    const titleRange = document.createRange();
+    titleRange.selectNodeContents(title);
+    const containerRect = container.getBoundingClientRect();
+    const dayEventsRect = dayEvents.getBoundingClientRect();
+    const eventRects = events.map((event) => {
+      const rect = event.getBoundingClientRect();
+      const style = getComputedStyle(event);
+      return {
+        left: rect.left,
+        right: rect.right,
+        borderTopRightRadius: style.borderTopRightRadius,
+        borderBottomRightRadius: style.borderBottomRightRadius
+      };
+    });
+    return {
+      titleLineCount: titleRange.getClientRects().length,
+      dayEventsRight: dayEventsRect.right,
+      containerRight: containerRect.right,
+      eventRects
+    };
+  });
+
+  expect(geometry.titleLineCount).toBeGreaterThan(1);
+  expect(geometry.dayEventsRight).toBeLessThanOrEqual(geometry.containerRight + 1);
+  for (const eventRect of geometry.eventRects) {
+    expect(eventRect.right).toBeLessThanOrEqual(geometry.containerRight + 1);
+    expect(eventRect.borderTopRightRadius).not.toBe('0px');
+    expect(eventRect.borderBottomRightRadius).not.toBe('0px');
+  }
 });
 
 test('week compact event titles wrap inside their padded event boundary', async ({ page }) => {
@@ -860,6 +955,63 @@ test('regression 535: transparent month and compact-week grids reveal the dashbo
     borderLeftWidth: '0px',
     outlineStyle: 'none'
   });
+});
+
+// Geometry assertions deliberately use no pixel tolerance: a single extra pixel
+// produces visible scrollbars on systems with non-overlay scrollbars (#631).
+for (const view of ['month', 'week-compact']) {
+  for (const width of [390, 980]) {
+    test(`regression 631: ${view} custom backgrounds stay within the grid at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1800 });
+      await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+      const card = page.locator('skylight-calendar-card');
+      const selector = view === 'month' ? '.calendar-grid' : '.week-compact-container';
+      for (const opacity of [0, 25, 100]) {
+        for (const compactHeight of [false, true]) {
+          await page.evaluate((params) => window.renderCalendarCard(params), {
+            config: {
+              entities: ['calendar.family'], default_view: view,
+              background_opacity: opacity, compact_height: compactHeight,
+              rolling_days_week_compact: 6, show_week_numbers_month: compactHeight,
+              grid_color: 'rgba(0, 0, 255, 0.5)'
+            },
+            events: baseEvents, darkMode: compactHeight
+          });
+          const grid = card.locator(selector);
+          await expect(grid).toBeVisible();
+          await expect.poll(() => grid.evaluate(el => ({
+            x: el.scrollWidth - el.clientWidth,
+            y: el.scrollHeight - el.clientHeight
+          })), { message: `${view}, opacity ${opacity}, compact height ${compactHeight}` })
+            .toEqual({ x: 0, y: 0 });
+          // Keep scrolling enabled for genuinely overflowing content.
+          await expect(grid).toHaveCSS('overflow-x', 'auto');
+          await expect(grid).toHaveCSS('overflow-y', 'auto');
+        }
+      }
+    });
+  }
+}
+
+test('regression 631: custom backgrounds preserve genuine vertical scrolling', async ({ page }) => {
+  await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+  for (const view of ['month', 'week-compact']) {
+    await page.evaluate((view) => window.renderCalendarCard({
+      config: {
+        entities: ['calendar.family'], default_view: view,
+        background_opacity: 25, compact_height: true
+      },
+      events: {},
+      parentStyle: 'height: 240px; width: 360px; display: grid; grid-template-columns: minmax(0, 1fr);'
+    }), view);
+    const grid = page.locator('skylight-calendar-card').locator(
+      view === 'month' ? '.calendar-grid' : '.week-compact-container'
+    );
+    await expect.poll(() => grid.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    expect(await grid.evaluate(el => el.scrollWidth - el.clientWidth)).toBe(0);
+    await grid.evaluate(el => { el.scrollTop = 30; });
+    await expect.poll(() => grid.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  }
 });
 
 test('regression issue 212: inherited HA card theme styles and explicit background override', async ({ page }) => {
@@ -1226,6 +1378,132 @@ test('visual: event modal renders rich markdown and HTML descriptions', async ({
   await expect(htmlDescription.locator('a')).toHaveAttribute('href', '/local/rich-info');
 });
 
+test('visual: stepped event time pickers stay contained at mobile width in 12- and 24-hour mode', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  const modes = [
+    { name: '12h', config: {}, periodSelects: 2 },
+    { name: '24h', config: { use_24hr_schedule: true }, periodSelects: 0 }
+  ];
+
+  for (const mode of modes) {
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Stepped Time Calendar',
+        default_view: 'agenda',
+        enable_event_management: true,
+        event_time_step: 5,
+        ...mode.config
+      },
+      events: baseEvents,
+      darkMode: false
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    await expect(card).toBeVisible();
+    await card.locator('#add-event-btn').click();
+
+    const modal = card.locator('#event-modal');
+    await expect(modal).toHaveClass(/show/);
+    const content = modal.locator('#modal-content');
+    const groups = content.locator('.form-stepped-datetime');
+    await expect(groups).toHaveCount(2);
+    await expect(content.locator('.form-stepped-period')).toHaveCount(mode.periodSelects);
+    await expect(content.locator('input[type="datetime-local"]')).toHaveCount(0);
+
+    // Every stepped control must sit inside the modal body without horizontal overflow.
+    await assertNoHorizontalOverflow(content);
+    const controls = content.locator('.form-stepped-datetime .form-input, .form-stepped-datetime .form-select');
+    const controlCount = await controls.count();
+    expect(controlCount).toBe(mode.periodSelects === 2 ? 8 : 6);
+    for (let index = 0; index < controlCount; index += 1) {
+      await expectBoxWithin(controls.nth(index), content, 1);
+    }
+
+    // This screenshot guards the stepped picker's mobile layout, not its default-time rounding.
+    // Pin the minute value so changes to default-time semantics do not create unrelated baseline churn.
+    await groups.nth(0).locator('[data-stepped-part="minute"]').selectOption('30');
+    await groups.nth(1).locator('[data-stepped-part="minute"]').selectOption('30');
+
+    await expect(content).toHaveScreenshot(`event-form-stepped-${mode.name}-mobile.png`, { animations: 'disabled' });
+
+    await modal.locator('#close-modal').click();
+    await expect(modal).not.toHaveClass(/show/);
+  }
+});
+
+test('regression issue 608: month span starting in other-month cell paints across current-month cells', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'month',
+      first_day_of_week: 1,
+      hide_header: true
+    },
+    events: {
+      'calendar.family': [
+        { summary: 'Cross-month vacation', start: '2026-09-29', end: '2026-10-07' }
+      ]
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  await expect(card).toBeVisible();
+  await expect.poll(async () => card.evaluate((element) =>
+    element._eventsByCalendar?.['calendar.family']?.length || 0
+  )).toBe(1);
+
+  await card.evaluate((element) => {
+    element._currentDate = new Date(2026, 9, 1);
+    element.setWeekStart();
+    element.render();
+  });
+
+  const leadingDay = card.locator('.day-cell[data-date^="2026-09-29"]').first();
+  const span = leadingDay.locator('.month-span-event').filter({ hasText: 'Cross-month vacation' });
+  await expect(span).toHaveCount(1);
+  await expect(span).toHaveAttribute('data-month-span-days', '6');
+
+  // Preserve the muted leading-month treatment while elevating only the span's origin cell.
+  await expect(leadingDay).toHaveClass(/month-span-origin/);
+  await expect(leadingDay).toHaveCSS('opacity', '0.5');
+  await expect(span).toHaveCSS('opacity', '1');
+
+  const paintState = await card.evaluate((element) => {
+    const event = Array.from(element.querySelectorAll('.day-cell[data-date^="2026-09-29"] .month-span-event'))
+      .find((candidate) => candidate.textContent.includes('Cross-month vacation'));
+    const octoberFirst = element.querySelector('.day-cell[data-date^="2026-10-01"]');
+    const octoberFourth = element.querySelector('.day-cell[data-date^="2026-10-04"]');
+    if (!event || !octoberFirst || !octoberFourth) return null;
+
+    const eventRect = event.getBoundingClientRect();
+    const firstRect = octoberFirst.getBoundingClientRect();
+    const fourthRect = octoberFourth.getBoundingClientRect();
+    const fourthStyle = getComputedStyle(octoberFourth);
+    const fourthContentRight = fourthRect.right - Number.parseFloat(fourthStyle.paddingRight || '0');
+    const sampleX = firstRect.left + (firstRect.width / 2);
+    const sampleY = eventRect.top + (eventRect.height / 2);
+    const topmost = document.elementFromPoint(sampleX, sampleY);
+
+    return {
+      reachesFourthDayContent: eventRect.right >= fourthContentRight - 1,
+      paintsOverOctoberFirst: !!topmost && (topmost === event || event.contains(topmost))
+    };
+  });
+
+  expect(paintState).toEqual({
+    reachesFourthDayContent: true,
+    paintsOverOctoberFirst: true
+  });
+});
+
 for (const scenario of cases) {
   test(`visual: ${scenario.name}`, async ({ page }) => {
     if (scenario.viewport) {
@@ -1543,6 +1821,69 @@ async function assertCompactHeightGeometry(card, page, viewSpec, viewport, alloc
   }
 }
 
+test('week compact sparse fixed-height allocation fills available height', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      title: 'Sparse Compact Height Calendar',
+      default_view: 'week-compact',
+      compact_height: true,
+      hide_calendars: true
+    },
+    events: {
+      'calendar.family': [
+        {
+          summary: 'Morning appointment',
+          start: '2026-03-15T09:00:00Z',
+          end: '2026-03-15T10:00:00Z'
+        }
+      ]
+    },
+    darkMode: false,
+    parentStyle: 'width: 100%; min-width: 0; height: 620px; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr);'
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const container = card.locator('.week-compact-container');
+  await expect(container).toBeVisible();
+
+  const geometry = await container.evaluate((containerEl) => {
+    const containerRect = containerEl.getBoundingClientRect();
+    const columns = [...containerEl.querySelectorAll('.week-day-column')];
+    const rows = new Map();
+
+    for (const column of columns) {
+      const rect = column.getBoundingClientRect();
+      const key = Math.round(rect.top);
+      if (!rows.has(key)) {
+        rows.set(key, { top: rect.top, bottom: rect.bottom });
+      } else {
+        rows.get(key).bottom = Math.max(rows.get(key).bottom, rect.bottom);
+      }
+    }
+
+    const rowRects = [...rows.values()].sort((a, b) => a.top - b.top);
+    return {
+      containerTop: containerRect.top,
+      containerBottom: containerRect.bottom,
+      containerHeight: containerRect.height,
+      rowRects,
+      scrollHeight: containerEl.scrollHeight,
+      clientHeight: containerEl.clientHeight
+    };
+  });
+
+  expect(geometry.rowRects).toHaveLength(1);
+  expect(geometry.rowRects[0].top).toBeGreaterThanOrEqual(geometry.containerTop - 1);
+  expect(geometry.rowRects[0].bottom).toBeGreaterThanOrEqual(geometry.containerBottom - 2);
+  expect(geometry.rowRects[0].bottom).toBeLessThanOrEqual(geometry.containerBottom + 2);
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight + 1);
+});
+
 for (const allocationMode of compactHeightAllocationModes) {
   for (const viewport of compactHeightViewports) {
     for (const viewSpec of compactHeightViews) {
@@ -1797,6 +2138,53 @@ test('daily forecasts default on and header-only weather hides forecasts in ever
 });
 
 
+for (const darkMode of [false, true]) {
+  const themeName = darkMode ? 'dark' : 'light';
+  test(`visual: colored weather icons in header and daily forecast (${themeName})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 820 });
+    const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+    await page.goto(fixtureUrl);
+    const conditions = ['sunny', 'partlycloudy', 'cloudy', 'rainy', 'pouring', 'snowy', 'lightning-rainy'];
+    const forecast = conditions.map((condition, index) => ({
+      datetime: `2026-03-${String(15 + index).padStart(2, '0')}T12:00:00Z`,
+      condition,
+      temperature: 60 + index,
+      templow: 45 + index
+    }));
+
+    await page.evaluate((params) => window.renderCalendarCard(params), {
+      config: {
+        entities: ['calendar.family', 'calendar.work'],
+        title: 'Colored Weather',
+        default_view: 'week-compact',
+        header_weather_sensor: 'weather.mock',
+        weather_icon_style: 'colored',
+        hide_dark_mode_toggle: true
+      },
+      events: baseEvents,
+      weather: { 'weather.mock': { temperature: 62, condition: 'partlycloudy', forecast } },
+      states: { 'sun.sun': { entity_id: 'sun.sun', state: 'above_horizon', attributes: {} } },
+      darkMode
+    });
+
+    const card = page.locator('skylight-calendar-card');
+    const headerWeather = card.locator('.header-weather');
+    await expect(headerWeather.locator('svg.weather-svg-icon')).toBeVisible();
+    await expect(headerWeather.locator('svg.weather-svg-icon path.sun')).toHaveCount(1);
+    await expect(headerWeather.locator('ha-icon')).toHaveCount(0);
+
+    const dayForecasts = card.locator('.week-day-forecast');
+    await expect(dayForecasts).toHaveCount(7);
+    await expect(dayForecasts.locator('svg.weather-svg-icon')).toHaveCount(7);
+    await expect(dayForecasts.locator('ha-icon')).toHaveCount(0);
+
+    await expect(card).toHaveScreenshot(`colored-weather-week-compact-${themeName}.png`, {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01
+    });
+  });
+}
+
 test('regression issue 321: compact wrapped header rows stay centered at medium width', async ({ page }) => {
   await page.setViewportSize({ width: 980, height: 820 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
@@ -1872,6 +2260,47 @@ test('regression issue 572: wrapped compact header stays wrapped during a calend
   });
 
   expect(wrapStateImmediatelyAfterRender).toBe(true);
+});
+
+test('hide_calendar_badge_person_state keeps compact inline badge name and picture without the person state', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 820 });
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family', 'calendar.work'],
+      title: 'Hide Person State Compact',
+      default_view: 'week-compact',
+      compact_header: true,
+      hide_dark_mode_toggle: true,
+      calendar_person_entities: { 'calendar.family': 'person.ian' },
+      hide_calendar_badge_person_state: true
+    },
+    events: baseEvents,
+    states: {
+      'person.ian': {
+        entity_id: 'person.ian',
+        state: 'home',
+        attributes: { friendly_name: 'Ian', entity_picture: INLINE_BACKGROUND_SVG }
+      }
+    },
+    darkMode: false
+  });
+
+  const card = page.locator('skylight-calendar-card');
+  const header = card.locator('.header-compact');
+  const badge = card.locator('.calendar-badges-inline .calendar-badge-inline[data-entity="calendar.family"]');
+
+  await expect(header).toBeVisible();
+  await expect(badge).toBeVisible();
+  await expect(badge.locator('.calendar-badge-name')).toHaveText('Family');
+  await expect(badge.locator('.calendar-badge-person-icon.calendar-badge-photo img')).toBeVisible();
+  await expect(badge.locator('.calendar-badge-person-icon img')).toHaveJSProperty('complete', true);
+  await expect(card.locator('.calendar-badge-person-state')).toHaveCount(0);
+
+  await expectBoxWithin(badge, card.locator('.calendar-badges-inline'));
+  await expectBoxWithin(badge, header);
+  await assertNoHorizontalOverflow(header);
 });
 
 test('regression issue 572: hidden header does not commit a zero-width wrapped state', async ({ page }) => {
@@ -2154,3 +2583,110 @@ test('Week Compact editor controls stay contained at mobile editor width', async
     controlsDoNotOverlap: true
   });
 });
+
+
+test('header clock editor sensor selection, validation and live recovery', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+  await page.evaluate(() => {
+    const editor = document.createElement('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: '14:30', attributes: { friendly_name: 'Time' } } } };
+    editor.setConfig({ entities: [], header_time_sensor: 'sensor.current_time' });
+    document.getElementById('app').appendChild(editor);
+    Array.from(editor.querySelectorAll('details')).find(el => el.querySelector('summary')?.textContent.includes('Localization')).open = true;
+    editor.addEventListener('config-changed', event => { window.lastClockConfig = event.detail.config; });
+  });
+  const editor = page.locator('daylight-calendar-card-editor');
+  const warning = editor.locator('#header-time-warning');
+  await expect(warning).toContainText('not found');
+  await expect(editor.locator('#header-time-sensors option')).toHaveAttribute('value', 'sensor.time');
+  await editor.locator('#header_time_sensor').fill('sensor.time');
+  await expect(warning).toBeHidden();
+  expect(await page.evaluate(() => window.lastClockConfig.header_time_sensor)).toBe('sensor.time');
+  const field = editor.locator('.header-time-field');
+  expect(await field.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: 'unavailable' } } };
+  });
+  await expect(warning).toContainText('no available value');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: 'bad value' } } };
+  });
+  await expect(warning).toContainText('invalid time');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.hass = { states: { 'sensor.time': { state: '2026-10-20' } } };
+    window.fallbackTimeOption = editor.querySelector('#header-time-sensors').firstElementChild;
+  });
+  await expect(warning).toContainText('invalid time');
+  // Simulate HA loading its shared control after the editor has rendered.
+  await page.evaluate(() => customElements.define('ha-entity-picker', class extends HTMLElement {}));
+  await expect(editor.locator('#header_time_sensor')).toBeHidden();
+  const picker = editor.locator('#header-time-picker');
+  await expect(picker).not.toHaveAttribute('hidden');
+  expect(await editor.evaluate(element => {
+    // The native path must neither enumerate states nor replace hidden options.
+    const previousHass = element._hass;
+    try {
+      element._hass = { states: new Proxy({ 'sensor.time': { state: '14:30' } }, {
+        ownKeys() { throw new Error('Native clock picker enumerated all states'); }
+      }) };
+      element.updateHeaderTimeSensor();
+      return element.querySelector('#header-time-sensors').firstElementChild === window.fallbackTimeOption;
+    } finally {
+      element._hass = previousHass;
+    }
+  })).toBe(true);
+  await expect(warning).toBeHidden();
+  expect(await picker.evaluate(el => ({ value: el.value, domains: el.includeDomains, custom: el.allowCustomEntity })))
+    .toEqual({ value: 'sensor.time', domains: ['sensor'], custom: true });
+  await picker.evaluate(el => el.dispatchEvent(new CustomEvent('value-changed', { detail: { value: '' }, bubbles: true, composed: true })));
+  await expect(warning).toBeHidden();
+  expect(await page.evaluate(() => window.lastClockConfig.header_time_sensor)).toBe('');
+  await page.evaluate(() => {
+    const editor = document.querySelector('daylight-calendar-card-editor');
+    editor.setConfig({ entities: [], header_time_sensor: 'sensor.custom' });
+    editor.hass = { states: { 'sensor.custom': { state: '2:30 PM' } } };
+  });
+  await expect(warning).toBeHidden();
+  expect(await picker.evaluate(el => el.value)).toBe('sensor.custom');
+});
+
+
+for (const view of ['month', 'week-compact', 'week-standard', 'agenda']) {
+  test(`regression 631: ampersands render safely in ${view} titles and details`, async ({ page }) => {
+    await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+    const cases = [
+      ['Literal & title', 'Literal & title'],
+      ['Encoded &amp; title', 'Encoded & title'],
+      ['Decimal &#38; title', 'Decimal & title'],
+      ['Hex &#x26; title', 'Hex & title'],
+      ['Once &amp;amp; title', 'Once &amp; title'],
+      ['All-day &amp; span', 'All-day & span'],
+      ['<img src=x onerror="window.titleInjected=true"> &amp; title', '<img src=x onerror="window.titleInjected=true"> & title']
+    ];
+    await page.evaluate(({ view, cases }) => window.renderCalendarCard({
+      config: { entities: ['calendar.family'], default_view: view, show_all_events_month: true, enable_event_management: true },
+      events: { 'calendar.family': cases.map(([summary], i) => ({
+        summary, uid: `amp-${i}`,
+        start: i === 5 ? '2026-03-15' : `2026-03-15T${String(11 + i).padStart(2, '0')}:00:00Z`,
+        end: i === 5 ? '2026-03-17' : `2026-03-15T${String(11 + i).padStart(2, '0')}:30:00Z`
+      })) }
+    }), { view, cases });
+    const card = page.locator('skylight-calendar-card');
+    for (const [source, display] of cases) {
+      const title = card.locator(eventSelectorByView[view]).filter({ hasText: display }).first();
+      await expect(title).toBeVisible();
+      await title.click();
+      await expect(card.locator('.modal-title')).toHaveText(display);
+      await card.locator('#edit-event-btn').click();
+      await expect(card.locator('#event-title')).toHaveValue(source);
+      await card.locator('.modal-close').click();
+    }
+    await expect(card.locator('img[src="x"]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.titleInjected)).toBeUndefined();
+    expect(await card.evaluate(el => el._events.map(event => event.summary).sort())).toEqual(cases.map(([source]) => source).sort());
+  });
+}

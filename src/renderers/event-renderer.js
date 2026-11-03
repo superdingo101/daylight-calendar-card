@@ -1,3 +1,5 @@
+import { decodeTitleAmpersands } from '../utils/string-utils.js';
+
 export function renderEventIcon(event, {
   getEventStyleOverrides,
   eventCalendarFriendlyName = false,
@@ -88,7 +90,7 @@ export function renderEventTitleWithPrefix(event, title, {
   getCalendarBadgeIcon,
   normalizeBackgroundImageUrl
 }) {
-  const titleText = escapeHtml(title || t('untitledEvent'));
+  const titleText = escapeHtml(decodeTitleAmpersands(title || t('untitledEvent')));
   const styleOverrides = getEventStyleOverrides(event);
   const titleIcon = renderEventStyleIcon(getEventStyleIconConfig(event), { position: 'before_title', escapeHtml });
   const titleHtml = titleIcon ? `${titleIcon}<span>${titleText}</span>` : titleText;

@@ -15,3 +15,9 @@ export function escapeHtmlAttribute(text) {
   };
   return String(text ?? '').replace(/[&<>"']/g, (char) => replacements[char]);
 }
+
+// Some calendar feeds HTML-encode ampersands in otherwise plain-text titles.
+// Decode one layer for display only; callers must still escape the result.
+export function decodeTitleAmpersands(value) {
+  return String(value ?? '').replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
+}

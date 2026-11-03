@@ -1,3 +1,5 @@
+import { decodeTitleAmpersands } from '../utils/string-utils.js';
+
 export function renderEventDetailsModal({
   event,
   startDate,
@@ -13,6 +15,7 @@ export function renderEventDetailsModal({
   canDelete,
   canForward,
   canModify,
+  hiddenActions = [],
   customColor = null,
   locationLinks = false,
   locationActionsExpanded = false,
@@ -55,10 +58,30 @@ export function renderEventDetailsModal({
     ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${visibleBadges.map(calendar => `<span class="modal-calendar-badge" style="background: ${calendar.color}; color: ${calendar.textColor || 'white'}; display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px;">${escapeHtml(calendar.name)}</span>`).join('')}</div>`
     : `<div class="modal-calendar-badge" style="background: ${modalBadgeColor}; color: ${modalBadgeTextColor}; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">${escapeHtml(calendarName)}</div>`;
 
+  const hiddenActionSet = new Set(hiddenActions);
+  const showDelete = canDelete && !hiddenActionSet.has('delete');
+  const showCustomColor = !hiddenActionSet.has('custom_color');
+  const showForward = canForward && !hiddenActionSet.has('forward');
+  const showEdit = canEdit && !hiddenActionSet.has('edit');
+  const actionsHtml = showDelete || showCustomColor || showForward || showEdit
+    ? `
+        <div class="modal-actions">
+          <div class="modal-actions-left">
+            ${showDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
+          </div>
+          <div class="modal-actions-right">
+            ${showCustomColor ? `<button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>` : ''}
+            ${showForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
+            ${showEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
+          </div>
+        </div>
+      `
+    : '';
+
   return `
       <div class="modal-header">
         <div>
-          <h3 class="modal-title">${escapeHtml(event.summary || t('untitledEvent'))}</h3>
+          <h3 class="modal-title">${escapeHtml(decodeTitleAmpersands(event.summary || t('untitledEvent')))}</h3>
           ${combinedBadgeHtml}
         </div>
         <button class="modal-close" id="close-modal">×</button>
@@ -116,16 +139,7 @@ export function renderEventDetailsModal({
           </div>
         ` : ''}
 
-        <div class="modal-actions">
-            <div class="modal-actions-left">
-              ${canDelete ? `<button class="btn btn-danger" id="delete-event-btn">${t('delete')}</button>` : ''}
-            </div>
-            <div class="modal-actions-right">
-              <button class="btn btn-secondary" id="custom-color-btn">${t('customColor')}${customColor ? ` <span style="display:inline-block;width:0.8em;height:0.8em;border-radius:50%;background:${customColor};vertical-align:-0.1em;"></span>` : ''}</button>
-              ${canForward ? `<button class="btn btn-secondary" id="forward-event-btn">${t('forwardEvent')}</button>` : ''}
-              ${canEdit ? `<button class="btn btn-primary" id="edit-event-btn">${t('editEvent')}</button>` : ''}
-            </div>
-          </div>
+        ${actionsHtml}
       </div>
     `;
 }

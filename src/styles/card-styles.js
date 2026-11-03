@@ -320,6 +320,44 @@ export function getCardStyles() {
         --mdc-icon-size: 28px;
       }
 
+      .weather-svg-icon {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+      }
+
+      .header-weather .weather-svg-icon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .month-day-forecast .forecast-condition .weather-svg-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .agenda-day-forecast .forecast-condition .weather-svg-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .weather-svg-icon .sun { fill: var(--weather-icon-sun-color, #fdd93c); }
+      .weather-svg-icon .moon { fill: var(--weather-icon-moon-color, #fcf497); }
+      .weather-svg-icon .rain { fill: var(--weather-icon-rain-color, #30b3ff); }
+      .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #d4d4d4); }
+      .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #f9f9f9); }
+      .weather-svg-icon .snow {
+        fill: var(--weather-icon-snow-color, #f9f9f9);
+        stroke: var(--weather-icon-snow-stroke-color, #d4d4d4);
+        stroke-width: 1;
+        paint-order: stroke;
+      }
+
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-back { fill: var(--weather-icon-cloud-back-color, #9aa4ae); }
+      .calendar-container:not(.dark-mode) .weather-svg-icon .cloud-front { fill: var(--weather-icon-cloud-front-color, #cfd6dd); }
+
       .header-item-value {
         display: inline-block;
       }
@@ -627,6 +665,10 @@ export function getCardStyles() {
         opacity: 0.5;
       }
 
+      .day-cell.other-month.month-span-origin {
+        z-index: 2;
+      }
+
       .day-cell.today {
         background: #eff6ff;
       }
@@ -868,8 +910,7 @@ export function getCardStyles() {
       }
 
       .week-compact-container.compact-height {
-        grid-auto-rows: max-content;
-        align-content: start;
+        grid-auto-rows: minmax(max-content, 1fr);
       }
 
       .week-day-column {
@@ -1148,7 +1189,7 @@ export function getCardStyles() {
 
       .agenda-day-row {
         display: grid;
-        grid-template-columns: 88px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 12px;
         border-top: 1px solid var(--calendar-grid-color, #e5e7eb);
         padding-top: 8px;
@@ -1213,6 +1254,7 @@ export function getCardStyles() {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-width: 0;
       }
 
       .agenda-event {
@@ -1274,10 +1316,11 @@ export function getCardStyles() {
 
       .calendar-container.agenda-compact-events .agenda-event-title {
         flex: 1 1 auto;
+        min-width: 0;
         min-height: unset;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .calendar-container.agenda-compact-events .agenda-event-time {
@@ -2205,6 +2248,40 @@ export function getCardStyles() {
         gap: 10px 14px;
       }
 
+      .form-stepped-datetime {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-stepped-date {
+        flex: 1 1 9.5em;
+        width: auto;
+        min-width: 0;
+      }
+
+      .form-stepped-time {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .form-stepped-datetime .form-select {
+        width: auto;
+        min-width: 4.5em;
+      }
+
+      .form-stepped-datetime input[type="hidden"] {
+        display: none;
+      }
+
+      .form-stepped-separator {
+        font-weight: 600;
+        opacity: 0.7;
+      }
+
       .form-checkbox-row {
         display: flex;
         flex-wrap: wrap;
@@ -2842,7 +2919,8 @@ export function getCardStyles() {
       .calendar-container.custom-background .week-compact-container:not(.single-day-modal) > *::before {
         content: '';
         position: absolute;
-        inset: 0 -1px -1px 0;
+        /* Keep separators inside the cell so they cannot enlarge the scroll area. */
+        inset: 0;
         border-right: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         border-bottom: 1px solid var(--calendar-grid-color, rgba(255, 255, 255, 0.35));
         pointer-events: none;

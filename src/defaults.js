@@ -27,6 +27,9 @@ export const COMBINE_STYLE_OPTIONS = ['stripes', 'bars', 'dots'];
 export const EVENT_COLOR_MODE_OPTIONS = ['classic', 'left-neutral', 'left-tint'];
 export const COMBINE_BACKGROUND_MODE_OPTIONS = ['neutral', 'primary'];
 export const EVENT_MODAL_SIZE_OPTIONS = ['narrow', 'medium', 'wide', 'full'];
+export const EVENT_ACTION_OPTIONS = ['delete', 'custom_color', 'forward', 'edit'];
+export const DEFAULT_EVENT_TIME_STEP = 1;
+export const EVENT_TIME_STEP_OPTIONS = [1, 5, 10, 15, 20, 30];
 
 export const EVENT_TITLE_PREFIX_ALIASES = {
   icon: 'badge_icon',
@@ -53,6 +56,7 @@ export const DEFAULT_CONFIG_VALUES = {
   rolling_days_agenda: null,
   rolling_weeks: null,
   show_week_numbers_month: false,
+  show_week_numbers_week: false,
   week_number_prefix: null,
   show_all_events_month: false,
   show_all_details_month: false,
@@ -72,6 +76,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_calendars: false,
   hide_header: false,
   hide_calendar_names: false,
+  hide_calendar_badge_person_state: false,
   hide_controls: false,
   hide_navigation_buttons: false,
   hide_add_event_button: false,
@@ -79,6 +84,7 @@ export const DEFAULT_CONFIG_VALUES = {
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
   show_daily_weather_forecast: true,
+  weather_icon_style: 'mdi',
   hide_event_calendar_bubble: false,
   show_event_location: false,
   use_short_location: false,
@@ -94,6 +100,9 @@ export const DEFAULT_CONFIG_VALUES = {
   background_image_url: null,
   combine_calendars: false,
   enable_event_management: true,
+  disable_event_creation: false,
+  event_time_step: DEFAULT_EVENT_TIME_STEP,
+  hide_event_actions: [],
   readonly_calendars: [],
   hide_badge_calendars: [],
   virtual_calendars: [],
@@ -160,7 +169,9 @@ export const DEFAULT_STUB_CONFIG = {
   default_hidden_calendars: [],
   color_scheme: 'auto',
   enable_event_management: true,
-  event_modal_size: 'medium'
+  disable_event_creation: false,
+  event_modal_size: 'medium',
+  hide_event_actions: []
 };
 
 export const createDefaultStubConfig = () => ({
@@ -170,5 +181,6 @@ export const createDefaultStubConfig = () => ({
   day_badges: [...DEFAULT_STUB_CONFIG.day_badges],
   calendar_person_entities: { ...DEFAULT_STUB_CONFIG.calendar_person_entities },
   default_hidden_calendars: [...DEFAULT_STUB_CONFIG.default_hidden_calendars],
-  header_items: [...DEFAULT_STUB_CONFIG.header_items]
+  header_items: [...DEFAULT_STUB_CONFIG.header_items],
+  hide_event_actions: [...DEFAULT_STUB_CONFIG.hide_event_actions]
 });

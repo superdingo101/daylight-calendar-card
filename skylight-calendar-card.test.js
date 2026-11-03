@@ -26,6 +26,9 @@ global.window = { localStorage: { getItem: () => null, setItem: () => {} }, getC
 global.document = {
   createElement: () => ({
     style: {},
+    _attributes: {},
+    setAttribute(name, value) { this._attributes[name] = String(value); },
+    getAttribute(name) { return name in this._attributes ? this._attributes[name] : null; },
     _textContent: '',
     set textContent(value) { this._textContent = String(value ?? ''); },
     get textContent() { return this._textContent; },
@@ -79,6 +82,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   calendar_names: 'calendar_names overrides displayed calendar labels',
   calendar_badge_icons: 'calendar badge can show linked person location and picture',
   calendar_person_entities: 'calendar badge can show linked person location and picture',
+  hide_calendar_badge_person_state: 'hide_calendar_badge_person_state hides linked person state but keeps name and picture',
   max_events: 'max_events limits rendered agenda events',
   default_view: 'setConfig normalizes fallback values and aliases',
   week_days: 'week_days filters configured week rendering days',
@@ -90,7 +94,8 @@ const CONFIG_COVERAGE_INVENTORY = {
   rolling_days_agenda: 'agenda rolling days are configurable and include current day + N days',
   rolling_weeks: 'rolling_weeks month mode renders configured rolling rows from first day of week',
   show_week_numbers_month: 'show_week_numbers_month adds month-only week number headers and cells',
-  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only month labels',
+  show_week_numbers_week: 'show_week_numbers_week adds visible ISO week numbers to the Week header',
+  week_number_prefix: 'week_number_prefix supports localized, custom, and number-only Month and Week labels',
   show_all_events_month: 'month all-events options affect visible event limits',
   show_all_details_month: 'hide_times_for_calendars applies across agenda, week-standard, week-compact, and month renderers',
   month_day_tap_action: 'month_day_tap_action normalizes to create by default and accepts show_events',
@@ -123,6 +128,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
   show_daily_weather_forecast: 'daily weather forecasts default on and can be disabled without hiding header weather',
+  weather_icon_style: 'weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback',
   header_items: 'header_items normalize supported item shapes and formats',
   hide_event_calendar_bubble: 'setConfig applies visual layout and styling options',
   show_event_location: 'setConfig applies visual layout and styling options',
@@ -160,7 +166,10 @@ const CONFIG_COVERAGE_INVENTORY = {
   event_neutral_background: 'event color modes normalize widths and tint opacity endpoints',
   event_tint_opacity: 'event color modes normalize widths and tint opacity endpoints',
   enable_event_management: 'checkAllCalendarCapabilities marks google, caldav, and local capabilities correctly',
+  disable_event_creation: 'disable_event_creation blocks every new-event UI path while preserving existing-event actions',
+  event_time_step: 'event_time_step normalizes to the supported steps and renders stepped time controls',
   event_modal_size: 'event_modal_size defaults and normalizes to supported modal size classes',
+  hide_event_actions: 'hide_event_actions hides configured event detail actions without changing capabilities',
   readonly_calendars: 'readonly calendars suppress event management actions',
   hide_badge_calendars: 'calendar badges respect hidden badge calendars',
   default_hidden_calendars: 'default_hidden_calendars initializes hidden calendar badges',
@@ -250,8 +259,13 @@ test('month_day_tap_action normalizes to create by default and accepts show_even
 
 // --- month_day_tap_action behavior matrix -------------------------------------
 // Drives the real .day-cell click handler and records which modal it opened.
-function runMonthDayTap({ tap, management, writable, busy }) {
-  const card = makeCard({ entities: ['calendar.family'], enable_event_management: management, month_day_tap_action: tap });
+function runMonthDayTap({ tap, management, writable, busy, disableCreation = false }) {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: management,
+    disable_event_creation: disableCreation,
+    month_day_tap_action: tap
+  });
   const handlers = {};
   const dayEl = { addEventListener: (n, cb) => { handlers[n] = cb; }, getAttribute: () => '2026-05-01' };
   card.getRootElementById = () => null;
@@ -293,11 +307,19 @@ test('month_day_tap_action decides busy vs empty from visible events (getEventsF
   assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false }), { create: 1, dayModal: 0 });
 });
 
+test('disable_event_creation blocks month creation while preserving event browsing', () => {
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: true, disableCreation: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'create', management: true, writable: true, busy: false, disableCreation: true }), { create: 0, dayModal: 0 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: true, disableCreation: true }), { create: 0, dayModal: 1 });
+  assert.deepEqual(runMonthDayTap({ tap: 'show_events', management: true, writable: true, busy: false, disableCreation: true }), { create: 0, dayModal: 0 });
+});
+
 // --- showDayModal Add Event button + back-navigation --------------------------
-function renderDayModal({ management = true, writable = true, hideAdd = false, displayTitle = null } = {}) {
+function renderDayModal({ management = true, writable = true, hideAdd = false, disableCreation = false, displayTitle = null } = {}) {
   const card = makeCard({
     entities: ['calendar.family'],
     enable_event_management: management,
+    disable_event_creation: disableCreation,
     hide_add_event_button: hideAdd,
     ...(displayTitle ? { event_styles: [{ match: { title: { exact: 'Sample' } }, style: { display_title: displayTitle } }] } : {})
   });
@@ -343,6 +365,7 @@ test('showDayModal shows the Add Event button only when addable', () => {
   assert.doesNotMatch(renderDayModal({ management: true, writable: true, hideAdd: true }).html, /day-modal-add-event/);
   assert.doesNotMatch(renderDayModal({ management: false, writable: false, hideAdd: false }).html, /day-modal-add-event/);
   assert.doesNotMatch(renderDayModal({ management: true, writable: false, hideAdd: false }).html, /day-modal-add-event/);
+  assert.doesNotMatch(renderDayModal({ management: true, writable: true, hideAdd: false, disableCreation: true }).html, /day-modal-add-event/);
 });
 
 test('showDayModal Add Event button opens the create form for the selected date', () => {
@@ -626,8 +649,57 @@ test('event detail X button preserves active modal back-handler behavior', () =>
   assert.equal(card._activeModalBackHandler, null);
 });
 
-function createEventFormHarness({ mode = 'create' } = {}) {
-  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true });
+// Minimal stand-ins for the stepped picker's DOM (date input, hour/minute[/period] selects, hidden input).
+function createSteppedGroupFactory({ hour12 = false } = {}) {
+  const pad = (value) => String(value).padStart(2, '0');
+  const hourValues = (count, offset = 0) => Array.from({ length: count }, (_, index) => pad(index + offset));
+  const makeControl = (value) => {
+    const handlers = [];
+    return {
+      value,
+      addEventListener: (type, handler) => { if (type === 'change') handlers.push(handler); },
+      dispatchEvent: (event) => { handlers.forEach((handler) => handler(event)); return true; },
+      change: () => handlers.forEach((handler) => handler({ type: 'change' }))
+    };
+  };
+  const makeOption = (value) => {
+    const attributes = {};
+    return {
+      value,
+      setAttribute: (name, attributeValue) => { attributes[name] = attributeValue; },
+      getAttribute: (name) => (name in attributes ? attributes[name] : null)
+    };
+  };
+  const makeSelect = (values, selected) => {
+    const select = makeControl(selected);
+    select.options = values.map(makeOption);
+    select.add = (option, before) => {
+      const index = before ? select.options.indexOf(before) : -1;
+      if (index === -1) select.options.push(option);
+      else select.options.splice(index, 0, option);
+    };
+    select.remove = (index) => { select.options.splice(index, 1); };
+    return select;
+  };
+  const makeGroup = (dateValue, hour, minute, period = 'AM') => {
+    const parts = {
+      '[data-stepped-part="date"]': makeControl(dateValue),
+      '[data-stepped-part="hour"]': makeSelect(hour12 ? hourValues(12, 1) : hourValues(24), hour),
+      '[data-stepped-part="minute"]': makeSelect(['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'], minute),
+      '[data-stepped-part="period"]': hour12 ? makeSelect(['AM', 'PM'], period) : null,
+      'input[type="hidden"]': makeControl(`${dateValue}T${hour12 ? pad((Number(hour) % 12) + (period === 'PM' ? 12 : 0)) : hour}:${minute}`)
+    };
+    return {
+      parts,
+      querySelector: (selector) => parts[selector] || null,
+      getAttribute: (name) => (name === 'data-hour-cycle' ? (hour12 ? '12' : '24') : null)
+    };
+  };
+  return { makeGroup, hourValues };
+}
+
+function createEventFormHarness({ mode = 'create', config = {} } = {}) {
+  const card = makeCard({ entities: ['calendar.family'], enable_event_management: true, ...config });
   card.getWritableCalendars = () => ['calendar.family'];
   card.getCalendarName = () => 'Family';
   card.applyEventModalSizeClass = () => {};
@@ -689,7 +761,7 @@ function createEventFormHarness({ mode = 'create' } = {}) {
   } else {
     card.showCreateEventModal(new Date('2026-05-01T09:00:00Z'), new Date('2026-05-01T09:00:00Z'));
   }
-  return { handlers, modalClassList, card };
+  return { handlers, modalClassList, card, content };
 }
 
 test('Cancel buttons close create and edit workflows', () => {
@@ -855,7 +927,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'event_modal_size'
+    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'disable_event_creation', 'event_modal_size', 'hide_event_actions'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
   assert.deepEqual(stub, {
@@ -916,7 +988,9 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     default_hidden_calendars: [],
     color_scheme: 'auto',
     enable_event_management: true,
-    event_modal_size: 'medium'
+    disable_event_creation: false,
+    event_modal_size: 'medium',
+    hide_event_actions: []
   });
 
   const normalized = makeCard({ entities: ['calendar.family'] })._config;
@@ -925,6 +999,8 @@ test('getStubConfig and normalized defaults include key configuration defaults',
   }
   assert.equal(normalized.firstDayOfWeek, 0);
   assert.equal(normalized.event_modal_size, 'medium');
+  assert.equal(normalized.disable_event_creation, false);
+  assert.equal(makeCard({ entities: ['calendar.family'], disable_event_creation: true })._config.disable_event_creation, true);
   assert.equal(Object.prototype.hasOwnProperty.call(normalized, 'use_24hr_schedule'), false);
 });
 
@@ -1336,14 +1412,16 @@ test('shorten_event_times compacts whole-hour 24-hour ranges', () => {
   assert.equal(card.formatEventTimeRange(start, end), '10-11h');
 });
 
-test('shorten_event_times preserves h24 midnight hour labels', () => {
+test('shorten_event_times preserves the localized midnight hour label', () => {
   const card = makeCard({ entities: ['calendar.family'], locale: 'en-US', use_24hr_schedule: true, shorten_event_times: true });
   const start = new Date('2026-05-14T23:00:00Z');
   const end = new Date('2026-05-15T00:00:00Z');
+  const midnightLabel = card.formatTime(end);
+  const midnightHour = midnightLabel.split(':')[0];
 
-  assert.equal(card.formatTime(end), '24:00');
-  assert.equal(card.formatEventTime(end), '24h');
-  assert.equal(card.formatEventTimeRange(start, end), '23-24h');
+  assert.match(midnightLabel, /^(?:00|24):00$/);
+  assert.equal(card.formatEventTime(end), `${midnightHour}h`);
+  assert.equal(card.formatEventTimeRange(start, end), `23-${midnightHour}h`);
 });
 
 test('shorten_event_times preserves needed minutes in mixed 24-hour ranges', () => {
@@ -1531,6 +1609,62 @@ function clickEvent() {
   return { preventDefault: () => {}, stopPropagation: () => {} };
 }
 
+test('hide_event_actions hides configured event detail actions without changing capabilities', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    hide_event_actions: ['delete', 'custom_color', 'forward']
+  });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card._calendarCapabilities = { 'calendar.family': {} };
+  let harness = createModalHarness(card);
+  const event = { ...locationEvent(), uid: 'evt-1' };
+
+  card.showEventModal(event);
+
+  assert.doesNotMatch(harness.content.innerHTML, /id="delete-event-btn"/);
+  assert.doesNotMatch(harness.content.innerHTML, /id="custom-color-btn"/);
+  assert.doesNotMatch(harness.content.innerHTML, /id="forward-event-btn"/);
+  assert.match(harness.content.innerHTML, /id="edit-event-btn"/);
+  assert.equal(harness.handlers['delete-event-btn'], undefined);
+  assert.equal(harness.handlers['custom-color-btn'], undefined);
+  assert.equal(harness.handlers['forward-event-btn'], undefined);
+  assert.equal(typeof harness.handlers['edit-event-btn'], 'function');
+
+  const allHidden = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    hide_event_actions: ['delete', 'custom_color', 'forward', 'edit']
+  });
+  allHidden.getWritableCalendars = () => ['calendar.family'];
+  allHidden._calendarCapabilities = { 'calendar.family': {} };
+  harness = createModalHarness(allHidden);
+  allHidden.showEventModal(event);
+
+  assert.doesNotMatch(harness.content.innerHTML, /class="modal-actions"/);
+});
+
+test('disable_event_creation hides Forward while preserving edit and delete actions', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    disable_event_creation: true
+  });
+  card.getWritableCalendars = () => ['calendar.family'];
+  card._calendarCapabilities = { 'calendar.family': {} };
+  const harness = createModalHarness(card);
+  const event = { ...locationEvent(), uid: 'evt-1' };
+
+  card.showEventModal(event);
+
+  assert.doesNotMatch(harness.content.innerHTML, /id="forward-event-btn"/);
+  assert.match(harness.content.innerHTML, /id="edit-event-btn"/);
+  assert.match(harness.content.innerHTML, /id="delete-event-btn"/);
+  assert.equal(harness.handlers['forward-event-btn'], undefined);
+  assert.equal(typeof harness.handlers['edit-event-btn'], 'function');
+  assert.equal(typeof harness.handlers['delete-event-btn'], 'function');
+});
+
 test('event location links are opt-in for the details modal', () => {
   const unset = makeCard({ entities: ['calendar.family'] });
   let harness = createModalHarness(unset);
@@ -1588,22 +1722,30 @@ test('event location map action opens encoded Google Maps URL', () => {
 
 test('copy address action uses clipboard when available and fails gracefully otherwise', async () => {
   const card = makeCard({ entities: ['calendar.family'], location_links: true });
-  const originalNavigator = global.navigator;
+  const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   const writes = [];
-  global.navigator = { clipboard: { writeText: async (value) => writes.push(value) } };
-  assert.equal(await card.copyEventLocationAddress('Main Field'), true);
-  assert.deepEqual(writes, ['Main Field']);
+  const setNavigator = (value) => Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    writable: true,
+    value
+  });
 
-  global.navigator = { clipboard: { writeText: async () => { throw new Error('blocked'); } } };
-  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+  try {
+    setNavigator({ clipboard: { writeText: async (value) => writes.push(value) } });
+    assert.equal(await card.copyEventLocationAddress('Main Field'), true);
+    assert.deepEqual(writes, ['Main Field']);
 
-  global.navigator = {};
-  assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+    setNavigator({ clipboard: { writeText: async () => { throw new Error('blocked'); } } });
+    assert.equal(await card.copyEventLocationAddress('Main Field'), false);
 
-  if (originalNavigator === undefined) {
-    delete global.navigator;
-  } else {
-    global.navigator = originalNavigator;
+    setNavigator({});
+    assert.equal(await card.copyEventLocationAddress('Main Field'), false);
+  } finally {
+    if (originalNavigatorDescriptor) {
+      Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
+    } else {
+      delete globalThis.navigator;
+    }
   }
 });
 
@@ -1912,6 +2054,84 @@ test('week_number_prefix supports localized, custom, and number-only month label
   assert.match(cell, /month-week-number-text">27<\/span>/);
 });
 
+test('show_week_numbers_week is opt-in and limited to Week view', () => {
+  const disabledCard = makeCard({ entities: ['calendar.family'] });
+  disabledCard._viewMode = 'week-compact';
+  disabledCard._currentDate = new Date(2026, 4, 13, 12);
+  disabledCard.setWeekStart();
+  assert.equal(disabledCard._config.show_week_numbers_week, false);
+  assert.equal(disabledCard.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(disabledCard.renderHeaderTitle(), /header-week-number/);
+
+  const card = makeCard({ entities: ['calendar.family'], show_week_numbers_week: true, first_day_of_week: 1 });
+  card._currentDate = new Date(2026, 4, 13, 12);
+  card.setWeekStart();
+  card._viewMode = 'week-compact';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), 'CW 20');
+  assert.match(card.renderHeaderTitle(), /class="header-item header-week-number"/);
+  assert.match(card.renderHeaderTitle(), />CW 20<\/span>/);
+
+  card._viewMode = 'month';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(card.renderHeaderTitle(), /header-week-number/);
+
+  card._viewMode = 'week-standard';
+  assert.equal(card.getWeekHeaderWeekNumberLabel(), '');
+  assert.doesNotMatch(card.renderHeaderTitle(), /header-week-number/);
+});
+
+test('show_week_numbers_week reflects the visible Week date span and handles ISO year wrap', () => {
+  const calendarWeek = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    first_day_of_week: 0
+  });
+  calendarWeek._currentDate = new Date(2026, 4, 13, 12);
+  calendarWeek.setWeekStart();
+  calendarWeek._viewMode = 'week-compact';
+  assert.equal(calendarWeek.getWeekHeaderWeekNumberLabel(), 'CW 19–20');
+
+  const rolling = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    rolling_days_week_compact: 10
+  });
+  rolling._currentDate = new Date(2026, 4, 13, 12);
+  rolling._viewMode = 'week-compact';
+  assert.equal(rolling.getWeekHeaderWeekNumberLabel(), 'CW 20–21');
+
+  const yearBoundary = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    rolling_days_week_compact: 8
+  });
+  yearBoundary._currentDate = new Date(2026, 11, 27, 12);
+  yearBoundary._viewMode = 'week-compact';
+  assert.equal(yearBoundary.getWeekHeaderWeekNumberLabel(), 'CW 52–53 / 1');
+
+  const dutch = makeCard({
+    entities: ['calendar.family'],
+    language: 'nl',
+    show_week_numbers_week: true,
+    first_day_of_week: 1
+  });
+  dutch._currentDate = new Date(2026, 4, 13, 12);
+  dutch.setWeekStart();
+  dutch._viewMode = 'week-compact';
+  assert.equal(dutch.getWeekHeaderWeekNumberLabel(), 'wk 20');
+
+  const numberOnly = makeCard({
+    entities: ['calendar.family'],
+    show_week_numbers_week: true,
+    week_number_prefix: '',
+    first_day_of_week: 0
+  });
+  numberOnly._currentDate = new Date(2026, 4, 13, 12);
+  numberOnly.setWeekStart();
+  numberOnly._viewMode = 'week-compact';
+  assert.equal(numberOnly.getWeekHeaderWeekNumberLabel(), '19–20');
+});
+
 test('disable_swipe_controls disables swipe controls without affecting agenda', () => {
   const enabledCard = makeCard({ entities: ['calendar.family'] });
   enabledCard._viewMode = 'week-compact';
@@ -2099,6 +2319,170 @@ test('normalizes enum helper aliases and fallbacks consistently', () => {
   assert.equal(card.normalizeCombineStyle('zebra'), 'bars');
   assert.equal(card.normalizeEventColorMode('left-neutral'), 'left-neutral');
   assert.equal(card.normalizeEventColorMode('bad-value'), 'classic');
+});
+
+test('hass theme changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card._isDarkMode = false;
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.ensureEventsForCurrentRange = () => {};
+
+  let renderCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card.hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: true }
+  };
+
+  assert.equal(card._isDarkMode, true);
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('hass language changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = {
+    states: {},
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card._activeLanguage = 'en';
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.ensureEventsForCurrentRange = () => {};
+
+  let renderCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card.hass = {
+    states: {},
+    locale: { language: 'da' },
+    language: 'da',
+    themes: { darkMode: false }
+  };
+
+  assert.equal(card._activeLanguage, 'da');
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('system theme changes defer rendering until the event modal closes', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._themeMode = 'auto';
+  card._isDarkMode = false;
+
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.isEventManagementDialogOpen = () => true;
+
+  card._handleSystemThemeChange({ matches: true });
+
+  assert.equal(card._isDarkMode, true);
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('in-flight event refresh defers rendering until the event modal closes', async () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({
+    startDate: new Date('2026-09-01T00:00:00Z'),
+    endDate: new Date('2026-10-01T00:00:00Z')
+  });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.family': {
+      success: true,
+      events: [{
+        entityId: 'calendar.family',
+        summary: 'Added from another client',
+        start: { date: '2026-09-22' },
+        end: { date: '2026-09-23' }
+      }]
+    }
+  });
+  card.persistEventCacheSnapshot = () => {};
+  card.isEventManagementDialogOpen = () => true;
+
+  let renderCount = 0;
+  card.render = () => { renderCount += 1; };
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+
+  await card.updateEvents();
+
+  assert.equal(card._events[0].summary, 'Added from another client');
+  assert.equal(renderCount, 0);
+  assert.equal(card._pendingHeaderSensorRender, true);
+  assert.equal(card._lastUnchangedDataRender, null);
+
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.equal(renderCount, 1);
+  assert.equal(card._pendingHeaderSensorRender, false);
+});
+
+test('event dialog preserves a queued follow-up refresh until it closes', async () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  card._hass = { user: { id: 'user-1' } };
+  card.getEventFetchRange = () => ({
+    startDate: new Date('2026-09-01T00:00:00Z'),
+    endDate: new Date('2026-10-01T00:00:00Z')
+  });
+  card.fetchEventsByCalendarInRange = async () => ({
+    'calendar.family': { success: true, events: [] }
+  });
+  card.persistEventCacheSnapshot = () => {};
+  card._pendingEventRefreshAfterCurrentFetch = true;
+  card._pendingEventRenderAfterCurrentFetch = true;
+  card.isEventManagementDialogOpen = () => true;
+
+  await card.updateEvents();
+
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, true);
+  assert.equal(card._pendingEventRenderAfterCurrentFetch, true);
+
+  let refreshOptions = null;
+  card.ensureEventsForCurrentRange = (options) => { refreshOptions = options; };
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+
+  assert.deepEqual(refreshOptions, { force: true, renderIfCovered: true });
+  assert.equal(card._pendingEventRefreshAfterCurrentFetch, false);
+  assert.equal(card._pendingEventRenderAfterCurrentFetch, false);
 });
 
 test('normalizes css length helpers while preserving size and border width rules', () => {
@@ -2670,6 +3054,34 @@ test('calendar badge can show linked person location and picture', () => {
   assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
 });
 
+test('hide_calendar_badge_person_state hides linked person state but keeps name and picture', () => {
+  const card = new Card();
+  card._hass = {
+    states: {
+      'calendar.family': { entity_id: 'calendar.family', attributes: { friendly_name: 'Ian' } },
+      'person.ian': { entity_id: 'person.ian', state: 'home', attributes: { friendly_name: 'Ian', entity_picture: '/api/image/serve/ian/original' } }
+    },
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  };
+  card.setConfig({
+    entities: ['calendar.family'],
+    calendar_person_entities: { 'calendar.family': 'person.ian' },
+    hide_calendar_badge_person_state: true
+  });
+
+  originalCardRender.call(card);
+  const html = card._root.innerHTML;
+
+  assert.equal(card._config.hide_calendar_badge_person_state, true);
+  assert.match(html, /calendar-badge-name/);
+  assert.match(html, /calendar-badge-person-icon/);
+  assert.match(html, /src="\/api\/image\/serve\/ian\/original"/);
+  assert.doesNotMatch(html, /class="calendar-badge-person-state"/);
+  assert.doesNotMatch(html, />Home</);
+});
+
 
 test('event modal overlay CSS uses viewport-fixed coverage and high stacking', () => {
   const card = makeCard();
@@ -2914,6 +3326,110 @@ test('weather renders Home Assistant mdi icons instead of emoji glyphs', () => {
   assert.doesNotMatch(forecastHtml, /☀️|⛅/);
 });
 
+test('weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback', () => {
+  const states = {
+    'weather.home': {
+      state: 'partlycloudy',
+      attributes: {
+        temperature: 21,
+        forecast: [
+          { datetime: '2026-05-14T12:00:00Z', condition: 'rainy', temperature: 24, templow: 12 },
+          { datetime: '2026-05-15T12:00:00Z', condition: 'exceptional', temperature: 20, templow: 10 }
+        ]
+      }
+    },
+    'sun.sun': { state: 'below_horizon', attributes: {} }
+  };
+
+  const defaultCard = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  defaultCard._hass = { states };
+  assert.equal(defaultCard._config.weather_icon_style, 'mdi');
+  assert.match(defaultCard.renderHeaderTitle(), /<ha-icon icon="mdi:weather-partly-cloudy"><\/ha-icon>/);
+  assert.doesNotMatch(defaultCard.renderDayForecast(new Date('2026-05-14T00:00:00Z')), /weather-svg-icon/);
+
+  const invalidCard = makeCard({ entities: ['calendar.family'], weather_icon_style: 'rainbow' });
+  assert.equal(invalidCard._config.weather_icon_style, 'mdi');
+
+  const card = makeCard({ entities: ['calendar.family'], header_weather_sensor: 'weather.home', weather_icon_style: 'colored' });
+  card._hass = { states };
+  const headerHtml = card.renderHeaderTitle();
+  assert.match(headerHtml, /<svg class="weather-svg-icon"/);
+  assert.match(headerHtml, /class="moon"/, 'partly cloudy at night shows the moon');
+  assert.match(headerHtml, /class="cloud-front"/);
+  assert.doesNotMatch(headerHtml, /<ha-icon icon="mdi:weather-partly-cloudy">/);
+
+  const rainyHtml = card.renderDayForecast(new Date('2026-05-14T00:00:00Z'));
+  assert.match(rainyHtml, /<span class="forecast-condition"><svg class="weather-svg-icon"/);
+  assert.match(rainyHtml, /class="rain"/);
+
+  const fallbackHtml = card.renderDayForecast(new Date('2026-05-15T00:00:00Z'));
+  assert.match(fallbackHtml, /<ha-icon icon="mdi:alert-circle-outline"><\/ha-icon>/);
+  assert.doesNotMatch(fallbackHtml, /weather-svg-icon/);
+});
+
+test('colored header weather rerenders when only sun.sun changes', () => {
+  const makeHass = (sunState) => ({
+    states: {
+      'weather.home': { state: 'partlycloudy', attributes: { temperature: 21 } },
+      'sun.sun': { state: sunState, attributes: {} }
+    },
+    locale: { language: 'en' },
+    language: 'en',
+    themes: { darkMode: false }
+  });
+  const prepare = (config) => {
+    const card = makeCard(config);
+    card._hass = makeHass('above_horizon');
+    card._activeLanguage = 'en';
+    card._isDarkMode = false;
+    card.checkAllCalendarCapabilities = () => {};
+    card.ensureWeatherForecastSubscription = () => {};
+    card.refreshWeatherForecastData = () => {};
+    card.ensureEventsForCurrentRange = () => {};
+    card.isEventManagementDialogOpen = () => false;
+    card.renderCount = 0;
+    card.renderPreservingAgendaScroll = () => { card.renderCount += 1; };
+    return card;
+  };
+
+  const card = prepare({ entities: ['calendar.family'], header_weather_sensor: 'weather.home', weather_icon_style: 'colored' });
+  assert.match(card.renderHeaderTitle(), /class="sun"/);
+  card.hass = makeHass('below_horizon');
+  assert.equal(card.renderCount, 1);
+  assert.match(card.renderHeaderTitle(), /class="moon"/);
+  assert.doesNotMatch(card.renderHeaderTitle(), /class="sun"/);
+  card.hass = makeHass('above_horizon');
+  assert.equal(card.renderCount, 2);
+  assert.match(card.renderHeaderTitle(), /class="sun"/);
+
+  const mdiCard = prepare({ entities: ['calendar.family'], header_weather_sensor: 'weather.home' });
+  mdiCard.hass = makeHass('below_horizon');
+  assert.equal(mdiCard.renderCount, 0, 'default MDI icons do not depend on sun.sun');
+});
+
+test('colored weather clear alias follows nightTime', async () => {
+  const { renderColoredWeatherSvg } = await import('./src/weather/weather-svg-icons.js');
+  assert.match(renderColoredWeatherSvg('clear'), /class="sun"/);
+  assert.doesNotMatch(renderColoredWeatherSvg('clear'), /class="moon"/);
+  assert.match(renderColoredWeatherSvg('clear', { nightTime: true }), /class="moon"/);
+  assert.doesNotMatch(renderColoredWeatherSvg('clear', { nightTime: true }), /class="sun"/);
+  assert.equal(renderColoredWeatherSvg('clear', { nightTime: true }), renderColoredWeatherSvg('clear-night'));
+});
+
+test('colored weather SVG covers every Home Assistant condition that has artwork', async () => {
+  const { renderColoredWeatherSvg } = await import('./src/weather/weather-svg-icons.js');
+  const conditions = ['sunny', 'clear-night', 'partlycloudy', 'cloudy', 'fog', 'hail', 'lightning', 'lightning-rainy', 'pouring', 'rainy', 'snowy', 'snowy-rainy', 'windy', 'windy-variant'];
+  for (const condition of conditions) {
+    assert.match(renderColoredWeatherSvg(condition), /^<svg class="weather-svg-icon"[^>]*viewBox="0 0 17 17"/, condition);
+  }
+  assert.match(renderColoredWeatherSvg('sunny'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('partlycloudy'), /class="sun"/);
+  assert.match(renderColoredWeatherSvg('snowy'), /class="snow"/);
+  assert.equal(renderColoredWeatherSvg('exceptional'), '');
+  assert.equal(renderColoredWeatherSvg('unknown'), '');
+  assert.equal(renderColoredWeatherSvg(''), '');
+});
+
 test('daily weather forecasts default on and can be disabled without hiding header weather', () => {
   const weatherState = {
     state: 'sunny',
@@ -3069,11 +3585,11 @@ test('weather utility normalizes header weather data and preserves temperature u
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'sunny',
     attributes: { temperature: 21.4 }
-  }), { conditionIcon: 'mdi:weather-sunny', temperature: '21°' });
+  }), { conditionIcon: 'mdi:weather-sunny', condition: 'sunny', temperature: '21°' });
   assert.deepEqual(normalizeHeaderWeatherData({
     state: 'cloudy',
     attributes: { condition: 'rainy', current_temperature: 18.6 }
-  }), { conditionIcon: 'mdi:weather-rainy', temperature: '19°' });
+  }), { conditionIcon: 'mdi:weather-rainy', condition: 'rainy', temperature: '19°' });
   assert.equal(normalizeHeaderWeatherData({ state: 'unavailable', attributes: { temperature: 20 } }), null);
   assert.equal(normalizeHeaderWeatherData({ state: 'sunny', attributes: {} }), null);
   assert.equal(normalizeHeaderWeatherData(null), null);
@@ -3088,6 +3604,7 @@ test('weather utility normalizes forecast items and handles missing or empty dat
     { date: '2026-05-14', condition: 'partlycloudy', temphigh: 24.2, temperature_low: 12.4 }
   ], new Date('2026-05-14T00:00:00Z'), getDateKey), {
     conditionIcon: 'mdi:weather-partly-cloudy',
+    condition: 'partlycloudy',
     highTemp: '24°',
     lowTemp: '12°'
   });
@@ -3179,6 +3696,20 @@ test('hide_add_event_button hides add event control only', () => {
   assert.match(html, /id="view-mode-select"/);
 });
 
+test('disable_event_creation hides the header Add Event control without hiding navigation', () => {
+  const card = new Card();
+  card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
+  card.setConfig({ entities: ['calendar.family'], enable_event_management: true, disable_event_creation: true });
+  card._calendarCapabilities = { 'calendar.family': { canCreate: true, isReadonly: false } };
+
+  originalCardRender.call(card);
+  const html = card._root.innerHTML;
+
+  assert.doesNotMatch(html, /id="add-event-btn"/);
+  assert.match(html, /id="prev-period"/);
+  assert.match(html, /id="view-mode-select"/);
+});
+
 test('hide_view_selector hides view drop-down selector only', () => {
   const card = new Card();
   card._hass = { states: {}, locale: { language: 'en' }, language: 'en', themes: { darkMode: false } };
@@ -3190,6 +3721,66 @@ test('hide_view_selector hides view drop-down selector only', () => {
   assert.doesNotMatch(html, /id="view-mode-select"/);
   assert.match(html, /id="prev-period"/);
   assert.match(html, /id="today"/);
+});
+
+test('disable_event_creation prevents direct create modal opening', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    disable_event_creation: true
+  });
+  card.getRootElementById = () => {
+    throw new Error('create modal should not touch the DOM when creation is disabled');
+  };
+
+  assert.doesNotThrow(() => card.showCreateEventModal());
+});
+
+test('disable_event_creation blocks Agenda, Schedule slot, and Week header creation clicks', () => {
+  const card = makeCard({
+    entities: ['calendar.family'],
+    enable_event_management: true,
+    disable_event_creation: true
+  });
+  const handlers = {};
+  const datedColumn = { getAttribute: () => '2026-05-01T00:00:00.000Z' };
+  const agendaRow = {
+    addEventListener: (name, callback) => { handlers.agenda = callback; },
+    getAttribute: () => '2026-05-01T00:00:00.000Z'
+  };
+  const slot = {
+    addEventListener: (name, callback) => { handlers.slot = callback; },
+    getAttribute: (name) => name === 'data-hour' ? '9' : null,
+    closest: () => datedColumn
+  };
+  const dayHeader = {
+    addEventListener: (name, callback) => { handlers.header = callback; },
+    closest: () => datedColumn
+  };
+
+  card.getRootElementById = () => null;
+  card.observeModalVisibility = () => {};
+  card.attachSwipeControls = () => {};
+  card._root = {
+    querySelector: () => null,
+    querySelectorAll: (selector) => {
+      if (selector === '.agenda-day-row') return [agendaRow];
+      if (selector === '.day-time-slot') return [slot];
+      if (selector === '[data-click-target="day-header"]') return [dayHeader];
+      return [];
+    }
+  };
+  card.getWritableCalendars = () => ['calendar.family'];
+  let createCalls = 0;
+  card.showCreateEventModal = () => { createCalls += 1; };
+
+  card.attachEventListeners();
+  const target = { classList: { contains: () => false }, closest: () => null };
+  handlers.agenda({ target });
+  handlers.slot({ target });
+  handlers.header({ target });
+
+  assert.equal(createCalls, 0);
 });
 
 test('header button listeners invoke expected actions', () => {
@@ -3236,6 +3827,278 @@ test('agenda rolling days are configurable and include current day + N days', ()
   const spanDays = Math.round((card._agendaEndDate.getTime() - card._agendaStartDate.getTime()) / dayMs);
   assert.equal(spanDays, 5);
   assert.equal(card.getAgendaDays().length, 5);
+});
+
+test('agenda rolling window advances at local midnight and preserves the configured span', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+  const initialDay = new Date(2026, 8, 18, 10, 30);
+  card.resetAgendaWindowToToday(initialDay);
+
+  const advanced = card.advanceAgendaWindowToCurrentDay(new Date(2026, 8, 19, 0, 0, 1));
+
+  assert.equal(advanced, true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-09-19');
+  assert.equal(localDateKey(card._agendaEndDate), '2026-09-22');
+  assert.deepEqual(card.getAgendaDays().map(localDateKey), [
+    '2026-09-19',
+    '2026-09-20',
+    '2026-09-21',
+    '2026-09-22'
+  ]);
+});
+
+test('agenda rollover target is browser-local midnight and follows DST calendar arithmetic', () => {
+  const previousTimeZone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+    const dstStartMidnight = new Date(2026, 2, 8, 0, 0, 0, 0);
+    const nextMidnight = card.getNextCalendarLocalMidnight(dstStartMidnight);
+
+    assert.equal(nextMidnight.getFullYear(), 2026);
+    assert.equal(nextMidnight.getMonth(), 2);
+    assert.equal(nextMidnight.getDate(), 9);
+    assert.equal(nextMidnight.getHours(), 0);
+    assert.equal(nextMidnight.getMinutes(), 0);
+    assert.notEqual(dstStartMidnight.getTimezoneOffset(), nextMidnight.getTimezoneOffset());
+    assert.equal(nextMidnight.getTime() - dstStartMidnight.getTime(), 23 * 60 * 60 * 1000);
+  } finally {
+    if (previousTimeZone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = previousTimeZone;
+    }
+  }
+});
+
+test('manual agenda navigation opts out of automatic local-midnight rollover', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 2 });
+  card._viewMode = 'agenda';
+  card.resetAgendaWindowToToday(new Date(2026, 8, 18, 10, 30));
+  card.navigateToNextPeriod();
+
+  const navigatedStart = localDateKey(card._agendaStartDate);
+  const advanced = card.advanceAgendaWindowToCurrentDay(new Date(2026, 8, 19, 0, 0, 1));
+
+  assert.equal(card._agendaFollowsToday, false);
+  assert.equal(advanced, false);
+  assert.equal(localDateKey(card._agendaStartDate), navigatedStart);
+});
+
+test('agenda local-midnight rollover refreshes the visible range', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda', rolling_days_agenda: 3 });
+  card._viewMode = 'agenda';
+  card._hass = {};
+  card.resetAgendaWindowToToday(new Date(2026, 8, 18, 10, 30));
+  card.isEventManagementDialogOpen = () => false;
+
+  let renderCount = 0;
+  let refreshCount = 0;
+  card.renderPreservingAgendaScroll = () => { renderCount += 1; };
+  card.ensureEventsForCurrentRange = () => { refreshCount += 1; };
+  const advanced = card.handleCalendarDayRollover(new Date(2026, 8, 19, 0, 0, 1));
+  assert.equal(advanced, true);
+  assert.equal(renderCount, 1);
+  assert.equal(refreshCount, 1);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-09-19');
+});
+
+
+test('rolling Week and Schedule date columns advance after local midnight', () => {
+  for (const [view, option] of [
+    ['week-compact', 'rolling_days_week_compact'],
+    ['week-standard', 'rolling_days_schedule']
+  ]) {
+    const card = makeCard({ entities: ['calendar.family'], default_view: view, [option]: 3 });
+    card._currentDate = new Date(2026, 9, 20, 12);
+    card.setWeekStart();
+    assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23']);
+    let renders = 0;
+    let refreshes = 0;
+    card._hass = {};
+    card.isEventManagementDialogOpen = () => false;
+    card.renderPreservingAgendaScroll = () => { renders++; };
+    card.ensureEventsForCurrentRange = () => { refreshes++; };
+    assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 0, 0, 1)), true);
+    assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24']);
+    assert.equal(renders, 1, view + ' must render without waiting for events');
+    assert.equal(refreshes, 1);
+    assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 1)), false);
+    assert.equal(renders, 1);
+  }
+});
+
+test('rolling Month and standard week views advance at the next week boundary', () => {
+  for (const [view, extra] of [
+    ['month', { rolling_weeks: 2 }],
+    ['week-compact', {}],
+    ['week-standard', {}]
+  ]) {
+    const card = makeCard({ entities: ['calendar.family'], default_view: view, first_day_of_week: 0, ...extra });
+    card._currentDate = new Date(2026, 9, 24, 12);
+    card.setWeekStart();
+    assert.equal(localDateKey(card.getVisibleDateRange().startDate), '2026-10-18');
+    assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 25, 0, 0, 1)), true);
+    assert.equal(localDateKey(card.getVisibleDateRange().startDate), '2026-10-25');
+  }
+});
+
+test('standard Month stays in the month until its boundary', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'month' });
+  card._currentDate = new Date(2026, 9, 30, 12);
+  card.setWeekStart();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 31, 12)), true);
+  assert.equal(card._currentDate.getMonth(), 9);
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 10, 1, 0, 0, 1)), true);
+  assert.equal(card._currentDate.getMonth(), 10);
+});
+
+test('non-rolling Agenda advances when still following today', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card.resetAgendaWindowToToday(new Date(2026, 9, 20, 12));
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-10-21');
+  assert.equal(card.getAgendaDays().length, 15);
+});
+
+test('manual period navigation opts out of rollover until Today is pressed', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 2 });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  card.navigateToNextPeriod();
+  assert.equal(card._calendarFollowsToday, false);
+  const chosenStart = localDateKey(card.getWeekDays()[0]);
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), false);
+  assert.equal(localDateKey(card.getWeekDays()[0]), chosenStart);
+  const handlers = {};
+  card.getRootElementById = id => id === 'today' ? {
+    addEventListener: (name, callback) => { handlers[name] = callback; }
+  } : null;
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.observeModalVisibility = () => {};
+  card.attachEventListeners();
+  handlers.click();
+  assert.equal(card._calendarFollowsToday, true);
+  assert.equal(localDateKey(card.getWeekDays()[0]), localDateKey(new Date()));
+});
+
+test('missed midnight rollover catches up multiple days in one update', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 1 });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(2026, 9, 23, 12)), true);
+  assert.deepEqual(dateKeys(card.getWeekDays()), ['2026-10-23', '2026-10-24']);
+});
+
+test('a modal opened across midnight defers rendering and refresh until close', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+  card._currentDate = new Date(2026, 9, 20, 12);
+  card.setWeekStart();
+  card._hass = {};
+  let rendered = 0;
+  let refreshed = 0;
+  card.renderPreservingAgendaScroll = () => { rendered++; };
+  card.ensureEventsForCurrentRange = () => { refreshed++; };
+  card.isEventManagementDialogOpen = () => true;
+  assert.equal(card.handleCalendarDayRollover(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(rendered, 0);
+  assert.equal(refreshed, 0);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, true);
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+  assert.equal(rendered, 1);
+  assert.equal(refreshed, 1);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, false);
+});
+
+test('midnight scheduling uses 25-hour local calendar days at autumn DST', () => {
+  const originalTimeZone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact' });
+    const before = new Date(2026, 10, 1, 0, 0);
+    const after = card.getNextCalendarLocalMidnight(before);
+    assert.equal(localDateKey(after), '2026-11-02');
+    assert.equal(after.getTime() - before.getTime(), 25 * 60 * 60 * 1000);
+  } finally {
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
+  }
+});
+
+
+test('non-rolling Agenda does not interpret loaded earlier days as a new day', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  const today = new Date(2026, 9, 20, 10);
+  card.resetAgendaWindowToToday(today);
+  card._agendaStartDate.setDate(card._agendaStartDate.getDate() - 7);
+  const expandedStart = localDateKey(card._agendaStartDate);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 20, 18)), false);
+  assert.equal(localDateKey(card._agendaStartDate), expandedStart);
+  assert.equal(card.advanceAgendaWindowToCurrentDay(new Date(2026, 9, 21, 0, 0, 1)), true);
+  assert.equal(localDateKey(card._agendaStartDate), '2026-10-21');
+});
+
+test('scrolling upward into non-rolling Agenda history disables auto-follow', async () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'agenda' });
+  card.resetAgendaWindowToToday();
+  const previousStart = new Date(card._agendaStartDate);
+  const handlers = {};
+  const container = {
+    scrollTop: 0, clientHeight: 300, scrollHeight: 1000,
+    addEventListener: (event, callback) => { handlers[event] = callback; },
+    querySelectorAll: () => []
+  };
+  card.getRootElementById = id => id === 'agenda-container' ? container : null;
+  card._root = { querySelector: () => null, querySelectorAll: () => [] };
+  card.observeModalVisibility = () => {};
+  card.updateAgendaVisibleDateRangeFromDom = () => {};
+  card.canNavigateToPreviousPeriod = () => true;
+  // The scroll-retention animation is browser-only; keep this unit test
+  // focused on the history expansion and follow state.
+  card.setAgendaScrollTopWithoutTriggeringLoad = () => {};
+  card.ensureEventsForCurrentRange = async () => {};
+  card.attachEventListeners();
+  await handlers.scroll();
+  assert.equal(card._agendaFollowsToday, false);
+  assert.equal(localDateKey(card._agendaStartDate),
+    localDateKey(new Date(previousStart.getFullYear(), previousStart.getMonth(), previousStart.getDate() - card._agendaDaysPerScrollLoad)));
+  const expandedStart = card._agendaStartDate.getTime();
+  assert.equal(card.advanceCalendarWindowToCurrentDay(new Date(Date.now() + 2 * 86400000)), false);
+  assert.equal(card._agendaStartDate.getTime(), expandedStart);
+});
+
+test('hass-triggered midnight rollover queues stale refresh while event dialog is open', () => {
+  const card = makeCard({ entities: ['calendar.family'], default_view: 'week-compact', rolling_days_week_compact: 2 });
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  card._currentDate = yesterday;
+  card.setWeekStart();
+  const hass = { states: {}, themes: { darkMode: false }, language: 'en' };
+  card._hass = hass;
+  card.checkAllCalendarCapabilities = () => {};
+  card.ensureWeatherForecastSubscription = () => {};
+  card.refreshWeatherForecastData = () => {};
+  card.loadEventCacheForCurrentConfig = () => {};
+  card.isEventManagementDialogOpen = () => true;
+  let renders = 0, refreshes = 0;
+  card.renderPreservingAgendaScroll = () => { renders++; };
+  // Reflect the normal stale-event refresh guard while the modal is open.
+  card.ensureEventsForCurrentRange = () => {
+    if (!card.isEventManagementDialogOpen()) refreshes++;
+  };
+
+  card.hass = { ...hass, states: {} };
+  assert.equal(localDateKey(card._currentDate), localDateKey(new Date()));
+  assert.equal(card._pendingCalendarDayRolloverRefresh, true);
+  assert.equal(renders, 0);
+  assert.equal(refreshes, 0);
+  card.isEventManagementDialogOpen = () => false;
+  card.flushPendingHeaderTimeRender();
+  assert.equal(renders, 1);
+  assert.equal(refreshes, 1);
+  assert.equal(card._pendingCalendarDayRolloverRefresh, false);
 });
 
 test('agenda vertical scroll loading is disabled in rolling-days mode', async () => {
@@ -3295,6 +4158,8 @@ test('editor renders key controls and updates config on change', () => {
   assert.equal(editor._config.past_event_mode, 'hide');
   assert.match(editor.innerHTML, /data-field="past_event_mode"/);
   assert.match(editor.innerHTML, /<option value="hide" selected>Hide<\/option>/);
+  assert.match(editor.innerHTML, /data-field="show_week_numbers_week"/);
+  assert.match(editor.innerHTML, /data-field="disable_event_creation"/);
   assert.match(editor.innerHTML, /data-field="week_number_prefix_mode"/);
   assert.match(editor.innerHTML, /data-field="week_compact_weekday_font_size"/);
   assert.match(editor.innerHTML, /data-color-field="week_compact_weekday_color"/);
@@ -3304,6 +4169,8 @@ test('editor renders key controls and updates config on change', () => {
   editor._fireConfigChanged = () => {};
   editor.handleChange({ target: { dataset: { field: 'show_event_location' }, type: 'checkbox', checked: true } });
   assert.equal(editor._config.show_event_location, true);
+  editor.handleChange({ target: { dataset: { field: 'disable_event_creation' }, type: 'checkbox', checked: true } });
+  assert.equal(editor._config.disable_event_creation, true);
   editor.handleChange({ target: { dataset: { field: 'past_event_mode' }, value: 'muted' } });
   assert.equal(editor._config.past_event_mode, 'muted');
   editor.handleChange({ target: { dataset: { field: 'week_number_prefix_mode' }, value: 'number_only' } });
@@ -4237,6 +5104,189 @@ test('day badge actions are treated as interactive swipe targets', () => {
       assert.equal(card._swipeStartedOnInteractive, false);
       assert.equal(card._swipeTracking, false);
     }
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+  }
+});
+
+
+test('touch swipes that start in horizontal scroll regions do not navigate periods', () => {
+  const OriginalElement = global.Element;
+  const originalGetComputedStyle = global.getComputedStyle;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null, overflowX = 'visible' } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+      this.overflowX = overflowX;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+  global.getComputedStyle = (element) => ({ overflowX: element.overflowX });
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const badgeScroller = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container, overflowX: 'auto' });
+    const badge = new FakeElement({ parentElement: badgeScroller });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    card.canNavigateToPreviousPeriod = () => true;
+    let nextCalls = 0;
+    let previousCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+    card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: badge,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    assert.equal(card._swipeStartedOnInteractive, true);
+
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 0);
+    assert.equal(previousCalls, 0);
+    assert.equal(card._swipeStartedOnInteractive, false);
+    assert.equal(card._swipeTracking, false);
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+    if (originalGetComputedStyle === undefined) {
+      delete global.getComputedStyle;
+    } else {
+      global.getComputedStyle = originalGetComputedStyle;
+    }
+  }
+});
+
+test('touch swipes that start in clipped overflow regions still navigate periods', () => {
+  const OriginalElement = global.Element;
+  const originalGetComputedStyle = global.getComputedStyle;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null, overflowX = 'visible' } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+      this.overflowX = overflowX;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+  global.getComputedStyle = (element) => ({ overflowX: element.overflowX });
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const clippedBadges = new FakeElement({ scrollWidth: 600, clientWidth: 280, parentElement: container, overflowX: 'hidden' });
+    const badge = new FakeElement({ parentElement: clippedBadges });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    let nextCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: badge,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 1);
+    assert.equal(card._swipeStartedOnInteractive, false);
+    assert.equal(card._swipeTracking, false);
+  } finally {
+    if (OriginalElement === undefined) {
+      delete global.Element;
+    } else {
+      global.Element = OriginalElement;
+    }
+    if (originalGetComputedStyle === undefined) {
+      delete global.getComputedStyle;
+    } else {
+      global.getComputedStyle = originalGetComputedStyle;
+    }
+  }
+});
+
+test('touch swipes outside excluded regions still navigate periods', () => {
+  const OriginalElement = global.Element;
+  class FakeElement {
+    constructor({ matchingSelectors = [], scrollWidth = 0, clientWidth = 0, parentElement = null } = {}) {
+      this.matchingSelectors = matchingSelectors;
+      this.scrollWidth = scrollWidth;
+      this.clientWidth = clientWidth;
+      this.parentElement = parentElement;
+    }
+    closest(selector) {
+      const selectors = selector.split(',').map((part) => part.trim());
+      return this.matchingSelectors.some((matchingSelector) => selectors.includes(matchingSelector)) ? this : null;
+    }
+  }
+  global.Element = FakeElement;
+
+  try {
+    const card = makeCard({ entities: ['calendar.family'] });
+    const handlers = {};
+    const container = new FakeElement({ matchingSelectors: ['.calendar-container'], scrollWidth: 320, clientWidth: 320 });
+    container.addEventListener = (eventName, callback) => { handlers[eventName] = callback; };
+    const dayCell = new FakeElement({ parentElement: container });
+    card._root = {
+      querySelector: (selector) => selector === '.calendar-container' ? container : null
+    };
+    card.shouldEnableSwipeControls = () => true;
+    card.canTriggerSwipePeriodNavigation = () => true;
+    card.canNavigateToPreviousPeriod = () => true;
+    let nextCalls = 0;
+    let previousCalls = 0;
+    card.navigateToNextPeriod = () => { nextCalls += 1; };
+    card.navigateToPreviousPeriod = () => { previousCalls += 1; };
+
+    card.attachSwipeControls();
+    handlers.touchstart({
+      target: dayCell,
+      touches: [{ clientX: 100, clientY: 20 }]
+    });
+    assert.equal(card._swipeStartedOnInteractive, false);
+
+    handlers.touchend({
+      changedTouches: [{ clientX: 20, clientY: 22 }]
+    });
+
+    assert.equal(nextCalls, 1);
+    assert.equal(previousCalls, 0);
+    assert.equal(card._swipeTracking, false);
   } finally {
     if (OriginalElement === undefined) {
       delete global.Element;
@@ -6356,16 +7406,14 @@ for (const calendarType of [
 
       await card.updateEvent(originalEvent, calendarType.id, eventData, 'future');
 
+      assert.equal(calls.length, 0);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].entity_id, calendarType.id);
+      assert.equal(sent[0].uid, 'uid-1');
       if (recurrence.rrule) {
-        assert.equal(sent.length, 1);
-        assert.equal(sent[0].type, 'calendar/event/update');
-        assert.equal(sent[0].entity_id, calendarType.id);
         assert.equal(sent[0].event.rrule, recurrence.rrule);
         assert.equal(sent[0].recurrence_range, 'THISANDFUTURE');
-      } else {
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0][1], 'update_event');
-        assert.equal(calls[0][2].entity_id, calendarType.id);
       }
     });
 
@@ -6400,6 +7448,214 @@ for (const calendarType of [
     });
   }
 }
+
+const makeUpdateEventCard = ({ wsError = null, serviceError = null, updateService, connection = true } = {}) => {
+  const card = makeCard();
+  const sent = [];
+  const calls = [];
+  card._calendarCapabilities['calendar.caldav_work'] = { canUpdate: true };
+  card._hass = {
+    connection: connection ? {
+      sendMessagePromise: async (payload) => {
+        sent.push(payload);
+        if (wsError && payload.type === 'calendar/event/update') {
+          throw wsError;
+        }
+      }
+    } : undefined,
+    services: { calendar: updateService ? { update_event: updateService } : {} },
+    callService: async (...args) => {
+      calls.push(args);
+      if (serviceError && args[1] === 'update_event') {
+        throw serviceError;
+      }
+    }
+  };
+  return { card, sent, calls };
+};
+
+const singleEventUpdate = {
+  originalEvent: { entityId: 'calendar.caldav_work', uid: 'uid-1' },
+  eventData: {
+    summary: 'Updated',
+    start: { dateTime: '2026-05-01T15:00:00Z' },
+    end: { dateTime: '2026-05-01T16:00:00Z' }
+  }
+};
+
+const compatibleUpdateService = {
+  fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} }
+};
+
+// Spook's calendar.update_event (5.11+): the first four keys are lookup filters, the rest are changes.
+const spookUpdateService = {
+  fields: {
+    summary: {}, uid: {}, start_date_time: {}, end_date_time: {}, duration: {},
+    new_summary: {}, description: {}, location: {}, new_start: {}, new_end: {}, shift: {}
+  }
+};
+
+// Error shapes as rejected by home-assistant-js-websocket.
+const unknownCommandError = { code: 'unknown_command', message: 'Unknown command.' };
+const notSupportedError = { code: 'not_supported', message: 'Calendar does not support event update' };
+const connectionLostError = { code: 3, message: 'Connection lost' };
+
+const withSilencedConsole = async (fn) => {
+  const originalError = console.error;
+  const originalLog = console.log;
+  const originalDebug = console.debug;
+  console.error = () => {};
+  console.log = () => {};
+  console.debug = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.error = originalError;
+    console.log = originalLog;
+    console.debug = originalDebug;
+  }
+};
+
+const runSingleEventUpdate = (card) => withSilencedConsole(() => card.updateEvent(
+  singleEventUpdate.originalEvent, 'calendar.caldav_work', singleEventUpdate.eventData
+));
+
+const wasReplaced = (calls, sent) => calls.some((call) => call[1] === 'create_event')
+  || sent.some((payload) => payload.type === 'calendar/event/create' || payload.type === 'calendar/event/delete');
+
+test('updateEvent ignores a Spook-style calendar.update_event service', async () => {
+  const { card, sent, calls } = makeUpdateEventCard({ wsError: notSupportedError, updateService: spookUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(sent.some((payload) => payload.type === 'calendar/event/delete'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service that lacks a field the card sends', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: { fields: { uid: {}, summary: {}, start_date_time: {}, end_date_time: {} } }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+test('updateEvent ignores a calendar.update_event service without field metadata', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: {} });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+});
+
+test('updateEvent accepts a compatible update_event service whose fields sit in collapsible sections', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    updateService: {
+      fields: {
+        uid: {}, summary: {},
+        timing: { collapsed: true, fields: { start_date_time: {}, end_date_time: {}, start_date: {}, end_date: {} } }
+      }
+    }
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent requires the update_event service to declare fields only present in this payload', async () => {
+  const { card, calls } = makeUpdateEventCard({ wsError: unknownCommandError, updateService: compatibleUpdateService });
+
+  await withSilencedConsole(() => card.updateEvent(
+    singleEventUpdate.originalEvent, 'calendar.caldav_work', { ...singleEventUpdate.eventData, location: 'Office' }
+  ));
+
+  assert.equal(calls.some((call) => call[1] === 'update_event'), false);
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
+
+for (const [label, wsError] of [['unknown command', unknownCommandError], ['unsupported update', notSupportedError]]) {
+  test(`updateEvent falls back to a compatible update_event service after an ${label} WebSocket error`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await runSingleEventUpdate(card);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][1], 'update_event');
+    assert.equal(calls[0][2].uid, 'uid-1');
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent uses the update service when there is no WebSocket connection', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false, updateService: compatibleUpdateService });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'update_event');
+});
+
+test('updateEvent falls back to create+delete when there is no WebSocket connection or update service', async () => {
+  const { card, calls } = makeUpdateEventCard({ connection: false });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+  assert.equal(calls.some((call) => call[1] === 'delete_event'), true);
+});
+
+for (const [label, wsError] of [
+  ['a lost connection', connectionLostError],
+  ['a timeout', { code: 'timeout', message: 'Timeout' }],
+  ['a client-side error without a code', new Error('Timeout waiting for response')],
+  ['an integration error', { code: 'failed', message: 'CalDAV server returned 502' }]
+]) {
+  test(`updateEvent does not replace the event after ${label} on the WebSocket update`, async () => {
+    const { card, calls, sent } = makeUpdateEventCard({ wsError, updateService: compatibleUpdateService });
+
+    await assert.rejects(runSingleEventUpdate(card), (error) => {
+      assert.equal(error.updateNotConfirmed, true);
+      assert.equal(error.cause, wsError);
+      return true;
+    });
+
+    assert.equal(calls.length, 0);
+    assert.equal(wasReplaced(calls, sent), false);
+  });
+}
+
+test('updateEvent does not replace the event when the update service result is lost', async () => {
+  const { card, calls, sent } = makeUpdateEventCard({
+    connection: false,
+    serviceError: connectionLostError,
+    updateService: compatibleUpdateService
+  });
+
+  await assert.rejects(runSingleEventUpdate(card), (error) => error.updateNotConfirmed === true);
+
+  assert.equal(calls.length, 1);
+  assert.equal(wasReplaced(calls, sent), false);
+});
+
+test('updateEvent replaces the event when the update service rejects the request', async () => {
+  const { card, calls } = makeUpdateEventCard({
+    wsError: unknownCommandError,
+    serviceError: { code: 'service_validation_error', message: 'Invalid' },
+    updateService: compatibleUpdateService
+  });
+
+  await runSingleEventUpdate(card);
+
+  assert.equal(calls.some((call) => call[1] === 'create_event'), true);
+});
 
 test('calendar colors prefer configured values before default palette', () => {
   const card = makeCard({
@@ -8745,6 +10001,7 @@ test('mixed cache hydration skips calendars without valid per-calendar metadata'
 test('mixed cache hydration skips calendars whose LKG metadata was pruned outside retained window', async () => {
   const card = makeCard({ entities: ['calendar.a', 'calendar.b'] });
   card._hass = { user: { id: 'user-1' } };
+  card.getVisibleDateRange = () => ({ startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') });
   card.getEventFetchRange = () => ({ startDate: new Date('2026-06-01T00:00:00Z'), endDate: new Date('2026-06-30T00:00:00Z') });
   card._eventsByCalendar = {
     'calendar.a': [{ entityId: 'calendar.a', summary: 'new a', start: { date: '2026-06-10' }, end: { date: '2026-06-11' } }],
@@ -9097,6 +10354,12 @@ test('agenda cache retention has useful current-view fallback before DOM visible
   card._hass = { user: { id: 'user-1' } };
   card._viewMode = 'agenda';
   card._currentDate = new Date('2026-06-15T12:00:00Z');
+  // makeCard() initializes the agenda window from the real current date.
+  // Make those ranges invalid so this test actually exercises the _currentDate fallback path.
+  card._agendaStartDate = undefined;
+  card._agendaEndDate = undefined;
+  card._agendaVisibleStartDate = undefined;
+  card._agendaVisibleEndDate = undefined;
   card.getVisibleDateRange = () => ({ startDate: new Date('2025-01-01T00:00:00Z'), endDate: new Date('2028-01-01T00:00:00Z') });
   card._eventsByCalendar = {
     'calendar.a': [
@@ -9578,4 +10841,289 @@ test('showEditEventModal checks the correct weekday when the event rrule omits B
   const moCheckboxMatch = content.innerHTML.match(/<input type="checkbox" class="form-checkbox event-recurrence-weekday" value="MO"[^>]*>/);
   assert.ok(moCheckboxMatch, 'expected a MO weekday checkbox to be rendered');
   assert.doesNotMatch(moCheckboxMatch[0], /checked/);
+});
+
+test('event_time_step normalizes to the supported steps and renders stepped time controls', () => {
+  assert.equal(makeCard({ entities: ['calendar.family'] })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 5 })._config.event_time_step, 5);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: '15' })._config.event_time_step, 15);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 30 })._config.event_time_step, 30);
+  // Only the documented EVENT_TIME_STEP_OPTIONS are accepted; other divisors of 60 fall back too.
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 3 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 12 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 7 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 0 })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: 'abc' })._config.event_time_step, 1);
+  assert.equal(makeCard({ entities: ['calendar.family'], event_time_step: null })._config.event_time_step, 1);
+
+  const nativeHarness = createEventFormHarness();
+  assert.match(nativeHarness.content.innerHTML, /type="datetime-local" class="form-input" id="event-start"/);
+  assert.doesNotMatch(nativeHarness.content.innerHTML, /form-stepped-datetime/);
+
+  const optionValues = (selectHtml) => [...selectHtml.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1]);
+  const selectHtml = (html, part) => html.match(new RegExp(`<select class="form-select form-stepped-${part}"[^>]*>(.*?)</select>`, 's'))?.[1];
+
+  // Implicit new-event defaults align to the configured step instead of creating an off-step option.
+  const implicitSteppedHarness = createEventFormHarness({ config: { event_time_step: 20, use_24hr_schedule: true } });
+  implicitSteppedHarness.card.showCreateEventModal(new Date(2026, 4, 1, 9, 11));
+  const implicitSteppedHtml = implicitSteppedHarness.content.innerHTML;
+  assert.match(implicitSteppedHtml, /<input type="hidden" id="event-start" value="2026-05-01T09:20"/);
+  assert.match(implicitSteppedHtml, /<input type="hidden" id="event-end" value="2026-05-01T10:20"/);
+  assert.deepEqual(optionValues(selectHtml(implicitSteppedHtml, 'minute')), ['00', '20', '40']);
+
+  // event_time_step: 1 keeps the longstanding next-half-hour default.
+  nativeHarness.card.showCreateEventModal(new Date(2026, 4, 1, 9, 11));
+  assert.match(nativeHarness.content.innerHTML, /value="2026-05-01T09:30"/);
+
+  // 24-hour clock: hours 00-23, no AM/PM select.
+  const steppedHarness = createEventFormHarness({ config: { event_time_step: 5, use_24hr_schedule: true } });
+  const html = steppedHarness.content.innerHTML;
+  assert.doesNotMatch(html, /type="datetime-local"/);
+  assert.match(html, /data-stepped-datetime="event-start" data-hour-cycle="24"/);
+  assert.match(html, /data-stepped-datetime="event-end" data-hour-cycle="24"/);
+  assert.match(html, /<input type="hidden" id="event-start" value="2026-05-01T\d{2}:\d{2}"/);
+  assert.match(html, /<input type="hidden" id="event-end" value="2026-05-01T\d{2}:\d{2}"/);
+  assert.deepEqual(optionValues(selectHtml(html, 'minute')), ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']);
+  assert.deepEqual(optionValues(selectHtml(html, 'hour')), Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0')));
+  assert.equal(selectHtml(html, 'period'), undefined);
+  // Each visible control gets its own accessible label.
+  assert.match(html, /form-stepped-date" data-stepped-part="date"[^>]*aria-label="Start Date"/);
+  assert.match(html, /form-stepped-hour" data-stepped-part="hour" aria-label="Start hour"/);
+  assert.match(html, /form-stepped-minute" data-stepped-part="minute" aria-label="Start minute"/);
+  assert.match(html, /form-stepped-date" data-stepped-part="date"[^>]*aria-label="End Date"/);
+  assert.match(html, /form-stepped-hour" data-stepped-part="hour" aria-label="End hour"/);
+  assert.match(html, /form-stepped-minute" data-stepped-part="minute" aria-label="End minute"/);
+
+  // 12-hour clock (en-US default): hours 1-12 plus a localized AM/PM select, hidden value stays 24-hour.
+  const twelveHourHarness = createEventFormHarness({ mode: 'edit', config: { event_time_step: 15 } });
+  const twelveHourStart = new Date(2026, 4, 1, 13, 30);
+  twelveHourHarness.card.showEditEventModal(
+    { entityId: 'calendar.family', uid: 'evt-12h', summary: 'Lunch', start: { dateTime: twelveHourStart.toISOString() }, end: { dateTime: new Date(twelveHourStart.getTime() + 3600000).toISOString() } },
+    twelveHourStart,
+    new Date(twelveHourStart.getTime() + 3600000),
+    false
+  );
+  const twelveHourHtml = twelveHourHarness.content.innerHTML;
+  assert.match(twelveHourHtml, /data-stepped-datetime="event-start" data-hour-cycle="12"/);
+  assert.match(twelveHourHtml, /<input type="hidden" id="event-start" value="2026-05-01T13:30"/);
+  assert.match(twelveHourHtml, /<input type="hidden" id="event-end" value="2026-05-01T14:30"/);
+  const startHourSelect = selectHtml(twelveHourHtml, 'hour');
+  assert.deepEqual(optionValues(startHourSelect), ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']);
+  assert.match(startHourSelect, /<option value="01" selected>1<\/option>/);
+  assert.match(startHourSelect, /<option value="12" >12<\/option>/);
+  const startPeriodSelect = selectHtml(twelveHourHtml, 'period');
+  assert.match(startPeriodSelect, /<option value="AM" >AM<\/option>/);
+  assert.match(startPeriodSelect, /<option value="PM" selected>PM<\/option>/);
+  assert.match(twelveHourHtml, /form-stepped-period" data-stepped-part="period" aria-label="Start AM\/PM"/);
+  assert.match(twelveHourHtml, /form-stepped-period" data-stepped-part="period" aria-label="End AM\/PM"/);
+
+  // Editing an event with an off-step time keeps that minute selectable and flags it for later cleanup.
+  const editHarness = createEventFormHarness({ mode: 'edit', config: { event_time_step: 15, use_24hr_schedule: true } });
+  const editStart = new Date('2026-05-01T09:00:00Z');
+  editStart.setMinutes(7);
+  editHarness.card.showEditEventModal(
+    { entityId: 'calendar.family', uid: 'evt-1', summary: 'Practice', start: { dateTime: editStart.toISOString() }, end: { dateTime: new Date(editStart.getTime() + 3600000).toISOString() } },
+    editStart,
+    new Date(editStart.getTime() + 3600000),
+    false
+  );
+  const editMinuteSelect = selectHtml(editHarness.content.innerHTML, 'minute');
+  const editMinuteOptions = [...editMinuteSelect.matchAll(/<option value="(\d{2})"( selected)?( data-off-step="true")?/g)].map((match) => `${match[1]}${match[2] ? '*' : ''}${match[3] ? '!' : ''}`);
+  assert.deepEqual(editMinuteOptions, ['00', '07*!', '15', '30', '45']);
+});
+
+test('getDayPeriodLabels follows the card locale and falls back to AM/PM', () => {
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], locale: 'en-US' }).getDayPeriodLabels(), { am: 'AM', pm: 'PM' });
+  const dutch = makeCard({ entities: ['calendar.family'], language: 'nl' }).getDayPeriodLabels();
+  assert.match(dutch.am, /a\.?m\.?/i);
+  assert.match(dutch.pm, /p\.?m\.?/i);
+  assert.deepEqual(makeCard({ entities: ['calendar.family'], locale: 'not-a-locale-!!' }).getDayPeriodLabels(), { am: 'AM', pm: 'PM' });
+});
+
+test('setupSteppedDateTimeInputs composes the hidden datetime value and mirrors duration sync into the end controls', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_time_step: 5, use_24hr_schedule: true });
+  const { makeGroup, hourValues } = createSteppedGroupFactory();
+  const startGroup = makeGroup('2026-05-01', '09', '00');
+  const endGroup = makeGroup('2026-05-01', '10', '00');
+  card._root = { querySelectorAll: (selector) => (selector === '.form-stepped-datetime' ? [startGroup, endGroup] : []) };
+
+  // Stand-in for setupStartEndDurationSync: keep a one-hour duration when the start changes.
+  const startHidden = startGroup.parts['input[type="hidden"]'];
+  const endHidden = endGroup.parts['input[type="hidden"]'];
+  startHidden.addEventListener('change', () => {
+    if (!startHidden.value) return;
+    const [datePart, timePart] = startHidden.value.split('T');
+    const [hours, minutes] = timePart.split(':').map(Number);
+    endHidden.value = `${datePart}T${String(hours + 1).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  });
+
+  card.setupSteppedDateTimeInputs();
+  assert.equal(startGroup.parts['[data-stepped-part="hour"]'].options.length, 24, hourValues(24).join(','));
+
+  startGroup.parts['[data-stepped-part="minute"]'].value = '15';
+  startGroup.parts['[data-stepped-part="minute"]'].change();
+  assert.equal(startHidden.value, '2026-05-01T09:15');
+  assert.equal(endHidden.value, '2026-05-01T10:15');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '10');
+  assert.equal(endGroup.parts['[data-stepped-part="minute"]'].value, '15');
+
+  startGroup.parts['[data-stepped-part="date"]'].value = '2026-05-02';
+  startGroup.parts['[data-stepped-part="hour"]'].value = '22';
+  startGroup.parts['[data-stepped-part="hour"]'].change();
+  assert.equal(startHidden.value, '2026-05-02T22:15');
+  assert.equal(endGroup.parts['[data-stepped-part="date"]'].value, '2026-05-02');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '23');
+
+  // An off-step value coming back from the sync gets its own flagged option instead of being dropped.
+  endHidden.value = '2026-05-02T23:17';
+  startGroup.parts['[data-stepped-part="minute"]'].value = '17';
+  startGroup.parts['[data-stepped-part="minute"]'].change();
+  assert.equal(endHidden.value, '2026-05-02T23:17');
+  assert.equal(endGroup.parts['[data-stepped-part="minute"]'].value, '17');
+  const endMinuteOptions = endGroup.parts['[data-stepped-part="minute"]'].options;
+  assert.deepEqual(endMinuteOptions.map((option) => option.value).slice(3, 5), ['15', '17']);
+  assert.equal(endMinuteOptions.find((option) => option.value === '17').getAttribute('data-off-step'), 'true');
+
+  // Once the off-step minute is no longer selected, the extra option disappears again.
+  startGroup.parts['[data-stepped-part="minute"]'].value = '20';
+  startGroup.parts['[data-stepped-part="minute"]'].change();
+  assert.equal(endHidden.value, '2026-05-02T23:20');
+  assert.equal(endGroup.parts['[data-stepped-part="minute"]'].value, '20');
+  assert.deepEqual(endGroup.parts['[data-stepped-part="minute"]'].options.map((option) => option.value), ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']);
+
+  // Clearing the date empties the hidden value so the card's own required-time validation kicks in.
+  startGroup.parts['[data-stepped-part="date"]'].value = '';
+  startGroup.parts['[data-stepped-part="date"]'].change();
+  assert.equal(startHidden.value, '');
+});
+
+test('setupSteppedDateTimeInputs converts 12-hour controls to and from the 24-hour hidden value', () => {
+  const card = makeCard({ entities: ['calendar.family'], event_time_step: 5, locale: 'en-US' });
+  const { makeGroup } = createSteppedGroupFactory({ hour12: true });
+  const startGroup = makeGroup('2026-05-01', '09', '00', 'AM');
+  const endGroup = makeGroup('2026-05-01', '10', '00', 'AM');
+  card._root = { querySelectorAll: (selector) => (selector === '.form-stepped-datetime' ? [startGroup, endGroup] : []) };
+
+  const startHidden = startGroup.parts['input[type="hidden"]'];
+  const endHidden = endGroup.parts['input[type="hidden"]'];
+  startHidden.addEventListener('change', () => {
+    if (!startHidden.value) return;
+    const [datePart, timePart] = startHidden.value.split('T');
+    const [hours, minutes] = timePart.split(':').map(Number);
+    endHidden.value = `${datePart}T${String(hours + 1).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  });
+
+  card.setupSteppedDateTimeInputs();
+
+  // 9:00 AM -> 9:00 PM stores 21:00 and mirrors 22:00 into the end controls as 10 PM.
+  startGroup.parts['[data-stepped-part="period"]'].value = 'PM';
+  startGroup.parts['[data-stepped-part="period"]'].change();
+  assert.equal(startHidden.value, '2026-05-01T21:00');
+  assert.equal(endHidden.value, '2026-05-01T22:00');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '10');
+  assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'PM');
+
+  // 12 AM is midnight (00), 12 PM is noon (12).
+  startGroup.parts['[data-stepped-part="hour"]'].value = '12';
+  startGroup.parts['[data-stepped-part="period"]'].value = 'AM';
+  startGroup.parts['[data-stepped-part="hour"]'].change();
+  assert.equal(startHidden.value, '2026-05-01T00:00');
+  assert.equal(endHidden.value, '2026-05-01T01:00');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '01');
+  assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'AM');
+
+  startGroup.parts['[data-stepped-part="period"]'].value = 'PM';
+  startGroup.parts['[data-stepped-part="period"]'].change();
+  assert.equal(startHidden.value, '2026-05-01T12:00');
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].value, '01');
+  assert.equal(endGroup.parts['[data-stepped-part="period"]'].value, 'PM');
+  // The 12-hour hour list never grows extra options.
+  assert.equal(endGroup.parts['[data-stepped-part="hour"]'].options.length, 12);
+});
+
+
+test('header clock editor warns for missing, unavailable and invalid sensors, and accepts custom times', () => {
+  const Editor = customElements.get('daylight-calendar-card-editor');
+  const editor = new Editor();
+  editor._config = { header_time_sensor: 'sensor.custom_clock' };
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+  editor._hass = { states: {} };
+  assert.match(editor.getHeaderTimeSensorWarning(), /not found/);
+  for (const state of ['unknown', 'unavailable', '', null]) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /no available value/);
+  }
+  for (const state of ['garbage', '24:00', '13:10 PM', '2026-10-20', 'October 20, 2026']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.match(editor.getHeaderTimeSensorWarning(), /invalid time/);
+  }
+  for (const state of ['14:30', '14:30:12', '2:30 PM', '2026-10-20T14:30:00Z']) {
+    editor._hass.states['sensor.custom_clock'] = { state };
+    assert.equal(editor.getHeaderTimeSensorWarning(), '');
+    assert.ok(Card.prototype.parseTimeValue(state));
+  }
+  editor._config.header_time_sensor = '';
+  assert.equal(editor.getHeaderTimeSensorWarning(), '');
+});
+
+
+test('event title ampersands decode once for display without changing source data', () => {
+  const card = makeCard({ entities: ['calendar.family'] });
+  for (const [source, escaped] of [
+    ['Music & Art', 'Music &amp; Art'],
+    ['Music &amp; Art', 'Music &amp; Art'],
+    ['Music &#38; Art', 'Music &amp; Art'],
+    ['Music &#x26; Art', 'Music &amp; Art'],
+    ['Music &amp;amp; Art', 'Music &amp;amp; Art'],
+    ['<img src=x onerror=alert(1)> &amp; Art', '&lt;img src=x onerror=alert(1)&gt; &amp; Art'],
+    ['&lt;b&gt; &amp; Art', '&amp;lt;b&amp;gt; &amp; Art']
+  ]) {
+    const event = { entityId: 'calendar.family', summary: source };
+    assert.equal(card.renderEventTitleWithPrefix(event, source), escaped);
+    assert.equal(event.summary, source);
+  }
+});
+
+
+for (const isAllDay of [false, true]) {
+  test(`WebSocket edits clear location and description on ${isAllDay ? 'all-day' : 'timed'} events`, async () => {
+    const { normalizeEventFormData } = await import('./src/events/event-form.js');
+    for (const [location, description] of [['', ''], ['', 'Keep notes'], ['Keep room', '']]) {
+      const result = normalizeEventFormData({
+        title: 'Edited', location, description, isAllDay,
+        startDate: '2026-05-01', endDate: '2026-05-01',
+        startDateTime: '2026-05-01T10:00:00', endDateTime: '2026-05-01T11:00:00'
+      });
+      assert.equal(result.valid, true);
+      const original = {
+        ...singleEventUpdate.originalEvent,
+        location: 'Old room', description: 'Old notes'
+      };
+      const { card, sent, calls } = makeUpdateEventCard();
+      // Model Local Calendar's partial-update semantics: missing fields stay unchanged.
+      const stored = { location: original.location, description: original.description };
+      card._hass.connection.sendMessagePromise = async (payload) => {
+        sent.push(payload);
+        Object.assign(stored, JSON.parse(JSON.stringify(payload.event)));
+      };
+      await withSilencedConsole(() => card.updateEvent(original, original.entityId, result.eventData));
+      assert.equal(stored.location, location);
+      assert.equal(stored.description, description);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].type, 'calendar/event/update');
+      assert.equal(sent[0].uid, original.uid);
+      assert.equal(sent[0].event.dtstart, result.eventData.start.date || result.eventData.start.dateTime);
+      assert.equal(sent[0].event.dtend, result.eventData.end.date || result.eventData.end.dateTime);
+      assert.equal(wasReplaced(calls, sent), false);
+    }
+  });
+}
+
+test('WebSocket update leaves absent optional fields unspecified', async () => {
+  const { buildUpdateEventWebSocketPayload } = await import('./src/events/event-service.js');
+  const payload = buildUpdateEventWebSocketPayload(singleEventUpdate.originalEvent, {
+    summary: 'Title only', start: { date: '2026-05-01' }, end: { date: '2026-05-02' }
+  });
+  assert.equal(Object.hasOwn(payload.event, 'location'), false);
+  assert.equal(Object.hasOwn(payload.event, 'description'), false);
 });

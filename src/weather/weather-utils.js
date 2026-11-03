@@ -43,7 +43,7 @@ export function normalizeHeaderWeatherData(weatherEntity) {
   );
 
   if (!conditionIcon || !temperature) return null;
-  return { conditionIcon, temperature };
+  return { conditionIcon, condition, temperature };
 }
 
 export function normalizeForecastForDate(forecasts, date, getDateKey) {
@@ -65,7 +65,7 @@ export function normalizeForecastForDate(forecasts, date, getDateKey) {
   const conditionIcon = mapWeatherConditionToIcon(match.condition);
 
   if (!conditionIcon || !highTemp) return null;
-  return { conditionIcon, highTemp, lowTemp };
+  return { conditionIcon, condition: match.condition, highTemp, lowTemp };
 }
 
 export function getWeatherEntityForecast(weatherEntity, wsForecast) {

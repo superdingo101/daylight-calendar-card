@@ -25,6 +25,8 @@ entities:
 
 Both `week` and `week-compact` refer to the same view. The card normalizes `week` to `week-compact` internally.
 
+When following today, the card automatically advances the displayed period at browser-local midnight, including on always-on dashboards. **Previous** or **Next** pauses automatic following; choose **Today** to resume.
+
 ## When to use Week Compact
 
 Week Compact is the right choice when you want:
@@ -52,6 +54,14 @@ Week Compact is the right choice when you want:
   Used by **Week** only.
 
   By default Week Compact snaps to full calendar weeks. Set `rolling_days_week_compact` to a positive integer to switch to a rolling window of that many days starting from today, rather than aligning to week boundaries. When set, `week_days` and `first_day_of_week` are ignored in this view.
+</ParamField>
+
+<ParamField path="show_week_numbers_week" default="false" type="boolean">
+  Used by **Week** only.
+
+  Shows the ISO week number in the header. If the visible dates span multiple ISO weeks, the header shows the visible week range (for example, **CW 37–38**). A range that crosses the ISO year boundary is split instead of shown as a descending range (for example, **CW 52–53 / 1**).
+
+  The prefix is localized automatically and can be customized or hidden with `week_number_prefix`.
 </ParamField>
 
 <ParamField path="day_badge_layout_week" default="inline" type="string">

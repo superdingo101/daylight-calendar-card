@@ -15,6 +15,8 @@ type: custom:daylight-calendar-card
 default_view: agenda
 ```
 
+When following today, the card automatically advances the displayed period at browser-local midnight, including on always-on dashboards. **Previous** or **Next** pauses automatic following; choose **Today** to resume. Scrolling upward to load older days in non-rolling Agenda also pauses following, keeping the expanded history visible.
+
 ## Configuration Options
 
 <ParamField path="rolling_days_agenda" default="null" type="number">
@@ -103,4 +105,19 @@ use_short_location: false
 
 <Tip>
   If you want the Agenda view inside a fixed-height grid card, add `compact_height: true` to prevent the list from expanding the card's vertical footprint as the event count grows. The list will scroll internally within the fixed container instead.
+</Tip>
+
+<Tip>
+  Prefer one-line compact event titles? Use `uix.style` to truncate them with an ellipsis:
+
+  ```yaml
+  uix:
+    style: |
+      .calendar-container.agenda-compact-events .agenda-event-title {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+  ```
 </Tip>
