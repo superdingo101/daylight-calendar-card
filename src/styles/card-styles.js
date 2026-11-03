@@ -989,6 +989,11 @@ export function getCardStyles() {
         color: #3b82f6;
       }
 
+      .week-meal-card-slot {
+        height: 80px;
+        flex: 0 0 80px;
+      }
+
       .week-compact-event {
         background: #3b82f6;
         color: var(--event-bubble-text-color, white);

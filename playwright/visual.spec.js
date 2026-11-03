@@ -2072,6 +2072,30 @@ test('Week Compact weekday styling and spacing keep natural header contents visi
   await expect(card.locator('.week-day-name').first()).toHaveCSS('color', 'rgb(249, 115, 22)');
 });
 
+test('Week Compact reserves meal-card space between the day header and events', async ({ page }) => {
+  const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;
+  await page.goto(fixtureUrl);
+  await page.evaluate((params) => window.renderCalendarCard(params), {
+    config: { entities: ['calendar.family'], default_view: 'week-compact', hide_header: true },
+    events: baseEvents
+  });
+
+  const day = page.locator('skylight-calendar-card .week-day-column').first();
+  const header = day.locator('.week-day-header');
+  const slot = day.locator('.week-meal-card-slot');
+  const events = day.locator('.week-day-events');
+  await expect(slot).toHaveCount(1);
+  await expect(slot).toHaveCSS('height', '80px');
+
+  const positions = await Promise.all([
+    header.evaluate((element) => element.getBoundingClientRect().bottom),
+    slot.evaluate((element) => element.getBoundingClientRect()),
+    events.evaluate((element) => element.getBoundingClientRect().top)
+  ]);
+  expect(positions[1].top).toBeGreaterThanOrEqual(positions[0]);
+  expect(positions[1].bottom).toBeLessThanOrEqual(positions[2]);
+});
+
 test('Week Compact editor controls stay contained at mobile editor width', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;

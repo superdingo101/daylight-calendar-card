@@ -37,6 +37,7 @@ export function renderWeekCompactView({
                   </div>
                 </div>
               </div>
+              <div class="week-meal-card-slot" aria-hidden="true"></div>
               <div class="week-day-events">
                 ${events.map(event => {
                   return helpers.renderWeekCompactEvent(event, date);

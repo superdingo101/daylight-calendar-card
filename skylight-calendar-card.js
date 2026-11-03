@@ -4343,6 +4343,11 @@ function getCardStyles() {
         color: #3b82f6;
       }
 
+      .week-meal-card-slot {
+        height: 80px;
+        flex: 0 0 80px;
+      }
+
       .week-compact-event {
         background: #3b82f6;
         color: var(--event-bubble-text-color, white);
@@ -10677,6 +10682,7 @@ function renderWeekCompactView({
                   </div>
                 </div>
               </div>
+              <div class="week-meal-card-slot" aria-hidden="true"></div>
               <div class="week-day-events">
                 ${events.map(event => {
                   return helpers.renderWeekCompactEvent(event, date);
