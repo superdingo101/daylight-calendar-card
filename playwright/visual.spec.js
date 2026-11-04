@@ -539,6 +539,53 @@ test.beforeEach(async ({ page }) => {
   }, FIXED_NOW);
 });
 
+
+test('regression 639: headerless Agenda month banners remain readable in compact scrolling mobile layout', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 720 });
+  const fixtureUrl = 'file://' + path.join(process.cwd(), 'playwright', 'ha-fixture.html');
+  await page.goto(fixtureUrl);
+
+  const events = {
+    'calendar.family': [
+      { summary: 'April event', start: '2026-04-02', end: '2026-04-03' },
+      { summary: 'May event', start: '2026-05-01', end: '2026-05-02' }
+    ]
+  };
+  const render = (hideHeader) => page.evaluate((params) => window.renderCalendarCard(params), {
+    config: {
+      entities: ['calendar.family'],
+      default_view: 'agenda',
+      rolling_days_agenda: 60,
+      hide_header: hideHeader,
+      hide_empty_days: true,
+      compact_height: true,
+      agenda_compact_events: true,
+      language: 'en',
+      locale: 'en-US'
+    },
+    events
+  });
+
+  await render(true);
+  const card = page.locator('skylight-calendar-card');
+  const banners = card.locator('.agenda-month-banner');
+  await expect(banners).toHaveText(['April 2026', 'May 2026']);
+  await expect(card.locator('.agenda-container > :first-child')).toHaveText('April 2026');
+  await expect(card.locator('.agenda-event')).toHaveCount(2);
+  const dimensions = await card.locator('.agenda-container').evaluate((container) => ({
+    contentWidth: container.scrollWidth,
+    visibleWidth: container.clientWidth
+  }));
+  expect(dimensions.contentWidth).toBeLessThanOrEqual(dimensions.visibleWidth + 1);
+  await banners.last().scrollIntoViewIfNeeded();
+  await expect(banners.last()).toBeVisible();
+
+  await render(false);
+  await expect(card.locator('.agenda-month-banner')).toHaveText(['May 2026']);
+  await expect(card.locator('.agenda-event')).toHaveCount(2);
+});
+
+
 test('regression 543: agenda events expand to contain wrapped content in standard and compact layouts', async ({ page }) => {
   await page.setViewportSize({ width: 500, height: 900 });
   const fixtureUrl = `file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`;

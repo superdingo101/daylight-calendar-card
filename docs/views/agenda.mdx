@@ -37,6 +37,8 @@ When following today, the card automatically advances the displayed period at br
   When `true`, days with no events are omitted from the list. Combined with a long `rolling_days_agenda`, this creates a tight feed that jumps directly from one event-filled day to the next, skipping quiet days entirely.
 </ParamField>
 
+When `hide_header: true`, Agenda shows a month-and-year heading before the first visible day, including when `hide_empty_days: true` skips earlier dates. Later month changes still receive headings. With the card header visible, the first month heading stays omitted to avoid repeating the header period label.
+
 <ParamField path="shorten_event_times" default="false" type="boolean">
   Used by **Month**, **Week**, **Schedule**, and **Agenda**.
 

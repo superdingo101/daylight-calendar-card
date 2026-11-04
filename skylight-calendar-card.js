@@ -9982,12 +9982,12 @@ function renderAgendaView({
 
   agendaDayEntries.forEach((entry, index) => {
     const { date, events } = entry;
-    if (index > 0) {
-      const previousDate = agendaDayEntries[index - 1].date;
-      const monthChanged = previousDate.getMonth() !== date.getMonth() || previousDate.getFullYear() !== date.getFullYear();
-      if (monthChanged) {
-        agendaRows.push(`<div class="agenda-month-banner">${helpers.escapeHtml(monthFormatter.format(date))}</div>`);
-      }
+    const previousDate = agendaDayEntries[index - 1]?.date;
+    const showMonthBanner = previousDate
+      ? previousDate.getMonth() !== date.getMonth() || previousDate.getFullYear() !== date.getFullYear()
+      : !!config.hide_header;
+    if (showMonthBanner) {
+      agendaRows.push(`<div class="agenda-month-banner">${helpers.escapeHtml(monthFormatter.format(date))}</div>`);
     }
 
     const isToday = date.toDateString() === today.toDateString();
