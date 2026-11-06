@@ -237,6 +237,17 @@ test('Danish language support localizes core labels and locale', () => {
   assert.equal(card.t('durationHours', { count: 2 }), '2 timer');
 });
 
+test('Italian language support localizes core labels and locale', () => {
+  const card = makeCard({ entities: ['calendar.family'], language: 'it' });
+
+  assert.equal(card.getLanguage(), 'it');
+  assert.equal(card.getLocale(), 'it-IT');
+  assert.equal(card.t('defaultTitle'), 'Calendario di famiglia');
+  assert.equal(card.t('addEvent'), 'Aggiungi evento');
+  assert.equal(card.t('deleteEventConfirm', { title: 'Festa' }), 'Vuoi davvero eliminare "Festa"? Questa azione non può essere annullata.');
+  assert.equal(card.t('durationHours', { count: 2 }), '2 ore');
+});
+
 function recurrenceCases() {
   return [
     { name: 'single event', rrule: null },
