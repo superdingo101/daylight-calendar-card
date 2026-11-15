@@ -405,6 +405,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._daylightImportRequest = false;
     this._daylightImportRetryTimer = null;
     this._daylightImportScrollTop = null;
+    this._daylightImportScrollView = null;
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._calendarFollowsToday = true;
@@ -2021,6 +2022,7 @@ class SkylightCalendarCard extends HTMLElement {
       }
       this.setWeekStart();
       this._daylightImportScrollTop = Math.max(0, Number(state.scrollTop) || 0);
+      this._daylightImportScrollView = state.view;
       this.render();
       this.restoreDaylightImportScroll();
       window.requestAnimationFrame(() => window.scrollTo(state.windowScrollX || 0, state.windowScrollY || 0));
@@ -2029,9 +2031,12 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   restoreDaylightImportScroll() {
-    if (this._daylightImportScrollTop === null) return;
+    if (this._daylightImportScrollTop === null ||
+        (this._daylightImportScrollView && this._daylightImportScrollView !== this._viewMode)) return;
     const scrollTop = this._daylightImportScrollTop;
+    const view = this._viewMode;
     window.requestAnimationFrame(() => {
+      if (this._viewMode !== view) return;
       const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
       if (scroll && this._viewMode === 'agenda') this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
       else if (scroll) scroll.scrollTop = scrollTop;
