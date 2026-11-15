@@ -11239,3 +11239,47 @@ test('Daylight Import restores scroll again after the forced event refresh', asy
     assert.equal(card._daylightImportScrollTop, null);
   } finally { window.requestAnimationFrame = previousRaf; }
 });
+
+test('Daylight Import discovery defers header render while the event dialog is open', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  card.isConnected = true;
+  card.isEventManagementDialogOpen = () => true;
+  card._hass = {connection: {}, services: {daylight_calendar_import: {}}, callWS: async () => ({entry_ids: ['entry'], capabilities: {direct_routes: 1, return_sessions: 1}})};
+  card.refreshDaylightImportCapabilities();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(card._pendingHeaderSensorRender, true);
+});
+
+test('Daylight Import retries transient capability failures without retrying on every update', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  let requests = 0;
+  card._hass = {connection: {}, services: {daylight_calendar_import: {}}, callWS: async () => { requests++; throw new Error('connection lost'); }};
+  card.refreshDaylightImportCapabilities();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(card._daylightImportChecked, false);
+  assert.ok(card._daylightImportRetryTimer);
+  card.refreshDaylightImportCapabilities();
+  assert.equal(requests, 1);
+  clearTimeout(card._daylightImportRetryTimer);
+  card._daylightImportRetryTimer = null;
+});
+
+test('Daylight Import return preserves whether the card follows today', () => {
+  const card = makeCard({entities: ['calendar.family'], daylight_import_card_id: 'family'});
+  const previous = {sessionStorage: window.sessionStorage, location: window.location, requestAnimationFrame: window.requestAnimationFrame, scrollTo: window.scrollTo};
+  const id = 'c'.repeat(32), key = `daylight:return:v1:${id}`;
+  const value = {version: 1, id, expires_at: Date.now() + 60000, return_path: '/lovelace/home', card_instance_id: 'family', result: {status: 'cancelled'}, card_state: {view: 'agenda', date: '2026-10-12T12:00:00Z', agendaStart: '2026-10-12T00:00:00Z', agendaEnd: '2026-11-12T00:00:00Z', calendarFollowsToday: true, agendaFollowsToday: true, scrollTop: 0}};
+  let stored = JSON.stringify(value);
+  window.location = {pathname: '/lovelace/home', search: '', hash: ''};
+  window.sessionStorage = {length: 1, key: () => key, getItem: () => stored, removeItem: () => {stored = null;}};
+  window.requestAnimationFrame = callback => callback();
+  window.scrollTo = () => {};
+  card.isConnected = true;
+  try {
+    card.restoreDaylightImportReturn();
+    assert.equal(card._viewMode, 'agenda');
+    assert.equal(card._calendarFollowsToday, true);
+    assert.equal(card._agendaFollowsToday, true);
+    assert.equal(stored, null);
+  } finally { Object.assign(window, previous); }
+});
