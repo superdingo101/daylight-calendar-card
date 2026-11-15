@@ -1103,7 +1103,8 @@ class SkylightCalendarCard extends HTMLElement {
     const nextImportCount = pendingCount(hass, this._daylightImportCapabilities, this._config?.daylight_import_pending_sensor);
     if (previousImportCount !== nextImportCount) shouldRender = true;
     this.refreshDaylightImportCapabilities();
-    if (previouslyAvailable !== this.daylightImportAvailable()) shouldRender = true;
+    const importHeaderChanged = previousImportCount !== nextImportCount || previouslyAvailable !== this.daylightImportAvailable();
+    if (importHeaderChanged) shouldRender = true;
 
     if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
@@ -1179,7 +1180,8 @@ class SkylightCalendarCard extends HTMLElement {
         this._pendingHeaderSensorRender = true;
       } else {
         this._pendingHeaderSensorRender = false;
-        this.renderPreservingAgendaScroll();
+        if (importHeaderChanged) this.renderPreservingImportScroll();
+        else this.renderPreservingAgendaScroll();
       }
     }
 
@@ -1950,7 +1952,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._daylightImportCapabilities = result;
       if (this.isConnected) {
         if (this.isEventManagementDialogOpen()) this._pendingHeaderSensorRender = true;
-        else this.renderPreservingAgendaScroll();
+        else this.renderPreservingImportScroll();
       }
     }).catch(error => {
       this._daylightImportCapabilities = null;
@@ -1981,11 +1983,27 @@ class SkylightCalendarCard extends HTMLElement {
     return `<button id="daylight-import-pending" class="daylight-import-pending ${style}" aria-label="${label}" title="${label}">+${count}</button>`;
   }
 
+  getDaylightImportScrollContainer() {
+    return this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container, .calendar-grid.compact-month');
+  }
+
+  renderPreservingImportScroll() {
+    const view = this._viewMode;
+    const top = this.getDaylightImportScrollContainer()?.scrollTop;
+    this.renderPreservingAgendaScroll();
+    if (!Number.isFinite(top) || view === 'agenda') return;
+    window.requestAnimationFrame(() => {
+      if (this._viewMode !== view) return;
+      const container = this.getDaylightImportScrollContainer();
+      if (container) container.scrollTop = top;
+    });
+  }
+
   navigateToDaylightImport(path) {
     if (!this.daylightImportAvailable()) return;
     try {
       const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
+      const scroll = this.getDaylightImportScrollContainer();
       const state = {view: this._viewMode, date: this._currentDate.toISOString(),
         agendaStart: this._agendaStartDate?.toISOString(), agendaEnd: this._agendaEndDate?.toISOString(),
         calendarFollowsToday: this._calendarFollowsToday, agendaFollowsToday: this._agendaFollowsToday,
@@ -2037,7 +2055,7 @@ class SkylightCalendarCard extends HTMLElement {
     const view = this._viewMode;
     window.requestAnimationFrame(() => {
       if (this._viewMode !== view) return;
-      const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
+      const scroll = this.getDaylightImportScrollContainer();
       if (scroll && this._viewMode === 'agenda') this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
       else if (scroll) scroll.scrollTop = scrollTop;
     });
@@ -6119,7 +6137,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingCalendarDayRolloverRefresh = false;
     if (this._pendingHeaderSensorRender) {
       this._pendingHeaderSensorRender = false;
-      this.renderPreservingAgendaScroll();
+      this.renderPreservingImportScroll();
     }
     if (refreshForRollover && this._hass) this.ensureEventsForCurrentRange();
     if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {

@@ -11283,3 +11283,21 @@ test('Daylight Import return preserves whether the card follows today', () => {
     assert.equal(stored, null);
   } finally { Object.assign(window, previous); }
 });
+
+test('Daylight Import header refresh preserves compact month and week scrolling', () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => callback();
+  try {
+    for (const view of ['month', 'week-standard', 'week-compact']) {
+      let container = {scrollTop: 175};
+      let requestedSelector;
+      card._viewMode = view;
+      card.querySelector = selector => { requestedSelector = selector; return container; };
+      card.renderPreservingAgendaScroll = () => { container = {scrollTop: 0}; };
+      card.renderPreservingImportScroll();
+      assert.match(requestedSelector, /calendar-grid\.compact-month/);
+      assert.equal(container.scrollTop, 175);
+    }
+  } finally { window.requestAnimationFrame = previousRaf; }
+});
