@@ -13499,7 +13499,7 @@ class SkylightCalendarCard extends HTMLElement {
       const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
       const state = {view: this._viewMode, date: this._currentDate.toISOString(),
         agendaStart: this._agendaStartDate?.toISOString(), agendaEnd: this._agendaEndDate?.toISOString(),
-        scrollTop: scroll?.scrollTop || 0};
+        scrollTop: scroll?.scrollTop || 0, windowScrollX: window.scrollX || 0, windowScrollY: window.scrollY || 0};
       const id = createReturnSession(window.sessionStorage, window.crypto, current,
         this._config.daylight_import_card_id || cardPath(this), state);
       const destination = `/daylight-calendar-import/${path}?dl_return=${encodeURIComponent(id)}`;
@@ -13534,6 +13534,7 @@ class SkylightCalendarCard extends HTMLElement {
       this._daylightImportScrollTop = Math.max(0, Number(state.scrollTop) || 0);
       this.render();
       this.restoreDaylightImportScroll();
+      window.requestAnimationFrame(() => window.scrollTo(state.windowScrollX || 0, state.windowScrollY || 0));
       if (this._hass) this.ensureEventsForCurrentRange({force: true});
     } catch { /* A stale or unavailable browser session does not block the card. */ }
   }

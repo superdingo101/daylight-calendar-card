@@ -20,6 +20,9 @@ test('pending review opens a return session and restores the originating card', 
     window.card = window.makeCard();
   });
   await expect(page.locator('#daylight-import-pending')).toHaveText('+2');
+  await page.locator('#add-event-btn').click();
+  await expect(page.getByRole('button', {name: 'Import document'})).toBeVisible();
+  await page.locator('#close-modal').click();
   await page.evaluate(() => { window.card._viewMode = 'week-compact'; window.card._currentDate = new Date('2027-02-01T12:00:00Z'); window.card.render(); });
   await page.locator('#daylight-import-pending').click();
   await expect(page).toHaveURL(/\/daylight-calendar-import\/review\?dl_return=/);
