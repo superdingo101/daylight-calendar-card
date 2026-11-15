@@ -11202,3 +11202,22 @@ test('WebSocket update leaves absent optional fields unspecified', async () => {
   assert.equal(Object.hasOwn(payload.event, 'location'), false);
   assert.equal(Object.hasOwn(payload.event, 'description'), false);
 });
+
+test('Daylight Import indicator uses live pending events and respects creation restrictions', () => {
+  const card = new Card();
+  card.setConfig({entities: ['calendar.family']});
+  card._daylightImportCapabilities = {entry_ids: ['entry'], capabilities: {direct_routes: 1, return_sessions: 1}};
+  card._hass = {states: {'sensor.renamed': {entity_id: 'sensor.renamed', state: '2', attributes: {
+    daylight_import_kind: 'pending_events', daylight_import_contract_version: 1,
+    daylight_import_config_entry_id: 'entry'
+  }}}};
+  assert.match(card.renderImportPending(), /\+2/);
+  assert.match(card.renderImportPending(), /accent/);
+  card._config.daylight_import_pending_style = 'pulse';
+  assert.match(card.renderImportPending(), /pulse/);
+  card._hass.states['sensor.renamed'].state = 'unavailable';
+  assert.equal(card.renderImportPending(), '');
+  card._hass.states['sensor.renamed'].state = '2';
+  card._config.disable_event_creation = true;
+  assert.equal(card.renderImportPending(), '');
+});
