@@ -12621,12 +12621,14 @@ class SkylightCalendarCard extends HTMLElement {
 
   set hass(hass) {
     const oldHass = this._hass;
+    const previouslyAvailable = this.daylightImportAvailable();
     this._hass = hass;
     let shouldRender = false;
     const previousImportCount = pendingCount(oldHass, this._daylightImportCapabilities, this._config?.daylight_import_pending_sensor);
     const nextImportCount = pendingCount(hass, this._daylightImportCapabilities, this._config?.daylight_import_pending_sensor);
     if (previousImportCount !== nextImportCount) shouldRender = true;
     this.refreshDaylightImportCapabilities();
+    if (previouslyAvailable !== this.daylightImportAvailable()) shouldRender = true;
 
     if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
@@ -13485,7 +13487,8 @@ class SkylightCalendarCard extends HTMLElement {
     if (!count) return '';
     const style = ['count', 'accent', 'pulse'].includes(this._config.daylight_import_pending_style)
       ? this._config.daylight_import_pending_style : 'accent';
-    return `<button id="daylight-import-pending" class="daylight-import-pending ${style}" aria-label="${count} events awaiting review" title="${count} events awaiting review">+${count}</button>`;
+    const label = `${count} ${count === 1 ? 'event' : 'events'} awaiting review`;
+    return `<button id="daylight-import-pending" class="daylight-import-pending ${style}" aria-label="${label}" title="${label}">+${count}</button>`;
   }
 
   navigateToDaylightImport(path) {
