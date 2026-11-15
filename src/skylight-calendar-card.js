@@ -403,6 +403,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._currentDate = new Date();
     this._daylightImportCapabilities = null;
     this._daylightImportRequest = false;
+    this._daylightImportScrollTop = null;
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._calendarFollowsToday = true;
@@ -2002,13 +2003,20 @@ class SkylightCalendarCard extends HTMLElement {
         }
       }
       this.setWeekStart();
+      this._daylightImportScrollTop = Math.max(0, Number(state.scrollTop) || 0);
       this.render();
-      window.requestAnimationFrame(() => {
-        const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
-        if (scroll) scroll.scrollTop = Math.max(0, Number(state.scrollTop) || 0);
-      });
+      this.restoreDaylightImportScroll();
       if (this._hass) this.ensureEventsForCurrentRange({force: true});
     } catch { /* A stale or unavailable browser session does not block the card. */ }
+  }
+
+  restoreDaylightImportScroll() {
+    if (this._daylightImportScrollTop === null) return;
+    const scrollTop = this._daylightImportScrollTop;
+    window.requestAnimationFrame(() => {
+      const scroll = this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container');
+      if (scroll) scroll.scrollTop = scrollTop;
+    });
   }
 
   canCreateEvents() {
@@ -2587,6 +2595,10 @@ class SkylightCalendarCard extends HTMLElement {
         }
       } else if (shouldRenderAfterFetch) {
         this.renderAfterEventDataChange();
+      }
+      if (!this._fetching && !this._pendingEventRefreshAfterCurrentFetch && this._daylightImportScrollTop !== null) {
+        this.restoreDaylightImportScroll();
+        this._daylightImportScrollTop = null;
       }
     }
   }

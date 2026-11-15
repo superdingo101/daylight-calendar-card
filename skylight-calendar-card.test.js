@@ -11221,3 +11221,21 @@ test('Daylight Import indicator uses live pending events and respects creation r
   card._config.disable_event_creation = true;
   assert.equal(card.renderImportPending(), '');
 });
+
+test('Daylight Import restores scroll again after the forced event refresh', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  const scroll = {scrollTop: 0};
+  window.requestAnimationFrame = callback => callback();
+  card.querySelector = selector => selector.includes('.agenda-container') ? scroll : null;
+  card._daylightImportScrollTop = 137;
+  card._hass = {user: {id: 'user-1'}};
+  card.getEventFetchRange = () => ({startDate: new Date('2026-09-01T00:00:00Z'), endDate: new Date('2026-10-01T00:00:00Z')});
+  card.fetchEventsByCalendarInRange = async () => ({'calendar.family': {success: true, events: []}});
+  card.persistEventCacheSnapshot = () => {};
+  try {
+    await card.updateEvents();
+    assert.equal(scroll.scrollTop, 137);
+    assert.equal(card._daylightImportScrollTop, null);
+  } finally { window.requestAnimationFrame = previousRaf; }
+});
