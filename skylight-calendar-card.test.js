@@ -11302,3 +11302,21 @@ test('Daylight Import header refresh preserves compact month and week scrolling'
     }
   } finally { window.requestAnimationFrame = previousRaf; }
 });
+
+test('Daylight Import refreshes the Agenda period label after restoring its scroll', () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  const scroll = {scrollTop: 0, scrollLeft: 0};
+  window.requestAnimationFrame = callback => callback();
+  card._viewMode = 'agenda';
+  card._daylightImportScrollView = 'agenda';
+  card._daylightImportScrollTop = 500;
+  card.querySelector = () => scroll;
+  card.setAgendaScrollTopWithoutTriggeringLoad = (element, value) => {element.scrollTop = value;};
+  let observed = null;
+  card.updateAgendaVisibleDateRangeFromDom = () => {observed = scroll.scrollTop;};
+  try {
+    card.restoreDaylightImportScroll();
+    assert.equal(observed, 500);
+  } finally {window.requestAnimationFrame = previousRaf;}
+});

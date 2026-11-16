@@ -13592,7 +13592,10 @@ class SkylightCalendarCard extends HTMLElement {
     window.requestAnimationFrame(() => {
       if (this._viewMode !== view) return;
       const scroll = this.getDaylightImportScrollContainer();
-      if (scroll && this._viewMode === 'agenda') this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
+      if (scroll && this._viewMode === 'agenda') {
+        this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
+        this.updateAgendaVisibleDateRangeFromDom();
+      }
       else if (scroll) scroll.scrollTop = scrollTop;
       if (scroll) scroll.scrollLeft = scrollLeft;
     });
