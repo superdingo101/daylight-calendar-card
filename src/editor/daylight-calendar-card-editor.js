@@ -1157,6 +1157,25 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="enable_event_management" ${this._config.enable_event_management !== false ? 'checked' : ''}> Enable event management</label>
         <label><input type="checkbox" data-field="disable_event_creation" ${this._config.disable_event_creation ? 'checked' : ''}> Disable creation of new events</label>
       </div>
+      ${this.renderSubSection('Daylight Import', `
+        <div class="boolean-list">
+          <label><input type="checkbox" data-field="daylight_import_add_event_option" ${this._config.daylight_import_add_event_option !== false ? 'checked' : ''}> Offer document import when adding an event</label>
+          <label><input type="checkbox" data-field="daylight_import_show_pending" ${this._config.daylight_import_show_pending !== false ? 'checked' : ''}> Show pending review count</label>
+        </div>
+        <div class="field"><label for="daylight_import_pending_style">Pending indicator style</label>
+          <select id="daylight_import_pending_style" data-field="daylight_import_pending_style">
+            <option value="count" ${this._config.daylight_import_pending_style === 'count' ? 'selected' : ''}>Count only</option>
+            <option value="accent" ${!this._config.daylight_import_pending_style || this._config.daylight_import_pending_style === 'accent' ? 'selected' : ''}>Highlight</option>
+            <option value="pulse" ${this._config.daylight_import_pending_style === 'pulse' ? 'selected' : ''}>Pulse</option>
+          </select>
+        </div>
+        <div class="field"><label for="daylight_import_pending_sensor">Pending events sensor (optional)</label>
+          <input id="daylight_import_pending_sensor" data-field="daylight_import_pending_sensor" type="text" value="${this.escapeHtml(this._config.daylight_import_pending_sensor || '')}" placeholder="Automatic discovery">
+        </div>
+        <div class="field"><label for="daylight_import_card_id">Unique card ID (optional)</label>
+          <input id="daylight_import_card_id" data-field="daylight_import_card_id" type="text" value="${this.escapeHtml(this._config.daylight_import_card_id || '')}" placeholder="Automatic">
+        </div>
+      `)}
       <div class="field-row">
         <div class="field field-inline">
           <label for="event_modal_size">Event modal size</label>
@@ -1855,7 +1874,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (checkbox.dataset.field === 'enable_event_management' || checkbox.dataset.field === 'show_daily_weather_forecast') {
+      if (['enable_event_management', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
         checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }

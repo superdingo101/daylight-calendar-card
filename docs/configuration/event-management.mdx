@@ -205,3 +205,15 @@ event_time_step: 5
 <Warning>
   Some events created outside of Home Assistant — for example, events imported from an ICS file or synced from third-party integrations — may be missing a UID field. Without a UID, the card cannot uniquely identify the event and will show a "Cannot Modify" notice instead of Edit and Delete buttons. If you need to modify such an event, recreate it directly from the card or from the source calendar application.
 </Warning>
+## Daylight Import
+
+When Daylight Calendar Import supports the card connection, **Add Event** offers **Import document**. The review count appears in the header when events are waiting. Select it to review imports, then return to the same calendar. Review and approval remain in Daylight Import.
+
+```yaml
+# Optional settings; these are the defaults.
+daylight_import_add_event_option: true
+daylight_import_show_pending: true
+daylight_import_pending_style: accent # count, accent, or pulse
+```
+
+Set `daylight_import_pending_sensor` to the pending-events sensor entity ID if automatic discovery cannot identify it. You can set `daylight_import_card_id` to a unique value when dashboard layout changes prevent the card from restoring its view. The pulse style respects reduced-motion settings. Disabling event creation or event management hides the Import controls.

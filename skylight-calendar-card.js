@@ -100,6 +100,69 @@ function parseTimeValue(value) {
   return parsed;
 }
 
+/** The versioned contract shared with Daylight Calendar Import. */
+const RETURN_PREFIX = 'daylight:return:v1:';
+const DAY = 24 * 60 * 60 * 1000;
+
+function pendingCount(hass, capabilities, selected) {
+  if (!capabilities?.capabilities?.return_sessions || !capabilities.capabilities.direct_routes) return null;
+  const entries = capabilities.entry_ids || [];
+  if (entries.length !== 1 && !selected) return null;
+  const matches = Object.values(hass?.states || {}).filter(entity =>
+    entity.entity_id?.startsWith('sensor.') &&
+    entity.attributes?.daylight_import_kind === 'pending_events' &&
+    entity.attributes?.daylight_import_contract_version === 1 &&
+    entries.includes(entity.attributes?.daylight_import_config_entry_id) &&
+    (!selected || entity.entity_id === selected));
+  if (matches.length !== 1) return null;
+  const state = matches[0].state;
+  if (typeof state !== 'string' || !/^\d+$/.test(state)) return null;
+  const value = Number(state);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+/** Describe an element by position through light and shadow DOM. */
+function cardPath(element) {
+  const parts = [];
+  let node = element;
+  while (node) {
+    const root = node.parentNode;
+    if (!root) break;
+    const siblings = Array.from(root.children || []).filter(child => child.localName === node.localName);
+    if (node.localName) parts.push(`${node.localName}:${siblings.indexOf(node)}`);
+    node = root.host || (root.nodeType === 1 ? root : null);
+  }
+  return parts.reverse().join('/');
+}
+
+function createReturnSession(storage, crypto, returnPath, cardId, cardState, now = Date.now()) {
+  const random = new Uint8Array(16);
+  crypto.getRandomValues(random);
+  const id = Array.from(random, byte => byte.toString(16).padStart(2, '0')).join('');
+  const session = {version: 1, id, created_at: now, expires_at: now + DAY,
+    return_path: returnPath, card_instance_id: cardId, card_state: cardState, result: null};
+  storage.setItem(RETURN_PREFIX + id, JSON.stringify(session));
+  return id;
+}
+
+function takeReturnSession(storage, returnPath, cardId, now = Date.now()) {
+  for (let index = storage.length - 1; index >= 0; index--) {
+    const key = storage.key(index);
+    if (!key?.startsWith(RETURN_PREFIX)) continue;
+    try {
+      const session = JSON.parse(storage.getItem(key));
+      if (!session || session.version !== 1 || session.expires_at <= now) {
+        storage.removeItem(key);
+      } else if (session.return_path === returnPath && session.card_instance_id === cardId &&
+                 ['completed', 'cancelled'].includes(session.result?.status)) {
+        storage.removeItem(key);
+        return session.card_state;
+      }
+    } catch { storage.removeItem(key); }
+  }
+  return null;
+}
+
 const COMMON_NAMED_COLORS = {
   black: '#000000',
   white: '#FFFFFF',
@@ -2735,6 +2798,25 @@ class SkylightCalendarCardEditor extends HTMLElement {
         <label><input type="checkbox" data-field="enable_event_management" ${this._config.enable_event_management !== false ? 'checked' : ''}> Enable event management</label>
         <label><input type="checkbox" data-field="disable_event_creation" ${this._config.disable_event_creation ? 'checked' : ''}> Disable creation of new events</label>
       </div>
+      ${this.renderSubSection('Daylight Import', `
+        <div class="boolean-list">
+          <label><input type="checkbox" data-field="daylight_import_add_event_option" ${this._config.daylight_import_add_event_option !== false ? 'checked' : ''}> Offer document import when adding an event</label>
+          <label><input type="checkbox" data-field="daylight_import_show_pending" ${this._config.daylight_import_show_pending !== false ? 'checked' : ''}> Show pending review count</label>
+        </div>
+        <div class="field"><label for="daylight_import_pending_style">Pending indicator style</label>
+          <select id="daylight_import_pending_style" data-field="daylight_import_pending_style">
+            <option value="count" ${this._config.daylight_import_pending_style === 'count' ? 'selected' : ''}>Count only</option>
+            <option value="accent" ${!this._config.daylight_import_pending_style || this._config.daylight_import_pending_style === 'accent' ? 'selected' : ''}>Highlight</option>
+            <option value="pulse" ${this._config.daylight_import_pending_style === 'pulse' ? 'selected' : ''}>Pulse</option>
+          </select>
+        </div>
+        <div class="field"><label for="daylight_import_pending_sensor">Pending events sensor (optional)</label>
+          <input id="daylight_import_pending_sensor" data-field="daylight_import_pending_sensor" type="text" value="${this.escapeHtml(this._config.daylight_import_pending_sensor || '')}" placeholder="Automatic discovery">
+        </div>
+        <div class="field"><label for="daylight_import_card_id">Unique card ID (optional)</label>
+          <input id="daylight_import_card_id" data-field="daylight_import_card_id" type="text" value="${this.escapeHtml(this._config.daylight_import_card_id || '')}" placeholder="Automatic">
+        </div>
+      `)}
       <div class="field-row">
         <div class="field field-inline">
           <label for="event_modal_size">Event modal size</label>
@@ -3433,7 +3515,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (checkbox.dataset.field === 'enable_event_management' || checkbox.dataset.field === 'show_daily_weather_forecast') {
+      if (['enable_event_management', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
         checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }
@@ -3764,6 +3846,12 @@ function registerDaylightCalendarCardEditor() {
 
 function getCardStyles() {
   return `
+      .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
+      .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }
+      .daylight-import-pending.pulse { animation: daylight-import-pulse 2s ease-in-out infinite; }
+      @keyframes daylight-import-pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary-color) 25%, transparent); } }
+      @media (prefers-reduced-motion: reduce) { .daylight-import-pending.pulse { animation: none; } }
       daylight-calendar-card,
       skylight-calendar-card {
         display: block;
@@ -11072,6 +11160,7 @@ function renderStandardHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
+            ${helpers.renderImportPending?.() || ''}
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -11109,6 +11198,7 @@ function renderCompactHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
+            ${helpers.renderImportPending?.() || ''}
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
@@ -11839,6 +11929,12 @@ class SkylightCalendarCard extends HTMLElement {
     this._lastEventRefreshFailed = false;
     this._calendarEventMetadata = {};
     this._currentDate = new Date();
+    this._daylightImportCapabilities = null;
+    this._daylightImportRequest = false;
+    this._daylightImportRetryTimer = null;
+    this._daylightImportScrollTop = null;
+    this._daylightImportScrollLeft = 0;
+    this._daylightImportScrollView = null;
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
     this._calendarFollowsToday = true;
@@ -12519,6 +12615,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._calendarFollowsToday = true;
     if (this.isConnected) {
       this.scheduleCalendarDayRollover();
+      this.restoreDaylightImportReturn();
     }
     this.render();
     this._activeLanguage = language;
@@ -12528,8 +12625,15 @@ class SkylightCalendarCard extends HTMLElement {
 
   set hass(hass) {
     const oldHass = this._hass;
+    const previouslyAvailable = this.daylightImportAvailable();
     this._hass = hass;
     let shouldRender = false;
+    const previousImportCount = pendingCount(oldHass, this._daylightImportCapabilities, this._config?.daylight_import_pending_sensor);
+    const nextImportCount = pendingCount(hass, this._daylightImportCapabilities, this._config?.daylight_import_pending_sensor);
+    if (previousImportCount !== nextImportCount) shouldRender = true;
+    this.refreshDaylightImportCapabilities();
+    const importHeaderChanged = previousImportCount !== nextImportCount || previouslyAvailable !== this.daylightImportAvailable();
+    if (importHeaderChanged) shouldRender = true;
 
     if (this.advanceCalendarWindowToCurrentDay()) {
       shouldRender = true;
@@ -12605,7 +12709,8 @@ class SkylightCalendarCard extends HTMLElement {
         this._pendingHeaderSensorRender = true;
       } else {
         this._pendingHeaderSensorRender = false;
-        this.renderPreservingAgendaScroll();
+        if (importHeaderChanged) this.renderPreservingImportScroll();
+        else this.renderPreservingAgendaScroll();
       }
     }
 
@@ -13356,6 +13461,146 @@ class SkylightCalendarCard extends HTMLElement {
     return getWritableCalendars(this._config.entities, this._calendarCapabilities);
   }
 
+  refreshDaylightImportCapabilities() {
+    const hass = this._hass;
+    if (!hass?.services?.daylight_calendar_import || typeof hass.callWS !== 'function') {
+      this._daylightImportCapabilities = null;
+      this._daylightImportCheckedConnection = null;
+      this._daylightImportChecked = false;
+      if (this._daylightImportRetryTimer) clearTimeout(this._daylightImportRetryTimer);
+      this._daylightImportRetryTimer = null;
+      return;
+    }
+    if (this._daylightImportRequest || this._daylightImportRetryTimer ||
+        (this._daylightImportChecked && this._daylightImportCheckedConnection === hass.connection)) return;
+    this._daylightImportRequest = true;
+    this._daylightImportChecked = true;
+    this._daylightImportCheckedConnection = hass.connection;
+    Promise.resolve().then(() => hass.callWS({type: 'daylight_calendar_import/capabilities'})).then(result => {
+      if (this._hass?.connection !== hass.connection || !this._hass?.services?.daylight_calendar_import) return;
+      this._daylightImportCapabilities = result;
+      if (this.isConnected) {
+        if (this.isEventManagementDialogOpen()) this._pendingHeaderSensorRender = true;
+        else this.renderPreservingImportScroll();
+      }
+    }).catch(error => {
+      this._daylightImportCapabilities = null;
+      if (!['unknown_command', 'not_found'].includes(error?.code)) {
+        this._daylightImportChecked = false;
+        this._daylightImportRetryTimer = setTimeout(() => {
+          this._daylightImportRetryTimer = null;
+          if (this.isConnected) this.refreshDaylightImportCapabilities();
+        }, 30000);
+      }
+    }).finally(() => { this._daylightImportRequest = false; });
+  }
+
+  daylightImportAvailable() {
+    const info = this._daylightImportCapabilities;
+    return !!this._config.enable_event_management && !this._config.disable_event_creation &&
+      info?.entry_ids?.length === 1 && info.capabilities?.direct_routes === 1 &&
+      info.capabilities?.return_sessions === 1;
+  }
+
+  renderImportPending() {
+    if (!this.daylightImportAvailable() || this._config.daylight_import_show_pending === false) return '';
+    const count = pendingCount(this._hass, this._daylightImportCapabilities, this._config.daylight_import_pending_sensor);
+    if (!count) return '';
+    const style = ['count', 'accent', 'pulse'].includes(this._config.daylight_import_pending_style)
+      ? this._config.daylight_import_pending_style : 'accent';
+    const label = `${count} ${count === 1 ? 'event' : 'events'} awaiting review`;
+    return `<button id="daylight-import-pending" class="daylight-import-pending ${style}" aria-label="${label}" title="${label}">+${count}</button>`;
+  }
+
+  getDaylightImportScrollContainer() {
+    return this._root.querySelector('.agenda-container, .week-standard-container, .week-compact-container, .calendar-grid.compact-month');
+  }
+
+  renderPreservingImportScroll() {
+    const view = this._viewMode;
+    const current = this.getDaylightImportScrollContainer();
+    const top = current?.scrollTop;
+    const left = current?.scrollLeft;
+    this.renderPreservingAgendaScroll();
+    if (!Number.isFinite(top) && !Number.isFinite(left)) return;
+    window.requestAnimationFrame(() => {
+      if (this._viewMode !== view) return;
+      const container = this.getDaylightImportScrollContainer();
+      if (!container) return;
+      if (view !== 'agenda' && Number.isFinite(top)) container.scrollTop = top;
+      if (Number.isFinite(left)) container.scrollLeft = left;
+    });
+  }
+
+  navigateToDaylightImport(path) {
+    if (!this.daylightImportAvailable()) return;
+    try {
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const scroll = this.getDaylightImportScrollContainer();
+      const state = {view: this._viewMode, date: this._currentDate.toISOString(),
+        agendaStart: this._agendaStartDate?.toISOString(), agendaEnd: this._agendaEndDate?.toISOString(),
+        calendarFollowsToday: this._calendarFollowsToday, agendaFollowsToday: this._agendaFollowsToday,
+        scrollTop: scroll?.scrollTop || 0, scrollLeft: scroll?.scrollLeft || 0,
+        windowScrollX: window.scrollX || 0, windowScrollY: window.scrollY || 0};
+      const id = createReturnSession(window.sessionStorage, window.crypto, current,
+        this._config.daylight_import_card_id || cardPath(this), state);
+      const destination = `/daylight-calendar-import/${path}?dl_return=${encodeURIComponent(id)}`;
+      window.history.pushState({from: current}, '', destination);
+      window.dispatchEvent(new Event('location-changed'));
+    } catch {
+      this.showError('Could not open Daylight Import. Check that browser storage is available.');
+    }
+  }
+
+  restoreDaylightImportReturn() {
+    if (!Array.isArray(this._config?.entities) || !this.isConnected) return;
+    try {
+      const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const state = takeReturnSession(window.sessionStorage, current, this._config.daylight_import_card_id || cardPath(this));
+      if (!state || !['month', 'week-compact', 'week-standard', 'agenda'].includes(state.view)) return;
+      const date = new Date(state.date);
+      if (Number.isNaN(date.getTime())) return;
+      this._viewMode = state.view;
+      this._currentDate = date;
+      this._calendarFollowsToday = state.calendarFollowsToday === true;
+      if (state.view === 'agenda') {
+        const start = new Date(state.agendaStart);
+        const end = new Date(state.agendaEnd);
+        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+          this._agendaStartDate = start;
+          this._agendaEndDate = end;
+          this._agendaFollowsToday = state.agendaFollowsToday === true;
+        }
+      }
+      this.setWeekStart();
+      this._daylightImportScrollTop = Math.max(0, Number(state.scrollTop) || 0);
+      this._daylightImportScrollLeft = Number.isFinite(state.scrollLeft) ? state.scrollLeft : 0;
+      this._daylightImportScrollView = state.view;
+      this.render();
+      this.restoreDaylightImportScroll();
+      window.requestAnimationFrame(() => window.scrollTo(state.windowScrollX || 0, state.windowScrollY || 0));
+      if (this._hass) this.ensureEventsForCurrentRange({force: true});
+    } catch { /* A stale or unavailable browser session does not block the card. */ }
+  }
+
+  restoreDaylightImportScroll() {
+    if (this._daylightImportScrollTop === null ||
+        (this._daylightImportScrollView && this._daylightImportScrollView !== this._viewMode)) return;
+    const scrollTop = this._daylightImportScrollTop;
+    const scrollLeft = this._daylightImportScrollLeft;
+    const view = this._viewMode;
+    window.requestAnimationFrame(() => {
+      if (this._viewMode !== view) return;
+      const scroll = this.getDaylightImportScrollContainer();
+      if (scroll && this._viewMode === 'agenda') {
+        this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
+        this.updateAgendaVisibleDateRangeFromDom();
+      }
+      else if (scroll) scroll.scrollTop = scrollTop;
+      if (scroll) scroll.scrollLeft = scrollLeft;
+    });
+  }
+
   canCreateEvents() {
     return !!this._config.enable_event_management &&
       !this._config.disable_event_creation &&
@@ -13933,6 +14178,10 @@ class SkylightCalendarCard extends HTMLElement {
       } else if (shouldRenderAfterFetch) {
         this.renderAfterEventDataChange();
       }
+      if (!this._fetching && !this._pendingEventRefreshAfterCurrentFetch && this._daylightImportScrollTop !== null) {
+        this.restoreDaylightImportScroll();
+        this._daylightImportScrollTop = null;
+      }
     }
   }
 
@@ -14296,6 +14545,7 @@ class SkylightCalendarCard extends HTMLElement {
 
   connectedCallback() {
     checkAndShowStaleResourceWarning();
+    this.refreshDaylightImportCapabilities();
     window.addEventListener('resize', this._handleViewportResize);
     window.addEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.addEventListener('resize', this._handleViewportResize);
@@ -14303,6 +14553,7 @@ class SkylightCalendarCard extends HTMLElement {
     this.observeHostAndParentResize();
     document.addEventListener?.('visibilitychange', this._handleCalendarVisibilityChange);
     const dateWindowAdvanced = this.advanceCalendarWindowToCurrentDay();
+    this.restoreDaylightImportReturn();
     this.scheduleCalendarDayRollover();
     this.render();
     if (this._eventLoadingInvalidatedWhileDisconnected) {
@@ -14318,6 +14569,8 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._daylightImportRetryTimer) clearTimeout(this._daylightImportRetryTimer);
+    this._daylightImportRetryTimer = null;
     window.removeEventListener('resize', this._handleViewportResize);
     window.removeEventListener('daylight-calendar-card-flush-event-cache', this._handleEventCacheFlush);
     window.visualViewport?.removeEventListener('resize', this._handleViewportResize);
@@ -15246,6 +15499,7 @@ class SkylightCalendarCard extends HTMLElement {
       renderCalendarBadgesInline: () => this.renderCalendarBadgesInline(),
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
       renderHeaderTitle: () => this.renderHeaderTitle(),
+      renderImportPending: () => this.renderImportPending(),
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
@@ -17199,6 +17453,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     // Add event button
+    this.getRootElementById('daylight-import-pending')?.addEventListener('click', () => this.navigateToDaylightImport('review'));
     addEventButton?.addEventListener('click', () => {
       this.showCreateEventModal();
     });
@@ -17422,7 +17677,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._pendingCalendarDayRolloverRefresh = false;
     if (this._pendingHeaderSensorRender) {
       this._pendingHeaderSensorRender = false;
-      this.renderPreservingAgendaScroll();
+      this.renderPreservingImportScroll();
     }
     if (refreshForRollover && this._hass) this.ensureEventsForCurrentRange();
     if (this._pendingEventRefreshAfterCurrentFetch && !this._fetching) {
@@ -17984,6 +18239,11 @@ class SkylightCalendarCard extends HTMLElement {
         t: (key) => this.t(key)
       }
     });
+
+    if (this.daylightImportAvailable() && this._config.daylight_import_add_event_option !== false) {
+      content.insertAdjacentHTML('afterbegin', '<div class="daylight-import-choice"><span>Create manually</span><button type="button" id="daylight-import-document">Import document</button></div>');
+      this.getRootElementById('daylight-import-document')?.addEventListener('click', () => this.navigateToDaylightImport('new/file'));
+    }
 
     modal.classList.add('show');
 

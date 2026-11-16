@@ -11202,3 +11202,121 @@ test('WebSocket update leaves absent optional fields unspecified', async () => {
   assert.equal(Object.hasOwn(payload.event, 'location'), false);
   assert.equal(Object.hasOwn(payload.event, 'description'), false);
 });
+
+test('Daylight Import indicator uses live pending events and respects creation restrictions', () => {
+  const card = new Card();
+  card.setConfig({entities: ['calendar.family']});
+  card._daylightImportCapabilities = {entry_ids: ['entry'], capabilities: {direct_routes: 1, return_sessions: 1}};
+  card._hass = {states: {'sensor.renamed': {entity_id: 'sensor.renamed', state: '2', attributes: {
+    daylight_import_kind: 'pending_events', daylight_import_contract_version: 1,
+    daylight_import_config_entry_id: 'entry'
+  }}}};
+  assert.match(card.renderImportPending(), /\+2/);
+  assert.match(card.renderImportPending(), /accent/);
+  card._config.daylight_import_pending_style = 'pulse';
+  assert.match(card.renderImportPending(), /pulse/);
+  card._hass.states['sensor.renamed'].state = 'unavailable';
+  assert.equal(card.renderImportPending(), '');
+  card._hass.states['sensor.renamed'].state = '2';
+  card._config.disable_event_creation = true;
+  assert.equal(card.renderImportPending(), '');
+});
+
+test('Daylight Import restores scroll again after the forced event refresh', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  const scroll = {scrollTop: 0};
+  window.requestAnimationFrame = callback => callback();
+  card.querySelector = selector => selector.includes('.agenda-container') ? scroll : null;
+  card._daylightImportScrollTop = 137;
+  card._hass = {user: {id: 'user-1'}};
+  card.getEventFetchRange = () => ({startDate: new Date('2026-09-01T00:00:00Z'), endDate: new Date('2026-10-01T00:00:00Z')});
+  card.fetchEventsByCalendarInRange = async () => ({'calendar.family': {success: true, events: []}});
+  card.persistEventCacheSnapshot = () => {};
+  try {
+    await card.updateEvents();
+    assert.equal(scroll.scrollTop, 137);
+    assert.equal(card._daylightImportScrollTop, null);
+  } finally { window.requestAnimationFrame = previousRaf; }
+});
+
+test('Daylight Import discovery defers header render while the event dialog is open', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  card.isConnected = true;
+  card.isEventManagementDialogOpen = () => true;
+  card._hass = {connection: {}, services: {daylight_calendar_import: {}}, callWS: async () => ({entry_ids: ['entry'], capabilities: {direct_routes: 1, return_sessions: 1}})};
+  card.refreshDaylightImportCapabilities();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(card._pendingHeaderSensorRender, true);
+});
+
+test('Daylight Import retries transient capability failures without retrying on every update', async () => {
+  const card = makeCard({entities: ['calendar.family']});
+  let requests = 0;
+  card._hass = {connection: {}, services: {daylight_calendar_import: {}}, callWS: async () => { requests++; throw new Error('connection lost'); }};
+  card.refreshDaylightImportCapabilities();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(card._daylightImportChecked, false);
+  assert.ok(card._daylightImportRetryTimer);
+  card.refreshDaylightImportCapabilities();
+  assert.equal(requests, 1);
+  clearTimeout(card._daylightImportRetryTimer);
+  card._daylightImportRetryTimer = null;
+});
+
+test('Daylight Import return preserves whether the card follows today', () => {
+  const card = makeCard({entities: ['calendar.family'], daylight_import_card_id: 'family'});
+  const previous = {sessionStorage: window.sessionStorage, location: window.location, requestAnimationFrame: window.requestAnimationFrame, scrollTo: window.scrollTo};
+  const id = 'c'.repeat(32), key = `daylight:return:v1:${id}`;
+  const value = {version: 1, id, expires_at: Date.now() + 60000, return_path: '/lovelace/home', card_instance_id: 'family', result: {status: 'cancelled'}, card_state: {view: 'agenda', date: '2026-10-12T12:00:00Z', agendaStart: '2026-10-12T00:00:00Z', agendaEnd: '2026-11-12T00:00:00Z', calendarFollowsToday: true, agendaFollowsToday: true, scrollTop: 0}};
+  let stored = JSON.stringify(value);
+  window.location = {pathname: '/lovelace/home', search: '', hash: ''};
+  window.sessionStorage = {length: 1, key: () => key, getItem: () => stored, removeItem: () => {stored = null;}};
+  window.requestAnimationFrame = callback => callback();
+  window.scrollTo = () => {};
+  card.isConnected = true;
+  try {
+    card.restoreDaylightImportReturn();
+    assert.equal(card._viewMode, 'agenda');
+    assert.equal(card._calendarFollowsToday, true);
+    assert.equal(card._agendaFollowsToday, true);
+    assert.equal(stored, null);
+  } finally { Object.assign(window, previous); }
+});
+
+test('Daylight Import header refresh preserves compact month and week scrolling', () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => callback();
+  try {
+    for (const view of ['month', 'week-standard', 'week-compact']) {
+      let container = {scrollTop: 175, scrollLeft: -40};
+      let requestedSelector;
+      card._viewMode = view;
+      card.querySelector = selector => { requestedSelector = selector; return container; };
+      card.renderPreservingAgendaScroll = () => { container = {scrollTop: 0, scrollLeft: 0}; };
+      card.renderPreservingImportScroll();
+      assert.match(requestedSelector, /calendar-grid\.compact-month/);
+      assert.equal(container.scrollTop, 175);
+      assert.equal(container.scrollLeft, -40);
+    }
+  } finally { window.requestAnimationFrame = previousRaf; }
+});
+
+test('Daylight Import refreshes the Agenda period label after restoring its scroll', () => {
+  const card = makeCard({entities: ['calendar.family']});
+  const previousRaf = window.requestAnimationFrame;
+  const scroll = {scrollTop: 0, scrollLeft: 0};
+  window.requestAnimationFrame = callback => callback();
+  card._viewMode = 'agenda';
+  card._daylightImportScrollView = 'agenda';
+  card._daylightImportScrollTop = 500;
+  card.querySelector = () => scroll;
+  card.setAgendaScrollTopWithoutTriggeringLoad = (element, value) => {element.scrollTop = value;};
+  let observed = null;
+  card.updateAgendaVisibleDateRangeFromDom = () => {observed = scroll.scrollTop;};
+  try {
+    card.restoreDaylightImportScroll();
+    assert.equal(observed, 500);
+  } finally {window.requestAnimationFrame = previousRaf;}
+});
