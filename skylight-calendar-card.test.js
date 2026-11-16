@@ -11290,14 +11290,15 @@ test('Daylight Import header refresh preserves compact month and week scrolling'
   window.requestAnimationFrame = callback => callback();
   try {
     for (const view of ['month', 'week-standard', 'week-compact']) {
-      let container = {scrollTop: 175};
+      let container = {scrollTop: 175, scrollLeft: -40};
       let requestedSelector;
       card._viewMode = view;
       card.querySelector = selector => { requestedSelector = selector; return container; };
-      card.renderPreservingAgendaScroll = () => { container = {scrollTop: 0}; };
+      card.renderPreservingAgendaScroll = () => { container = {scrollTop: 0, scrollLeft: 0}; };
       card.renderPreservingImportScroll();
       assert.match(requestedSelector, /calendar-grid\.compact-month/);
       assert.equal(container.scrollTop, 175);
+      assert.equal(container.scrollLeft, -40);
     }
   } finally { window.requestAnimationFrame = previousRaf; }
 });

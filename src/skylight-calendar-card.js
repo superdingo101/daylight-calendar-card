@@ -405,6 +405,7 @@ class SkylightCalendarCard extends HTMLElement {
     this._daylightImportRequest = false;
     this._daylightImportRetryTimer = null;
     this._daylightImportScrollTop = null;
+    this._daylightImportScrollLeft = 0;
     this._daylightImportScrollView = null;
     this._viewMode = DEFAULT_VIEW; // 'month', 'week-compact', 'week-standard', or 'agenda'
     this._weekStart = new Date();
@@ -1989,13 +1990,17 @@ class SkylightCalendarCard extends HTMLElement {
 
   renderPreservingImportScroll() {
     const view = this._viewMode;
-    const top = this.getDaylightImportScrollContainer()?.scrollTop;
+    const current = this.getDaylightImportScrollContainer();
+    const top = current?.scrollTop;
+    const left = current?.scrollLeft;
     this.renderPreservingAgendaScroll();
-    if (!Number.isFinite(top) || view === 'agenda') return;
+    if (!Number.isFinite(top) && !Number.isFinite(left)) return;
     window.requestAnimationFrame(() => {
       if (this._viewMode !== view) return;
       const container = this.getDaylightImportScrollContainer();
-      if (container) container.scrollTop = top;
+      if (!container) return;
+      if (view !== 'agenda' && Number.isFinite(top)) container.scrollTop = top;
+      if (Number.isFinite(left)) container.scrollLeft = left;
     });
   }
 
@@ -2007,7 +2012,8 @@ class SkylightCalendarCard extends HTMLElement {
       const state = {view: this._viewMode, date: this._currentDate.toISOString(),
         agendaStart: this._agendaStartDate?.toISOString(), agendaEnd: this._agendaEndDate?.toISOString(),
         calendarFollowsToday: this._calendarFollowsToday, agendaFollowsToday: this._agendaFollowsToday,
-        scrollTop: scroll?.scrollTop || 0, windowScrollX: window.scrollX || 0, windowScrollY: window.scrollY || 0};
+        scrollTop: scroll?.scrollTop || 0, scrollLeft: scroll?.scrollLeft || 0,
+        windowScrollX: window.scrollX || 0, windowScrollY: window.scrollY || 0};
       const id = createReturnSession(window.sessionStorage, window.crypto, current,
         this._config.daylight_import_card_id || cardPath(this), state);
       const destination = `/daylight-calendar-import/${path}?dl_return=${encodeURIComponent(id)}`;
@@ -2040,6 +2046,7 @@ class SkylightCalendarCard extends HTMLElement {
       }
       this.setWeekStart();
       this._daylightImportScrollTop = Math.max(0, Number(state.scrollTop) || 0);
+      this._daylightImportScrollLeft = Number.isFinite(state.scrollLeft) ? state.scrollLeft : 0;
       this._daylightImportScrollView = state.view;
       this.render();
       this.restoreDaylightImportScroll();
@@ -2052,12 +2059,14 @@ class SkylightCalendarCard extends HTMLElement {
     if (this._daylightImportScrollTop === null ||
         (this._daylightImportScrollView && this._daylightImportScrollView !== this._viewMode)) return;
     const scrollTop = this._daylightImportScrollTop;
+    const scrollLeft = this._daylightImportScrollLeft;
     const view = this._viewMode;
     window.requestAnimationFrame(() => {
       if (this._viewMode !== view) return;
       const scroll = this.getDaylightImportScrollContainer();
       if (scroll && this._viewMode === 'agenda') this.setAgendaScrollTopWithoutTriggeringLoad(scroll, scrollTop);
       else if (scroll) scroll.scrollTop = scrollTop;
+      if (scroll) scroll.scrollLeft = scrollLeft;
     });
   }
 
