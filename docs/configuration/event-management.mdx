@@ -205,15 +205,58 @@ event_time_step: 5
 <Warning>
   Some events created outside of Home Assistant — for example, events imported from an ICS file or synced from third-party integrations — may be missing a UID field. Without a UID, the card cannot uniquely identify the event and will show a "Cannot Modify" notice instead of Edit and Delete buttons. If you need to modify such an event, recreate it directly from the card or from the source calendar application.
 </Warning>
+
 ## Daylight Import
 
-When Daylight Calendar Import supports the card connection, **Add Event** offers **Import document**. The review count appears in the header when events are waiting. Select it to review imports, then return to the same calendar. Review and approval remain in Daylight Import.
+[Daylight Calendar Import](https://github.com/superdingo101/daylight-calendar-import) turns documents, such as school newsletters or schedules, into draft calendar events that you review before they are saved. When Import is installed, the card connects to it in two places:
+
+- **Import document** in the **Add Event** form opens Import so you can upload a document and review its drafts.
+- A pending review count, such as **+3**, appears in the header when imported events are waiting for review. Select it to open the review queue in Import.
+
+Review and approval always happen in Daylight Import. When you finish or cancel, Import returns you to the same dashboard. The card restores its view, date, and scroll position, then refreshes its events so newly approved events appear immediately.
+
+### Requirements
+
+- A version of Daylight Calendar Import that supports the card connection. With older versions, or without Import installed, the card hides the Import controls and works as usual.
+- A single Daylight Import config entry in Home Assistant.
+- Event creation enabled. Setting `enable_event_management: false` or `disable_event_creation: true` hides both Import controls.
+
+### Import options
+
+You can set these options in YAML or in the visual editor under **Event management** > **Daylight Import**.
+
+<ParamField path="daylight_import_add_event_option" default="true" type="boolean">
+  Show the **Import document** option in the **Add Event** form. Set to `false` to keep the form limited to manual entry.
+</ParamField>
+
+<ParamField path="daylight_import_show_pending" default="true" type="boolean">
+  Show the pending review count in the header. The count only appears when at least one imported event is waiting for review.
+</ParamField>
+
+<ParamField path="daylight_import_pending_style" default="accent" type="string">
+  Visual style of the pending review count. Supported values:
+
+  | Value | Editor label | Appearance |
+  | --- | --- | --- |
+  | `count` | Count only | Outlined button with the count |
+  | `accent` | Highlight | Button filled with your theme's primary color |
+  | `pulse` | Pulse | Highlighted button with a gentle pulsing glow. The animation stops when the device requests reduced motion. |
+</ParamField>
+
+<ParamField path="daylight_import_pending_sensor" type="string">
+  Entity ID of the Daylight Import pending events sensor. The card discovers this sensor automatically. Set it only if the count does not appear because the card cannot identify a single matching sensor.
+</ParamField>
+
+<ParamField path="daylight_import_card_id" type="string">
+  A unique ID the card uses to restore its view when you return from Import. By default, the card identifies itself by its position on the dashboard. Set a unique value if you edit the dashboard layout between leaving and returning, or if the card does not restore its view. Use a different value for each card on the same dashboard.
+</ParamField>
 
 ```yaml
-# Optional settings; these are the defaults.
+type: custom:daylight-calendar-card
+entities:
+  - calendar.family
 daylight_import_add_event_option: true
 daylight_import_show_pending: true
-daylight_import_pending_style: accent # count, accent, or pulse
+daylight_import_pending_style: pulse
+daylight_import_card_id: kitchen-calendar
 ```
-
-Set `daylight_import_pending_sensor` to the pending-events sensor entity ID if automatic discovery cannot identify it. You can set `daylight_import_card_id` to a unique value when dashboard layout changes prevent the card from restoring its view. The pulse style respects reduced-motion settings. Disabling event creation or event management hides the Import controls.
