@@ -16,7 +16,6 @@ export function renderWeekStandardView({
   helpers
 }) {
   return `
-      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
       <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
