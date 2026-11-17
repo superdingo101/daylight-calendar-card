@@ -1,5 +1,32 @@
 export function getCardStyles() {
   return `
+      /* Import review is a header control, not a body-level text link. */
+      .header .daylight-import-pending {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        box-sizing: border-box;
+        flex: 0 0 auto;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        border-radius: 8px;
+        border: 1px solid var(--header-control-border, rgba(255,255,255,.35));
+        background: var(--header-control-bg, rgba(255,255,255,.2));
+        color: inherit;
+        padding: 8px 12px;
+      }
+      .header .daylight-import-pending.accent,
+      .header .daylight-import-pending.pulse {
+        background: var(--header-control-bg-hover, rgba(255,255,255,.3));
+        color: inherit;
+      }
+      .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
+      .header-left, .compact-header-left { flex-wrap: wrap; }
+      .header-left .calendar-badges-inline, .compact-header-left .calendar-badges-inline { min-width: 0; }
+      .header-compact .daylight-import-pending { min-height: 32px; }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
       .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }
