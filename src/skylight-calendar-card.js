@@ -3981,10 +3981,12 @@ class SkylightCalendarCard extends HTMLElement {
 
   renderStandardHeader() {
     const canAddEvents = this.canCreateEvents() && !this._config.hide_add_event_button;
+    const shouldShowCalendars = !this._config.hide_calendars;
     const shouldShowControls = !this._config.hide_controls;
 
     return renderStandardHeaderMarkup({
       canAddEvents,
+      shouldShowCalendars,
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
     });
