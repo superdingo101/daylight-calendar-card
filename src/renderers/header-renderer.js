@@ -1,11 +1,12 @@
 export function renderStandardHeader({
   canAddEvents,
+  shouldShowCalendars,
   shouldShowControls,
   helpers
 }) {
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
-  const calendarBadges = helpers.renderCalendarBadgesInline?.() || '';
+  const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -16,7 +17,6 @@ export function renderStandardHeader({
           ${dashboardButton}
           ${headerTitle}
           ${calendarBadges}
-          ${importPending}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
@@ -56,6 +56,7 @@ export function renderCompactHeader({
           ${dashboardButton}
           ${headerTitle}
           ${calendarBadges}
+          ${importPending}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
