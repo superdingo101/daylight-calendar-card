@@ -17,6 +17,7 @@ export function renderStandardHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
+            ${helpers.renderImportPending?.() || ''}
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -54,6 +55,7 @@ export function renderCompactHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
+            ${helpers.renderImportPending?.() || ''}
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
