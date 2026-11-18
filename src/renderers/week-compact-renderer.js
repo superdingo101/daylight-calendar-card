@@ -12,7 +12,7 @@ export function renderWeekCompactView({
   const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
-      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
       <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
