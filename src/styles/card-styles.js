@@ -24,8 +24,8 @@ export function getCardStyles() {
         color: inherit;
       }
       .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
-      .header-left, .compact-header-left { flex-wrap: wrap; }
-      .header-left .calendar-badges-inline, .compact-header-left .calendar-badges-inline { min-width: 0; }
+      .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
+      .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
       .header-compact .daylight-import-pending { min-height: 32px; }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
