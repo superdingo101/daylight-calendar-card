@@ -7,7 +7,7 @@ export function renderStandardHeader({
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
   const importPending = shouldShowControls ? (helpers.renderImportPending?.() || '') : '';
-  const calendarBadges = importPending && shouldShowCalendars && (dashboardButton || headerTitle) ? helpers.renderCalendarBadgesInline() : '';
+  const calendarBadges = '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -47,7 +47,7 @@ export function renderCompactHeader({
   const headerTitle = helpers.renderHeaderTitle();
   const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
   const importPending = helpers.renderImportPending?.() || '';
-  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}${importPending}`;
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
 
@@ -57,7 +57,6 @@ export function renderCompactHeader({
           ${dashboardButton}
           ${headerTitle}
           ${calendarBadges}
-          ${importPending}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
@@ -67,6 +66,7 @@ export function renderCompactHeader({
               ${helpers.renderPeriodNavigationButtons('next')}
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
+            ${shouldShowControls ? importPending : ''}
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
