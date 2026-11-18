@@ -11175,7 +11175,7 @@ function renderStandardHeader({
 }) {
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
-  const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
+  const calendarBadges = shouldShowCalendars && (dashboardButton || headerTitle) ? helpers.renderCalendarBadgesInline() : '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
