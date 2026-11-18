@@ -2011,11 +2011,13 @@ for (const compactHeader of [true, false]) {
     const pending = header.locator('#daylight-import-pending');
     await expect(pending).toBeVisible();
     await expect(pending).toHaveText('+2');
-    await expect(header.locator('.calendar-badges-inline')).toBeVisible();
-    await expect(card.locator('.calendar-badges:not(.calendar-badges-inline)')).toHaveCount(0);
     if (compactHeader) {
-      await expect(header.locator('.compact-header-left #daylight-import-pending')).toHaveCount(1);
+      await expect(header.locator('.calendar-badges-inline')).toBeVisible();
+      await expect(header.locator('.compact-header-controls #daylight-import-pending')).toHaveCount(1);
+      await expect(header.locator('.compact-header-left #daylight-import-pending')).toHaveCount(0);
     } else {
+      await expect(header.locator('.calendar-badges-inline')).toHaveCount(0);
+      await expect(card.locator('.calendar-badges:not(.calendar-badges-inline)')).toBeVisible();
       await expect(header.locator('.header-controls #daylight-import-pending')).toHaveCount(1);
     }
 
