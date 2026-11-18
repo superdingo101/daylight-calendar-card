@@ -3872,7 +3872,7 @@ function getCardStyles() {
       .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
       .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
       .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
-      .header-compact .daylight-import-pending { min-height: 32px; }
+      .header-compact .compact-header-controls .daylight-import-pending { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 8px; border: 1px solid var(--header-control-border, rgba(255, 255, 255, 0.4)); background: var(--header-control-bg, rgba(255, 255, 255, 0.2)); color: inherit; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; flex: 0 0 30px; }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
       .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }
@@ -10274,7 +10274,7 @@ function renderAgendaView({
   });
 
   return `
-      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
       <div class="agenda-container" id="agenda-container" style="${containerStyle}">
         ${agendaRows.join('')}
       </div>
@@ -11177,7 +11177,7 @@ function renderStandardHeader({
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
   const importPending = shouldShowControls ? (helpers.renderImportPending?.() || '') : '';
-  const calendarBadges = importPending && shouldShowCalendars && (dashboardButton || headerTitle) ? helpers.renderCalendarBadgesInline() : '';
+  const calendarBadges = '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -11217,7 +11217,7 @@ function renderCompactHeader({
   const headerTitle = helpers.renderHeaderTitle();
   const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
   const importPending = helpers.renderImportPending?.() || '';
-  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}${importPending}`;
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
 
@@ -11227,7 +11227,6 @@ function renderCompactHeader({
           ${dashboardButton}
           ${headerTitle}
           ${calendarBadges}
-          ${importPending}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
@@ -11237,6 +11236,7 @@ function renderCompactHeader({
               ${helpers.renderPeriodNavigationButtons('next')}
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
+            ${shouldShowControls ? importPending : ''}
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
@@ -11423,7 +11423,7 @@ function renderWeekCompactView({
   const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
-      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
       <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
@@ -11475,7 +11475,7 @@ function renderWeekStandardView({
   helpers
 }) {
   return `
-      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars ? helpers.renderCalendarBadges() : ''}
       <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
