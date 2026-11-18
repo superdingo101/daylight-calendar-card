@@ -32,7 +32,8 @@ export function renderWeekCompactView({
                   </div>
                 </div>
               </div>
-              <div class="week-day-events">
+              ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      <div class="week-day-events">
                 ${events.map(event => {
                   return helpers.renderWeekCompactEvent(event, date);
                 }).join('')}
