@@ -40,6 +40,7 @@ export function renderWeekStandardView({
           const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
 
           return `
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
             <div class="week-standard-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}"${dayStyleAttr}>
               <div class="week-standard-day-header" data-click-target="day-header">
                 <div class="week-day-header-main">
@@ -54,8 +55,7 @@ export function renderWeekStandardView({
               ${hasAllDayEvents ? helpers.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
               <div class="day-time-slots" style="${dayTimeSlotsStyle}">
                 ${hours.map(hour => `
-                  ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
-      <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
+                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
                 `).join('')}
                 ${showCurrentTimeBar && isToday ? helpers.renderCurrentTimeLine(startHour, hourHeight) : ''}
                 ${helpers.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
