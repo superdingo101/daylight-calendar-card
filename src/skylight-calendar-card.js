@@ -3972,6 +3972,7 @@ class SkylightCalendarCard extends HTMLElement {
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
       renderHeaderTitle: () => this.renderHeaderTitle(),
       renderImportPending: () => this.renderImportPending(),
+      hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
