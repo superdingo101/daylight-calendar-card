@@ -54,7 +54,8 @@ export function renderWeekStandardView({
               ${hasAllDayEvents ? helpers.renderAllDayEventsForDay(allDayLanes, allDayHeight) : ''}
               <div class="day-time-slots" style="${dayTimeSlotsStyle}">
                 ${hours.map(hour => `
-                  <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
+                  ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      <div class="day-time-slot" style="height: ${hourHeight}px;" data-hour="${hour}"></div>
                 `).join('')}
                 ${showCurrentTimeBar && isToday ? helpers.renderCurrentTimeLine(startHour, hourHeight) : ''}
                 ${helpers.renderTimedEventsForDay(dayEvents, date, startHour, endHour, hourHeight)}
