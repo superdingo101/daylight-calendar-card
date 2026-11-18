@@ -21,6 +21,7 @@ export function renderWeekCompactView({
           const dayStyleAttr = dayStyle.style ? ` style="${dayStyle.style}"` : '';
 
           return `
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
             <div class="week-day-column ${isToday ? 'today' : ''} ${dayStyle.className}" data-date="${date.toISOString()}" data-click-target="day-header"${dayStyleAttr}>
               <div class="week-day-header">
                 <div class="week-day-header-main">
@@ -32,8 +33,7 @@ export function renderWeekCompactView({
                   </div>
                 </div>
               </div>
-              ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
-      <div class="week-day-events">
+              <div class="week-day-events">
                 ${events.map(event => {
                   return helpers.renderWeekCompactEvent(event, date);
                 }).join('')}
