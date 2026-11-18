@@ -10274,7 +10274,7 @@ function renderAgendaView({
   });
 
   return `
-${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="agenda-container" id="agenda-container" style="${containerStyle}">
         ${agendaRows.join('')}
       </div>
@@ -11423,7 +11423,7 @@ function renderWeekCompactView({
   const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
-${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
@@ -11475,7 +11475,7 @@ function renderWeekStandardView({
   helpers
 }) {
   return `
-${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
