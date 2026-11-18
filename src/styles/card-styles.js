@@ -24,6 +24,21 @@ export function getCardStyles() {
         color: inherit;
       }
       .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
+      .header:not(.header-compact) .header-controls .daylight-import-pending {
+        min-height: 0;
+        height: auto;
+        padding: 8px 16px;
+        border: none;
+        background: var(--header-control-bg, rgba(255, 255, 255, 0.2));
+        color: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: normal;
+        border-radius: 8px;
+      }
+      .header:not(.header-compact) .header-controls .daylight-import-pending:hover {
+        background: var(--header-control-bg-hover, rgba(255, 255, 255, 0.3));
+      }
       .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
       .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
       .header-compact .compact-header-controls .daylight-import-pending { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 8px; border: 1px solid var(--header-control-border, rgba(255, 255, 255, 0.4)); background: var(--header-control-bg, rgba(255, 255, 255, 0.2)); color: inherit; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; flex: 0 0 30px; }
