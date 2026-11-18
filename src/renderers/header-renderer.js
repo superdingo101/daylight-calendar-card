@@ -1,11 +1,14 @@
 export function renderStandardHeader({
   canAddEvents,
+  shouldShowCalendars,
   shouldShowControls,
   helpers
 }) {
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
-  const leftContent = `${dashboardButton}${headerTitle}`;
+  const importPending = shouldShowControls ? (helpers.renderImportPending?.() || '') : '';
+  const calendarBadges = '';
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
 
@@ -14,10 +17,11 @@ export function renderStandardHeader({
         ${leftContent.trim() ? `<div class="header-left">
           ${dashboardButton}
           ${headerTitle}
+          ${calendarBadges}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
-            ${helpers.renderImportPending?.() || ''}
+            ${importPending}
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -42,6 +46,7 @@ export function renderCompactHeader({
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
   const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
+  const importPending = helpers.renderImportPending?.() || '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -55,13 +60,13 @@ export function renderCompactHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
-            ${helpers.renderImportPending?.() || ''}
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
               ${helpers.renderPeriodNavigationButtons('next')}
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
+            ${shouldShowControls ? importPending : ''}
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
