@@ -71,6 +71,7 @@ export function renderAgendaView({
   });
 
   return `
+      ${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="agenda-container" id="agenda-container" style="${containerStyle}">
         ${agendaRows.join('')}
       </div>
