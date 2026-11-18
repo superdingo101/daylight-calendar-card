@@ -3870,8 +3870,8 @@ function getCardStyles() {
         color: inherit;
       }
       .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
-      .header-left, .compact-header-left { flex-wrap: wrap; }
-      .header-left .calendar-badges-inline, .compact-header-left .calendar-badges-inline { min-width: 0; }
+      .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
+      .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
       .header-compact .daylight-import-pending { min-height: 32px; }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
@@ -10274,6 +10274,7 @@ function renderAgendaView({
   });
 
   return `
+${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="agenda-container" id="agenda-container" style="${containerStyle}">
         ${agendaRows.join('')}
       </div>
@@ -11175,7 +11176,8 @@ function renderStandardHeader({
 }) {
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
-  const calendarBadges = shouldShowCalendars && (dashboardButton || headerTitle) ? helpers.renderCalendarBadgesInline() : '';
+  const importPending = shouldShowControls ? (helpers.renderImportPending?.() || '') : '';
+  const calendarBadges = importPending && shouldShowCalendars && (dashboardButton || headerTitle) ? helpers.renderCalendarBadgesInline() : '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -11189,7 +11191,7 @@ function renderStandardHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
-            ${helpers.renderImportPending?.() || ''}
+            ${importPending}
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -11421,6 +11423,7 @@ function renderWeekCompactView({
   const containerStyle = `${headerHeightStyle}--week-compact-weekday-font-size: ${config.week_compact_weekday_font_size}px;--week-compact-day-header-spacing: ${config.week_compact_day_header_spacing}px;${weekdayColorStyle}${helpers.getCompactContainerStyle(compactMaxHeight)}`;
 
   return `
+${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="week-compact-container${config.compact_height ? ' compact-height' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         ${weekDays.map(date => {
           const isToday = date.toDateString() === today.toDateString();
@@ -11472,6 +11475,7 @@ function renderWeekStandardView({
   helpers
 }) {
   return `
+${!config.compact_header && !config.hide_calendars && !helpers.hasImportPendingControl?.() ? helpers.renderCalendarBadges() : ''}
       <div class="week-standard-container ${config.compact_width ? 'compact-width' : ''} day-badge-layout-${config.day_badge_layout_week}" style="${containerStyle}">
         <!-- Time column -->
         <div class="time-column">
@@ -15528,6 +15532,7 @@ class SkylightCalendarCard extends HTMLElement {
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
       renderHeaderTitle: () => this.renderHeaderTitle(),
       renderImportPending: () => this.renderImportPending(),
+      hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
