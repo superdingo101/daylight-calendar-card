@@ -1,5 +1,55 @@
 export function getCardStyles() {
   return `
+      /* Import review is a header control, not a body-level text link. */
+      .header .daylight-import-pending {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        box-sizing: border-box;
+        flex: 0 0 auto;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        border-radius: 8px;
+        border: 1px solid var(--header-control-border, rgba(255,255,255,.35));
+        background: var(--header-control-bg, rgba(255,255,255,.2));
+        color: inherit;
+        padding: 8px 12px;
+      }
+      .header .daylight-import-pending.accent,
+      .header .daylight-import-pending.pulse {
+        background: var(--header-control-bg-hover, rgba(255,255,255,.3));
+        color: inherit;
+      }
+      .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
+      .header:not(.header-compact) .header-controls .daylight-import-pending {
+        min-height: 0;
+        height: auto;
+        padding: 8px 16px;
+        border: none;
+        background: var(--header-control-bg, rgba(255, 255, 255, 0.2));
+        color: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: normal;
+        border-radius: 8px;
+      }
+      .header:not(.header-compact) .header-controls .daylight-import-pending:hover {
+        background: var(--header-control-bg-hover, rgba(255, 255, 255, 0.3));
+      }
+      .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
+      .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
+      .header-compact .compact-header-controls .daylight-import-pending { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 8px; border: 1px solid var(--header-control-border, rgba(255, 255, 255, 0.4)); background: var(--header-control-bg, rgba(255, 255, 255, 0.2)); color: inherit; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; flex: 0 0 30px; }
+      /* Layout-specific button styles must not suppress the configured pending highlight. */
+      .header:not(.header-compact) .header-controls .daylight-import-pending.accent,
+      .header:not(.header-compact) .header-controls .daylight-import-pending.pulse,
+      .header-compact .compact-header-controls .daylight-import-pending.accent,
+      .header-compact .compact-header-controls .daylight-import-pending.pulse {
+        background: var(--primary-color);
+        color: var(--text-primary-color, white);
+      }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
       .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }

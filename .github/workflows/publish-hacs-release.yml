@@ -76,35 +76,17 @@ jobs:
           jq -r '.name' generated-release-notes.json > release-title.txt
           jq -r '.body' generated-release-notes.json > generated-release-notes.md
 
-      - name: Build AI prompt
+      - name: Prepare Daylight draft notes and Copilot prompt
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat > ai-release-prompt.md <<'EOF_PROMPT'
-          Rewrite the following GitHub generated release notes for a Home Assistant HACS custom dashboard card called daylight-calendar-card.
+          python -m scripts.release_notes prepare \
+            --tag "$VERSION" \
+            --generated generated-release-notes.md \
+            --notes RELEASE_NOTES.md \
+            --prompt ai-release-prompt.md
 
-          Requirements:
-          - Keep it accurate. Do not invent features, bug fixes, breaking changes, or links.
-          - Preserve PR numbers, contributor mentions, and important configuration keys.
-          - Make it more user-friendly for HACS users.
-          - Call out breaking changes or migration notes if the generated notes clearly imply them.
-          - Use concise Markdown.
-          - Prefer headings like:
-            ## Highlights
-            ## Fixes
-            ## Maintenance
-            ## Full changelog
-          - If there are only a few changes, keep the notes short.
-          - Do not include marketing fluff.
-          - Do not mention that AI rewrote the notes.
-
-          Generated release notes:
-          EOF_PROMPT
-
-          cat generated-release-notes.md >> ai-release-prompt.md
-
-      - name: Start with generated release notes
-        run: cp generated-release-notes.md RELEASE_NOTES.md
-
-      - name: Spiffy release notes with Copilot
+      - name: Polish release notes with Copilot
         id: copilot_notes
         if: steps.install_copilot.outcome == 'success'
         continue-on-error: true
@@ -122,22 +104,34 @@ jobs:
             exit 1
           fi
 
-          mv RELEASE_NOTES.ai.md RELEASE_NOTES.md
 
-      - name: Report release-note source
+      - name: Select and validate Daylight draft notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           if [ "${{ steps.copilot_notes.outcome }}" = "success" ]; then
-            echo "Using Copilot-polished release notes."
+            python -m scripts.release_notes select \
+              --tag "$VERSION" \
+              --generated generated-release-notes.md \
+              --notes RELEASE_NOTES.md \
+              --candidate RELEASE_NOTES.ai.md
           else
-            echo "Copilot polishing unavailable or failed; using GitHub-generated release notes instead."
+            echo "Copilot unavailable; using Daylight-style GitHub-notes fallback."
           fi
 
-      - name: Finish release notes
-        run: |
-          echo "" >> RELEASE_NOTES.md
-          echo "---" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "_Generated from GitHub release notes. Please verify before publishing if this is a draft._" >> RELEASE_NOTES.md
+          python -m scripts.release_notes validate \
+            --tag "$VERSION" \
+            --generated generated-release-notes.md \
+            --notes RELEASE_NOTES.md
+
+          {
+            echo "### Draft Daylight Calendar Card release notes"
+            echo "Copilot outcome: ${{ steps.copilot_notes.outcome }}"
+            echo "Review the draft for factual accuracy before publishing."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run release-note formatting regression tests
+        run: python -m unittest discover -s tests -p 'test_release_notes.py' -v
 
       - name: Create draft GitHub release
         env:

@@ -1968,6 +1968,85 @@ for (const allocationMode of compactHeightAllocationModes) {
   }
 }
 
+
+for (const compactHeader of [true, false]) {
+  test(`visual: daylight import pending header compact_header=${compactHeader}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`file://${path.join(process.cwd(), 'playwright', 'ha-fixture.html')}`);
+
+    await page.evaluate(({ compactHeader, events }) => {
+      window.renderCalendarCard({
+        config: {
+          entities: ['calendar.family', 'calendar.work'],
+          title: 'Family Calendar',
+          default_view: 'week-compact',
+          compact_header: compactHeader,
+          enable_event_management: true,
+          daylight_import_show_pending: true,
+          daylight_import_pending_style: 'count'
+        },
+        events,
+        states: {
+          'sensor.daylight_import_pending': {
+            entity_id: 'sensor.daylight_import_pending',
+            state: '2',
+            attributes: {
+              daylight_import_kind: 'pending_events',
+              daylight_import_contract_version: 1,
+              daylight_import_config_entry_id: 'import-entry'
+            }
+          }
+        }
+      });
+      const card = document.querySelector('skylight-calendar-card');
+      card._daylightImportCapabilities = {
+        entry_ids: ['import-entry'],
+        capabilities: { direct_routes: 1, return_sessions: 1 }
+      };
+      card.render();
+    }, { compactHeader, events: baseEvents });
+
+    const card = page.locator('skylight-calendar-card');
+    const header = card.locator(compactHeader ? '.header-compact' : '.header').first();
+    const pending = header.locator('#daylight-import-pending');
+    await expect(pending).toBeVisible();
+    await expect(pending).toHaveText('+2');
+    if (compactHeader) {
+      await expect(header.locator('.calendar-badges-inline')).toBeVisible();
+      await expect(header.locator('.compact-header-controls #daylight-import-pending')).toHaveCount(1);
+      await expect(header.locator('.compact-header-left #daylight-import-pending')).toHaveCount(0);
+    } else {
+      await expect(header.locator('.calendar-badges-inline')).toHaveCount(0);
+      await expect(card.locator('.calendar-badges:not(.calendar-badges-inline)')).toBeVisible();
+      await expect(header.locator('.header-controls #daylight-import-pending')).toHaveCount(1);
+    }
+
+    await expect(header).toHaveScreenshot(
+      `daylight-import-pending-header-${compactHeader ? 'compact' : 'standard'}.png`,
+      { animations: 'disabled' }
+    );
+
+    // Preserve the count-only layout baseline and check highlighted variants
+    // without creating layout snapshots dependent on the HA theme color.
+    const backgrounds = await pending.evaluate((button) => {
+      button.style.setProperty('--primary-color', '#3366cc');
+      const backgroundFor = (style) => {
+        button.classList.remove('count', 'accent', 'pulse');
+        button.classList.add(style);
+        return getComputedStyle(button).backgroundColor;
+      };
+      return {
+        count: backgroundFor('count'),
+        accent: backgroundFor('accent'),
+        pulse: backgroundFor('pulse'),
+      };
+    });
+    expect(backgrounds.count).not.toBe(backgrounds.accent);
+    expect(backgrounds.accent).toBe('rgb(51, 102, 204)');
+    expect(backgrounds.pulse).toBe(backgrounds.accent);
+  });
+}
+
 for (const viewport of sharedHeaderViewports) {
   for (const layout of sharedHeaderLayouts) {
     for (const titleSpec of sharedHeaderTitles) {

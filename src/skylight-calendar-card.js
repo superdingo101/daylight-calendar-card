@@ -3972,6 +3972,7 @@ class SkylightCalendarCard extends HTMLElement {
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
       renderHeaderTitle: () => this.renderHeaderTitle(),
       renderImportPending: () => this.renderImportPending(),
+      hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
@@ -3981,10 +3982,12 @@ class SkylightCalendarCard extends HTMLElement {
 
   renderStandardHeader() {
     const canAddEvents = this.canCreateEvents() && !this._config.hide_add_event_button;
+    const shouldShowCalendars = !this._config.hide_calendars;
     const shouldShowControls = !this._config.hide_controls;
 
     return renderStandardHeaderMarkup({
       canAddEvents,
+      shouldShowCalendars,
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -4167,6 +4170,7 @@ class SkylightCalendarCard extends HTMLElement {
         helpers: {
           getCompactMonthGridStyle: (weekRows, maxHeight) => this.getCompactMonthGridStyle(weekRows, maxHeight),
           renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
           getDateKey: (date) => this.getDateKey(date),
           getMonthSpanLayoutForWeek: (weekDays) => this.buildMonthSpanLayoutForWeek(weekDays),
           renderDay: (day, date, isOtherMonth, monthSpanLanes) => this.renderDay(day, date, isOtherMonth, monthSpanLanes),
@@ -4204,6 +4208,7 @@ class SkylightCalendarCard extends HTMLElement {
       helpers: {
         getCompactContainerStyle: (maxHeight) => this.getCompactContainerStyle(maxHeight),
         renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         getEventsForDay: (date, options) => this.getEventsForDay(date, options),
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
         sortEventsForDate: (events, date) => this.sortEventsForDate(events, date),
@@ -4278,6 +4283,7 @@ class SkylightCalendarCard extends HTMLElement {
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
         renderAllDayEventsForDay: (allDayLanes, height) => this.renderAllDayEventsForDay(allDayLanes, height),
         renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         renderCurrentTimeLine: (rangeStartHour, height) => this.renderCurrentTimeLine(rangeStartHour, height),
         renderDayBadges: (date, events) => this.renderDayBadges(date, events),
         renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
@@ -4321,6 +4327,7 @@ class SkylightCalendarCard extends HTMLElement {
         getEventsForDay: this.getEventsForDay.bind(this),
         isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
         renderCalendarBadges: this.renderCalendarBadges.bind(this),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         renderCombinedCornerBubbles: this.renderCombinedCornerBubbles.bind(this),
         renderDayForecast: this.renderDayForecast.bind(this),
         renderEventIcon: this.renderEventIcon.bind(this),

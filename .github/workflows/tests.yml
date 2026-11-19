@@ -32,3 +32,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run release-note formatting tests
+        run: python -m unittest discover -s tests -p 'test_release_notes.py' -v

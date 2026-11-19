@@ -1162,7 +1162,7 @@ function getEntityRenderSignature(hass, entityIds = []) {
   }));
 }
 
-const DAYLIGHT_CALENDAR_CARD_VERSION = 'v5.0.0-beta0';
+const DAYLIGHT_CALENDAR_CARD_VERSION = 'dev';
 
 function getDaylightCalendarCardVersion() {
   return DAYLIGHT_CALENDAR_CARD_VERSION.includes('__')
@@ -3846,6 +3846,56 @@ function registerDaylightCalendarCardEditor() {
 
 function getCardStyles() {
   return `
+      /* Import review is a header control, not a body-level text link. */
+      .header .daylight-import-pending {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        box-sizing: border-box;
+        flex: 0 0 auto;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1;
+        border-radius: 8px;
+        border: 1px solid var(--header-control-border, rgba(255,255,255,.35));
+        background: var(--header-control-bg, rgba(255,255,255,.2));
+        color: inherit;
+        padding: 8px 12px;
+      }
+      .header .daylight-import-pending.accent,
+      .header .daylight-import-pending.pulse {
+        background: var(--header-control-bg-hover, rgba(255,255,255,.3));
+        color: inherit;
+      }
+      .header .daylight-import-pending:hover { background: var(--header-control-bg-hover, rgba(255,255,255,.3)); }
+      .header:not(.header-compact) .header-controls .daylight-import-pending {
+        min-height: 0;
+        height: auto;
+        padding: 8px 16px;
+        border: none;
+        background: var(--header-control-bg, rgba(255, 255, 255, 0.2));
+        color: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: normal;
+        border-radius: 8px;
+      }
+      .header:not(.header-compact) .header-controls .daylight-import-pending:hover {
+        background: var(--header-control-bg-hover, rgba(255, 255, 255, 0.3));
+      }
+      .header:has(.daylight-import-pending) .header-left, .header:has(.daylight-import-pending) .compact-header-left { flex-wrap: wrap; }
+      .header:has(.daylight-import-pending) .header-left .calendar-badges-inline, .header:has(.daylight-import-pending) .compact-header-left .calendar-badges-inline { min-width: 0; }
+      .header-compact .compact-header-controls .daylight-import-pending { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 8px; border: 1px solid var(--header-control-border, rgba(255, 255, 255, 0.4)); background: var(--header-control-bg, rgba(255, 255, 255, 0.2)); color: inherit; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; flex: 0 0 30px; }
+      /* Layout-specific button styles must not suppress the configured pending highlight. */
+      .header:not(.header-compact) .header-controls .daylight-import-pending.accent,
+      .header:not(.header-compact) .header-controls .daylight-import-pending.pulse,
+      .header-compact .compact-header-controls .daylight-import-pending.accent,
+      .header-compact .compact-header-controls .daylight-import-pending.pulse {
+        background: var(--primary-color);
+        color: var(--text-primary-color, white);
+      }
       .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
       .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }
@@ -11143,12 +11193,15 @@ ${renderEventFields({
 
 function renderStandardHeader({
   canAddEvents,
+  shouldShowCalendars,
   shouldShowControls,
   helpers
 }) {
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
-  const leftContent = `${dashboardButton}${headerTitle}`;
+  const importPending = shouldShowControls ? (helpers.renderImportPending?.() || '') : '';
+  const calendarBadges = '';
+  const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
 
@@ -11157,10 +11210,11 @@ function renderStandardHeader({
         ${leftContent.trim() ? `<div class="header-left">
           ${dashboardButton}
           ${headerTitle}
+          ${calendarBadges}
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
-            ${helpers.renderImportPending?.() || ''}
+            ${importPending}
             ${canAddEvents ? `<button class="add-event-button" id="add-event-btn"><span class="icon">+</span>${helpers.t('addEvent')}</button>` : ''}
             ${helpers.renderThemeToggle()}
             <div class="period-controls">
@@ -11185,6 +11239,7 @@ function renderCompactHeader({
   const dashboardButton = helpers.renderDashboardNavButton();
   const headerTitle = helpers.renderHeaderTitle();
   const calendarBadges = shouldShowCalendars ? helpers.renderCalendarBadgesInline() : '';
+  const importPending = helpers.renderImportPending?.() || '';
   const leftContent = `${dashboardButton}${headerTitle}${calendarBadges}`;
 
   if (!leftContent.trim() && !shouldShowControls) return '';
@@ -11198,13 +11253,13 @@ function renderCompactHeader({
         </div>` : ''}
         ${shouldShowControls ? `
           <div class="header-controls compact-header-controls${leftContent.trim() ? '' : ' header-controls-only'}">
-            ${helpers.renderImportPending?.() || ''}
             <div class="compact-period-controls">
               ${helpers.renderPeriodNavigationButtons('previous')}
               <div class="month-year">${helpers.getPeriodLabel()}</div>
               ${helpers.renderPeriodNavigationButtons('next')}
               ${helpers.renderPeriodNavigationButtons('today')}
             </div>
+            ${shouldShowControls ? importPending : ''}
             ${canAddEvents ? `<button class="compact-add-event-button" id="add-event-btn" aria-label="${helpers.t('addEvent')}" title="${helpers.t('addEvent')}">+</button>` : ''}
             ${helpers.renderThemeToggle()}
             ${helpers.renderViewModeButtons()}
@@ -15500,6 +15555,7 @@ class SkylightCalendarCard extends HTMLElement {
       renderDashboardNavButton: () => this.renderDashboardNavButton(),
       renderHeaderTitle: () => this.renderHeaderTitle(),
       renderImportPending: () => this.renderImportPending(),
+      hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
       renderPeriodNavigationButtons: (buttonType) => this.renderPeriodNavigationButtons(buttonType),
       renderThemeToggle: () => this.renderThemeToggle(),
       renderViewModeButtons: () => this.renderViewModeButtons(),
@@ -15509,10 +15565,12 @@ class SkylightCalendarCard extends HTMLElement {
 
   renderStandardHeader() {
     const canAddEvents = this.canCreateEvents() && !this._config.hide_add_event_button;
+    const shouldShowCalendars = !this._config.hide_calendars;
     const shouldShowControls = !this._config.hide_controls;
 
     return renderStandardHeader({
       canAddEvents,
+      shouldShowCalendars,
       shouldShowControls,
       helpers: this.getHeaderRenderHelpers()
     });
@@ -15695,6 +15753,7 @@ class SkylightCalendarCard extends HTMLElement {
         helpers: {
           getCompactMonthGridStyle: (weekRows, maxHeight) => this.getCompactMonthGridStyle(weekRows, maxHeight),
           renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
           getDateKey: (date) => this.getDateKey(date),
           getMonthSpanLayoutForWeek: (weekDays) => this.buildMonthSpanLayoutForWeek(weekDays),
           renderDay: (day, date, isOtherMonth, monthSpanLanes) => this.renderDay(day, date, isOtherMonth, monthSpanLanes),
@@ -15732,6 +15791,7 @@ class SkylightCalendarCard extends HTMLElement {
       helpers: {
         getCompactContainerStyle: (maxHeight) => this.getCompactContainerStyle(maxHeight),
         renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         getEventsForDay: (date, options) => this.getEventsForDay(date, options),
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
         sortEventsForDate: (events, date) => this.sortEventsForDate(events, date),
@@ -15806,6 +15866,7 @@ class SkylightCalendarCard extends HTMLElement {
         isEventHiddenByStyle: (event) => this.isEventHiddenByStyle(event),
         renderAllDayEventsForDay: (allDayLanes, height) => this.renderAllDayEventsForDay(allDayLanes, height),
         renderCalendarBadges: () => this.renderCalendarBadges(),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         renderCurrentTimeLine: (rangeStartHour, height) => this.renderCurrentTimeLine(rangeStartHour, height),
         renderDayBadges: (date, events) => this.renderDayBadges(date, events),
         renderDayForecast: (date, viewMode) => this.renderDayForecast(date, viewMode),
@@ -15849,6 +15910,7 @@ class SkylightCalendarCard extends HTMLElement {
         getEventsForDay: this.getEventsForDay.bind(this),
         isEventHiddenByStyle: this.isEventHiddenByStyle.bind(this),
         renderCalendarBadges: this.renderCalendarBadges.bind(this),
+        hasImportPendingControl: () => !this._config.hide_controls && !!this.renderImportPending(),
         renderCombinedCornerBubbles: this.renderCombinedCornerBubbles.bind(this),
         renderDayForecast: this.renderDayForecast.bind(this),
         renderEventIcon: this.renderEventIcon.bind(this),
