@@ -1983,7 +1983,7 @@ for (const compactHeader of [true, false]) {
           compact_header: compactHeader,
           enable_event_management: true,
           daylight_import_show_pending: true,
-          daylight_import_pending_style: 'accent'
+          daylight_import_pending_style: 'count'
         },
         events,
         states: {
@@ -2025,6 +2025,25 @@ for (const compactHeader of [true, false]) {
       `daylight-import-pending-header-${compactHeader ? 'compact' : 'standard'}.png`,
       { animations: 'disabled' }
     );
+
+    // Preserve the count-only layout baseline and check highlighted variants
+    // without creating layout snapshots dependent on the HA theme color.
+    const backgrounds = await pending.evaluate((button) => {
+      button.style.setProperty('--primary-color', '#3366cc');
+      const backgroundFor = (style) => {
+        button.classList.remove('count', 'accent', 'pulse');
+        button.classList.add(style);
+        return getComputedStyle(button).backgroundColor;
+      };
+      return {
+        count: backgroundFor('count'),
+        accent: backgroundFor('accent'),
+        pulse: backgroundFor('pulse'),
+      };
+    });
+    expect(backgrounds.count).not.toBe(backgrounds.accent);
+    expect(backgrounds.accent).toBe('rgb(51, 102, 204)');
+    expect(backgrounds.pulse).toBe(backgrounds.accent);
   });
 }
 
