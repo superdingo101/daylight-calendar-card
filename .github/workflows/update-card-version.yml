@@ -17,6 +17,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Require release prep token
+        env:
+          RELEASE_PREP_TOKEN: ${{ secrets.RELEASE_PREP_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_PREP_TOKEN" ]; then
+            echo "::error::Set the RELEASE_PREP_TOKEN repository secret to a PAT with Contents and Pull requests write access."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
@@ -97,6 +106,8 @@ jobs:
       - name: Create release prep pull request
         uses: peter-evans/create-pull-request@v7
         with:
+          # A PAT makes the generated PR's checks run without manual approval.
+          token: ${{ secrets.RELEASE_PREP_TOKEN }}
           branch: release-prep/${{ steps.version.outputs.version }}
           base: main
           delete-branch: true
