@@ -6720,7 +6720,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     if (this.daylightImportAvailable() && this._config.daylight_import_add_event_option !== false) {
-      content.insertAdjacentHTML('afterbegin', '<div class="daylight-import-choice"><span>Create manually</span><button type="button" id="daylight-import-document">Import document</button></div>');
+      content.insertAdjacentHTML('afterbegin', '<div class="daylight-import-choice"><span>Create manually</span><button type="button" class="btn btn-primary" id="daylight-import-document">Import document</button></div>');
       this.getRootElementById('daylight-import-document')?.addEventListener('click', () => this.navigateToDaylightImport('new/file'));
     }
 
