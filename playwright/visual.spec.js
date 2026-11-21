@@ -2044,6 +2044,63 @@ for (const compactHeader of [true, false]) {
     expect(backgrounds.count).not.toBe(backgrounds.accent);
     expect(backgrounds.accent).toBe('rgb(51, 102, 204)');
     expect(backgrounds.pulse).toBe(backgrounds.accent);
+
+    // The pulse is an inset shadow: check real animation frames and verify
+    // that neither the button nor neighboring flex controls ever move.
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.evaluate(() => {
+      const calendar = document.querySelector('skylight-calendar-card');
+      calendar._config.daylight_import_pending_style = 'pulse';
+      calendar.render();
+    });
+    await expect(pending).toHaveClass(/\bpulse\b/);
+    const pulseFrames = await pending.evaluate((button) => {
+      const animation = button.getAnimations().find((item) => item.animationName === 'daylight-import-pulse');
+      if (!animation) return null;
+      animation.pause();
+
+      const tracked = [button.parentElement, ...button.parentElement.children];
+      const sample = (currentTime) => {
+        animation.currentTime = currentTime;
+        const style = getComputedStyle(button);
+        return {
+          shadow: style.boxShadow,
+          borderWidth: style.borderWidth,
+          backgroundColor: style.backgroundColor,
+          transform: style.transform,
+          rectangles: tracked.map((element) => {
+            const { x, y, width, height } = element.getBoundingClientRect();
+            return { x, y, width, height };
+          })
+        };
+      };
+      return {
+        duration: animation.effect.getTiming().duration,
+        start: sample(0),
+        midpoint: sample(1000),
+        end: sample(2000)
+      };
+    });
+
+    expect(pulseFrames).not.toBeNull();
+    expect(pulseFrames.duration).toBe(2000);
+    expect(pulseFrames.start.shadow).toContain('inset');
+    expect(pulseFrames.midpoint.shadow).toContain('inset');
+    expect(pulseFrames.midpoint.shadow).not.toBe(pulseFrames.start.shadow);
+    expect(pulseFrames.end.shadow).toBe(pulseFrames.start.shadow);
+    expect(pulseFrames.midpoint.borderWidth).toBe(pulseFrames.start.borderWidth);
+    expect(pulseFrames.midpoint.backgroundColor).toBe(pulseFrames.start.backgroundColor);
+    expect(pulseFrames.midpoint.transform).toBe('none');
+    expect(pulseFrames.midpoint.rectangles).toEqual(pulseFrames.start.rectangles);
+    expect(pulseFrames.end.rectangles).toEqual(pulseFrames.start.rectangles);
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reducedMotion = await pending.evaluate((button) => {
+      const style = getComputedStyle(button);
+      return { animationName: style.animationName, shadow: style.boxShadow };
+    });
+    expect(reducedMotion.animationName).toBe('none');
+    expect(reducedMotion.shadow).toContain('inset');
   });
 }
 
