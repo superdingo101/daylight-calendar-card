@@ -38,3 +38,56 @@ test('pending review opens a return session and restores the originating card', 
   await expect.poll(() => page.evaluate(() => window.card._viewMode)).toBe('week-compact');
   expect(await page.evaluate(() => window.card._currentDate.toISOString())).toBe('2027-02-01T12:00:00.000Z');
 });
+
+test('Import document matches Create Event primary button styling without mobile overflow', async ({page}) => {
+  await page.route('http://daylight.test/**', route => route.fulfill({status: 200, contentType: 'text/html', body: '<div id="app"></div>'}));
+  await page.goto('http://daylight.test/dashboard/calendar');
+  await page.addScriptTag({path: path.join(process.cwd(), 'skylight-calendar-card.js')});
+  await page.evaluate(() => {
+    const card = document.createElement('daylight-calendar-card');
+    card.setConfig({entities: ['calendar.family'], default_view: 'month'});
+    card.hass = {
+      connection: {}, services: {daylight_calendar_import: {}},
+      states: {'calendar.family': {entity_id: 'calendar.family', state: 'off', attributes: {friendly_name: 'Family', supported_features: 7}}},
+      callWS: async () => ({entry_ids: ['entry'], capabilities: {direct_routes: 1, return_sessions: 1}}),
+      callApi: async () => [], callService: async () => ({})
+    };
+    document.getElementById('app').appendChild(card);
+  });
+
+  await page.locator('#add-event-btn').click();
+  const importButton = page.locator('#daylight-import-document');
+  await expect(importButton).toBeVisible();
+
+  for (const width of [390, 320]) {
+    await page.setViewportSize({width, height: 844});
+    const layout = await page.locator('#modal-content').evaluate(content => {
+      const imported = content.querySelector('#daylight-import-document');
+      const create = content.querySelector('#submit-btn');
+      const choice = imported.closest('.daylight-import-choice');
+      const properties = ['backgroundColor', 'color', 'fontSize', 'fontWeight',
+        'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderRadius', 'borderTopWidth'];
+      const style = element => {
+        const computed = getComputedStyle(element);
+        return Object.fromEntries(properties.map(property => [property, computed[property]]));
+      };
+      return {
+        hasPrimaryClasses: imported.classList.contains('btn') && imported.classList.contains('btn-primary'),
+        importStyle: style(imported),
+        createStyle: style(create),
+        importHeight: imported.getBoundingClientRect().height,
+        createHeight: create.getBoundingClientRect().height,
+        modalOverflows: content.scrollWidth > content.clientWidth + 1,
+        choiceOverflows: choice.scrollWidth > choice.clientWidth + 1
+      };
+    });
+    expect(layout.hasPrimaryClasses).toBe(true);
+    expect(layout.importStyle).toEqual(layout.createStyle);
+    expect(layout.importHeight).toBeCloseTo(layout.createHeight, 1);
+    expect(layout.modalOverflows).toBe(false);
+    expect(layout.choiceOverflows).toBe(false);
+  }
+
+  await importButton.click();
+  await expect(page).toHaveURL(/\\/daylight-calendar-import\\/new\\/file\\?dl_return=/);
+});
