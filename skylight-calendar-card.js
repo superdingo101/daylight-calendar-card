@@ -3896,8 +3896,8 @@ function getCardStyles() {
         background: var(--primary-color);
         color: var(--text-primary-color, white);
       }
-      .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-      .daylight-import-choice button, .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
+      .daylight-import-choice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+      .daylight-import-pending { cursor: pointer; border-radius: 8px; border: 1px solid var(--primary-color); background: transparent; color: var(--primary-text-color); padding: 6px 10px; }
       .daylight-import-pending.accent, .daylight-import-pending.pulse { background: var(--primary-color); color: var(--text-primary-color, white); }
       .daylight-import-pending.pulse { animation: daylight-import-pulse 2s ease-in-out infinite; }
       @keyframes daylight-import-pulse {
@@ -18311,7 +18311,7 @@ class SkylightCalendarCard extends HTMLElement {
     });
 
     if (this.daylightImportAvailable() && this._config.daylight_import_add_event_option !== false) {
-      content.insertAdjacentHTML('afterbegin', '<div class="daylight-import-choice"><span>Create manually</span><button type="button" id="daylight-import-document">Import document</button></div>');
+      content.insertAdjacentHTML('afterbegin', '<div class="daylight-import-choice"><span>Create manually</span><button type="button" class="btn btn-primary" id="daylight-import-document">Import document</button></div>');
       this.getRootElementById('daylight-import-document')?.addEventListener('click', () => this.navigateToDaylightImport('new/file'));
     }
 
