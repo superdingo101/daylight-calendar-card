@@ -89,5 +89,5 @@ test('Import document matches Create Event primary button styling without mobile
   }
 
   await importButton.click();
-  await expect(page).toHaveURL(/\\/daylight-calendar-import\\/new\\/file\\?dl_return=/);
+  await expect(page).toHaveURL(/\/daylight-calendar-import\/new\/file\?dl_return=/);
 });
