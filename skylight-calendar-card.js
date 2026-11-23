@@ -280,6 +280,7 @@ const DEFAULT_CONFIG_VALUES = {
   hide_view_selector: false,
   hide_dark_mode_toggle: false,
   show_dashboard_nav_button: false,
+  show_header_weather: true,
   show_daily_weather_forecast: true,
   weather_icon_style: 'mdi',
   hide_event_calendar_bubble: false,
@@ -360,6 +361,7 @@ const DEFAULT_STUB_CONFIG = {
   show_dashboard_nav_button: false,
   header_dashboard_path: null,
   header_weather_sensor: '',
+  show_header_weather: true,
   show_daily_weather_forecast: true,
   header_items: [],
   calendar_person_entities: {},
@@ -831,6 +833,7 @@ function createConfigNormalizationSchema({
       { key: 'header_dashboard_path', defaultValue: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path), normalize: ({ rawConfig }) => normalizeDashboardPath(rawConfig.header_dashboard_path) },
       { key: 'header_time_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderTimeSensor, normalize: ({ derived }) => derived.normalizedHeaderTimeSensor },
       { key: 'header_weather_sensor', defaultValue: ({ derived }) => derived.normalizedHeaderWeatherSensor, normalize: ({ derived }) => derived.normalizedHeaderWeatherSensor },
+      { key: 'show_header_weather', defaultValue: ({ rawConfig }) => rawConfig.show_header_weather !== false, normalize: ({ rawConfig }) => rawConfig.show_header_weather !== false },
       { key: 'show_daily_weather_forecast', defaultValue: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast, normalize: ({ rawConfig }) => rawConfig.show_daily_weather_forecast ?? DEFAULT_CONFIG_VALUES.show_daily_weather_forecast },
       { key: 'weather_icon_style', defaultValue: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style), normalize: ({ rawConfig }) => normalizeWeatherIconStyle(rawConfig.weather_icon_style) },
       { key: 'header_items', defaultValue: ({ derived }) => derived.normalizedHeaderItems, normalize: ({ derived }) => derived.normalizedHeaderItems },
@@ -2875,6 +2878,10 @@ class SkylightCalendarCardEditor extends HTMLElement {
         </div>
       </div>
       <label class="checkbox-row">
+        <input type="checkbox" data-field="show_header_weather" ${this._config.show_header_weather !== false ? 'checked' : ''}>
+        Show current weather in header
+      </label>
+      <label class="checkbox-row">
         <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
         Show daily weather forecasts
       </label>
@@ -3515,7 +3522,7 @@ class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (['enable_event_management', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
+      if (['enable_event_management', 'show_header_weather', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
         checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }
@@ -19775,6 +19782,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getHeaderWeatherData() {
+    if (this._config?.show_header_weather === false) return null;
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherData = getHeaderWeatherDisplayData(this._hass, sensorEntityId);
