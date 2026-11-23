@@ -4423,7 +4423,7 @@ test('visual editor exposes and saves the header weather toggle beside daily for
   assert.equal(editor._config.show_header_weather, false);
   assert.equal(emittedConfig.show_header_weather, false);
   assert.equal(emittedConfig.header_weather_sensor, 'weather.home');
-  assert.equal(emittedConfig.show_daily_weather_forecast, undefined);
+  assert.equal(emittedConfig.show_daily_weather_forecast, true, 'daily forecast setting is unchanged');
 
   editor.setConfig({ ...emittedConfig, show_daily_weather_forecast: true });
   assert.match(editor.innerHTML, /data-field="show_header_weather"\s*>/);
