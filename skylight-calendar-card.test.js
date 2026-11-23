@@ -127,6 +127,7 @@ const CONFIG_COVERAGE_INVENTORY = {
   header_dashboard_path: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_time_sensor: 'setConfig schema keeps normalized fields from being overwritten by raw config',
   header_weather_sensor: 'weather renders Home Assistant mdi icons instead of emoji glyphs',
+  show_header_weather: 'header weather can be hidden independently while preserving daily forecasts',
   show_daily_weather_forecast: 'daily weather forecasts default on and can be disabled without hiding header weather',
   weather_icon_style: 'weather_icon_style colored renders multi-colour SVG icons and keeps MDI as default and fallback',
   header_items: 'header_items normalize supported item shapes and formats',
@@ -938,7 +939,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     'combine_background', 'hide_calendars', 'hide_header', 'hide_year', 'hide_controls',
     'hide_navigation_buttons', 'hide_add_event_button', 'hide_view_selector',
     'hide_dark_mode_toggle', 'show_dashboard_nav_button', 'header_dashboard_path',
-    'header_weather_sensor', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'disable_event_creation', 'event_modal_size', 'hide_event_actions'
+    'header_weather_sensor', 'show_header_weather', 'show_daily_weather_forecast', 'header_items', 'calendar_person_entities', 'default_hidden_calendars', 'color_scheme', 'enable_event_management', 'disable_event_creation', 'event_modal_size', 'hide_event_actions'
   ];
   for (const key of requiredStubKeys) assert.ok(key in stub, `${key} should exist in getStubConfig()`);
   assert.deepEqual(stub, {
@@ -993,6 +994,7 @@ test('getStubConfig and normalized defaults include key configuration defaults',
     show_dashboard_nav_button: false,
     header_dashboard_path: null,
     header_weather_sensor: '',
+    show_header_weather: true,
     show_daily_weather_forecast: true,
     header_items: [],
     calendar_person_entities: {},
@@ -3436,6 +3438,42 @@ test('colored weather SVG covers every Home Assistant condition that has artwork
   assert.equal(renderColoredWeatherSvg(''), '');
 });
 
+test('header weather can be hidden independently while preserving daily forecasts', () => {
+  const weatherState = {
+    state: 'sunny',
+    attributes: {
+      temperature: 21,
+      forecast: [{ datetime: '2026-05-14T12:00:00Z', condition: 'rainy', temperature: 18, templow: 9 }]
+    }
+  };
+  const config = { entities: ['calendar.family'], header_weather_sensor: 'weather.home' };
+  const card = makeCard(config);
+  card._hass = { states: { 'weather.home': weatherState } };
+
+  assert.equal(card._config.show_header_weather, true);
+  assert.match(card.renderHeaderTitle(), /class="header-weather"/, 'missing option retains header weather');
+  assert.match(card.renderHeaderTitle(), /mdi:weather-sunny/);
+  assert.match(card.renderDayForecast(new Date('2026-05-14T00:00:00Z')), /forecast/);
+
+  card.setConfig({ ...config, show_header_weather: false, show_daily_weather_forecast: true });
+  assert.equal(card._config.show_header_weather, false);
+  assert.equal(card._config.show_daily_weather_forecast, true);
+  assert.equal(card.getHeaderWeatherData(), null);
+  assert.equal(card.getFormattedHeaderWeather(), '');
+  assert.doesNotMatch(card.renderHeaderTitle(), /class="header-weather"/);
+  for (const viewMode of ['month', 'week-compact', 'week-standard', 'agenda']) {
+    assert.match(card.renderDayForecast(new Date('2026-05-14T00:00:00Z'), viewMode), /forecast/, `${viewMode} keeps its forecast`);
+  }
+
+  card.setConfig({ ...config, show_header_weather: true, show_daily_weather_forecast: false });
+  assert.match(card.renderHeaderTitle(), /class="header-weather"/, 'explicit true restores header weather');
+  assert.equal(card.renderDayForecast(new Date('2026-05-14T00:00:00Z')), '', 'forecast toggle remains independent');
+
+  card.setConfig({ ...config, show_header_weather: false, show_daily_weather_forecast: false });
+  assert.doesNotMatch(card.renderHeaderTitle(), /class="header-weather"/);
+  assert.equal(card.renderDayForecast(new Date('2026-05-14T00:00:00Z')), '', 'both displays can be disabled');
+});
+
 test('daily weather forecasts default on and can be disabled without hiding header weather', () => {
   const weatherState = {
     state: 'sunny',
@@ -4335,24 +4373,62 @@ test('editor keeps default-true checkboxes checked when refreshing legacy config
   const Editor = customElements.get('skylight-calendar-card-editor');
   const editor = new Editor();
   const eventManagementCheckbox = { dataset: { field: 'enable_event_management' }, checked: false };
+  const headerWeatherCheckbox = { dataset: { field: 'show_header_weather' }, checked: false };
   const dailyWeatherCheckbox = { dataset: { field: 'show_daily_weather_forecast' }, checked: false };
   editor._config = { entities: ['calendar.family'] };
   editor.querySelector = () => null;
   editor.querySelectorAll = (selector) => (
     selector === 'input[type="checkbox"][data-field]'
-      ? [eventManagementCheckbox, dailyWeatherCheckbox]
+      ? [eventManagementCheckbox, headerWeatherCheckbox, dailyWeatherCheckbox]
       : []
   );
 
   editor.updateFieldValues();
 
   assert.equal(eventManagementCheckbox.checked, true);
+  assert.equal(headerWeatherCheckbox.checked, true);
   assert.equal(dailyWeatherCheckbox.checked, true);
 
+  editor._config.show_header_weather = false;
+  editor.updateFieldValues();
+  assert.equal(headerWeatherCheckbox.checked, false);
+  assert.equal(dailyWeatherCheckbox.checked, true);
+
+  editor._config.show_header_weather = true;
   editor._config.show_daily_weather_forecast = false;
   editor.updateFieldValues();
 
+  assert.equal(headerWeatherCheckbox.checked, true);
   assert.equal(dailyWeatherCheckbox.checked, false);
+});
+
+test('visual editor exposes and saves the header weather toggle beside daily forecasts', () => {
+  const Editor = customElements.get('skylight-calendar-card-editor');
+  const editor = new Editor();
+  const config = { entities: ['calendar.family'], header_weather_sensor: 'weather.home' };
+  editor.setConfig(config);
+  assert.match(editor.innerHTML, /data-field="show_header_weather" checked/);
+  assert.match(editor.innerHTML, /Show current weather in header/);
+  assert.ok(
+    editor.innerHTML.indexOf('data-field="show_header_weather"') < editor.innerHTML.indexOf('data-field="show_daily_weather_forecast"'),
+    'header weather toggle appears immediately before daily forecast toggle'
+  );
+
+  let emittedConfig = null;
+  editor.dispatchEvent = (event) => {
+    if (event.type === 'config-changed') emittedConfig = event.detail.config;
+    return true;
+  };
+  editor.handleChange({ target: { dataset: { field: 'show_header_weather' }, type: 'checkbox', checked: false } });
+  assert.equal(editor._config.show_header_weather, false);
+  assert.equal(emittedConfig.show_header_weather, false);
+  assert.equal(emittedConfig.header_weather_sensor, 'weather.home');
+  assert.equal(emittedConfig.show_daily_weather_forecast, undefined);
+
+  editor.setConfig({ ...emittedConfig, show_daily_weather_forecast: true });
+  assert.match(editor.innerHTML, /data-field="show_header_weather"\s*>/);
+  assert.doesNotMatch(editor.innerHTML, /data-field="show_header_weather" checked/);
+  assert.match(editor.innerHTML, /data-field="show_daily_weather_forecast" checked/);
 });
 
 

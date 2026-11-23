@@ -11,10 +11,14 @@ The Daylight Calendar Card can pull current conditions and, when available, a da
 <ParamField path="header_weather_sensor" type="string">
   The entity ID of a Home Assistant `weather.*` entity. When set, the card:
 
-  - Reads **current conditions** (state and temperature) directly from the entity for the header summary.
-  - Subscribes to **daily forecasts** through Home Assistant's live forecast API and renders an MDI weather icon plus high/low temperatures for each day.
+  - Reads **current conditions** (state and temperature) directly from the entity for the optional header summary.
+  - Subscribes to **daily forecasts** (when enabled) through Home Assistant's live forecast API and renders an MDI weather icon plus high/low temperatures for each day.
 
   Examples: `weather.home`, `weather.openweathermap`, `weather.met_no`.
+</ParamField>
+
+<ParamField path="show_header_weather" type="boolean" default="true">
+  Show current conditions and temperature in the card header. Set to `false` to hide only the header weather summary while keeping daily forecasts in calendar views. This option is also available as **Show current weather in header** in the visual editor. Defaults to `true` for existing configurations.
 </ParamField>
 
 <ParamField path="show_daily_weather_forecast" type="boolean" default="true">
@@ -74,6 +78,19 @@ entities:
 header_weather_sensor: weather.home
 show_daily_weather_forecast: false
 ```
+
+### Daily forecasts without header weather
+
+```yaml
+type: custom:daylight-calendar-card
+entities:
+  - calendar.family
+header_weather_sensor: weather.home
+show_header_weather: false
+show_daily_weather_forecast: true
+```
+
+The weather entity remains configured so forecast retrieval works normally. Only the current-conditions display in the header is hidden.
 
 <Tip>
   Popular weather integrations known to provide daily forecasts: Met.no (free, no sign-up), OpenWeatherMap, AccuWeather, Pirate Weather, and the built-in HA weather platform.

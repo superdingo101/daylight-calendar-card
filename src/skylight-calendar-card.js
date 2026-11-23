@@ -8184,6 +8184,7 @@ class SkylightCalendarCard extends HTMLElement {
   }
 
   getHeaderWeatherData() {
+    if (this._config?.show_header_weather === false) return null;
     const sensorEntityId = this._config?.header_weather_sensor;
     if (!sensorEntityId) return null;
     const weatherData = getHeaderWeatherDisplayData(this._hass, sensorEntityId);
