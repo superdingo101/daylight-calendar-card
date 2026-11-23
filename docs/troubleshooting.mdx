@@ -187,7 +187,8 @@ The Daylight Calendar Card is designed to work out of the box with any Home Assi
 
     2. Open **Developer Tools → States** in Home Assistant and search for your weather entity (e.g. `weather.home`). Verify it exists and has a valid state.
     3. Confirm that the weather integration provides a **daily forecast**. Some integrations only provide hourly forecasts, which the card does not use for day-cell icons.
-    4. If the entity exists and has a daily forecast but icons still don't appear, check the browser console for errors related to the weather subscription.
+    4. Check that `show_daily_weather_forecast` is not set to `false` for day icons, and that `show_header_weather` is not set to `false` for the header summary.
+    5. If the entity exists and has a daily forecast but icons still don't appear, check the browser console for errors related to the weather subscription.
 
     <Tip>
       On slower Home Assistant instances, weather data may take a few seconds to arrive after the page loads. Refresh the page and wait a moment before concluding the icons are broken.
