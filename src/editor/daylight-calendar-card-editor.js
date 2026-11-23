@@ -1234,6 +1234,10 @@ export class SkylightCalendarCardEditor extends HTMLElement {
         </div>
       </div>
       <label class="checkbox-row">
+        <input type="checkbox" data-field="show_header_weather" ${this._config.show_header_weather !== false ? 'checked' : ''}>
+        Show current weather in header
+      </label>
+      <label class="checkbox-row">
         <input type="checkbox" data-field="show_daily_weather_forecast" ${this._config.show_daily_weather_forecast !== false ? 'checked' : ''}>
         Show daily weather forecasts
       </label>
@@ -1874,7 +1878,7 @@ export class SkylightCalendarCardEditor extends HTMLElement {
     }
 
     this.querySelectorAll('input[type="checkbox"][data-field]').forEach((checkbox) => {
-      if (['enable_event_management', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
+      if (['enable_event_management', 'show_header_weather', 'show_daily_weather_forecast', 'daylight_import_add_event_option', 'daylight_import_show_pending'].includes(checkbox.dataset.field)) {
         checkbox.checked = this._config[checkbox.dataset.field] !== false;
         return;
       }

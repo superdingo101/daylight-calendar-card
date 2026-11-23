@@ -2318,6 +2318,25 @@ test('daily forecasts default on and header-only weather hides forecasts in ever
     await expect(card.locator('.header-weather')).toContainText('70°');
     await expect(card.locator('.month-day-forecast, .week-day-forecast, .week-standard-day-forecast, .agenda-day-forecast')).toHaveCount(0);
   }
+
+  for (const defaultView of ['month', 'week-compact', 'week-standard', 'agenda']) {
+    for (const compactHeader of [false, true]) {
+      await page.evaluate((params) => window.renderCalendarCard({
+        config: {
+          entities: ['calendar.family'],
+          header_weather_sensor: 'weather.mock',
+          show_header_weather: false,
+          show_daily_weather_forecast: true,
+          default_view: params.defaultView,
+          compact_header: params.compactHeader
+        },
+        events: {},
+        weather: params.weather
+      }), { defaultView, compactHeader, weather });
+      await expect(card.locator('.header-weather')).toHaveCount(0);
+      await expect(card.locator('.month-day-forecast, .week-day-forecast, .week-standard-day-forecast, .agenda-day-forecast').first()).toBeVisible();
+    }
+  }
 });
 
 
