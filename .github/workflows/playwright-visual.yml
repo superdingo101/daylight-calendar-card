@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
 
+# Supersede obsolete PR checks; preserve non-PR runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   visual-tests:
     runs-on: ubuntu-24.04

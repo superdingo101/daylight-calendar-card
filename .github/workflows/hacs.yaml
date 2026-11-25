@@ -2,9 +2,15 @@ name: HACS Action
 
 on:
   push:
+    branches: [main, dev]
   pull_request:
   schedule:
     - cron: "0 0 * * *"
+
+# Supersede obsolete PR checks; preserve non-PR runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   hacs:
